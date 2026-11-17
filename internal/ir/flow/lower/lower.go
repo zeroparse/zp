@@ -967,9 +967,9 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 }
 
 // scanSiteRepeat lowers the scan site n, a repetition of one character without a maximum or a scope of
-// its own, in a local or a framed function. A walk that matches ScanHotSpan characters takes the
-// rest from the record of its start or goes on (ScanReach), and records itself when it ends
-// (ScanEnd; ScanKids for a walk that builds a value, whose records are those of the next site).
+// its own, in a local or a framed function. From its ScanHotSpan-th character on, a walk takes the rest
+// from a run at its position or goes on (ScanProbe), and it ends whatever its length (ScanEnd; ScanKids
+// or ScanFail for a walk that builds a value, whose runs are those of the next site).
 func (l *lowerer) scanSiteRepeat(n *core.Repeat, s *scope, build bool, fail *flow.Label) flow.Expr {
 	if n.Max >= 0 || n.Scope != nil || n.Project != "" {
 		panic("flow: a scan site has no maximum, no scope of its own and no projection")
@@ -984,6 +984,7 @@ func (l *lowerer) scanSiteRepeat(n *core.Repeat, s *scope, build bool, fail *flo
 	} else {
 		l.emit(&flow.Set{Dst: []flow.LValue{start, count}, X: []flow.Expr{pos, &flow.Int{}}})
 	}
+	l.emit(&flow.ScanBegin{})
 	lp := l.newLoop(-1)
 	m := l.mark(s, n.Body, true)
 	f := l.label()
@@ -995,7 +996,11 @@ func (l *lowerer) scanSiteRepeat(n *core.Repeat, s *scope, build bool, fail *flo
 		l.emit(&flow.PushKid{X: use(sv)})
 	}
 	l.emit(&flow.Inc{V: count})
-	l.scanReach(site, start, count)
+	if build {
+		l.scanProbe(site, start, base, count)
+	} else {
+		l.scanProbe(site, start, nil, count)
+	}
 	if l.used[f] {
 		l.cont(lp.Label)
 		l.close(bf)
@@ -1011,12 +1016,12 @@ func (l *lowerer) scanSiteRepeat(n *core.Repeat, s *scope, build bool, fail *flo
 	}
 	l.endLoop()
 	if !build {
-		l.scanEnd(site, start, count)
+		l.emit(&flow.ScanEnd{Site: site, Start: use(start), Count: use(count)})
 	}
 	if n.Min > 0 {
 		cond := &flow.Cmp{Op: "<", L: use(count), R: &flow.Int{N: n.Min}}
 		if build {
-			l.failIf(nil, cond, fail, &flow.DropKids{Base: use(base)})
+			l.failIf(nil, cond, fail, &flow.ScanFail{Site: site, Start: use(start), Base: use(base), Count: use(count)})
 		} else {
 			l.failIf(nil, cond, fail)
 		}
@@ -1029,19 +1034,16 @@ func (l *lowerer) scanSiteRepeat(n *core.Repeat, s *scope, build bool, fail *flo
 	return use(list)
 }
 
-// scanReach emits the test of a walk of the scan site that began at start after its count was
-// raised: at ScanHotSpan characters, the walk takes the count from ScanReach.
-func (l *lowerer) scanReach(site int, start, count *flow.Var) {
-	l.emit(&flow.If{Cond: &flow.Cmp{Op: "==", L: use(count), R: &flow.Int{N: flow.ScanHotSpan}}, Then: []flow.Stmt{
-		&flow.Set{Dst: []flow.LValue{count}, X: []flow.Expr{&flow.ScanReach{Site: site, Start: use(start), Count: use(count)}}},
-	}})
-}
-
-// scanEnd emits the end of a value-free walk of the scan site that began at start: a walk that
-// reached ScanHotSpan characters records itself or notes that it walked (ScanEnd).
-func (l *lowerer) scanEnd(site int, start, count *flow.Var) {
+// scanProbe emits the probe of a walk of the scan site that began at start after its count was raised:
+// from ScanHotSpan characters on, the walk takes the count from ScanProbe. base is the start of the
+// elements of a walk that builds a value, and nil for a value-free walk.
+func (l *lowerer) scanProbe(site int, start, base, count *flow.Var) {
+	x := &flow.ScanProbe{Site: site, Start: use(start), Count: use(count)}
+	if base != nil {
+		x.Base = use(base)
+	}
 	l.emit(&flow.If{Cond: &flow.Cmp{Op: "<", L: &flow.Int{N: flow.ScanHotSpan - 1}, R: use(count)}, Then: []flow.Stmt{
-		&flow.ScanEnd{Site: site, Start: use(start), Count: use(count)},
+		&flow.Set{Dst: []flow.LValue{count}, X: []flow.Expr{x}},
 	}})
 }
 
@@ -1137,6 +1139,9 @@ func (l *lowerer) scan(n *core.Scan, fail *flow.Label) flow.Expr {
 		count = l.decl("x", flow.TypeInt)
 		l.set(count, &flow.Int{})
 	}
+	if n.Site != 0 {
+		l.emit(&flow.ScanBegin{})
+	}
 	lp := &flow.Loop{Label: &flow.Label{}, Max: -1}
 	if n.Max >= 0 {
 		lp.While = &flow.Cmp{Op: "<", L: use(count), R: &flow.Int{N: n.Max}}
@@ -1155,11 +1160,11 @@ func (l *lowerer) scan(n *core.Scan, fail *flow.Label) flow.Expr {
 		l.emit(&flow.Inc{V: count})
 	}
 	if n.Site != 0 {
-		l.scanReach(n.Site, start, count)
+		l.scanProbe(n.Site, start, nil, count)
 	}
 	l.endLoop()
 	if n.Site != 0 {
-		l.scanEnd(n.Site, start, count)
+		l.emit(&flow.ScanEnd{Site: n.Site, Start: use(start), Count: use(count)})
 	}
 	if n.Min > 0 {
 		l.failIf(nil, &flow.Cmp{Op: "<", L: use(count), R: &flow.Int{N: n.Min}}, fail)

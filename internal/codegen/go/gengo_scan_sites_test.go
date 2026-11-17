@@ -46,15 +46,20 @@ rule s = xs:[ ]+ => text($xs)`, Inputs: []string{strings.Repeat(unit, 50), strin
 }
 
 // scanSiteMutations are the changes of the embedded library for the negative controls: walks that
-// never take a record, and records stored at the position after the start of their walk.
+// never take a run, runs that answer only the walks from their first position, and runs that record
+// the wrong end.
 var scanSiteMutations = map[string][][2]string{
 	"never reuse": {{
-		"		rec, ok = p.scanTables[site][start]\n",
-		"		rec, ok = p.scanTables[site][start]\n\t\tok = false\n",
+		"\t\t\tw.tab = p.scanTabs[site]\n",
+		"\t\t\tw.tab = nil\n",
 	}},
-	"shifted start": {{
-		"	t[start] = rec\n",
-		"	t[start+1] = rec\n",
+	"intervals off": {{
+		"\tif !ok || p.unit == core.Bytes && w.start > r.end-scanReach {\n",
+		"\tif !ok || w.start != r.first {\n",
+	}},
+	"wrong end": {{
+		"\tr := scanRun{first: start, end: p.Pos, count: count}\n",
+		"\tr := scanRun{first: start, end: p.Pos + 1, count: count}\n",
 	}},
 }
 
@@ -96,7 +101,14 @@ func scanSiteSpends(t *testing.T, goBin string, sources []string, inputs [][]str
 			write(pkg+"/"+f.Path, []byte(content))
 		}
 		fmt.Fprintf(&imports, "\t%q\n", "scanlin/"+pkg)
-		fmt.Fprintf(&entries, `	{%#v, func(s string, budget uint64) (bool, string) {
+		// A mutation of the library can make a parse panic, as a run that ends past the input does: the
+		// panic is the result of that parse.
+		fmt.Fprintf(&entries, `	{%#v, func(s string, budget uint64) (limited bool, result string) {
+		defer func() {
+			if r := recover(); r != nil {
+				limited, result = false, fmt.Sprint("panic: ", r)
+			}
+		}()
 		n, err := %[2]s.Parse(s, %[2]s.WithLimits(%[2]s.Limits{Compute: budget}))
 		j, _ := json.Marshal(n)
 		return errors.Is(err, %[2]s.ErrLimit), string(j) + " " + fmt.Sprint(err)
@@ -173,8 +185,8 @@ func main() {
 // TestScanSitesGeneratedLinear checks that grammars which restart a walk of a scan site at one
 // position once for each level of a nest, by a rule called at the same position and by the calling
 // rule itself, spend a budget linear in the input in generated parsers, that walks that never take
-// a record make them quadratic and give the same results, and that records stored at the wrong
-// start change the results.
+// a run make them quadratic and give the same results, and that runs with the wrong end change the
+// results.
 func TestScanSitesGeneratedLinear(t *testing.T) {
 	t.Parallel()
 	codegentest.EachMode(t, testScanSitesGeneratedLinear)
@@ -228,12 +240,48 @@ func testScanSitesGeneratedLinear(t *testing.T) {
 			t.Errorf("input %d: records change the result\n got  %s\n want %s", i, results[i], plain[i])
 		}
 	}
-	_, shifted := scanSiteSpends(t, goBin, sources, inputs, "shifted start")
+	_, shifted := scanSiteSpends(t, goBin, sources, inputs, "wrong end")
 	differ := false
 	for i := range results {
 		differ = differ || results[i] != shifted[i]
 	}
 	if !differ {
-		t.Errorf("records stored at the wrong start change no result")
+		t.Errorf("runs with the wrong end change no result")
+	}
+}
+
+// TestScanSitesGeneratedIntervals checks that walks which begin at different positions of one run take
+// the rest from the run that an earlier walk recorded in generated parsers: the budgets of the
+// controls of the engine (codegentest.ScanIntervalControls) grow linearly, and grow quadratically with
+// the same results when a run answers only the walks from its first position.
+func TestScanSitesGeneratedIntervals(t *testing.T) {
+	t.Parallel()
+	codegentest.EachMode(t, testScanSitesGeneratedIntervals)
+}
+
+func testScanSitesGeneratedIntervals(t *testing.T) {
+	goBin := skipRunsGoBin(t)
+	codegentest.NeedsBudgetControls(t)
+	var sources []string
+	var inputs [][]string
+	for _, c := range codegentest.ScanIntervalControls {
+		sources = append(sources, c.Src)
+		inputs = append(inputs, []string{c.Input(200), c.Input(400), c.Input(800)})
+	}
+	spends, results := scanSiteSpends(t, goBin, sources, inputs, "")
+	off, plain := scanSiteSpends(t, goBin, sources, inputs, "intervals off")
+	for i, c := range codegentest.ScanIntervalControls {
+		t.Logf("%s: spends %v, intervals off %v", c.Name, spends[i], off[i])
+		if r := float64(spends[i][2]) / float64(spends[i][1]); r > 2.2 {
+			t.Errorf("%s: spends %v grow by %.2f, want linear", c.Name, spends[i], r)
+		}
+		if r := float64(off[i][2]) / float64(off[i][1]); r < 3.5 {
+			t.Errorf("%s, runs that answer only their first position: spends %v grow by %.2f, want quadratic", c.Name, off[i], r)
+		}
+	}
+	for i := range results {
+		if results[i] != plain[i] {
+			t.Errorf("input %d: runs change the result\n got  %s\n want %s", i, results[i], plain[i])
+		}
 	}
 }

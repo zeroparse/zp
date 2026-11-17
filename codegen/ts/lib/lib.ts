@@ -2026,20 +2026,47 @@ interface SkipRecord {
   examined: number;
 }
 
-// SCAN_HOT_SPAN is the number of characters that a walk of a scan site matches before it looks for the
-// record of its start, and the length of the walks that turn a site hot (the Go runtime's
-// ScanHotSpan).
+// SCAN_HOT_SPAN is the number of characters that a walk of a scan site matches before it looks for a
+// run, and the length of the walks that turn a site hot (the Go runtime's scanHotSpan).
 const SCAN_HOT_SPAN = 16;
 
-// ScanRecord is the record of a walk of a scan site: where it ended, how many characters it matched
-// and, for a walk that builds a value, its elements.
-interface ScanRecord {
+// SCAN_REACH bounds how far past the start of a character its test examines, in bytes; a walk over
+// bytes takes a run only if it began at least this far before the run's end, so that the run's
+// examined end is the walk's (the Go runtime's scanReach).
+const SCAN_REACH = 8;
+
+// ScanRun is a run of a scan site: every walk from an iteration start in [first, end) ends at end.
+interface ScanRun {
+  first: number;
   end: number;
-  count: number;
-  // examined is, in a Document parse, the end of the input that the walk examined after scanReach;
-  // decoding the last characters it matched may examine input past the character where it fails.
+  // examined is, in a Document parse, the end of the input that the walks recorded in the run
+  // examined, each from its start; count is the number of characters in [first, end).
   examined: number;
-  kids: (Node | null)[] | null;
+  count: number;
+  // rem is null when every character of the run takes one unit; otherwise rem[end-b-1] holds, for an
+  // iteration start b, the number of characters from b to end, and 0 for the other positions.
+  rem: number[] | null;
+  // buf holds, for the walks that build a value, the elements of the run at its end; the part before
+  // them is room that no list holds, which extending fills.
+  buf: (Node | null)[] | null;
+  // next is the number (index plus one) of the next run in the order of positions if it covers a
+  // position of the block of end, and 0 otherwise.
+  next: number;
+}
+
+// ScanTable holds the runs of a site in one value mode, in the order they were made (the runs of a
+// table lie in different stretches of characters of the class, so a position belongs to at most one).
+// bits holds a bit for each position from lo, set for the positions that a run covers, so that a probe
+// of a position that no run covers reads one word. head holds, for each block of 64 positions from lo,
+// the number (index plus one) of the first run in the order of positions that covers a position of the
+// block, and each run links the next (ScanRun.next), so a probe of a covered position follows the runs
+// of its block; making or extending a run changes the links of its own blocks alone and moves no other
+// run (the Go runtime's scanTable).
+interface ScanTable {
+  lo: number;
+  bits: Uint32Array;
+  head: Int32Array;
+  runs: ScanRun[];
 }
 
 // ScanCold is the state of a scan site that decides whether it is hot: the furthest end of the walks
@@ -2047,6 +2074,43 @@ interface ScanRecord {
 interface ScanCold {
   end: number;
   hot: boolean;
+}
+
+// scanRemAt returns the number of characters from b to the end of the run, or -1 if b is neither an
+// iteration start of the run nor its end.
+function scanRemAt(r: ScanRun, b: number): number {
+  if (b < r.first || b > r.end) return -1;
+  if (r.rem === null || b === r.end) return r.end - b;
+  const n = r.rem[r.end - b - 1]!;
+  return n !== 0 ? n : -1;
+}
+
+// scanAt returns the index of the run of t that covers pos, or -1. A run covers its positions and its
+// end, where the character is not of the class.
+function scanAt(t: ScanTable, pos: number): number {
+  const i = pos - t.lo;
+  if (i < 0 || i >= t.bits.length * 32 || (t.bits[i >>> 5]! & (1 << (i & 31))) === 0) return -1;
+  let j = t.head[i >>> 6]!;
+  while (j !== 0 && t.runs[j - 1]!.end < pos) j = t.runs[j - 1]!.next;
+  return j === 0 || t.runs[j - 1]!.first > pos ? -1 : j - 1;
+}
+
+// scanHeads makes the run of number id the head of each block that the positions of [from, to) meet,
+// unless a run before it in the order of positions is.
+function scanHeads(t: ScanTable, id: number, from: number, to: number): void {
+  const first = t.runs[id - 1]!.first;
+  for (let b = (from - t.lo) >>> 6; b <= (to - 1 - t.lo) >>> 6; b++) {
+    const h = t.head[b]!;
+    if (h === 0 || t.runs[h - 1]!.first > first) t.head[b] = id;
+  }
+}
+
+// scanLink makes the run before position first that ends in the block of first link the run of
+// number id.
+function scanLink(t: ScanTable, id: number, first: number): void {
+  let pred = 0;
+  for (let j = t.head[(first - t.lo) >>> 6]!; j !== 0 && t.runs[j - 1]!.first < first; j = t.runs[j - 1]!.next) pred = j;
+  if (pred !== 0) t.runs[pred - 1]!.next = id;
 }
 
 // SkipSlots holds the slots of a site: a bit for each position from base on in the 32-bit words
@@ -2576,14 +2640,19 @@ export class Parser {
   docExamined = 0;
   docLow = 0;
 
-  // scanTables are the records of the walks of scan sites by site, scanCold whether each site is hot,
-  // by 2*site, plus 1 in a lookahead, and scanHotNow, scanHit and scanRec the state of the walk that
-  // scanReach reached (see scanReach).
-  scanTables: (Map<number, ScanRecord> | undefined)[] = [];
+  // scanTabs are the runs of the walks of scan sites by site, scanCold whether each site is hot, by
+  // 2*site, plus 1 in a lookahead, and the scanWalk fields the state of the walk in progress: from its
+  // SCAN_HOT_SPAN-th character the table it probes (null at a cold site, at a site without runs and
+  // after it took a run), its start, whether the site is hot, whether it took a run (then scanWalkKids
+  // are its elements if it builds a value) and whether it probed a run that it could not take.
+  scanTabs: (ScanTable | undefined)[] = [];
   scanCold: ScanCold[] = [];
-  scanHotNow = false;
-  scanHit = false;
-  scanRec: ScanRecord | null = null;
+  scanWalkTab: ScanTable | null = null;
+  scanWalkStart = 0;
+  scanWalkHot = false;
+  scanWalkHit = false;
+  scanWalkSeen = false;
+  scanWalkKids: (Node | null)[] | null = null;
 
   readonly control: BudgetControl | null;
 
@@ -3255,91 +3324,283 @@ export class Parser {
   // recorded position (once it has matched its minimum) takes the rest from the record, as a memo
   // hit does. The slots of a parse last for that parse.
 
-  // Scan sites: the records of the walks of the repetitions of one character without a maximum in the
-  // rules that call no rule, a mirror of the Go runtime's (codegen/go/lib/scan_sites.go). A walk from a start
-  // ends at a position, matches a number of characters and builds elements that depend on the start
-  // and the input alone. A walk that has matched SCAN_HOT_SPAN characters at a hot site looks for the
-  // record of its start (scanReach): it moves to the recorded end and takes the count, and its next
-  // iteration fails there as it did when the walk was recorded; otherwise it goes on and records
-  // itself when it ends (scanEnd, scanKids). A site turns hot, separately inside and outside
-  // lookaheads, once a walk of SCAN_HOT_SPAN characters or more starts below the furthest end of its
-  // walks and walks SCAN_HOT_SPAN characters below it (scanWalked). Walks do not nest.
+  // Scan sites: the runs of the walks of the single-character repetitions without a maximum, a mirror
+  // of the Go runtime's (codegen/go/lib/scan_sites.go). The walk from any iteration start inside a
+  // stretch of characters of the class ends where the stretch ends, so a site keeps runs: ranges of
+  // positions with their common end, the count, in a Document parse the examined end, and for walks that
+  // build a value one sequence of elements. From its SCAN_HOT_SPAN-th character on, a walk at a hot
+  // site probes its position after each character (scanProbe): at an iteration start of a run it
+  // takes the rest of the walk from the run, and its next iteration fails at the run's end as it did
+  // for the walks the run recorded; a walk that began before the run extends it. A walk that probed
+  // no run records itself as one when it ends (scanEnd, scanKids, scanFail). A site turns hot,
+  // separately inside and outside lookaheads, once a walk of SCAN_HOT_SPAN characters or more starts
+  // below the furthest end of its walks and walks SCAN_HOT_SPAN characters below it (scanWalked).
+  // Walks do not nest.
 
-  // scanReach is called by a walk of the scan site that began at start when it has matched
-  // SCAN_HOT_SPAN characters, count of them. At a hot site with a record of start it moves to the
-  // recorded end and returns the recorded count, charging one unit for the lookup and one for the
-  // record; otherwise it returns count, charging one unit for the lookup at a hot site.
-  scanReach(site: number, start: number, count: number): number {
-    const i = 2 * site + (this.silent > 0 ? 1 : 0);
-    this.scanHotNow = this.scanCold[i]?.hot === true;
-    this.scanHit = false;
-    if (!this.scanHotNow) return count;
-    this.spend();
-    const rec = this.scanTables[site]?.get(start);
-    if (rec === undefined) {
-      this.scanExaminedBegin();
-      return count;
-    }
-    this.spend();
-    this.scanHit = true;
-    this.scanRec = rec;
-    this.pos = rec.end;
-    this.documentTouch(rec.examined);
-    return rec.count;
+  // scanBegin begins a walk of a scan site at the position: a Document parse measures the end of the
+  // input that the walk examines from its start (scanExaminedBegin).
+  scanBegin(): void {
+    this.scanExaminedBegin();
   }
 
-  // scanExaminedBegin starts measuring, in a Document parse, the input that the rest of a walk that
-  // records itself examines; scanExaminedEnd returns its end and restores that of the enclosing call
-  // (0 outside a Document parse).
+  // scanExaminedBegin and scanExaminedEnd measure, in a Document parse, the input that a walk
+  // examines: scanExaminedEnd returns its end so far, and scanExaminedRestore ends the measure,
+  // restoring that of the enclosing call (0 and nothing outside a Document parse).
   scanExaminedBegin(): void {}
 
   scanExaminedEnd(): number {
     return 0;
   }
 
-  // scanEnd ends a value-free walk of the scan site that began at start, matched count characters (at
-  // least SCAN_HOT_SPAN) and ended at the position: unless it took the rest from a record, it records
-  // itself if the site is hot and notes that it walked if not.
-  scanEnd(site: number, start: number, count: number): void {
-    if (this.scanHit) return;
-    if (this.scanHotNow) this.scanStore(site, start, { end: this.pos, count, examined: this.scanExaminedEnd(), kids: null });
-    else this.scanWalked(site, start);
+  scanExaminedRestore(): void {}
+
+  // scanProbe is called by a walk of the value-free scan site that began at start after each character
+  // from its SCAN_HOT_SPAN-th on, count of them. At the SCAN_HOT_SPAN-th it charges one unit for the
+  // lookup at a hot site. At an iteration start of a run it takes the rest of the walk from the run,
+  // charging one unit: it moves to the run's end and returns the count of the whole walk; otherwise it
+  // returns count.
+  scanProbe(site: number, start: number, count: number): number {
+    if (count === SCAN_HOT_SPAN) this.scanReach(site, start);
+    const t = this.scanWalkTab;
+    if (t === null) return count;
+    const i = scanAt(t, this.pos);
+    return i < 0 ? count : this.scanTake(i, count, null);
   }
 
-  // scanKids returns the elements of a walk of the scan site that builds a value, which began at
-  // start, gathered its elements on the stack from base and matched count characters: for a walk of
-  // SCAN_HOT_SPAN characters or more that took the rest from a record, the elements of the record,
-  // which it shares (the gathered ones are dropped); otherwise the gathered elements, which a walk of
-  // that length records at a hot site.
-  scanKids(site: number, start: number, base: number, count: number): (Node | null)[] {
-    if (count < SCAN_HOT_SPAN) return this.kids(base);
-    if (this.scanHit) {
-      this.dropKids(base);
-      return this.scanRec!.kids!;
+  // scanProbeKids is scanProbe for a walk of a scan site that builds a value, whose elements are on the
+  // stack from base: a walk that takes a run drops them for the run's (scanKids).
+  scanProbeKids(site: number, start: number, base: number, count: number): number {
+    if (count === SCAN_HOT_SPAN) this.scanReach(site, start);
+    const t = this.scanWalkTab;
+    if (t === null) return count;
+    const i = scanAt(t, this.pos);
+    if (i < 0) return count;
+    count = this.scanTake(i, count, this.kidStack.slice(base));
+    if (this.scanWalkHit) this.dropKids(base);
+    return count;
+  }
+
+  // scanReach starts the probes of the walk of the site that began at start, at its SCAN_HOT_SPAN-th
+  // character.
+  scanReach(site: number, start: number): void {
+    const i = 2 * site + (this.silent > 0 ? 1 : 0);
+    this.scanWalkTab = null;
+    this.scanWalkKids = null;
+    this.scanWalkStart = start;
+    this.scanWalkHit = false;
+    this.scanWalkSeen = false;
+    this.scanWalkHot = this.scanCold[i]?.hot === true;
+    if (this.scanWalkHot) {
+      this.spend();
+      this.scanWalkTab = this.scanTabs[site] ?? null;
     }
-    const kids = this.kids(base);
-    if (this.scanHotNow) {
-      for (const k of kids) {
+  }
+
+  // scanTake takes the rest of the walk, which is at an iteration boundary at the position covered by
+  // the run of index i, from the run, if the position is an iteration start of the run. count is the
+  // number of characters the walk has matched and own, for a walk that builds a value, their elements.
+  // A walk that began before the run extends the run back to its start.
+  scanTake(i: number, count: number, own: (Node | null)[] | null): number {
+    const t = this.scanWalkTab!;
+    const run = t.runs[i]!;
+    const start = this.scanWalkStart;
+    const rb = scanRemAt(run, this.pos);
+    if (rb < 0 || (this.unit === Bytes && start > run.end - SCAN_REACH)) {
+      // Not an iteration start of the run, or, in bytes, too close to its end for the run's examined
+      // end to be the walk's: walk on. The walk lies in the stretch of the run, so it makes no run.
+      this.scanWalkSeen = true;
+      return count;
+    }
+    this.spend();
+    this.scanWalkHit = true;
+    this.scanWalkTab = null;
+    if (start < run.first) this.scanExtend(t, i + 1, count - (run.count - rb), own);
+    if (own !== null) {
+      const rs = scanRemAt(run, start);
+      const buf = run.buf!;
+      if (rs === buf.length) {
+        // The walk began at the first position of the run, whose elements are its own: it shares them.
+        this.scanWalkKids = buf;
+      } else if (rs >= 0) {
+        // The elements of the walk's own characters are those of the run at the same positions, which a
+        // list copies.
+        this.scanWalkKids = buf.slice(buf.length - rs);
+        this.alloc(arrayBytes(this.scanWalkKids.length));
+      } else {
+        // The walk began at a position that is no iteration start of the run, which a parse that
+        // decodes the input from its start never reaches: its own elements and the rest.
+        this.scanWalkKids = own.concat(buf.slice(buf.length - rb));
+        this.alloc(arrayBytes(this.scanWalkKids.length));
+      }
+    }
+    this.documentTouch(run.examined);
+    this.pos = run.end;
+    return count + rb;
+  }
+
+  // scanExtend extends the run back to the start of the walk that takes it: before is the number of
+  // characters that the walk matched before the run's first position. It extends nothing if that
+  // position is no iteration start of the walk, which a parse that decodes from the start never meets.
+  // Extending charges no unit, as marking positions does not.
+  scanExtend(t: ScanTable, id: number, before: number, own: (Node | null)[] | null): void {
+    const r = t.runs[id - 1]!;
+    const start = this.scanWalkStart;
+    const first = r.first;
+    if (before !== first - start || r.rem !== null) {
+      // Characters of several units: note the iteration starts of the walk before first.
+      const starts: number[] = [];
+      for (let b = start; b < first; b += this.scanUnitsAt(b)) starts.push(b);
+      if (starts.length !== before) return;
+      if (r.rem === null) {
+        r.rem = [];
+        for (let b = r.end - 1; b >= first; b--) r.rem.push(r.end - b);
+      }
+      for (let b = first - 1; b >= start; b--) r.rem.push(0);
+      this.alloc(8 * (first - start));
+      for (let j = 0; j < starts.length; j++) r.rem[r.end - starts[j]! - 1] = r.count + before - j;
+    }
+    if (own !== null) {
+      const head = own.slice(0, before);
+      for (const k of head) {
+        // The run shares its elements with the lists of the walks that take it, so they are final.
         if (k !== null) k.fresh = false;
       }
-      this.scanStore(site, start, { end: this.pos, count, examined: this.scanExaminedEnd(), kids });
-    } else {
-      this.scanWalked(site, start);
+      r.buf = head.concat(r.buf!.slice(r.buf!.length - r.count));
+      this.alloc(arrayBytes(r.buf.length));
     }
+    r.first = start;
+    r.count += before;
+    r.examined = Math.max(r.examined, this.scanExaminedEnd());
+    this.scanGrow(t, start, first);
+    scanLink(t, id, start);
+    this.scanCover(t, id, start, first);
+  }
+
+  // scanUnitsAt returns the number of units of the character at i, without charging the read: the walk
+  // that reads it again here charged its tests already.
+  scanUnitsAt(i: number): number {
+    if (this.unit !== Bytes) return 1;
+    decodeRune(this.bs, i, this.n);
+    return decodedSize;
+  }
+
+  // scanGrow grows the window of t to cover the positions of [from, to), doubling on the side that
+  // grows. The window starts at a multiple of 64, so that the blocks of head stay in place.
+  scanGrow(t: ScanTable, from: number, to: number): void {
+    if (t.bits.length === 0) {
+      t.lo = from - (from & 63);
+      const n = Math.max(Math.ceil((to - t.lo) / 64), 1);
+      t.bits = new Uint32Array(2 * n);
+      t.head = new Int32Array(n);
+      this.alloc(typedBytes(4 * t.bits.length) + typedBytes(4 * n));
+    } else if (from < t.lo || to > t.lo + 32 * t.bits.length) {
+      let lo = t.lo;
+      let hi = t.lo + 32 * t.bits.length;
+      if (from < lo) {
+        lo = Math.max(Math.min(from, hi - 2 * 32 * t.bits.length), 0);
+        lo -= lo & 63;
+      }
+      if (to > hi) hi = Math.max(to, lo + 2 * 32 * t.bits.length);
+      const n = Math.ceil((hi - lo) / 64);
+      const bits = new Uint32Array(2 * n);
+      bits.set(t.bits, (t.lo - lo) / 32);
+      const head = new Int32Array(n);
+      head.set(t.head, (t.lo - lo) / 64);
+      this.alloc(typedBytes(4 * bits.length) + typedBytes(4 * n));
+      t.lo = lo;
+      t.bits = bits;
+      t.head = head;
+    }
+  }
+
+  // scanCover marks the positions of [from, to), inside the window, as covered by the run of number id:
+  // it sets their bits and makes the run the head of their blocks that no run before it meets.
+  scanCover(t: ScanTable, id: number, from: number, to: number): void {
+    for (let i = from - t.lo; i < to - t.lo; i++) t.bits[i >>> 5]! |= 1 << (i & 31);
+    scanHeads(t, id, from, to);
+  }
+
+  // scanEnd ends a value-free walk of the scan site that began at start and matched count characters:
+  // for a walk of SCAN_HOT_SPAN characters or more, unless it took the rest from a run, it records
+  // itself as a run if the site is hot and it probed no position of a run (a walk probes its end, which
+  // a run of its stretch covers), or notes that it walked if the site is not hot.
+  scanEnd(site: number, start: number, count: number): void {
+    this.scanFinish(site, start, count, null);
+  }
+
+  // scanFinish is scanEnd for a walk whose elements, if it builds a value and took no run, are kids.
+  scanFinish(site: number, start: number, count: number, kids: (Node | null)[] | null): void {
+    if (count >= SCAN_HOT_SPAN && !this.scanWalkHit) {
+      if (!this.scanWalkHot) this.scanWalked(site, start);
+      else if (!this.scanWalkSeen) this.scanMake(site, start, count, kids);
+    }
+    this.scanExaminedRestore();
+  }
+
+  // scanKids is kids for a walk of the scan site that builds a value, which began at start, gathered
+  // its elements on the stack from base and matched count characters: it ends the walk as scanEnd
+  // does, and returns the elements of the run the walk took, if it took one, or the gathered elements,
+  // which a run that the walk makes shares.
+  scanKids(site: number, start: number, base: number, count: number): (Node | null)[] {
+    const kids = count >= SCAN_HOT_SPAN && this.scanWalkHit ? this.scanWalkKids! : this.kids(base);
+    this.scanFinish(site, start, count, kids);
     return kids;
   }
 
-  // scanStore records the walk of the site that began at start, charging one unit.
-  scanStore(site: number, start: number, rec: ScanRecord): void {
-    this.spend();
-    let t = this.scanTables[site];
-    if (t === undefined) {
-      t = new Map();
-      this.alloc(mapBytes);
-      this.scanTables[site] = t;
+  // scanFail ends a walk of the scan site that builds a value, which began at start, gathered its
+  // elements on the stack from base and matched count characters, fewer than the minimum of the
+  // repetition: it ends the walk as scanKids does, without making a list, and drops the elements.
+  scanFail(site: number, start: number, base: number, count: number): void {
+    let kids: (Node | null)[] | null = null;
+    if (count >= SCAN_HOT_SPAN && !this.scanWalkHit && this.scanWalkHot && !this.scanWalkSeen) {
+      // The walk records itself: it moves its elements into the run without the charge of taking them
+      // off as a list, since it makes no list (the Go runtime's ScanFail).
+      kids = this.kidStack.slice(base);
+      this.alloc(arrayBytes(kids.length));
     }
-    this.alloc(objectBytes(3) + mapEntryBytes);
-    t.set(start, rec);
+    this.dropKids(base);
+    this.scanFinish(site, start, count, kids);
+  }
+
+  // scanMake records the walk of the site that began at start, ended at the position and matched count
+  // characters as a run, charging one unit.
+  scanMake(site: number, start: number, count: number, kids: (Node | null)[] | null): void {
+    this.spend();
+    const r: ScanRun = { first: start, end: this.pos, examined: this.scanExaminedEnd(), count, rem: null, buf: null, next: 0 };
+    this.alloc(objectBytes(7));
+    if (count !== r.end - r.first) {
+      const rem = new Array<number>(r.end - r.first).fill(0);
+      for (let b = r.first, j = 0; b < r.end; b += this.scanUnitsAt(b), j++) rem[r.end - b - 1] = count - j;
+      r.rem = rem;
+      this.alloc(arrayBytes(rem.length));
+    }
+    if (kids !== null) {
+      // The lists of the walks that take the run share the elements, so they are final from here.
+      for (const k of kids) {
+        if (k !== null) k.fresh = false;
+      }
+      r.buf = kids;
+    }
+    let t = this.scanTabs[site];
+    if (t === undefined) {
+      t = { lo: 0, bits: new Uint32Array(0), head: new Int32Array(0), runs: [] };
+      this.alloc(objectBytes(4) + arrayBytes(0));
+      while (this.scanTabs.length <= site) this.scanTabs.push(undefined);
+      this.scanTabs[site] = t;
+    }
+    this.scanGrow(t, r.first, r.end + 1);
+    // The next run in the order of positions that meets the block of r's end.
+    for (let j = t.head[(r.end - t.lo) >>> 6]!; j !== 0; j = t.runs[j - 1]!.next) {
+      if (t.runs[j - 1]!.first > r.end) {
+        r.next = j;
+        break;
+      }
+    }
+    const id = t.runs.length + 1;
+    scanLink(t, id, r.first);
+    t.runs.push(r);
+    this.alloc(8);
+    this.scanCover(t, id, r.first, r.end + 1);
   }
 
   // scanWalked notes a walk of SCAN_HOT_SPAN characters or more of a site that is not hot, which began
@@ -5265,8 +5526,8 @@ export class DocumentParser extends Parser {
     if (from < this.docLow) this.docLow = from;
   }
 
-  // scanExamined is the examined end of the enclosing call while the rest of a scan walk that records
-  // itself runs (scanExaminedBegin).
+  // scanExamined is the examined end of the enclosing call while a walk of a scan site runs
+  // (scanExaminedBegin).
   scanExamined = 0;
 
   override scanExaminedBegin(): void {
@@ -5275,9 +5536,11 @@ export class DocumentParser extends Parser {
   }
 
   override scanExaminedEnd(): number {
-    const x = this.docExamined;
-    this.docExamined = Math.max(this.scanExamined, x);
-    return x;
+    return this.docExamined;
+  }
+
+  override scanExaminedRestore(): void {
+    this.docExamined = Math.max(this.scanExamined, this.docExamined);
   }
 
   // documentTouchLine records that a line start test at the position examined the unit before it.

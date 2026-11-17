@@ -224,12 +224,27 @@ type SkipVisit struct{}
 // from each position it visited.
 type SkipEnd struct{}
 
+// ScanBegin begins a walk of a scan site at the position; the walk ends with ScanEnd, ScanKids or
+// ScanFail.
+type ScanBegin struct{}
+
 // ScanEnd ends a walk of the value-free scan site Site (core.Scan.Site) that began at Start and matched
-// Count characters, at least ScanHotSpan, and that ScanReach reached: unless the walk took the rest
-// from a record, it records itself at a hot site, or notes that it walked at a site that is not hot.
+// Count characters: for a walk of ScanHotSpan characters or more, unless it took the rest from a run, it
+// records itself as a run at a hot site if it probed no position of a run, or notes that it walked at
+// a site that is not hot.
 type ScanEnd struct {
 	Site         int
 	Start, Count Expr
+}
+
+// ScanFail ends a walk of the scan site Site that builds a value, which began at Start, gathered its
+// elements on the stack from Base and matched Count characters, fewer than the minimum of its
+// repetition: it ends the walk as ScanKids does, without making a list. A walk that records itself as a
+// run moves the elements into the run without the charge of taking them off as a list; otherwise the
+// elements are dropped.
+type ScanFail struct {
+	Site               int
+	Start, Base, Count Expr
 }
 
 // EmitStream delivers the committed element X, which is nil for a value-free repetition, to the
@@ -302,7 +317,9 @@ func (*EmitStream) stmt()    {}
 func (*SkipBegin) stmt()     {}
 func (*SkipVisit) stmt()     {}
 func (*SkipEnd) stmt()       {}
+func (*ScanBegin) stmt()     {}
 func (*ScanEnd) stmt()       {}
+func (*ScanFail) stmt()      {}
 func (*Append) stmt()        {}
 func (*SetWhere) stmt()      {}
 func (*DropCreated) stmt()   {}
@@ -365,25 +382,25 @@ type StreamOn struct{}
 // position to its end, and the walk stops.
 type SkipHit struct{}
 
-// ScanHotSpan is the number of characters that a walk of a scan site matches before it looks for the
-// record of its start (ScanReach); the runtimes and the engine use the same number.
+// ScanHotSpan is the number of characters that a walk of a scan site matches before it looks for a run
+// (ScanProbe); the runtimes and the engine use the same number.
 const ScanHotSpan = 16
 
-// ScanReach is evaluated by a walk of the scan site Site that began at Start when it has matched
-// ScanHotSpan characters, Count of them. At a hot site with a record of Start it moves the position
-// to the recorded end, and its value is the recorded count; otherwise its value is Count. The walk
-// then runs its next iteration, which fails at the recorded end as it did when the walk was
-// recorded. The walk ends with ScanEnd, or with ScanKids if it builds a value.
-type ScanReach struct {
-	Site         int
-	Start, Count Expr
+// ScanProbe is evaluated by a walk of the scan site Site that began at Start after each character from
+// its ScanHotSpan-th on, Count of them; Base is nil for a value-free walk, and the start of its elements
+// on the stack for one that builds a value. At an iteration start of a run of a hot site it takes the
+// rest of the walk from the run: it moves the position to the run's end, drops the gathered elements
+// for the run's, and its value is the count of the whole walk; otherwise its value is Count. The walk
+// then runs its next iteration, which fails at the run's end as it did for the walks the run recorded.
+type ScanProbe struct {
+	Site               int
+	Start, Base, Count Expr
 }
 
 // ScanKids is Kids for a walk of the scan site Site (core.Repeat.ScanSite plus one) that began at
-// Start, gathered its elements on the stack from Base and matched Count characters: for a walk that
-// reached ScanHotSpan characters, it ends the walk as ScanEnd does, and its value is the elements of
-// the record that the walk took, if it took one (the stack is dropped to Base), or the gathered
-// elements, which the record that it makes shares.
+// Start, gathered its elements on the stack from Base and matched Count characters: it ends the walk as
+// ScanEnd does, and its value is the elements of the run that the walk took, if it took one, or the
+// gathered elements, which a run that it makes shares.
 type ScanKids struct {
 	Site               int
 	Start, Base, Count Expr
@@ -635,7 +652,7 @@ func (*RecLen) expr()          {}
 func (*KidsLen) expr()         {}
 func (*StreamOn) expr()        {}
 func (*SkipHit) expr()         {}
-func (*ScanReach) expr()       {}
+func (*ScanProbe) expr()       {}
 func (*ScanKids) expr()        {}
 func (*Nil) expr()             {}
 func (*Int) expr()             {}
@@ -725,8 +742,8 @@ func Subexprs(x Expr, f func(Expr)) {
 		each(x.Start, x.Kids)
 	case *Kids:
 		each(x.Base)
-	case *ScanReach:
-		each(x.Start, x.Count)
+	case *ScanProbe:
+		each(x.Start, x.Base, x.Count)
 	case *ScanKids:
 		each(x.Start, x.Base, x.Count)
 	case *ShapeSingle:
@@ -794,8 +811,9 @@ func Uses(x Expr, f func(*Var)) {
 		Uses(x.Kids, f)
 	case *Kids:
 		Uses(x.Base, f)
-	case *ScanReach:
+	case *ScanProbe:
 		Uses(x.Start, f)
+		Uses(x.Base, f)
 		Uses(x.Count, f)
 	case *ScanKids:
 		Uses(x.Start, f)

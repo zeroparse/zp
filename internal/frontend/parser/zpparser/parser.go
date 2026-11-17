@@ -3834,6 +3834,7 @@ L9:
 	x18 = p.Pos
 	x19 = p.Pos
 	x20 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -3847,13 +3848,11 @@ L9:
 		}
 		p.Pos += size
 		x20++
-		if x20 == 16 {
-			x20 = p.ScanReach(39, x19, x20)
+		if 15 < x20 {
+			x20 = p.ScanProbe(39, x19, x20)
 		}
 	}
-	if 15 < x20 {
-		p.ScanEnd(39, x19, x20)
-	}
+	p.ScanEnd(39, x19, x20)
 	v21 = p.NewMatch(x18, p.Pos, p.Text(x18, p.Pos), true)
 	k16 = v21
 	p.Silent--
@@ -15645,6 +15644,7 @@ L5:
 L6:
 	x7 = p.Pos
 	x8 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -15658,13 +15658,11 @@ L6:
 		}
 		p.Pos += size
 		x8++
-		if x8 == 16 {
-			x8 = p.ScanReach(43, x7, x8)
+		if 15 < x8 {
+			x8 = p.ScanProbe(43, x7, x8)
 		}
 	}
-	if 15 < x8 {
-		p.ScanEnd(43, x7, x8)
-	}
+	p.ScanEnd(43, x7, x8)
 	v9 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
 	v = p.ScopeValue(sh11, v9, start)
 	if n := rt.AsTval(v); n != nil {
@@ -19147,6 +19145,7 @@ func i253(p *rt.TParser) (any, bool) {
 		goto fail
 	}
 	x3, x5, x4 = p.Pos, len(p.KidStack), 0
+	p.ScanBegin()
 	for {
 		p.Spend()
 		x6, x7 = p.Pos, len(p.Recovered)
@@ -19166,8 +19165,8 @@ func i253(p *rt.TParser) (any, bool) {
 		v11 = p.ScopeValue(sh11, v10, x6)
 		p.PushKid(v11)
 		x4++
-		if x4 == 16 {
-			x4 = p.ScanReach(46, x3, x4)
+		if 15 < x4 {
+			x4 = p.ScanProbeKids(46, x3, x5, x4)
 		}
 		continue
 	L8:
@@ -25477,6 +25476,7 @@ L3:
 	}
 	x4 = p.Pos
 	x5 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -25490,13 +25490,11 @@ L3:
 		}
 		p.Pos += size
 		x5++
-		if x5 == 16 {
-			x5 = p.ScanReach(41, x4, x5)
+		if 15 < x5 {
+			x5 = p.ScanProbe(41, x4, x5)
 		}
 	}
-	if 15 < x5 {
-		p.ScanEnd(41, x4, x5)
-	}
+	p.ScanEnd(41, x4, x5)
 	if !p.AtEndBatch() {
 		p.Expect(p.Pos, rt.IdEndInput)
 		goto fail
@@ -25781,6 +25779,7 @@ L4:
 L5:
 	x6 = p.Pos
 	x7 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -25794,13 +25793,11 @@ L5:
 		}
 		p.Pos += size
 		x7++
-		if x7 == 16 {
-			x7 = p.ScanReach(43, x6, x7)
+		if 15 < x7 {
+			x7 = p.ScanProbe(43, x6, x7)
 		}
 	}
-	if 15 < x7 {
-		p.ScanEnd(43, x6, x7)
-	}
+	p.ScanEnd(43, x6, x7)
 	v = nil
 	return v, true
 fail:

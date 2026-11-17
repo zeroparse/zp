@@ -1413,6 +1413,7 @@ func e29(p *rt.Parser, _ int) (*core.Node, bool) {
 	x1 = p.Pos
 	x2 = p.Pos
 	x3 = 0
+	p.ScanBegin()
 	for {
 		if p.Document == nil && p.Pos < len(p.In) {
 			p.SpendRead(1)
@@ -1426,13 +1427,11 @@ func e29(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		p.Pos += size
 		x3++
-		if x3 == 16 {
-			x3 = p.ScanReach(5, x2, x3)
+		if 15 < x3 {
+			x3 = p.ScanProbe(5, x2, x3)
 		}
 	}
-	if 15 < x3 {
-		p.ScanEnd(5, x2, x3)
-	}
+	p.ScanEnd(5, x2, x3)
 	if x3 < 1 {
 		goto fail
 	}
@@ -1444,6 +1443,7 @@ func e29(p *rt.Parser, _ int) (*core.Node, bool) {
 	}
 	x7 = p.Pos
 	x8 = 0
+	p.ScanBegin()
 	for {
 		if p.Document == nil && p.Pos < len(p.In) {
 			p.SpendRead(1)
@@ -1457,13 +1457,11 @@ func e29(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		p.Pos += size
 		x8++
-		if x8 == 16 {
-			x8 = p.ScanReach(7, x7, x8)
+		if 15 < x8 {
+			x8 = p.ScanProbe(7, x7, x8)
 		}
 	}
-	if 15 < x8 {
-		p.ScanEnd(7, x7, x8)
-	}
+	p.ScanEnd(7, x7, x8)
 	if x8 < 1 {
 		goto L5
 	}
@@ -1692,6 +1690,7 @@ func e40(p *rt.Parser, _ int) (*core.Node, bool) {
 		v20 = p.NewTerminal(x19, "//")
 		x18 = append(x18, v20)
 		x21, x23, x22 = p.Pos, len(p.KidStack), 0
+		p.ScanBegin()
 		for {
 			p.Spend()
 			x24 = p.Mark()
@@ -1711,8 +1710,8 @@ func e40(p *rt.Parser, _ int) (*core.Node, bool) {
 			v28 = p.ScopeValue(sh38, v27, x24.Pos)
 			p.KidStack = append(p.KidStack, v28)
 			x22++
-			if x22 == 16 {
-				x22 = p.ScanReach(10, x21, x22)
+			if 15 < x22 {
+				x22 = p.ScanProbeKids(10, x21, x23, x22)
 			}
 			continue
 		L25:
@@ -1790,6 +1789,7 @@ func e41(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		x14 = p.Pos
 		x15 = 0
+		p.ScanBegin()
 		for {
 			if p.Document == nil && p.Pos < len(p.In) {
 				p.SpendRead(1)
@@ -1803,13 +1803,11 @@ func e41(p *rt.Parser, _ int) (*core.Node, bool) {
 			}
 			p.Pos += size
 			x15++
-			if x15 == 16 {
-				x15 = p.ScanReach(9, x14, x15)
+			if 15 < x15 {
+				x15 = p.ScanProbe(9, x14, x15)
 			}
 		}
-		if 15 < x15 {
-			p.ScanEnd(9, x14, x15)
-		}
+		p.ScanEnd(9, x14, x15)
 		goto L7
 	L13:
 		p.Restore(x5, x6)

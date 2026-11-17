@@ -502,6 +502,7 @@ func e8(p *rt.Parser, _ int) (*core.Node, bool) {
 	x1 = p.Pos
 	x2 = p.Pos
 	x3 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -515,13 +516,11 @@ func e8(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		p.Pos += size
 		x3++
-		if x3 == 16 {
-			x3 = p.ScanReach(5, x2, x3)
+		if 15 < x3 {
+			x3 = p.ScanProbe(5, x2, x3)
 		}
 	}
-	if 15 < x3 {
-		p.ScanEnd(5, x2, x3)
-	}
+	p.ScanEnd(5, x2, x3)
 	if x3 < 1 {
 		goto fail
 	}
@@ -574,6 +573,7 @@ func r8(p *rt.Parser) (*core.Node, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	x2 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -587,13 +587,11 @@ func r8(p *rt.Parser) (*core.Node, bool) {
 		}
 		p.Pos += size
 		x2++
-		if x2 == 16 {
-			x2 = p.ScanReach(7, x1, x2)
+		if 15 < x2 {
+			x2 = p.ScanProbe(7, x1, x2)
 		}
 	}
-	if 15 < x2 {
-		p.ScanEnd(7, x1, x2)
-	}
+	p.ScanEnd(7, x1, x2)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 10) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit9, "\n", 7, false); !ok {
@@ -866,6 +864,7 @@ func q5(p *rt.Parser) (*core.Node, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	x2 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -879,13 +878,11 @@ func q5(p *rt.Parser) (*core.Node, bool) {
 		}
 		p.Pos += size
 		x2++
-		if x2 == 16 {
-			x2 = p.ScanReach(5, x1, x2)
+		if 15 < x2 {
+			x2 = p.ScanProbe(5, x1, x2)
 		}
 	}
-	if 15 < x2 {
-		p.ScanEnd(5, x1, x2)
-	}
+	p.ScanEnd(5, x1, x2)
 	if x2 < 1 {
 		goto fail
 	}
@@ -948,6 +945,7 @@ func q7(p *rt.Parser) (*core.Node, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	x2 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -961,13 +959,11 @@ func q7(p *rt.Parser) (*core.Node, bool) {
 		}
 		p.Pos += size
 		x2++
-		if x2 == 16 {
-			x2 = p.ScanReach(7, x1, x2)
+		if 15 < x2 {
+			x2 = p.ScanProbe(7, x1, x2)
 		}
 	}
-	if 15 < x2 {
-		p.ScanEnd(7, x1, x2)
-	}
+	p.ScanEnd(7, x1, x2)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 10) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit9, "\n", 7, false); !ok {
@@ -1341,6 +1337,7 @@ func s5(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.Pos
 	x3 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -1354,13 +1351,11 @@ func s5(p *rt.TParser) (any, bool) {
 		}
 		p.Pos += size
 		x3++
-		if x3 == 16 {
-			x3 = p.ScanReach(5, x2, x3)
+		if 15 < x3 {
+			x3 = p.ScanProbe(5, x2, x3)
 		}
 	}
-	if 15 < x3 {
-		p.ScanEnd(5, x2, x3)
-	}
+	p.ScanEnd(5, x2, x3)
 	if x3 < 1 {
 		goto fail
 	}
@@ -1384,6 +1379,7 @@ func s8(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	x2 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -1397,13 +1393,11 @@ func s8(p *rt.TParser) (any, bool) {
 		}
 		p.Pos += size
 		x2++
-		if x2 == 16 {
-			x2 = p.ScanReach(7, x1, x2)
+		if 15 < x2 {
+			x2 = p.ScanProbe(7, x1, x2)
 		}
 	}
-	if 15 < x2 {
-		p.ScanEnd(7, x1, x2)
-	}
+	p.ScanEnd(7, x1, x2)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 10) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.Parser.MatchLiteral(lit9, "\n", 7, false); !ok {

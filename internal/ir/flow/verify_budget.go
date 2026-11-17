@@ -78,7 +78,7 @@ func exprHas(x Expr, pred func(Expr) bool) bool {
 
 func consumes(x Expr) bool {
 	switch x.(type) {
-	case *MatchLit, *MatchClass, *SkipTerminal, *SkipClasses, *SkipHit, *ScanReach:
+	case *MatchLit, *MatchClass, *SkipTerminal, *SkipClasses, *SkipHit, *ScanProbe:
 		return true
 	}
 	return false

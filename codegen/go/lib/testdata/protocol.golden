@@ -195,9 +195,12 @@ method (*Parser) RecoveryErrorText(*zeroparse.dev/zp/core.SyntaxError) string
 method (*Parser) RejectBudgetClass(rune, *BudgetClass) bool
 method (*Parser) Reset(Mark)
 method (*Parser) Restore(int, int)
+method (*Parser) ScanBegin()
 method (*Parser) ScanEnd(int, int, int)
+method (*Parser) ScanFail(int, int, int, int)
 method (*Parser) ScanKids(int, int, int, int) []*zeroparse.dev/zp/core.Node
-method (*Parser) ScanReach(int, int, int) int
+method (*Parser) ScanProbe(int, int, int) int
+method (*Parser) ScanProbeKids(int, int, int, int) int
 method (*Parser) ScopeValue(Shaper, *zeroparse.dev/zp/core.Node, int) *zeroparse.dev/zp/core.Node
 method (*Parser) SetCapture(int, *zeroparse.dev/zp/core.Node)
 method (*Parser) ShapeCapture(Shaper, *zeroparse.dev/zp/core.Node, int) *zeroparse.dev/zp/core.Node
@@ -296,7 +299,9 @@ method (*TParser) Predicate(func(*TActCtx) (any, any)) bool
 method (*TParser) PushKid(any)
 method (*TParser) RecoverAttr(tmatcher, tmatcher, bool) (any, bool)
 method (*TParser) Reset(Mark)
+method (*TParser) ScanFail(int, int, int, int)
 method (*TParser) ScanKids(int, int, int, int) []any
+method (*TParser) ScanProbeKids(int, int, int, int) int
 method (*TParser) ScopeValue(Shaper, any, int) any
 method (*TParser) SetCapture(int, any)
 method (*TParser) ShapeCapture(Shaper, any, int) any

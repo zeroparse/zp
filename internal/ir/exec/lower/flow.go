@@ -328,6 +328,8 @@ func (l *lowerer) stmtUses(s flow.Stmt) []exec.Expr {
 		return l.uses(s.Base)
 	case *flow.ScanEnd:
 		return l.uses(s.Start, s.Count)
+	case *flow.ScanFail:
+		return l.uses(s.Start, s.Base, s.Count)
 	case *flow.DropCreated:
 		return l.uses(s.C)
 	case *flow.Unfresh:
@@ -345,7 +347,7 @@ func (l *lowerer) stmtUses(s flow.Stmt) []exec.Expr {
 	case *flow.AppendError:
 		return l.uses(s.X)
 	case *flow.Step, *flow.Silent, *flow.StreamStart, *flow.SetWhere, *flow.DeclareNames, *flow.ObserveSkip,
-		*flow.SkipBegin, *flow.SkipVisit, *flow.SkipEnd:
+		*flow.SkipBegin, *flow.SkipVisit, *flow.SkipEnd, *flow.ScanBegin:
 		return nil
 	}
 	if l.err == nil {

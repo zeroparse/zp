@@ -11,12 +11,13 @@ import (
 // scanDocumentRules returns a main rule that walks the same scan site from the same start four
 // times, and the rule of the fourth walk. A walk matches the a characters, each iteration also
 // reading the two characters after the one it matches, so that the walk examines two positions past
-// the character where it ends. The site turns hot at the second walk, the third records itself, and
-// the fourth takes the record (ScanReach) while its rule's memo entry is recorded; hit tells it did.
+// the character where it ends. The site turns hot at the second walk, the third records itself as a run, and
+// the fourth takes the run (ScanProbe) while its rule's memo entry is recorded; hit tells it did.
 func scanDocumentRules(hit *bool) (main, last *Rule) {
 	const site = 1
 	walk := func(p *Parser) (*core.Node, bool) {
 		start, count := p.Pos, 0
+		p.ScanBegin()
 		for {
 			ch, size, ok := p.Peek()
 			if !ok || ch != 'a' {
@@ -30,13 +31,11 @@ func scanDocumentRules(hit *bool) (main, last *Rule) {
 			p.Peek()
 			p.Pos = at + size
 			count++
-			if count == scanHotSpan {
-				count = p.ScanReach(site, start, count)
+			if count >= scanHotSpan {
+				count = p.ScanProbe(site, start, count)
 			}
 		}
-		if count >= scanHotSpan {
-			p.ScanEnd(site, start, count)
-		}
+		p.ScanEnd(site, start, count)
 		return nodeOfData(&Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos)}), true
 	}
 	plain := &Rule{Id: 1, Name: "plain", Seen: -1}

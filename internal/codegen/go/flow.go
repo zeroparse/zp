@@ -332,6 +332,10 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 		p.write("p.SkipEnd()\n")
 	case *flow.ScanEnd:
 		p.write(fmt.Sprintf("p.ScanEnd(%d, %s, %s)\n", s.Site, p.expr(s.Start), p.expr(s.Count)))
+	case *flow.ScanBegin:
+		p.write("p.ScanBegin()\n")
+	case *flow.ScanFail:
+		p.write(fmt.Sprintf("p.ScanFail(%d, %s, %s, %s)\n", s.Site, p.expr(s.Start), p.expr(s.Base), p.expr(s.Count)))
 	case *flow.EmitStream:
 		p.write(fmt.Sprintf("p.EmitStream(%s, p.Pos)\n", p.expr(s.X)))
 	case *flow.DropKids:
@@ -481,8 +485,11 @@ func (p *flowPrinter) expr(x flow.Expr) string {
 		return fmt.Sprintf("p.StreamsIn(%d, %v)", p.g.Cur.ID, p.g.Cur.Rec)
 	case *flow.SkipHit:
 		return "p.SkipHit()"
-	case *flow.ScanReach:
-		return fmt.Sprintf("p.ScanReach(%d, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Count))
+	case *flow.ScanProbe:
+		if x.Base == nil {
+			return fmt.Sprintf("p.ScanProbe(%d, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Count))
+		}
+		return fmt.Sprintf("p.ScanProbeKids(%d, %s, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Base), p.expr(x.Count))
 	case *flow.ScanKids:
 		return fmt.Sprintf("p.ScanKids(%d, %s, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Base), p.expr(x.Count))
 	case *flow.Nil:

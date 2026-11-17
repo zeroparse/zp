@@ -541,6 +541,7 @@ func e7(p *rt.Parser, _ int) (*core.Node, bool) {
 	x1 = p.Pos
 	x2 = p.Nodes(2)[:0]
 	x4, x6, x5 = p.Pos, len(p.KidStack), 0
+	p.ScanBegin()
 	for {
 		p.Spend()
 		x7 = p.Mark()
@@ -560,8 +561,8 @@ func e7(p *rt.Parser, _ int) (*core.Node, bool) {
 		v11 = p.ScopeValue(sh1, v10, x7.Pos)
 		p.KidStack = append(p.KidStack, v11)
 		x5++
-		if x5 == 16 {
-			x5 = p.ScanReach(3, x4, x5)
+		if 15 < x5 {
+			x5 = p.ScanProbeKids(3, x4, x6, x5)
 		}
 		continue
 	L8:
@@ -569,7 +570,7 @@ func e7(p *rt.Parser, _ int) (*core.Node, bool) {
 		break
 	}
 	if x5 < 1 {
-		p.DropKids(x6)
+		p.ScanFail(3, x4, x6, x5)
 		goto fail
 	}
 	v12 = p.NewBranch(rt.ListKind, x4, p.ScanKids(3, x4, x6, x5))
@@ -669,6 +670,7 @@ func q2(p *rt.Parser) (*core.Node, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	x2 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -682,13 +684,11 @@ func q2(p *rt.Parser) (*core.Node, bool) {
 		}
 		p.Pos += size
 		x2++
-		if x2 == 16 {
-			x2 = p.ScanReach(2, x1, x2)
+		if 15 < x2 {
+			x2 = p.ScanProbe(2, x1, x2)
 		}
 	}
-	if 15 < x2 {
-		p.ScanEnd(2, x1, x2)
-	}
+	p.ScanEnd(2, x1, x2)
 	if x2 < 1 {
 		goto fail
 	}
@@ -1052,6 +1052,7 @@ func i2(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x5, x7, x6 = p.Pos, len(p.KidStack), 0
+	p.ScanBegin()
 	for {
 		p.Spend()
 		x8 = p.Pos
@@ -1071,8 +1072,8 @@ func i2(p *rt.TParser) (any, bool) {
 		v12 = p.ScopeValue(sh1, v11, x8)
 		p.PushKid(v12)
 		x6++
-		if x6 == 16 {
-			x6 = p.ScanReach(3, x5, x6)
+		if 15 < x6 {
+			x6 = p.ScanProbeKids(3, x5, x7, x6)
 		}
 		continue
 	L9:
@@ -1080,7 +1081,7 @@ func i2(p *rt.TParser) (any, bool) {
 		break
 	}
 	if x6 < 1 {
-		p.DropKids(x7)
+		p.ScanFail(3, x5, x7, x6)
 		goto fail
 	}
 	v13 = p.NewNode("list", x5, p.Pos, p.ScanKids(3, x5, x7, x6))

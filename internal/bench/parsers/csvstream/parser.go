@@ -287,6 +287,7 @@ func e10(p *rt.Parser, _ int) (*core.Node, bool) {
 	}
 	x8 = p.Pos
 	x9 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -300,13 +301,11 @@ func e10(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		p.Pos += size
 		x9++
-		if x9 == 16 {
-			x9 = p.ScanReach(4, x8, x9)
+		if 15 < x9 {
+			x9 = p.ScanProbe(4, x8, x9)
 		}
 	}
-	if 15 < x9 {
-		p.ScanEnd(4, x8, x9)
-	}
+	p.ScanEnd(4, x8, x9)
 	for {
 		p.Spend()
 		x11 = p.Mark()
@@ -317,6 +316,7 @@ func e10(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		x13 = p.Pos
 		x14 = 0
+		p.ScanBegin()
 		for {
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
@@ -330,13 +330,11 @@ func e10(p *rt.Parser, _ int) (*core.Node, bool) {
 			}
 			p.Pos += size
 			x14++
-			if x14 == 16 {
-				x14 = p.ScanReach(6, x13, x14)
+			if 15 < x14 {
+				x14 = p.ScanProbe(6, x13, x14)
 			}
 		}
-		if 15 < x14 {
-			p.ScanEnd(6, x13, x14)
-		}
+		p.ScanEnd(6, x13, x14)
 		if p.Pos == x11.Pos {
 			break
 		}
@@ -356,6 +354,7 @@ L7:
 L6:
 	x16 = p.Pos
 	x17 = 0
+	p.ScanBegin()
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -369,13 +368,11 @@ L6:
 		}
 		p.Pos += size
 		x17++
-		if x17 == 16 {
-			x17 = p.ScanReach(8, x16, x17)
+		if 15 < x17 {
+			x17 = p.ScanProbe(8, x16, x17)
 		}
 	}
-	if 15 < x17 {
-		p.ScanEnd(8, x16, x17)
-	}
+	p.ScanEnd(8, x16, x17)
 	for {
 		p.Spend()
 		x19 = p.Mark()
@@ -410,6 +407,7 @@ L6:
 	L23:
 		x24 = p.Pos
 		x25 = 0
+		p.ScanBegin()
 		for {
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
@@ -423,13 +421,11 @@ L6:
 			}
 			p.Pos += size
 			x25++
-			if x25 == 16 {
-				x25 = p.ScanReach(10, x24, x25)
+			if 15 < x25 {
+				x25 = p.ScanProbe(10, x24, x25)
 			}
 		}
-		if 15 < x25 {
-			p.ScanEnd(10, x24, x25)
-		}
+		p.ScanEnd(10, x24, x25)
 		if p.Pos == x19.Pos {
 			break
 		}

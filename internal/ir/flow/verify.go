@@ -198,6 +198,11 @@ func (v *verifier) stmt(s Stmt) error {
 			return fmt.Errorf("%s: scan site %d", v.f.Name, s.Site)
 		}
 		return v.expr(s.Start, s.Count)
+	case *ScanFail:
+		if s.Site <= 0 {
+			return fmt.Errorf("%s: scan site %d", v.f.Name, s.Site)
+		}
+		return v.expr(s.Start, s.Base, s.Count)
 	case *StreamStart:
 		if !v.f.Node || !v.f.Frame {
 			return fmt.Errorf("%s: stream start outside a framed Node function", v.f.Name)
@@ -238,7 +243,7 @@ func (v *verifier) stmt(s Stmt) error {
 		if s.Site <= 0 {
 			return fmt.Errorf("%s: skip-run site %d", v.f.Name, s.Site)
 		}
-	case *Step, *Silent, *SetWhere, *DeclareNames, *Comment, *ObserveSkip, *SkipVisit, *SkipEnd:
+	case *Step, *Silent, *SetWhere, *DeclareNames, *Comment, *ObserveSkip, *SkipVisit, *SkipEnd, *ScanBegin:
 	default:
 		return fmt.Errorf("unknown statement %T", s)
 	}

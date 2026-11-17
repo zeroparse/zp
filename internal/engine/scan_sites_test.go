@@ -656,29 +656,6 @@ rule ws = [ ]*`
 	}
 }
 
-// scanIntervalControls are grammars whose failed alternatives walk a run again from each of its
-// positions: X matches [ab] and then the rest of the run fails to reach "c", so X* restarts the walk
-// one position further. The walk is inline, in a scan rule, in a rule that calls a rule, builds a
-// value, or runs over characters of two bytes. In the last controls, whose inputs fail, the walks begin at each position of the run
-// from its end back to its start, as the levels of a recursion fail.
-var scanIntervalControls = []struct {
-	name, src string
-	in        func(n int) string
-}{
-	{"inline", "rule main = X* \"y\"\nrule X = [ab] [b]* \"c\" / [ab]\n", scanControlInput("b")},
-	{"scan rule", "rule main = X* \"y\"\nrule X = [ab] bs \"c\" / [ab]\nrule bs = [b]*\n", scanControlInput("b")},
-	{"rule that calls a rule", "rule main = X* \"y\"\nrule X = [ab] bs \"c\" / [ab]\nrule bs = N [b]*\nrule N = \"\"\n", scanControlInput("b")},
-	{"values", "rule main = X* \"y\"\nrule X = Y / [ab]\nrule Y = [ab] bs:[b]* \"c\" => $bs\n", scanControlInput("b")},
-	{"two bytes", "rule main = X* \"y\"\nrule X = Y / [aé]\nrule Y = [aé] bs:[é]* \"c\" => $bs\n", scanControlInput("é")},
-	{"backwards", "rule main = e\nrule e = \" \" e / ws \"!\" / ws \"?\" / ws \"y\"\nrule ws = xs:[ ]* => text($xs)\n", func(n int) string { return strings.Repeat(" ", n) + "x" }},
-	{"backwards over two bytes", "rule main = e\nrule e = \"é\" e / ws \"!\" / ws \"?\" / ws \"y\"\nrule ws = xs:[é]* => text($xs)\n", func(n int) string { return strings.Repeat("é", n) + "x" }},
-}
-
-// scanControlInput returns the input "a", n times c, "y".
-func scanControlInput(c string) func(int) string {
-	return func(n int) string { return "a" + strings.Repeat(c, n) + "y" }
-}
-
 // TestScanSitesAnswerWalksFromInsideARun checks that walks which begin at different positions of one
 // run take the rest from the run that an earlier walk recorded: the steps of the controls grow linearly
 // in the run on every backend, in parses and recognition, in both position units. With runs that answer
@@ -689,35 +666,35 @@ func TestScanSitesAnswerWalksFromInsideARun(t *testing.T) {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	defer func() { state.ScanIntervalsOff = false }()
-	for _, c := range scanIntervalControls {
-		prog := mustCompile(t, c.src)
+	for _, c := range codegentest.ScanIntervalControls {
+		prog := mustCompile(t, c.Src)
 		rec, err := prog.Recognizer()
 		if err != nil {
 			t.Fatal(err)
 		}
-		plain := compileWithoutScanSites(t, c.src)
+		plain := compileWithoutScanSites(t, c.Src)
 		for name, p := range map[string]*Program{"parse": prog, "recognize": rec} {
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					for _, off := range []bool{false, true} {
 						state.ScanIntervalsOff = off
-						s1, s2 := scanUnitSteps(t, p, c.in(200), b, unit), scanUnitSteps(t, p, c.in(400), b, unit)
+						s1, s2 := scanUnitSteps(t, p, c.Input(200), b, unit), scanUnitSteps(t, p, c.Input(400), b, unit)
 						ratio := float64(s2) / float64(s1)
-						t.Logf("%s, %s, %s, %v, intervals off %v: %d steps at 200, %d at 400", c.name, name, b, unit, off, s1, s2)
+						t.Logf("%s, %s, %s, %v, intervals off %v: %d steps at 200, %d at 400", c.Name, name, b, unit, off, s1, s2)
 						if !off && ratio > 2.2 {
-							t.Errorf("%s, %s, %s, %v: steps %d at 200 and %d at 400 grow by %.2f, want linear", c.name, name, b, unit, s1, s2, ratio)
+							t.Errorf("%s, %s, %s, %v: steps %d at 200 and %d at 400 grow by %.2f, want linear", c.Name, name, b, unit, s1, s2, ratio)
 						}
 						if off && ratio < 3.5 {
-							t.Errorf("%s, %s, %s, %v: runs that answer only their first position: steps %d and %d grow by %.2f, want quadratic", c.name, name, b, unit, s1, s2, ratio)
+							t.Errorf("%s, %s, %s, %v: runs that answer only their first position: steps %d and %d grow by %.2f, want quadratic", c.Name, name, b, unit, s1, s2, ratio)
 						}
 					}
 					state.ScanIntervalsOff = false
 					o := ParseOptions{Backend: b, Unit: unit, Expectations: true}
 					for _, n := range []int{17, 40, 200} {
-						got, gotTree := scanExamined(t, p, c.in(n), o)
-						want, wantTree := scanExamined(t, plain, c.in(n), o)
+						got, gotTree := scanExamined(t, p, c.Input(n), o)
+						want, wantTree := scanExamined(t, plain, c.Input(n), o)
 						if name == "parse" && (!slices.Equal(got, want) || gotTree != wantTree) {
-							t.Errorf("%s, %s, %v, n %d:\n got  %v %s\n want %v %s", c.name, b, unit, n, got, gotTree, want, wantTree)
+							t.Errorf("%s, %s, %v, n %d:\n got  %v %s\n want %v %s", c.Name, b, unit, n, got, gotTree, want, wantTree)
 						}
 					}
 				}

@@ -86,3 +86,28 @@ func ScanSiteCases(n int) []Case {
 	}
 	return cases
 }
+
+// ScanIntervalControls are grammars whose failed alternatives walk a run of a scan site again from each
+// of its positions: X matches [ab] and then the rest of the run fails to reach "c", so X* restarts the
+// walk one position further. The walk is inline, in a scan rule, in a rule that calls a rule, builds a
+// value, or runs over characters of two bytes. In the last controls, whose inputs fail, the walks begin
+// at each position of the run from its end back to its start, as the levels of a recursion fail. With
+// runs that answer the walks from any of their positions, the steps grow linearly in n; with runs that
+// answer only the walks from their first position, quadratically.
+var ScanIntervalControls = []struct {
+	Name, Src string
+	Input     func(n int) string
+}{
+	{"inline", "rule main = X* \"y\"\nrule X = [ab] [b]* \"c\" / [ab]\n", scanControlInput("b")},
+	{"scan rule", "rule main = X* \"y\"\nrule X = [ab] bs \"c\" / [ab]\nrule bs = [b]*\n", scanControlInput("b")},
+	{"rule that calls a rule", "rule main = X* \"y\"\nrule X = [ab] bs \"c\" / [ab]\nrule bs = N [b]*\nrule N = \"\"\n", scanControlInput("b")},
+	{"values", "rule main = X* \"y\"\nrule X = Y / [ab]\nrule Y = [ab] bs:[b]* \"c\" => $bs\n", scanControlInput("b")},
+	{"two bytes", "rule main = X* \"y\"\nrule X = Y / [aé]\nrule Y = [aé] bs:[é]* \"c\" => $bs\n", scanControlInput("é")},
+	{"backwards", "rule main = e\nrule e = \" \" e / ws \"!\" / ws \"?\" / ws \"y\"\nrule ws = xs:[ ]* => text($xs)\n", func(n int) string { return strings.Repeat(" ", n) + "x" }},
+	{"backwards over two bytes", "rule main = e\nrule e = \"é\" e / ws \"!\" / ws \"?\" / ws \"y\"\nrule ws = xs:[é]* => text($xs)\n", func(n int) string { return strings.Repeat("é", n) + "x" }},
+}
+
+// scanControlInput returns the input "a", n times c, "y".
+func scanControlInput(c string) func(int) string {
+	return func(n int) string { return "a" + strings.Repeat(c, n) + "y" }
+}

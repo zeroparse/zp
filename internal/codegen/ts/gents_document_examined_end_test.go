@@ -14,7 +14,7 @@ import (
 
 // documentScanTypeScriptTest drives the library's Document directly with rules written by hand: main
 // walks one scan site from the same start four times, the site turns hot at the second walk, the
-// third records itself and the fourth, the rule last, takes the record. A walk matches the a
+// third records itself as a run and the fourth, the rule last, takes the run. A walk matches the a
 // characters, each iteration also reading the two characters after the one it matches, so that it
 // examines two positions past the character where it ends. The entry of last must record that end,
 // and an edit of the position before it must drop the entry.
@@ -24,6 +24,7 @@ let dsHit = false;
 const dsWalk = (p: Parser): R => {
   const start = p.pos;
   let count = 0;
+  p.scanBegin();
   for (;;) {
     const c = p.peek();
     if (c !== 97) break;
@@ -34,9 +35,9 @@ const dsWalk = (p: Parser): R => {
     p.peek();
     p.pos = at + 1;
     count++;
-    if (count === SCAN_HOT_SPAN) count = p.scanReach(1, start, count);
+    if (count >= SCAN_HOT_SPAN) count = p.scanProbe(1, start, count);
   }
-  if (count >= SCAN_HOT_SPAN) p.scanEnd(1, start, count);
+  p.scanEnd(1, start, count);
   return null;
 };
 const dsPlain = mkRule(1, "plain", [], 0, false, false, -1, true, []);
@@ -45,7 +46,7 @@ const dsLast = mkRule(2, "last", [], 0, true, false, -1, true, []);
 dsLast.docMemo = true;
 dsLast.body = (p: Parser) => {
   const v = dsWalk(p);
-  dsHit = (p as any).scanHit === true;
+  dsHit = (p as any).scanWalkHit === true;
   return v;
 };
 const dsMain = mkRule(0, "main", [], 0, true, false, -1, true, []);
@@ -77,7 +78,7 @@ for (const unit of [CodePoints, Bytes]) {
   dsHit = false;
   const first = d.parse();
   if (first.error !== null) throw first.error;
-  if (!dsHit) throw new Error("unit " + unit + ": the last walk did not take a record");
+  if (!dsHit) throw new Error("unit " + unit + ": the last walk did not take a run");
   const want = runLen + 2;
   const got = dsExamined(d, 2);
   if (got !== want) throw new Error("unit " + unit + ": the entry examined " + got + ", want " + want);
@@ -171,7 +172,7 @@ func TestTSDocumentExaminedEnds(t *testing.T) {
 	if out, ok := run(nil); !ok || strings.TrimSpace(out) != "ok" {
 		t.Fatalf("got %q, want ok", codegentest.Clip(out, 0))
 	}
-	const touch = "    this.documentTouch(rec.examined);\n"
+	const touch = "    this.documentTouch(run.examined);\n"
 	if out, ok := run(func(src string) string {
 		if strings.Count(src, touch) != 1 {
 			t.Fatalf("the library has %d copies of %q, want 1", strings.Count(src, touch), touch)
