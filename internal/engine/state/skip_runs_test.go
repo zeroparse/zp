@@ -204,8 +204,8 @@ func TestRunSiteTurnsHotOnRestart(t *testing.T) {
 
 // TestSkipSlotsKeepListRecords checks that a record without values, which a walk of a value-free
 // twin stores, does not replace one with values at the same key, while one with values replaces
-// one without: a key is recorded at most twice, and a walk that builds values that follows the
-// twin's still finds the record it can take.
+// one without: a key holds a record without values only until a walk with values records it, and
+// a walk that builds values that follows the twin's still finds the record it can take.
 func TestSkipSlotsKeepListRecords(t *testing.T) {
 	var s skipSlots
 	env := &Env{}
