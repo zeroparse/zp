@@ -1460,7 +1460,9 @@ The conditions below use these terms.
 - A unit is **committing** when, for each of its continuations, the first
   characters of the unit and of the continuation are disjoint after the calls
   that the two share are removed from their starts, one after another, each
-  at the end of the one before. After
+  at the end of the one before. At most sixteen are removed: when the two
+  share more, what remains after sixteen is compared, and it begins with a
+  call that both evaluate. After
   a committing unit is abandoned, nothing that the parser evaluates next
   consumes the character at which the unit and the continuation part, so
   nothing starts again inside the input that the unit examined after its

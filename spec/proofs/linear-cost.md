@@ -3315,8 +3315,13 @@ outside the evaluations of those calls, and let $v_k$ be committing for
 $\kappa$ because their first characters after those calls are disjoint, or
 because its words exclude $\kappa$, with $|W_k|$ the length of the word of
 its path that holds $\alpha_k$; let $|W_k| = 0$ in the first case. Then
-$T$ ends at or before $r_k + |W_k|$, and $T$ has at most $j_k + |W_k|$ iterations after $I$. So the run has at
-most $j_k + |W_k|$ links after $k + 1$.
+$T$ ends at or before $r_k + |W_k|$, and after $I$, $T$ has at most $j_k +
+|W_k|$ iterations that consume input and one more at its end. So the run has
+at most $j_k + |W_k| + 1$ links after $k + 1$. Both $j_k$ and $|W_k|$ depend
+only on the grammar: each round of the removal of the shared calls takes one
+call from the start of every path of the unit and of the continuation, the
+classifier removes at most sixteen in this way (condition 2), and a word is a
+literal of the grammar.
 
 *Proof.* As in the proof of *Positions of the holders*, $e_{k+1}$ and
 $e'_{k+1}$ are evaluations of keys of one class, so $\mathcal{R}(e_{k+1})$
@@ -3373,8 +3378,10 @@ and $\kappa$ goes on without failing to $\mathrm{end}(T)$, so $T$ does not
 end after $r_k + |W_k|$.
 
 The iterations of $T$ after $I$ start at or after $\mathrm{end}(I) \ge
-s_k$, end at or before $\mathrm{end}(T) \le r_k + |W_k|$, and each consumes
-input, since a repetition stops at the first iteration that consumes none.
+s_k$ and end at or before $\mathrm{end}(T) \le r_k + |W_k|$. A repetition
+stops at the first iteration that fails or consumes nothing, so each of them
+but the last consumes input; the last can hold the later evaluation of a link
+and is counted on its own.
 Let such an iteration start at $x < r_k$. The character at $x$ is consumed
 in the evaluation of a shared call that $\kappa$ makes. That evaluation is
 made after $v'_k$; one made while $\mathcal{R}(I)$ is in progress lies inside
@@ -3382,10 +3389,11 @@ it and ends at or before $\mathrm{end}(I) \le x$, so it is made after
 $\mathcal{R}(I)$ ends, while $\mathcal{R}(T)$ is in progress, and lies inside
 the iteration that consumes $x$. These evaluations are distinct for
 distinct iterations, so at most $j_k$ iterations start before $r_k$, and at most $|W_k|$ start at or
-after it, each consuming a character before $r_k + |W_k|$. Each link of the
+after it, each consuming a character before $r_k + |W_k|$, and one more
+iteration ends $T$. Each link of the
 run after $k + 1$ has its later evaluation in a later reaching iteration of
 $T$ (1 and 2 of *Iterations at one scan*), so there are at most
-$j_k + |W_k|$ such links. $\square$
+$j_k + |W_k| + 1$ such links. $\square$
 
 The claim does not depend on whether the link is plain: it applies
 condition 2 to the first abandoned unit below $e_{k+1}$, which lies inside
@@ -3393,16 +3401,20 @@ the evaluation of a call that $w_{k+1}$ shares, where condition 2 on
 $w_{k+1}$ says nothing about it, and it transfers that unit to $\mathcal{R}(e'_{k+1})$, whose
 continuation goes on through the later iterations of $T$. So in a run whose
 links meet its hypotheses, a link $k + 1$ followed by more than
-$j_k + |W_k|$ links has $\alpha_k$ inside the evaluation, in $v_k$, of a
+$j_k + |W_k| + 1$ links has $\alpha_k$ inside the evaluation, in $v_k$, of a
 call that $v_k$ shares with $\kappa$, or $v_k$ commits against $\kappa$ in
 another way: it decides $\kappa$, or it is committing for a path that enters
-the growth again. In the first case $\kappa$ evaluates that call again at
-the same position with the same result (*Direct activations*), inside the
-rest of $\mathcal{R}(I)$ or in one of the next $j_k$ iterations of $T$, by
-the count above. Where that evaluation lies relative to the next
+the growth again; or a growth lies on the way in $\mathcal{R}$ from
+$\mathcal{R}(T)$ down to $v'_k$, which the claim leaves out. In the first case $\kappa$ evaluates that call again at
+the same position with the same result (*Direct activations*). That
+evaluation lies in the rest of $\mathcal{R}(I)$ or in one of the next $j_k$
+iterations of $T$: $\kappa$ evaluates each of its $j_k$ shared calls once, and
+one made after $\mathcal{R}(I)$ ends lies inside an iteration of $T$, as in
+the proof. Where that evaluation lies relative to the next
 frames, and whether a bound on the links that are not plain follows, is not
-shown here, and the cases in which $v_k$ decides $\kappa$ or commits through
-a path that enters the growth again are not treated.
+shown here, and the cases in which $v_k$ decides $\kappa$, commits through
+a path that enters the growth again, or lies below a growth in $\mathcal{R}$
+are not treated.
 
 ## Lemma 5 (Growth)
 
@@ -7165,8 +7177,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    evaluations* shows that when the first abandoned unit below the earlier
    evaluation of a link holds the activation outside the calls that it shares
    with its continuation in the reference parse, and is committing for it by
-   first characters or by its word, at most as many links follow as those
-   calls and the length of the word, so in a longer run the activation lies
+   first characters or by its word, at most one more link follows than those
+   calls and the length of the word, which depend only on the grammar, so in a longer run the activation lies
    inside a call that the unit shares, or the unit commits in another way.
    Refinements,
    the links that are not plain, the number of
