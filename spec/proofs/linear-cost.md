@@ -3087,8 +3087,8 @@ not answer.
 
 **One activation in a frame.** Under the hypotheses of *Restarts through a
 frame*, of the activations $\alpha_1, \alpha_2, \ldots$ the $q$-frame $e'_i$
-holds $\alpha_i$ alone, and so does $e_{i+1}$. So when $\mathcal{R}(e'_i)$
-holds, at any depth, a successful activation $\beta$ of $\sigma$ at $q$ other
+contains $\alpha_i$ alone, and so does $e_{i+1}$. So when $\mathcal{R}(e'_i)$
+contains a successful activation $\beta$ of $\sigma$ at $q$ other
 than the counterpart of $\alpha_i$, the parse answers a call or leaves out a
 step of a growth on the way from $\mathcal{R}(e'_i)$ down to $\beta$, or it
 evaluates the activation whose counterpart is $\beta$ as one that the
@@ -3098,19 +3098,23 @@ case of *Dropped steps*, or a repeat at the position of a growth that
 
 *Proof.* By 1 of *Iterations at one scan* applied to $it_{k'}$ and
 $it_{k''}$, $\alpha_i$ is the first activation in $it_{k'}$, and by the
-hypothesis it is the last, so of the $\alpha$'s $it_{k'}$ holds $\alpha_i$
-alone. $e'_i$ lies inside $it_{k'}$ (2 of *Iterations at one scan*) and
+hypothesis it is the last, so of the $\alpha$'s $it_{k'}$ contains
+$\alpha_i$ alone. $e'_i$ lies inside $it_{k'}$ (2 of *Iterations at one scan*) and
 contains $\alpha_i$, and $e_{i+1}$ lies inside $e'_i$ and contains
 $\alpha_i$ (1 of *Restarts through a frame* and *Repeats*). The parse
 evaluates inside $e'_i$ the counterparts of what $\mathcal{R}(e'_i)$
 evaluates, apart from what lies inside the calls that it answers, the steps
 of a growth that it does not evaluate and the alternatives that it skips by
-the next character, and an alternative that holds $\beta$ is not skipped
+the next character, and an alternative that contains $\beta$ is not skipped
 (*Counterparts*). An evaluation that the parse makes has the outcome of its
 counterpart, so if it evaluated the activation whose counterpart is $\beta$,
 that activation would be a successful activation of $\sigma$ at $q$ inside
 $e'_i$, at a place other than that of $\alpha_i$, and so one that the
 sequence leaves out. $\square$
+
+The claim is what *Positions of the holders* below uses to compare the
+activation that one restart enters with the one that the next restart
+enters.
 
 **Holders of the frames' activations.** Let the hypotheses of *Restarts
 through a frame* hold for each $k$ from $i$ to $i + m - 1$ in place of $i$,
@@ -3156,6 +3160,66 @@ $q$, each of which holds the activation of its link in its own region, below
 which the way to it passes only calls of rules that the parse does not
 memoize. That condition 2 bounds the number of these positions is not shown
 here.
+
+**Positions of the holders.** Under the hypotheses of *Holders of the frames'
+activations*, let $k + 1 < i + m$, let $e'_{k+1}$ be an evaluation of a key,
+and let no evaluation on the way from $e'_{k+1}$, itself included, down to
+$\alpha_{k+1}$ be a step of a growth or in a context of growths. Then
+$\mathcal{R}(e'_{k+1})$ contains, at the place of the counterpart of
+$\alpha_k$ in $\mathcal{R}(e_{k+1})$, a successful activation $\beta_k$ of
+$\sigma$ at $q$. If $\beta_k$ is the counterpart of $\alpha_{k+1}$, then
+$h_{k+1}$ is made at the place of $h_k$, at $p_{k+1} = p_k$, with a key of
+the class of the key of $h_k$. Otherwise *One activation in a frame*, with
+$k + 1$ in place of $i$, applies to $\beta_k$.
+
+*Proof.* $e_{k+1}$ and $e'_{k+1}$ are evaluations of one call that $w_{k+1}$
+and $\kappa_{k+1}$ share, of the same rule or of its twin with the same level
+restriction, of a rule that reads no variable (*Repeats*), so their keys have
+one class, and as evaluations of keys neither reads a growth open at its
+start. So $\mathcal{R}(e_{k+1})$ and $\mathcal{R}(e'_{k+1})$ take the same
+steps up to the variants of their calls (*Counterparts*): the same
+expressions at the same positions with the same success and end, and calls
+with keys of one class, whose evaluations in $\mathcal{R}$ take the same
+steps in turn. The counterpart of $\alpha_k$ is a successful activation of
+$\sigma$ at $q$, so the activation $\beta_k$ at its place in
+$\mathcal{R}(e'_{k+1})$ is one too, and $\mathcal{R}(e'_{k+1})$ contains it.
+
+Let $\beta_k$ be the counterpart of $\alpha_{k+1}$. The parse runs
+$\alpha_k$ and $\alpha_{k+1}$, so it answers no call on the way from
+$e_{k+1}$ down to $\alpha_k$ or on the way from $e'_{k+1}$ down to
+$\alpha_{k+1}$, and each evaluation on these ways is the counterpart of one on
+the way from $\mathcal{R}(e_{k+1})$ down to the counterpart of $\alpha_k$, or
+from $\mathcal{R}(e'_{k+1})$ down to $\beta_k$ (*Counterparts*). These two
+ways lead to activations at one place, so they pass, call by call, calls at
+places that correspond, at the same positions and with keys of one class.
+Of two such calls, one is of a rule and the other of the same rule or of its
+twin, so the parse memoizes both or neither (Lemma 3). By the hypotheses,
+as in the proof of *Holders of the frames' activations*, every body
+evaluation on either way of a rule that the parse memoizes is an evaluation
+of a key. So the innermost evaluations of keys on the two ways are made at
+places that correspond. On the first way it is $h_k$, since $e_{k+1}$ is an
+evaluation of a key on it; on the second it is $h_{k+1}$, since $e_{k+2}$,
+which contains $\alpha_{k+1}$ and lies inside $e'_{k+1}$ (1 of *Restarts
+through a frame* for $k + 1$), is an evaluation of a key on it. So $h_{k+1}$
+is made at the position of $h_k$, with a key of its class.
+
+Otherwise $\beta_k$ is a successful activation of $\sigma$ at $q$ that
+$\mathcal{R}(e'_{k+1})$ contains, other than the counterpart of
+$\alpha_{k+1}$, and the hypotheses of *Restarts through a frame* hold for
+$k + 1$, since $k + 1 < i + m$. $\square$
+
+So along such a run the holder keeps its class and position across each
+restart at which the activation that the next frame enters lies at the place
+of the one that the earlier restart entered. The $h_k$ are distinct and at
+most six have keys of one class at one position, three for each variant
+(*Holders of the frames' activations*), so a stretch of the run with one
+class and position of the holder has at most six links, and $m$ is at most
+six times one more than the number of restarts of the other kind. At each of
+those, the way from $\mathcal{R}(e'_{k+1})$ down to $\beta_k$ is not run by
+the parse as an activation of the sequence: it answers a call on it, leaves
+out a step of a growth on it, or runs $\beta_k$ as an activation that the
+sequence leaves out. A bound on the number of such restarts in one run is not
+shown here.
 
 ## Lemma 5 (Growth)
 
@@ -6903,7 +6967,14 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the $q$-frame. *Consecutive restarts through frames* shows, under the
    hypotheses of that claim and the condition on the memo, that two consecutive links of restarts through
    $q$-frames are not both plain, each with one variant and the earlier
-   evaluation in a lookahead state no greater than the later. Refinements,
+   evaluation in a lookahead state no greater than the later. *Holders of
+   the frames' activations* bounds a run that restarts through $m$
+   $q$-frames, plain or not, by three times the number of distinct keys of
+   the evaluations that hold the activations of its links, and *Positions of
+   the holders* keeps the holder at one class and position across each
+   restart in which the next frame enters its activation at the place of the
+   earlier one; the positions of the holders, and so the restarts in which
+   the parse answers a call on the way to that place, stay open. Refinements,
    the links that are not plain, the number of
    runs in one evaluation $T$ of a repetition, the number of repetition
    evaluations $T$ that reach $q$, the number of $q$-frame positions,
