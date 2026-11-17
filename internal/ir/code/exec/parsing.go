@@ -320,8 +320,10 @@ a bit in a word of bits), ctx.storeCtx for the table of the context, or another 
 		m.AddOp(&code.Op{Name: a.name, Component: Growth, Results: []code.Type{code.TInt}, Contract: a.doc})
 	}
 	m.AddOp(&code.Op{Name: "memo.setPresent", Component: Memo, Params: append(entryArg, ctxArg), Reads: []string{Growth},
-		Writes:   []string{Memo},
-		Contract: `Records with the entry e the present set of the context state c, for ctx.allows.`,
+		Writes: []string{Memo},
+		Contract: `Adds to the present set of the entry e that of the context state c, for ctx.allows: the
+entry answers the calls in contexts whose leaders are all in the union, since a result stored in the
+memo read no growing result and is the same in each of them.`,
 		Requires: `The present set of c fits in a word of bits, which a call whose result ctx.pop sends to the memo meets.`})
 	m.AddOp(&code.Op{Name: "ctx.keep", Component: Growth, Params: []code.Param{ctxArg, code.P("r", rule), code.P("pos", code.TInt),
 		code.P("min", code.TInt), code.P("key", values), code.P("ok", code.TBool), code.P("end", code.TInt), code.P("silent", code.TBool),

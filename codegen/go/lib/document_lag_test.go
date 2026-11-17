@@ -14,7 +14,7 @@ func TestSpliceDropsEntriesBeyondTheEditLimit(t *testing.T) {
 	for i, s := range seen {
 		e := tbl.alloc()
 		e.from, e.examined, e.seen = fromPos, 0, s
-		tbl.put(i, 3, 0, nil, e)
+		tbl.put(i, 3, 0, nil, e, nil)
 	}
 	tbl.epoch = epoch
 	tbl.splice(documentEdit{start: 50, end: 50})

@@ -123,7 +123,7 @@ func (t *memoTable) putAny(p *Parser, rule, pos, min int, env []any, e *memoEntr
 		p.memoPutControlled(rule, pos, min, env, false, e)
 		return
 	}
-	t.put(rule, pos, min, env, e)
+	t.put(rule, pos, min, env, e, nil)
 }
 
 // TestMemoIndexStreamPrune checks that pruning a stream's memo keeps the
@@ -132,7 +132,7 @@ func TestMemoIndexStreamPrune(t *testing.T) {
 	p := &Parser{Stream: &streamInput{}}
 	for pos := 0; pos < 6; pos++ {
 		for i := 0; i < 40; i++ {
-			p.memo.put(1, pos, 0, []any{i}, p.memo.alloc())
+			p.memo.put(1, pos, 0, []any{i}, p.memo.alloc(), nil)
 		}
 		p.memo.get(1, pos, 0, []any{-1}) // builds the index
 	}
