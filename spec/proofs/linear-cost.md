@@ -4278,12 +4278,112 @@ of a site found by every walk at their position, in either lookahead
 state and with or without values, no class would be raised outside the
 Document parses, and the count would be seven times the activations that
 are not tied. With the records kept apart as (M2) allows, the number of the
-raised classes is not bounded here; the sixth part of step 8 of
-[Open Steps](#open-steps) states it. The count leaves out the
+raised classes is not bounded by this claim; *Descent in the reference
+parse* below bounds it by a count in $\mathcal{R}$, and the sixth part
+of step 8 of [Open Steps](#open-steps) states what stays open. The count leaves out the
 activations that no memoized evaluation owns, those owned by a growth
 step or by an evaluation in a context of growths, which Lemma 5 counts,
 and it rests on (M4), which is not shown of a site whose records are kept
 under the environment as an object.
+
+**Descent in the reference parse.** This claim bounds the raised classes
+of the claim above, and with them the activations inside the iterations
+of the kind, by a count in $\mathcal{R}$ alone. It uses of the records
+only that they are exact, (R1), through *Counterparts*; it uses neither
+(M1), (M2) nor (M4), nor the covered keys. Let
+$\beta^1, \beta^2, \ldots$ be the successful activations of $\sigma$ at
+$q$ in $\mathcal{R}$, in the order in which they start. Call $\beta^m$ a
+**root** when $m = 1$ or when $\beta^m$ has no reference link of a rule
+that the parse memoizes; otherwise *Reference links* joins $\beta^m$ to an
+earlier activation $\beta_f$, its **parent**, and the root of $\beta^m$ is
+the root of its parent. The **owner call** of an activation of
+$\mathcal{R}$ is the innermost evaluation of $\mathcal{R}$ that contains
+it and is made by a call of a rule that the parse memoizes, or the
+evaluation where $\mathcal{R}$ begins.
+
+1. The owner call of $\beta^m$ and the owner call of its root are made by
+   calls with keys of one class, or both are the evaluation where
+   $\mathcal{R}$ begins, and $\beta^m$ lies in the first at the place
+   where the root lies in the second.
+2. Let memoized evaluations $M$ and $M'$ of the parse own successful
+   activations $\alpha$ and $\alpha'$ of $\sigma$ at $q$ whose
+   counterparts have one root. Then $M$ and $M'$ are evaluations of keys
+   of one class, or both are the evaluation where the parse begins, and
+   $\alpha = \alpha'$ when $M = M'$.
+3. So the successful activations of $\sigma$ at $q$ that memoized
+   evaluations own are at most six times the roots of their
+   counterparts, wherever they lie: inside an iteration of a walk of a
+   site that keeps records, whatever its slot held and whichever records
+   its walk could find, or outside.
+
+*Proof.* 1\. By induction on $m$. Let $\beta^m$ have the reference link
+$(e^k, e^{k\prime})$ of a rule that the parse memoizes and the parent
+$\beta_f$. $e^{k\prime}$ takes the steps of $e^k$ up to the variants of
+its calls, and $\beta^m$ is the activation of $e^{k\prime}$ that
+corresponds to $\beta_f$ (*Reference links*). $e^{k\prime}$ is made by a
+call of a rule that the parse memoizes and contains $\beta^m$, so the
+owner call $O$ of $\beta^m$ is $e^{k\prime}$ or lies inside it. The
+evaluation $O_f$ at the place of $O$ in $e^k$, or $e^k$ itself, is made
+by a call of the same rule or of its twin, which the parse memoizes when
+it memoizes the rule (Lemma 3), at the same position, with a key of the
+class of that of $O$, as in the proof of *Reference links lead to
+repeated evaluations*, and it holds $\beta_f$ at the place where $O$
+holds $\beta^m$. No evaluation made by a call of a rule that the parse
+memoizes lies between $O_f$ and $\beta_f$: the one at its place between
+$O$ and $\beta^m$ would be made by a call of the same rule or of its
+twin. So $O_f$ is the owner call of $\beta_f$, and the induction
+hypothesis for $\beta_f$, which starts before $\beta^m$, gives the
+statement.
+
+2\. $\mathcal{R}(M)$ is made by a call of a rule that the parse memoizes,
+or is the evaluation where $\mathcal{R}$ begins, and contains the
+counterpart of $\alpha$. An evaluation of $\mathcal{R}$ made by such a
+call between $\mathcal{R}(M)$ and that counterpart would contain the
+counterpart of an evaluation of the parse, so it would be the counterpart
+of an evaluation of the parse (*Heads in a parse that keeps records*),
+made by a call of a rule that the parse memoizes between $M$ and
+$\alpha$, and $\alpha$ would lie outside the own region of $M$. So
+$\mathcal{R}(M)$ is the owner call of the counterpart of $\alpha$, and
+likewise for $M'$. By 1 the two owner calls have keys of the class of
+the owner call of the root, or are the evaluation where $\mathcal{R}$
+begins, and hold the two counterparts at one place. When $M = M'$ the two
+counterparts are one evaluation of $\mathcal{R}$, and so are $\alpha$ and
+$\alpha'$.
+
+3\. By 2 the memoized evaluations that own the activations of one root
+are distinct evaluations of one class, at most six (Lemma 3), or the one
+evaluation where the parse begins. $\square$
+
+The claim holds of the parse whatever it answers from the memo or from a
+record: it compares no two evaluations of the parse, so it needs no
+replay, and a record that one evaluation of a class takes and another
+does not changes nothing in it. The argument of 2 holds of every
+evaluation of a key and the activations in its own region, so the class
+of an evaluation of a key that holds a successful activation of $\sigma$
+at $q$ is the class of the owner call of a root, and the raised classes
+of the claim above at $q$ are at most the roots.
+
+The roots are a count of $\mathcal{R}$, not of the parse. By *Reference
+links* and the claims that it rests on, $\beta^m$ with $m \ge 2$ has a
+reference link unless a dropped step at the position of its growth or a
+path that enters the growth again of $\mathcal{R}$ leads to it, or it is
+one of the activations that the restarts leave out: of case 5, of the
+third case of *Dropped steps*, or a repeat at the position of a growth
+(*Repeats inside a growth* of Lemma 5). Its reference link is of a rule
+that the parse memoizes when the rule of $\sigma$ calls a rule or is
+memoized at its calls, and otherwise it can be a leaf link (*Links to
+heads*). So, for a source whose rule calls a rule or is memoized at its
+calls, $\beta^1$ is the only root at $q$ when none of those arises at
+$q$ in $\mathcal{R}$, as in a grammar without left recursion, and then
+at most six successful activations of $\sigma$ at $q$ are owned by
+memoized evaluations, the first iterations of a walk up to the minimum,
+the last iteration of a walk that ends plain, the iterations of a walk
+made before the site turns hot and the iterations at a site whose
+records are kept under the environment as an object included. Where they
+arise, the roots that they make in $\mathcal{R}$ can outnumber the
+activations that they make in the parse, since $\mathcal{R}$ evaluates
+what the parse answers; the number of the roots at $q$ whose descent
+holds a counterpart of an activation of the parse is not bounded here.
 
 **Leaf links in a parse that keeps records.** In a parse whose records are
 exact, (R1) of the [Setting](#setting), *Growths around a leaf link*,
@@ -10358,10 +10458,21 @@ theorem covers such a parse.
    a record for. That covers the first three sorts of iterations above.
    A class is raised only where the later walk could not take that
    record: it is in the other lookahead state, it builds values and the
-   record holds none, or a Document resumes it. What is open in this
-   count is the number of the raised classes at one position, and (M4)
-   for a site whose records are kept under the environment as an
-   object.
+   record holds none, or a Document resumes it. *Descent in the reference parse* bounds the activations that memoized
+   evaluations own, inside the iterations as outside and with (R1) alone,
+   by six times the roots of their counterparts in $\mathcal{R}$: the
+   first successful activation of the source at the position and those
+   that have no reference link of a rule that the parse memoizes. For a
+   source whose rule calls a rule or is memoized at its calls, in a
+   reference parse in which no dropped step at the position of its
+   growth, no path that enters a growth again and none of the cases that
+   the restarts leave out leads to an activation at the position, that is
+   six activations, whatever the slots hold and however the records are
+   keyed. What is open in this count is the number of the roots that
+   those cases make at one position and whose descent the parse
+   evaluates, the leaf reference links, which stay as the leaf links of
+   step 1, and the activations inside the iterations that a growth step
+   or an evaluation in a context of growths owns.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
    calls, which Lemma 6 counts through the count of Lemma 4, and of the
