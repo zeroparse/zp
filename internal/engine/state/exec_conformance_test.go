@@ -186,8 +186,7 @@ func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
 		// growth has none that an edit can keep, and stands here for an entry without a record.
 		*e = MemoEntry{Ok: args[4].(bool), End: int(args[5].(int64)), silent: args[6].(bool), Gen: p.Gen, Vgen: p.Gen, Errs: engineErrors(args[8]),
 			Growing: true, From: int(args[1].(int64))}
-		p.MemoPut(m.key(args), e)
-		return []any{e}
+		return []any{p.MemoPut(m.key(args), e)}
 	case "memo.examine":
 		e := args[0].(*MemoEntry)
 		e.Growing, e.Examined, e.From, e.Positional = false, int(args[2].(int64)), e.Pos, false

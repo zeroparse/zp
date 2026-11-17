@@ -240,12 +240,13 @@ func (p *Parser) chargeMemoHash(e *MemoEntry) {
 	}
 }
 
-// MemoPut stores e for k. The store counts one unit; the walk of the chain at the position and the
-// growth of the table count as MemoGet's walk does, and are Document work in a Document parse.
-func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
+// MemoPut stores e for k, unless the join with the entry stored there keeps that entry (joinStored),
+// and returns the entry it keeps. The store counts one unit; the walk of the chain at the position
+// and the growth of the table count as MemoGet's walk does, and are Document work in a Document
+// parse.
+func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) *MemoEntry {
 	if !BudgetControlsEnabled || p.Control == nil {
-		p.Memo.Put(k, e)
-		return
+		return p.Memo.put(k, e, p.joinStored)
 	}
 	p.Spend()
 	ident := k.DocOnly
@@ -255,7 +256,7 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	t := p.Memo
 	i := k.Pos - t.Base
 	if i < 0 {
-		return
+		return e
 	}
 	if i >= t.Gap {
 		i += t.GapLen
@@ -321,6 +322,9 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 		p.countKeyMatch(replaced.Env, k.Env)
 	}
 	p.Spend()
+	if replaced != nil && p.joinStored(replaced, e) == replaced {
+		return replaced
+	}
 	// No checkpoint may separate the link swap from retiring its old entry.
 	// In particular, do not publish a partially copied slot array or key.
 	t.Slots = slots
@@ -338,10 +342,11 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 		if replaced != e {
 			t.Retire(replaced)
 		}
-		return
+		return e
 	}
 	e.Next = slots[i]
 	slots[i] = e
+	return e
 }
 
 func (p *Parser) memoFirstCall(pos, r int) bool {

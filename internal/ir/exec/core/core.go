@@ -235,8 +235,33 @@ func Build() *Module {
 		// The memoized result includes the expectations recorded in this call.
 		b.Let("m", C("exp.isolate", L("start")))
 	}
+	// recordEntry records with the entry that the call stored the expectations of the call and, with
+	// doc, the input it examined, and pins the entry of a rule whose results depend on positions.
+	recordEntry := func(b *Builder, entry Expr, doc docMode) {
+		b.Do("memo.setExpected", entry, L("far"), L("kept"))
+		// The start of the examined input serves only a Document (doc.low), the end also the report of a
+		// reuse in an observed parse.
+		examine := func(before Expr) func(b *Builder) {
+			return func(b *Builder) { b.Do("memo.examine", entry, before, C("doc.examined")) }
+		}
+		pin := func(b *Builder) { b.If(C("rule.positional", r), func(b *Builder) { b.Do("memo.pin", entry) }) }
+		tracking(b, doc, func(b *Builder) {
+			switch doc {
+			case nodeDoc:
+				b.IfElse(C("doc.active"), func(b *Builder) {
+					examine(Bin("<", C("doc.low"), L("start")))(b)
+					pin(b)
+				}, examine(BoolC(false)))
+			case typedTrack:
+				examine(BoolC(false))(b)
+			default:
+				examine(Bin("<", C("doc.low"), L("start")))(b)
+				pin(b)
+			}
+		})
+	}
 	// finish records the result of the evaluated call where its dependencies send it: in the memo,
-	// with the present set of its context, or in the table of its context. It passes the
+	// joined with the entry stored there (memo.store, memo.setPresent), or in the table of its context. It passes the
 	// dependencies to the enclosing evaluation, keeps the expectations of the call with its result
 	// and returns the result.
 	//
@@ -251,30 +276,12 @@ func Build() *Module {
 		b.Let("kept", C("keep", L("inner")))
 		b.Let("store", C("ctx.pop", c))
 		b.IfElse(Eq(L("store"), C("ctx.storeMemo")), func(b *Builder) {
+			// The store keeps an entry computed outside a lookahead that a result computed inside one
+			// would narrow; the present set of the context joins that of the entry kept either way.
 			entry := b.Let("entry", C("memo.store", id, L("start"), level, L("env"), L("ok"), R(ops.Pos), silent,
 				L("v"), C("rec.since", L("rec")), C("rule.docOnlyMemo", r)))
 			b.Do("memo.setPresent", entry, c)
-			b.Do("memo.setExpected", entry, L("far"), L("kept"))
-			// The start of the examined input serves only a Document (doc.low), the end also the report of a
-			// reuse in an observed parse.
-			examine := func(before Expr) func(b *Builder) {
-				return func(b *Builder) { b.Do("memo.examine", entry, before, C("doc.examined")) }
-			}
-			pin := func(b *Builder) { b.If(C("rule.positional", r), func(b *Builder) { b.Do("memo.pin", entry) }) }
-			tracking(b, doc, func(b *Builder) {
-				switch doc {
-				case nodeDoc:
-					b.IfElse(C("doc.active"), func(b *Builder) {
-						examine(Bin("<", C("doc.low"), L("start")))(b)
-						pin(b)
-					}, examine(BoolC(false)))
-				case typedTrack:
-					examine(BoolC(false))(b)
-				default:
-					examine(Bin("<", C("doc.low"), L("start")))(b)
-					pin(b)
-				}
-			})
+			b.If(Bin("||", Not(silent), C("memo.silent", entry)), func(b *Builder) { recordEntry(b, entry, doc) })
 		}, func(b *Builder) {
 			b.If(Eq(L("store"), C("ctx.storeCtx")), func(b *Builder) {
 				b.Do("ctx.keep", c, r, L("start"), level, L("env"), L("ok"), R(ops.Pos), silent, L("v"),

@@ -93,9 +93,11 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 	if store == storeMemo {
 		entry := p.memo.alloc()
 		*entry = memoEntry{node: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
-		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
-		entry.present = c.present
-		entry.far, entry.expected = far, kept
+		entry = p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
+		entry.present |= c.present
+		if !(p.Silent > 0) || entry.silent {
+			entry.far, entry.expected = far, kept
+		}
 	} else if store == storeCtx {
 		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{node: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})
 	}
@@ -398,11 +400,13 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	if store == storeMemo {
 		entry := p.memoSlab.one()
 		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
-		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
-		entry.present = c.present
-		entry.far, entry.expected = far, kept
-		if p.track {
-			p.examine(entry, p.docExamined)
+		entry = p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
+		entry.present |= c.present
+		if !(p.Silent > 0) || entry.silent {
+			entry.far, entry.expected = far, kept
+			if p.track {
+				p.examine(entry, p.docExamined)
+			}
 		}
 	} else if store == storeCtx {
 		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})
@@ -493,11 +497,13 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 	if store == storeMemo {
 		entry := p.memoSlab.one()
 		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
-		p.memoPut(r.Id, start, 0, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
-		entry.present = c.present
-		entry.far, entry.expected = far, kept
-		if p.track {
-			p.examine(entry, p.docExamined)
+		entry = p.memoPut(r.Id, start, 0, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
+		entry.present |= c.present
+		if !(p.Silent > 0) || entry.silent {
+			entry.far, entry.expected = far, kept
+			if p.track {
+				p.examine(entry, p.docExamined)
+			}
 		}
 	} else if store == storeCtx {
 		p.ctxKeep(&c, r.Id, start, 0, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})
@@ -757,17 +763,19 @@ func (p *Parser) callMemo(r *Rule, min int) (*core.Node, bool) {
 	if store == storeMemo {
 		entry := p.memo.alloc()
 		*entry = memoEntry{node: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
-		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
-		entry.present = c.present
-		entry.far, entry.expected = far, kept
-		if p.track {
-			if p.Document != nil {
-				entry.examined, entry.from, entry.pinned = p.docExamined, examinedFromOf(p.docLow < start), false
-				if r.Positional {
-					entry.pinned = true
+		entry = p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
+		entry.present |= c.present
+		if !(p.Silent > 0) || entry.silent {
+			entry.far, entry.expected = far, kept
+			if p.track {
+				if p.Document != nil {
+					entry.examined, entry.from, entry.pinned = p.docExamined, examinedFromOf(p.docLow < start), false
+					if r.Positional {
+						entry.pinned = true
+					}
+				} else {
+					entry.examined, entry.from, entry.pinned = p.docExamined, examinedFromOf(false), false
 				}
-			} else {
-				entry.examined, entry.from, entry.pinned = p.docExamined, examinedFromOf(false), false
 			}
 		}
 	} else if store == storeCtx {
@@ -956,12 +964,14 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	if store == storeMemo {
 		entry := p.memoSlab.one()
 		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
-		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
-		entry.present = c.present
-		entry.far, entry.expected = far, kept
-		p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docExamined, recorded: true, before: p.docLow < start}
-		if r.Positional {
-			p.TypedDocument.pin(entry)
+		entry = p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
+		entry.present |= c.present
+		if !(p.Silent > 0) || entry.silent {
+			entry.far, entry.expected = far, kept
+			p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docExamined, recorded: true, before: p.docLow < start}
+			if r.Positional {
+				p.TypedDocument.pin(entry)
+			}
 		}
 	} else if store == storeCtx {
 		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})

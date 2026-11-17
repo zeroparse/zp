@@ -203,11 +203,37 @@ func (t *MemoTable) Get(k MemoKey) (*MemoEntry, bool) {
 	return x, x != nil
 }
 
-// Put sets the entry for key k to e (replacing any existing entry for the same key).
+// joinStored returns the entry that a store of e keeps under the key of x, the entry stored there:
+// the join of the two, which answers every call that either answers (CallBegin). A store never
+// narrows the calls that a current entry answers (see "Evaluations of Rules" in
+// spec/runtime/parsing.md). x stays if it was computed outside a lookahead and e inside one;
+// otherwise e replaces it and takes its present set, to which the caller adds that of e's context
+// (CallEnd). Both read no growing result, so each is the result of the call outside every context:
+// neither calls a leader of either present set at the position, and the result holds in every
+// context whose leaders are in their union. An entry that a lookup would not return, one that lags
+// behind an edit it cannot be advanced past (AdvanceEntry), is not current: e replaces it as before.
+func (p *Parser) joinStored(x, e *MemoEntry) *MemoEntry {
+	if x == e || x.Vgen != p.Gen && !AdvanceEntry(x, p.Edits[:p.Gen]) {
+		return e
+	}
+	if !x.silent && e.silent {
+		return x
+	}
+	e.Present = x.Present
+	return e
+}
+
+// Put sets the entry for key k to e, replacing any existing entry for the same key.
 func (t *MemoTable) Put(k MemoKey, e *MemoEntry) {
+	t.put(k, e, nil)
+}
+
+// put sets the entry for key k to e, replacing any existing entry for the same key unless join, if
+// not nil, keeps that entry (Parser.joinStored), and returns the entry it keeps.
+func (t *MemoTable) put(k MemoKey, e *MemoEntry, join func(x, e *MemoEntry) *MemoEntry) *MemoEntry {
 	i := k.Pos - t.Base
 	if i < 0 {
-		return // discarded position
+		return e // discarded position
 	}
 	if i >= t.Gap {
 		i += t.GapLen
@@ -224,14 +250,16 @@ func (t *MemoTable) Put(k MemoKey, e *MemoEntry) {
 			t.Slots = grown
 		}
 	}
-	e.Rule, e.Min, e.Pos, e.Env = int32(k.Rule), int32(k.Min), k.Pos, k.Env
-	e.missingSilent = k.MissingSilent
 	link := &t.Slots[i]
 	same := func(x *MemoEntry) bool {
-		return x.Rule == e.Rule && x.Min == e.Min && x.missingSilent == e.missingSilent && slices.Equal(x.Env, e.Env)
+		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && slices.Equal(x.Env, k.Env)
 	}
 	for n := 0; *link != nil && n < memoScan; link, n = &(*link).Next, n+1 {
 		if x := *link; same(x) {
+			if join != nil && join(x, e) == x {
+				return x
+			}
+			setKey(e, k)
 			t.reindex(k.Pos, x, e, nil)
 			e.Next = x.Next
 			*link = e
@@ -240,14 +268,18 @@ func (t *MemoTable) Put(k MemoKey, e *MemoEntry) {
 				// caller installs its new best before replacing the key.
 				t.Retire(x)
 			}
-			return
+			return e
 		}
 	}
 	if *link != nil {
 		// A long chain: the index finds the entry to replace, and a walk finds its link.
 		ix := t.indexAt(k.Pos, t.Slots[i], nil)
-		h, _ := memoKeyHash(e.Rule, e.Min, e.missingSilent, e.Env)
+		h, _ := memoKeyHash(int32(k.Rule), int32(k.Min), k.MissingSilent, k.Env)
 		slot, x := ix.probe(h, same)
+		if x != nil && join != nil && join(x, e) == x {
+			return x
+		}
+		setKey(e, k)
 		ix[slot] = e
 		if x == nil {
 			t.IndexBytes += memoIndexEntryBytes
@@ -262,11 +294,19 @@ func (t *MemoTable) Put(k MemoKey, e *MemoEntry) {
 			if x != e {
 				t.Retire(x)
 			}
-			return
+			return e
 		}
 	}
+	setKey(e, k)
 	e.Next = t.Slots[i]
 	t.Slots[i] = e
+	return e
+}
+
+// setKey records the key k in the entry e.
+func setKey(e *MemoEntry, k MemoKey) {
+	e.Rule, e.Min, e.Pos, e.Env = int32(k.Rule), int32(k.Min), k.Pos, k.Env
+	e.missingSilent = k.MissingSilent
 }
 
 // Len returns the number of entries.

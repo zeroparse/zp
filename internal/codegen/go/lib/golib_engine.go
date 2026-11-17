@@ -512,7 +512,7 @@ func engineTarget() *gogen.Target {
 		case "memo.before":
 			return a[0] + ".From < " + a[0] + ".Pos"
 		case "memo.setPresent":
-			return fmt.Sprintf("%s.Present = %s.present", a[0], a[1])
+			return fmt.Sprintf("%s.Present |= %s.present", a[0], a[1])
 		case "memo.setExpected":
 			return fmt.Sprintf("%s.Far, %[1]s.Expected = %s, %s", a[0], a[1], a[2])
 		case "memo.pin":
@@ -660,7 +660,7 @@ func engineTarget() *gogen.Target {
 %[2]s = p.entry(c.ctx)
 *%[2]s = MemoEntry{Node: %s, Ok: %s, End: %s, silent: %s, Gen: p.Gen, Vgen: p.Gen, Errs: %s}
 }
-p.MemoPut(%s, %[2]s)`, decl, e, a[7], a[4], a[5], a[6], a[8], key(a, a[9])), true
+%[2]s = p.MemoPut(%[8]s, %[2]s)`, decl, e, a[7], a[4], a[5], a[6], a[8], key(a, a[9])), true
 		case "exp.copy":
 			// The kept sets fill append-only chunks of the arena.
 			return fmt.Sprintf(`if cap(p.Arena)-len(p.Arena) < len(%[1]s) {

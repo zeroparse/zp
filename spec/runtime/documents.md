@@ -396,7 +396,13 @@ entry. When the entry it replaces lies beyond the first 32, it walks the chain
 up to it, one unit for each entry it passes; when it lies among them and the
 position has an index, it hashes the key it replaces. A store of a rule that only a Document memoizes walks at most
 32 entries, as its lookup does, and when none of them is the entry it replaces,
-it links the new entry in front of the chain and replaces none. A store at a position
+it links the new entry in front of the chain and replaces none. A store never
+narrows the calls that the entry it finds answers
+([Evaluations of Rules](parsing.md#evaluations-of-rules)): when that entry was
+computed outside a lookahead and the new one inside one, it keeps that entry and
+links nothing, with the same charges. In the reference implementation it first
+applies to that entry the edits that it does not account for, as a lookup does;
+an entry that cannot take them is replaced. A store at a position
 beyond the slots of the memo table grows them: when the number of binary digits
 of the new length exceeds that of the old one, it charges the old length, and
 otherwise nothing.

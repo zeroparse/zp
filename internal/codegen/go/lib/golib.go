@@ -531,7 +531,7 @@ func goTarget(s goSpec) *gogen.Target {
 		case "ctx.storeCtx":
 			return "storeCtx"
 		case "memo.setPresent":
-			return fmt.Sprintf("%s.present = %s.present", a[0], a[1])
+			return fmt.Sprintf("%s.present |= %s.present", a[0], a[1])
 		case "ctx.keep":
 			return fmt.Sprintf("p.ctxKeep(&%s, %s.Id, %s, %s, %s, &ctxResult{%s: %s, ok: %s, end: %s, examined: p.examinedNow(), silent: %s, errs: %s, far: %s, expected: %s})",
 				a[0], a[1], a[2], a[3], a[4], valueField, a[8], a[5], a[6], a[7], a[9], a[10], a[11])
@@ -626,7 +626,7 @@ p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
 		case "memo.store":
 			e := dst[0]
 			fields := fmt.Sprintf("%s: %s, ok: %s, end: %s, silent: %s, errs: %s", valueField, a[7], a[4], a[5], a[6], a[8])
-			return fmt.Sprintf("%s%s%s\n*%s = %s{%s}\np.memoPut(%s, %s, %s)", e, op, alloc, e, entryType, fields, key(), a[9], e), true
+			return fmt.Sprintf("%s%s%s\n*%s = %s{%s}\n%[4]s = p.memoPut(%[7]s, %[8]s, %[4]s)", e, op, alloc, e, entryType, fields, key(), a[9]), true
 		}
 		return "", false
 	}

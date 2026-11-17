@@ -283,7 +283,7 @@ func (t *memoTable) splice(ed documentEdit) {
 				}
 				kept.shifts[c] = shift
 			}
-			kept.put(int(e.rule), to, int(e.min), e.env, c)
+			kept.put(int(e.rule), to, int(e.min), e.env, c, nil)
 		}
 	}
 	*t = kept

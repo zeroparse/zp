@@ -245,8 +245,7 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 		rule, pos, level, env := key()
 		e := p.memo.alloc()
 		*e = memoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool), errs: recoveredErrors(args[8])}
-		p.memoPut(rule, pos, level, env, false, e)
-		return []any{e}
+		return []any{p.memoPut(rule, pos, level, env, false, e)}
 	case "memo.ok":
 		return []any{args[0].(*memoEntry).ok}
 	case "memo.end":
@@ -457,8 +456,7 @@ func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "memo.store":
 		e := p.memoSlab.one()
 		*e = tmemoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool), errs: recoveredErrors(args[8])}
-		p.memoPut(i(0), i(1), i(2), m.vals[args[3].(int64)], false, e)
-		return []any{e}
+		return []any{p.memoPut(i(0), i(1), i(2), m.vals[args[3].(int64)], false, e)}
 	case "memo.ok":
 		return []any{args[0].(*tmemoEntry).ok}
 	case "memo.end":
@@ -718,8 +716,7 @@ func TestExecConformanceDetectsBrokenLib(t *testing.T) {
 			rule, pos, level, env := int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64)), m.vals[args[3].(int64)]
 			e := m.p.memo.alloc()
 			*e = memoEntry{ok: args[4].(bool), end: int(args[5].(int64)), silent: args[6].(bool)}
-			m.p.memoPut(rule, max(pos, m.p.Stream.memoBase), level, env, false, e)
-			return []any{e}
+			return []any{m.p.memoPut(rule, max(pos, m.p.Stream.memoBase), level, env, false, e)}
 		}},
 		// A splice that reads an examined end of 0 as no record: it drops an entry at position 0 that
 		// examined no input.

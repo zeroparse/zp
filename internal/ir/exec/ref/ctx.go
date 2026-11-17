@@ -693,7 +693,7 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 	case "ctx.storeCtx":
 		return []any{CtxStoreCtx}, true
 	case "memo.setPresent":
-		args[0].(*Entry).present = args[1].(*CtxState).present
+		args[0].(*Entry).present |= args[1].(*CtxState).present
 		return nil, true
 	case "ctx.keep":
 		c, r := args[0].(*CtxState), args[1].(RuleRef)

@@ -2965,12 +2965,10 @@ export class Parser {
     return ix;
   }
 
-  // memoPut stores e under the key, replacing an entry with the same key.
-  memoPut(rule: number, pos: number, min: number, env: Value[] | null, e: MemoEntry): void {
+  // memoPut stores e under the key, replacing an entry with the same key unless the join of the two
+  // keeps that entry (joinStored), and returns the entry it keeps.
+  memoPut(rule: number, pos: number, min: number, env: Value[] | null, e: MemoEntry): MemoEntry {
     this.alloc(entryBytes);
-    e.rule = rule;
-    e.min = min;
-    e.env = env;
     const same = (x: MemoEntry): boolean => x === e || (x.rule === rule && x.min === min && sameValues(x.env, env, this.control));
     let prev: MemoEntry | null = null;
     let x = this.slots[pos] || null;
@@ -3004,6 +3002,10 @@ export class Parser {
         ixSlot = this.memoSlot;
       }
     }
+    if (replaced !== null && this.joinStored(replaced, e) === replaced) return replaced;
+    e.rule = rule;
+    e.min = min;
+    e.env = env;
     if (ix !== undefined) {
       if (replaced === null) this.alloc(mapEntryBytes);
       ix.set(ixSlot, e);
@@ -3015,7 +3017,7 @@ export class Parser {
       } else {
         prev.next = e;
       }
-      return;
+      return e;
     }
     if (this.slots.length === 0) {
       // One slot per position, allocated at once: writes far beyond the end of an array would
@@ -3035,6 +3037,22 @@ export class Parser {
     }
     e.next = this.slots[pos] || null;
     this.slots[pos] = e;
+    return e;
+  }
+
+  // joinStored returns the entry that a store of e keeps under the key of x, the entry stored there:
+  // the join of the two, which answers every call that either answers. A store never narrows the
+  // calls that a current entry answers (see "Evaluations of Rules" in spec/runtime/parsing.md). x
+  // stays if it was computed outside a lookahead and e inside one; otherwise e replaces it and takes
+  // its present set, to which the caller adds that of e's context. Both read no growing result, so
+  // each is the result of the call outside every context: neither calls a leader of either present
+  // set at the position, and the result holds in every context whose leaders are in their union.
+  // Every entry in the table answers a lookup: an edit removes those it does not keep.
+  joinStored(x: MemoEntry, e: MemoEntry): MemoEntry {
+    if (x === e) return e;
+    if (!x.silent && e.silent) return x;
+    e.present = x.present;
+    return e;
   }
 
   // envValues returns the current values of the variables in slots (null for none).
@@ -5338,9 +5356,9 @@ export class DocumentParser extends Parser {
     return e;
   }
 
-  override memoPut(rule: number, pos: number, min: number, env: Value[] | null, e: MemoEntry): void {
+  override memoPut(rule: number, pos: number, min: number, env: Value[] | null, e: MemoEntry): MemoEntry {
     e.seen = this.memoState.epoch;
-    super.memoPut(rule, pos, min, env, e);
+    return super.memoPut(rule, pos, min, env, e);
   }
 
   // documentMove moves the nodes of the value of e by the shift that edits gave e (DocumentMemo.splice),

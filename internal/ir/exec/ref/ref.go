@@ -275,7 +275,8 @@ type Entry struct {
 	// applied is the number of edits since which the entry was stored or last found: a target that
 	// applies edits to an entry when it finds it has applied those before it.
 	applied int64
-	// present is the present set that memo.setPresent recorded.
+	// present is the present set that memo.setPresent recorded, joined with that of the entry the
+	// store replaced.
 	present uint64
 	// seed is the tokens that the call of the entry inserted (MissingSeedOp).
 	seed []missingToken
@@ -518,7 +519,15 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		}
 		return []any{e, e != nil}
 	case "memo.store":
-		return []any{m.put(&Entry{key: m.key(args), ok: args[4].(bool), end: args[5].(int64), silent: args[6].(bool), value: args[7], errs: args[8], applied: m.edits})}
+		e := &Entry{key: m.key(args), ok: args[4].(bool), end: args[5].(int64), silent: args[6].(bool), value: args[7], errs: args[8], applied: m.edits}
+		// The store never narrows the calls that the current entry under the key answers.
+		if old := m.entries[e.key]; old != nil {
+			if !old.silent && e.silent {
+				return []any{old}
+			}
+			e.present = old.present
+		}
+		return []any{m.put(e)}
 	case "memo.prune":
 		m.prune(args[0].(int64))
 		return nil

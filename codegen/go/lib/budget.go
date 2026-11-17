@@ -1207,21 +1207,43 @@ func (p *Parser) hashMemoKey(rule, min int32, env []any) uint64 {
 	return h
 }
 
-func (p *Parser) memoPut(rule, pos, min int, key []any, docOnly bool, e *memoEntry) {
+// memoPut stores e under the key, unless the join with the entry stored there keeps that entry
+// (joinStored), and returns the entry it keeps.
+func (p *Parser) memoPut(rule, pos, min int, key []any, docOnly bool, e *memoEntry) *memoEntry {
 	if p.Stream != nil {
 		if pos -= p.Stream.memoBase; pos < 0 {
-			return
+			return e
 		}
 	}
 	if p.Control != nil {
-		p.memoPutControlled(rule, pos, min, key, docOnly, e)
-		return
+		return p.memoPutControlled(rule, pos, min, key, docOnly, e)
 	}
-	p.memo.put(rule, pos, min, key, e)
-	e.seen = p.stamp()
+	k := p.memo.put(rule, pos, min, key, e, p.joinStored)
+	k.seen = p.stamp()
+	return k
 }
 
-func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *memoEntry) {
+// joinStored returns the entry that a store of e keeps under the key of x, the entry stored there:
+// the join of the two, which answers every call that either answers. A store never narrows the
+// calls that a current entry answers (see "Evaluations of Rules" in spec/runtime/parsing.md). x
+// stays if it was computed outside a lookahead and e inside one; otherwise e replaces it and takes
+// its present set, to which the caller adds that of e's context. Both read no growing result, so
+// each is the result of the call outside every context: neither calls a leader of either present
+// set at the position, and the result holds in every context whose leaders are in their union.
+// Every entry in the table answers a lookup: an edit removes those it does not keep
+// (memoTable.splice).
+func (p *Parser) joinStored(x, e *memoEntry) *memoEntry {
+	if x == e {
+		return e
+	}
+	if !x.silent && e.silent {
+		return x
+	}
+	e.present = x.present
+	return e
+}
+
+func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *memoEntry) *memoEntry {
 	p.Spend()
 	if p.Control.defaultCompute {
 		// The steps of the walk of the chain and the growth of the table are work of the Document.
@@ -1280,6 +1302,9 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e 
 		p.countKeyMatch(replaced.env, key)
 	}
 	p.Spend()
+	if replaced != nil && p.joinStored(replaced, e) == replaced {
+		return replaced
+	}
 	// Commit the completed key/slot array and link together, with no further
 	// checkpoint between mutations. A resident self-entry retains its successor.
 	p.memo.slots = slots
@@ -1292,10 +1317,11 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e 
 	if replaced != nil {
 		e.next = replaced.next
 		*link = e
-		return
+		return e
 	}
 	e.next = slots[pos]
 	slots[pos] = e
+	return e
 }
 
 // controlledFirstCallPrepare charges and grows the first-call bookkeeping of a controlled parse for

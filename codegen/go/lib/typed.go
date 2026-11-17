@@ -1116,12 +1116,12 @@ func (p *TParser) memoGetControlled(rule, pos, min int, key []any, ident bool) *
 	return x
 }
 
-func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoEntry) {
+// memoPut stores e under the key, unless the join with the entry stored there keeps that entry
+// (joinStored), and returns the entry it keeps.
+func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoEntry) *tmemoEntry {
 	if p.Control != nil {
-		p.memoPutControlled(rule, pos, min, env, docOnly, e)
-		return
+		return p.memoPutControlled(rule, pos, min, env, docOnly, e)
 	}
-	e.seen = p.stamp()
 	if pos >= len(p.memoSlots) {
 		if pos < cap(p.memoSlots) {
 			p.memoSlots = p.memoSlots[:pos+1]
@@ -1131,11 +1131,16 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoE
 			p.memoSlots = grown
 		}
 	}
-	e.rule, e.min, e.env = int32(rule), int32(min), env
-	same := func(x *tmemoEntry) bool { return x.rule == e.rule && x.min == e.min && sameValues(x.env, env) }
+	same := func(x *tmemoEntry) bool {
+		return x.rule == int32(rule) && x.min == int32(min) && sameValues(x.env, env)
+	}
 	link := &p.memoSlots[pos]
 	for n := 0; *link != nil && n < memoScan; link, n = &(*link).next, n+1 {
 		if x := *link; same(x) {
+			if p.joinStored(x, e) == x {
+				return x
+			}
+			e.rule, e.min, e.env, e.seen = int32(rule), int32(min), env, p.stamp()
 			if ix := p.memoIndexes[pos]; ix != nil {
 				h, _ := memoKeyHash(x.rule, x.min, x.env)
 				slot, _ := ix.probe(h, func(y *tmemoEntry) bool { return y == x })
@@ -1144,14 +1149,18 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoE
 			p.dropRecord(x)
 			e.next = x.next
 			*link = e
-			return
+			return e
 		}
 	}
 	if *link != nil {
 		// A long chain: the index finds the entry to replace, and a walk finds its link.
 		ix := p.memoIndexAt(pos, nil)
-		h, _ := memoKeyHash(e.rule, e.min, env)
+		h, _ := memoKeyHash(int32(rule), int32(min), env)
 		slot, x := ix.probe(h, same)
+		if x != nil && p.joinStored(x, e) == x {
+			return x
+		}
+		e.rule, e.min, e.env, e.seen = int32(rule), int32(min), env, p.stamp()
 		ix[slot] = e
 		if x == nil {
 			p.memoIndexBytes += memoIndexEntryBytes
@@ -1164,14 +1173,28 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoE
 			}
 			e.next = x.next
 			*link = e
-			return
+			return e
 		}
 	}
+	e.rule, e.min, e.env, e.seen = int32(rule), int32(min), env, p.stamp()
 	e.next = p.memoSlots[pos]
 	p.memoSlots[pos] = e
+	return e
 }
 
-func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *tmemoEntry) {
+// joinStored is Parser.joinStored for a typed parse.
+func (p *TParser) joinStored(x, e *tmemoEntry) *tmemoEntry {
+	if x == e {
+		return e
+	}
+	if !x.silent && e.silent {
+		return x
+	}
+	e.present = x.present
+	return e
+}
+
+func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *tmemoEntry) *tmemoEntry {
 	p.Spend()
 	if p.Control.defaultCompute {
 		// The steps of the walk of the chain and the growth of the table are work of the Document.
@@ -1230,6 +1253,9 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e
 		p.countKeyMatch(replaced.env, key)
 	}
 	p.Spend()
+	if replaced != nil && p.joinStored(replaced, e) == replaced {
+		return replaced
+	}
 	p.memoSlots = slots
 	e.rule, e.min, e.env, e.seen = int32(rule), int32(min), key, p.stamp()
 	if ix != nil {
@@ -1243,10 +1269,11 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e
 		}
 		e.next = replaced.next
 		*link = e
-		return
+		return e
 	}
 	e.next = slots[pos]
 	slots[pos] = e
+	return e
 }
 
 // dropRecord forgets the Document record of the entry x that a store replaces (memo.store), so that

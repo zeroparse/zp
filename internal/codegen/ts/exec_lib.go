@@ -477,7 +477,7 @@ var tsTarget = &Target{
 		case "ctx.storeCtx":
 			return "storeCtx"
 		case "memo.setPresent":
-			return fmt.Sprintf("%s.present = %s.present", a[0], a[1])
+			return fmt.Sprintf("%s.present |= %s.present", a[0], a[1])
 		case "ctx.keep":
 			return fmt.Sprintf("this.ctxKeep(%s, %s.id, %s, %s, %s, newCtxResult(%s, %s, %s, %s, %s, %s))",
 				a[0], a[1], a[2], a[3], a[4], a[8], a[6], a[7], a[9], a[10], a[11])
@@ -501,7 +501,7 @@ var tsTarget = &Target{
 		}
 		key := func() string { return strings.Join(a[:4], ", ") }
 		entry := func(e, node, ok, end, silent, errs string) string {
-			return fmt.Sprintf("%s = newEntry(%s, %s, %s, %s, %s);\nthis.memoPut(%s, %s);", lhs(e), node, ok, end, silent, errs, key(), e)
+			return fmt.Sprintf("%s = this.memoPut(%s, newEntry(%s, %s, %s, %s, %s));", lhs(e), key(), node, ok, end, silent, errs)
 		}
 		// absent prints an operation whose result is undefined where it has none as its two results.
 		absent := func(call string) string {

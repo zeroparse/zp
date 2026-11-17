@@ -1303,8 +1303,9 @@ func (t *memoTable) reindex(pos int, x, e *memoEntry) {
 	}
 }
 
-// put stores e under the key, replacing an entry with the same key.
-func (t *memoTable) put(rule, pos, min int, env []any, e *memoEntry) {
+// put stores e under the key, replacing an entry with the same key unless join, if not nil, keeps
+// that entry (Parser.joinStored), and returns the entry it keeps.
+func (t *memoTable) put(rule, pos, min int, env []any, e *memoEntry, join func(x, e *memoEntry) *memoEntry) *memoEntry {
 	if pos >= len(t.slots) {
 		t.memBytes += uint64(pos+1-len(t.slots)) * ptrBytes
 		if pos < cap(t.slots) {
@@ -1315,22 +1316,30 @@ func (t *memoTable) put(rule, pos, min int, env []any, e *memoEntry) {
 			t.slots = grown
 		}
 	}
-	e.rule, e.min, e.env = int32(rule), int32(min), env
-	same := func(x *memoEntry) bool { return x.rule == e.rule && x.min == e.min && sameValues(x.env, env) }
+	same := func(x *memoEntry) bool { return x.rule == int32(rule) && x.min == int32(min) && sameValues(x.env, env) }
+	kept := func(x *memoEntry) bool { return join != nil && join(x, e) == x }
 	link := &t.slots[pos]
 	for n := 0; *link != nil && n < memoScan; link, n = &(*link).next, n+1 {
 		if x := *link; same(x) {
+			if kept(x) {
+				return x
+			}
+			e.rule, e.min, e.env = int32(rule), int32(min), env
 			t.reindex(pos, x, e)
 			e.next = x.next
 			*link = e
-			return
+			return e
 		}
 	}
 	if *link != nil {
 		// A long chain: the index finds the entry to replace, and a walk finds its link.
 		ix := t.indexAt(pos)
-		h, _ := memoKeyHash(e.rule, e.min, env)
+		h, _ := memoKeyHash(int32(rule), int32(min), env)
 		slot, x := ix.probe(h, same)
+		if x != nil && kept(x) {
+			return x
+		}
+		e.rule, e.min, e.env = int32(rule), int32(min), env
 		ix[slot] = e
 		if x == nil {
 			t.indexBytes += memoIndexEntryBytes
@@ -1342,11 +1351,13 @@ func (t *memoTable) put(rule, pos, min int, env []any, e *memoEntry) {
 			}
 			e.next = x.next
 			*link = e
-			return
+			return e
 		}
 	}
+	e.rule, e.min, e.env = int32(rule), int32(min), env
 	e.next = t.slots[pos]
 	t.slots[pos] = e
+	return e
 }
 
 // sameValues reports whether two lists of variable values are equal.
