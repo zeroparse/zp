@@ -759,8 +759,9 @@ shows that claim and Lemma 10 of such a parse, and *Iterations at one
 scan in a parse that keeps records* shows *Iterations at one scan* in
 part, under a hypothesis on the shared calls of a link. The
 other claims that count nothing, those that follow *Iterations at one
-scan* and the claims of Lemma 5 other than the first case of *Repeats
-inside a growth*, have not been read again for such
+scan*, and the claims of Lemma 5 other than the first case of *Repeats
+inside a growth* and those that *Families in a parse that keeps records*
+shows, have not been read again for such
 a parse (step 8 of [Open Steps](#open-steps)).
 
 **Sources without records.** $A_u$ counts the successful activations of the
@@ -7481,6 +7482,109 @@ the successful activations of $\sigma$ at $q$ that growth steps and
 evaluations in a context of growths own are at most a constant, apart from
 those kinds and the parts that that claim leaves.
 
+**Families in a parse that keeps records.** In a parse whose records are
+exact, (R1) of the [Setting](#setting), let an iteration **of the kind** be
+an iteration of a walk of a site that keeps records, as in *Heads in a
+parse that keeps records*. Then *Covered growths*, *Repeats inside a
+family* and *Links lead to later growths* hold as stated, the last for an
+$\alpha_i$ that is no iteration of the kind and lies inside none, and so do
+*Heads hold what later growths hold*, *Consecutive repeats inside a
+family* and *First activations of heads* for the activations that are no
+iterations of the kind and lie inside none, with consecutive activations
+and the first activation of a head taken among those activations.
+
+*Proof.* Call an activation **outside** when it is no iteration of the
+kind and lies inside none. The following fact is used throughout.
+
+(P) Let $\alpha$ be an outside activation of the parse, and let an
+evaluation $Y$ of $\mathcal{R}$ take the same steps, up to the variants of
+its calls, as an evaluation that contains the counterpart of $\alpha$.
+Then no iteration of the kind lies on the path from $Y$ down to the place
+of that counterpart. An iteration of $\mathcal{R}$ that contains the
+counterpart of $\alpha$ is the counterpart of an iteration that the parse
+evaluates, of a walk of the same site, which contains $\alpha$ (the
+paragraph before 1 in the proof of *Heads in a parse that keeps
+records*), so none is of the kind. $Y$ reaches the corresponding place
+through the same expressions, so the iterations on its path are
+iterations of the same repetitions, in a rule or in its twin, and so of
+the same sites, as in 1 of that proof, which keep no records.
+
+*Covered growths.* By 1 of *Heads in a parse that keeps records*, case
+(d) arises on the path of the covered keys only when an iteration of the
+kind contains $z$ inside $\mathcal{R}(x)$. Here $z$ is a call of a leader,
+which lies in no iteration of a walk of a candidate site or of a skip-run
+site, in the parse or in $\mathcal{R}$ (*Growths lie outside the recorded
+walks*), so the case does not arise, and the proof holds as stated.
+
+*Repeats inside a family.* Its proof uses the restarts, *Direct
+activations* and *Repeats*, which hold of every activation of such a parse
+(*Restarts in a parse that keeps records*), the first case of *Repeats
+inside a growth*, which *Repeats inside a growth in a parse that keeps
+records* shows, and which calls the family region evaluates and which the
+memo answers. A walk that takes a record answers iterations and no call,
+so the last is as without records.
+
+*Links lead to later growths.* Its proof uses that $\mathcal{R}(e_i)$ and
+$\mathcal{R}(e'_i)$ take the same steps, which *Links lead to repeated
+evaluations* gives with case (d) only when $Z$ lies inside $e'_i$ in an
+iteration of the kind (3 of *Heads in a parse that keeps records*), and
+$Z$ holds $\alpha_i$, which is outside; and it applies *Covered growths*
+to a call of a leader, where case (d) does not arise.
+
+*Heads hold what later growths hold.* The proof follows the path from
+$\mathcal{R}(h)$ down to the place that corresponds to the counterpart of
+the activation of $g$, and, at each call or step $y$ that the parse does
+not evaluate, goes on from $\mathcal{R}(y')$, which takes the steps of
+$\mathcal{R}(y)$ outside the lookaheads that $y'$ observed. By (P) for
+$\mathcal{R}(h)$ and for each $\mathcal{R}(y')$ in turn, no iteration of
+the kind lies on any segment of that path, so no record answers an
+evaluation on it, and the parse evaluates every call and step on it that
+it neither answers nor takes in a run of steps. The rest of the proof
+uses of the parse which calls and steps it evaluates and from what it
+answers the others, the memo and [Lemma 4 of the memoization
+proof](memoization.md#lemma-4-answering-from-a-dependent-result), which
+the records do not change. The activation that $h$ holds at the end of the
+path is outside, by (P).
+
+*Consecutive repeats inside a family.* Let $\alpha$ and $\alpha'$ be
+outside. Every evaluation on the path from the growth of $R$ in $w$ down to
+$\alpha$ contains $\alpha$, so none is an iteration of the kind; the second
+growth of $R$ evaluates the evaluations at the same places, of the same
+expressions, so none of those is one either, and no record answers them.
+The calls off that path have the same results in both growths, and a walk
+off it has the success and the end of its counterpart in $\mathcal{R}$
+whether or not it takes a record (2 of *Restarts in a parse that keeps
+records*), so each evaluation on the path takes the same path in both. The
+second growth therefore holds, at the place of $\alpha$, an activation
+that is outside, and the proof goes on as stated.
+
+*First activations of heads.* Let $\alpha_j$ be outside. If it is linked,
+*Links lead to later growths* applies as shown, and $e_j$ and $e'_j$ are
+calls of a leader in contexts of growths. If it is free, the remark after
+*Links lead to later growths* rests on *Heads in the reference parse* for
+growths of a key, with case (d) only when a call of a leader lies in an
+iteration of the kind in $\mathcal{R}$, which it does not, and on
+*Reference links lead to repeated evaluations*, with case (d) only when
+$Z$ lies in an iteration of the kind or $e^k$ does in $\mathcal{R}$; $Z$
+holds $\alpha_j$, and $e^k$ is, as in the proof, a call of a leader in a
+context of growths, which lies in no iteration. The path from $h$ to the
+place inside the earlier evaluation is then followed as for *Heads hold
+what later growths hold*, and the activation that $h$ holds there is
+outside. $\square$
+
+So the count above holds of the successful activations of $\sigma$ at $q$
+that growth steps and evaluations in a context of growths own and that are
+outside, up to the bound of *Consecutive repeats inside a family* in a step
+that the claims at $p$ do not leave out, which rests on the claims of this
+lemma before *Calls in a context of growths*, not read again for a parse
+that keeps records. It does not bound those inside the iterations of the
+kind. The second growth of *Consecutive repeats inside a family* can take a
+record where the first evaluated, so it holds nothing at the place of
+$\alpha$ and the next activation there can lie in a later step; and a head
+can take a record where a later growth of its key evaluates, so it need
+not hold what that growth holds. Step 8 of [Open Steps](#open-steps)
+leaves them open.
+
 The growth steps themselves remain. By *Calls in a context of growths* and
 *Growths inside a step*, the steps of the growths that are not outer are
 charged to the outer growths whose families hold them, to the input that those
@@ -10435,7 +10539,13 @@ theorem covers such a parse.
    which rests on the Run Sites proof, and *Seed reads*, which proves
    nothing, are not among them. *Repeats inside a growth in a parse that
    keeps records* shows the first case of *Repeats inside a growth* of
-   Lemma 5, on which the claims on leaf links rest. *Activations that do
+   Lemma 5, on which the claims on leaf links rest. *Families in a parse
+   that keeps records* shows *Covered growths*, *Repeats inside a family*
+   and *Links lead to later growths* of such a parse, and *Heads hold what
+   later growths hold*, *Consecutive repeats inside a family* and *First
+   activations of heads* for the activations that lie in no iteration of
+   a walk of a site that keeps records, up to the claims at the position
+   of a growth that the count after them uses. *Activations that do
    not succeed in a parse that keeps records* shows that claim and Lemma
    10 of such a parse, and *Iterations at one scan in a parse that keeps
    records* shows 1 and 3 of *Iterations at one scan* and the first
@@ -10444,7 +10554,7 @@ theorem covers such a parse.
    run all of whose links are such. The claims that follow it, from *Memoized breaks* to
    *Consecutive activations in one own region*, and the
    other claims of Lemma 5, the bound of the second case of *Repeats
-   inside a growth* among them,
+   inside a growth* and the claims at the position of a growth among them,
    have not been read again for a parse that keeps records, for the
    sources without records or for the growths. Sixth, a source without
    records inside the element of a site that keeps records, or in
@@ -10514,7 +10624,8 @@ theorem covers such a parse.
    a part reaches a position far from its growth. Open too are the leaf
    reference links, which stay as the leaf links of step 1, and the
    activations inside the iterations that a growth step or an evaluation
-   in a context of growths owns.
+   in a context of growths owns, which the count of Lemma 5 does not bound
+   in such a parse (*Families in a parse that keeps records*).
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
    calls, which Lemma 6 counts through the count of Lemma 4, and of the
