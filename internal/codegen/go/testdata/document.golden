@@ -133,7 +133,7 @@ corpus/0/line start	05dbbad66d6c8c8a8a456da2
 corpus/0/line start in a leader	5512972715ce7df95106647a
 corpus/0/line start in a member	0bae2484d83ab3df91bc827c
 corpus/0/line start in nested leaders	9699dccf61fe87f18ebd5af2
-corpus/0/literal expected text	98f9ba0c6fa08a0bcd4860d8
+corpus/0/literal expected text	4dfa4384376896e24ad50579
 corpus/0/literal text different captures control	7a3592cea9ccb3c9f21bab76
 corpus/0/literal text missing capture	843f1780d868607d4ff12b1e
 corpus/0/literal text mixed control	223146cef972168adb995c4e
@@ -497,7 +497,7 @@ corpus/1/line start	05dbbad66d6c8c8a8a456da2
 corpus/1/line start in a leader	5512972715ce7df95106647a
 corpus/1/line start in a member	0bae2484d83ab3df91bc827c
 corpus/1/line start in nested leaders	9699dccf61fe87f18ebd5af2
-corpus/1/literal expected text	98f9ba0c6fa08a0bcd4860d8
+corpus/1/literal expected text	4dfa4384376896e24ad50579
 corpus/1/literal text different captures control	7a3592cea9ccb3c9f21bab76
 corpus/1/literal text missing capture	843f1780d868607d4ff12b1e
 corpus/1/literal text mixed control	223146cef972168adb995c4e

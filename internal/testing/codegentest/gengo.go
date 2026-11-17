@@ -49,8 +49,8 @@ rule eleven = ten / "h"
 rule wide = eleven / ^ "q" / "é" / "😀" / [A-Z]`, []string{"t!", "e!", "w!", "r!;", "ta", "t", "wé", "w😀x", "rh;", ""}},
 		// The text of literals as expected items: escapes, control and non-ASCII characters and the
 		// suffix i, which every producer prints in the grammar's own spelling. The discarded choice has
-		// core.MinTerminalLeaves leaves, so lean typed parsers print it from a terminal program.
-		{"literal expected text", `rule main = -("\"" / "\\" / "\n" / "\t" / "\0" / "\f\v" / "\u0080" / "é" / "\u{1f600}" / "\u{fffd}" / "p" / "q" / "r" / "s" / "t" / "u") / "Ab"i / "a\"b"i`, []string{"!", "", "A", "a"}},
+		// core.MinTerminalLeaves leaves, so lean typed parsers print it from a terminal program. An input that passes the guard of "\f\v" and then fails inside the literal reaches the text printed for a literal there.
+		{"literal expected text", `rule main = -("\"" / "\\" / "\n" / "\t" / "\0" / "\f\v" / "\u0080" / "é" / "\u{1f600}" / "\u{fffd}" / "p" / "q" / "r" / "s" / "t" / "u") / "Ab"i / "a\"b"i`, []string{"!", "", "A", "a", "\f", "\f!", "\n", "p"}},
 		// Case-insensitive literals: a suffix and a pragma. Their first characters are both cases, so a
 		// guard of such an alternative must test both.
 		{"case-insensitive literal alternatives", `rule main = (kw / id)+ !.
