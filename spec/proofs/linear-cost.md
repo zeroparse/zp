@@ -2875,7 +2875,8 @@ memoization theorem for the evaluations that completed before it in this
 parse and in the parse that stored the record, which the induction of the
 [theorem of that
 proof](documents.md#theorem-document-parses-equal-fresh-parses) over the
-parses of the Document gives, the walk visits the iterations that the
+parses of the Document gives, with the walks that took records of sites in
+either parse carried past by (R1) as above, the walk visits the iterations that the
 walk of $\mathcal{R}$ visits, in the same order and with the same
 outcomes, each starting where the one before ended, and records into the
 enclosing evaluation the same farthest failure and expected items and an
@@ -4207,7 +4208,12 @@ the parse evaluated an iteration of the site there, under the same values
 of the variables for a site that is not free of them, and the iterations
 of a free or skip-run site read no variable from outside, so the calls of
 $\mathcal{X}$ inside the iterations that the records answer repeat calls
-of the parse with the same values. That the $K$ of $\mathcal{X}$ is at
+of the parse with the same values; and the calls that $\mathcal{X}$
+evaluates inside a call that the parse answers there repeat, with the same
+values, calls of the evaluation of this parse that stored or kept what
+answers it ([Lemma 1 of the memoization
+proof](memoization.md#lemma-1-context)), or lie in the body of an entry of
+an earlier parse. That the $K$ of $\mathcal{X}$ is at
 most that of the parse is not shown when the parse answers calls from
 entries of an earlier parse, whose bodies $\mathcal{X}$ evaluates,
 resumes a run of a Document, or keeps records not made as (M1) and (M2),
@@ -10661,7 +10667,11 @@ theorem covers such a parse.
    not succeed in a parse that keeps records* and *Repeats inside a growth
    in a parse that keeps records*, the claims on leaf links and on the
    scans in a parse that keeps records, and *Activations held by heads*.
-   Nor are the claims of Lemma 5 from *Covered growths* to *First
+   The same holds of a parse that resumes a run and keeps no record of
+   any site, for the claims of Lemma 4 from *Failure after a source* to
+   *Memoized links*, the claims on leaf links, *Iterations at one scan*
+   and the first case of *Repeats inside a growth* of Lemma 5, which are
+   stated for a parse in which every walk evaluates its iterations. Nor are the claims of Lemma 5 from *Covered growths* to *First
    activations of heads* shown of a parse that resumes a run, even one
    that keeps no record of any site: a head can resume a run whose walk a
    later growth of its key evaluates, and the second growth of
