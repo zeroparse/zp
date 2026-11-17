@@ -54,12 +54,23 @@ var tsRunSiteMutations = map[string][][2]string{
 		">= RUN_HOT_SPAN) c.hot = false;",
 	}},
 	"ignore env": {{
-		"return this.walk().keyEnv ? this.env : null;",
-		"return null;",
+		"    if (k === null) {\n      return noKey;\n",
+		"    if (true) {\n      return noKey;\n",
 	}},
 	"keep env": {{
-		"    if (w.keyEnv) {\n      this.env = r.env;\n",
-		"    if (false) {\n      this.env = r.env;\n",
+		"    if (w.key !== null) {\n      for (let i = 0; i < w.key.bind.length; i++) {\n",
+		"    if (false) {\n      for (let i = 0; i < w.key!.bind.length; i++) {\n",
+	}},
+	// The key holds the environment as an object besides the values: walks under equal values
+	// built apart share no record.
+	"key by object": {{
+		"    return { vals, h: memoKeyHash(0, 0, vals, this.control) };\n",
+		"    return { vals: [...vals!, this.env as unknown as Value], h: memoKeyHash(0, 0, vals, this.control) };\n",
+	}},
+	// A lookup steps through every record of the site before it takes the one of its key.
+	"scan keys": {{
+		"    const r = this.recs.get(k.h)?.get(pos);\n",
+		"    for (const m of this.recs.values()) {\n      control?.charge(m.size);\n    }\n    const r = this.recs.get(k.h)?.get(pos);\n",
 	}},
 	"any list": {{
 		"if (r === undefined || (w.build && !r.list)) {",
@@ -140,6 +151,7 @@ func TestRunSitesTSNegativeControls(t *testing.T) {
 	for _, tc := range []struct{ mutation, grammar string }{
 		{"ignore env", "two environments at one position"},
 		{"keep env", "bindings that a record restores"},
+		{"keep env", "a binding that the element does not read"},
 		{"any list", "walks of a value-free twin"},
 		{"any list", "lookahead walks before lists"},
 		{"early store", "value-free walks"},

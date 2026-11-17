@@ -39,7 +39,7 @@ var tsSkipRunMutations = map[string][][2]string{
 	}},
 	"early store": {{
 		"    v.exp = this.keep(from, to);\n",
-		"    v.exp = this.keep(from, to);\n    this.skipSlot(v.pos, v.env, { end: this.pos, far, exp: v.exp, from: this.pos, examined: this.pos, list: false, env: null, kids: null, ki: 0, errs: null });\n",
+		"    v.exp = this.keep(from, to);\n    this.skipSlot(v.pos, v.key, { end: this.pos, far, exp: v.exp, from: this.pos, examined: this.pos, list: false, key: null, bind: this.walkBind(), kids: null, ki: 0, errs: null });\n",
 	}, {
 		"    this.skipClose();\n    const vs = w.visits;\n",
 		"    this.skipClose();\n    w.visits.length = 0;\n    if (this.pos >= 0) return;\n    const vs = w.visits;\n",

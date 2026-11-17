@@ -93,7 +93,9 @@ func testRunSitesGeneratedDocuments(t *testing.T) {
 }
 
 // runSiteMutations are the changes of the embedded library for the negative controls: sites that
-// never turn hot, records found under any environment, hits that keep the environment of the walk,
+// never turn hot, records found under any values of the variables, hits that keep the variables as
+// the walk left them, keys that hold the environment as an object, lookups that step through every
+// record,
 // records of value-free walks reused by walks that build lists, and records stored when their
 // iteration ends that the end of the walk leaves as they are.
 var runSiteMutations = map[string][][2]string{
@@ -102,12 +104,23 @@ var runSiteMutations = map[string][][2]string{
 		"		c.hot = false\n",
 	}},
 	"ignore env": {{
-		"	if p.walk().keyEnv {\n		return p.Env\n",
-		"	if false {\n		return p.Env\n",
+		"	if k == nil {\n		return walkKey{}\n",
+		"	if true {\n		return walkKey{}\n",
 	}},
 	"keep env": {{
-		"	if w.keyEnv {\n		p.Env = r.env\n",
-		"	if false {\n		p.Env = r.env\n",
+		"	if w.key != nil {\n		for i, slot := range w.key.Bind {\n",
+		"	if false {\n		for i, slot := range w.key.Bind {\n",
+	}},
+	// The key holds the environment as an object besides the values: walks under equal values
+	// built apart share no record.
+	"key by object": {{
+		"	return walkKey{vals, p.hashMemoKey(0, 0, vals)}\n",
+		"	return walkKey{append(vals, p.Env), p.hashMemoKey(0, 0, vals)}\n",
+	}},
+	// A lookup steps through every record of the site before it takes the one of its key.
+	"scan keys": {{
+		"	sk := skipKey{pos, k.h}\n	if r, ok := s.recs[sk]; ok {\n",
+		"	sk := skipKey{pos, k.h}\n	for range s.recs {\n		p.Spend()\n	}\n	if r, ok := s.recs[sk]; ok {\n",
 	}},
 	"any list": {{
 		"r.state != skipRecorded || w.build && !r.list {",
@@ -320,6 +333,7 @@ func TestRunSitesGeneratedNegativeControls(t *testing.T) {
 	for _, tc := range []struct{ mutation, grammar string }{
 		{"ignore env", "two environments at one position"},
 		{"keep env", "bindings that a record restores"},
+		{"keep env", "a binding that the element does not read"},
 		{"any list", "walks of a value-free twin"},
 		{"any list", "lookahead walks before lists"},
 		{"early store", "value-free walks"},
