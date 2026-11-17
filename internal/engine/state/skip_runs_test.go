@@ -201,3 +201,25 @@ func TestRunSiteTurnsHotOnRestart(t *testing.T) {
 		t.Fatal("a site turned hot with missing-token insertion")
 	}
 }
+
+// TestSkipSlotsKeepListRecords checks that a record without values, which a walk of a value-free
+// twin stores, does not replace one with values at the same key, while one with values replaces
+// one without: a key is recorded at most twice, and a walk that builds values that follows the
+// twin's still finds the record it can take.
+func TestSkipSlotsKeepListRecords(t *testing.T) {
+	var s skipSlots
+	env := &Env{}
+	s.put(5, env, skipRecord{state: skipRecorded, end: 9, list: true})
+	s.put(5, env, skipRecord{state: skipRecorded, end: 9})
+	if r := s.get(5, env); !r.list {
+		t.Errorf("a record without values replaced one with values: %+v", r)
+	}
+	s.put(6, nil, skipRecord{state: skipRecorded, end: 9})
+	s.put(6, nil, skipRecord{state: skipRecorded, end: 9, list: true})
+	if r := s.get(6, nil); !r.list {
+		t.Errorf("a record with values did not replace one without: %+v", r)
+	}
+	if r := s.get(5, nil); r.state == skipRecorded {
+		t.Errorf("a record found under another environment: %+v", r)
+	}
+}

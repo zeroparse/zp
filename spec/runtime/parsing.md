@@ -796,7 +796,8 @@ Besides what a record of a skip-run site holds, it holds
   record are final: no later step of the parse changes them. A rule and its
   [value-free twin](#evaluations-of-rules) walk the same sites, and a walk
   whose iterations have values takes no record that a walk without values
-  made, which holds no elements; it records the position again;
+  made, which holds no elements; it records the position again, and a record
+  without elements never replaces one with them;
 - the errors that the rest of the walk recovered: a walk that reuses the
   record recovers them again, as a memoized result does.
 
