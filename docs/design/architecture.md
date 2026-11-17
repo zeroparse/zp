@@ -286,7 +286,7 @@ in [Package Layering](layering.md), and the public packages are described in [Th
 | `internal/analysis/complexity` | The cost view and the complexity classification |
 | `internal/lsp/protocol` | JSON-RPC and LSP messages |
 | `internal/lsp/zpls` | The grammar language server |
-| `internal/testing` | Repository test support, one package per kind of test: `codegentest`, `compiletest`, `enginetest`, `factstest`, `starttest`, `complexitytest`, `recoveryquality`, `archtest` (the import-graph test) and `exectest` |
+| `internal/testing` | Repository test support, one package per kind of test: `codegentest`, `compiletest`, `enginetest`, `factstest`, `starttest`, `complexitytest`, `linearity`, `recoveryquality`, `archtest` (the import-graph test) and `exectest` |
 | `internal/bench` | Benchmark inputs, size measurement and generated benchmark parsers; not part of the public or the runtime layer |
 
 The repository also holds `bench/`, `spec/`, `site/` and `examples/`.

@@ -124,6 +124,7 @@ var layout = []place{
 	{pkg: "internal/testing/complexitytest", target: "internal/testing/complexitytest"},
 	{pkg: "internal/testing/enginetest", target: "internal/testing/enginetest"},
 	{pkg: "internal/testing/factstest", target: "internal/testing/factstest"},
+	{pkg: "internal/testing/linearity", target: "internal/testing/linearity"},
 	{pkg: "internal/testing/recoveryquality", target: "internal/testing/recoveryquality"},
 	{pkg: "internal/testing/starttest", target: "internal/testing/starttest"},
 	// The printer tests of the Exec dialect are test support of the back ends.

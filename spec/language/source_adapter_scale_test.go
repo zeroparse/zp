@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"runtime"
-	"runtime/debug"
 	"strings"
 	"sync"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
+	"zeroparse.dev/zp/internal/testing/linearity"
 	"zeroparse.dev/zp/spec/language/internal/classretry"
 )
 
@@ -60,19 +60,18 @@ var scaleSources = []struct {
 }
 
 // computeCost returns the compute units that a parse takes: the least Compute limit under which run
-// does not fail with a limit error. run parses with the given limit. The parser charges its work (input
-// units inspected, rule calls and loop iterations) to one counter and rejects the charge that passes
-// the limit, so the cost is exact and does not depend on the time or the load of the machine.
+// does not fail with a limit error (linearity.LeastLimit). run parses with the given limit. The parser
+// charges its work (input units inspected, rule calls and loop iterations) to one counter and rejects
+// the charge that passes the limit, so the cost is exact and does not depend on the time or the load
+// of the machine.
 //
 // A parse has completed when it ends without an error or with syntax errors, which is how the sources
 // of these tests end. Any other error (an option error, a depth limit, a cancellation) would make a
 // parse that did no work look complete at every limit and the ratio of two sizes 1, so the test stops
-// on it. The search verifies the failing side of the interval: the limit 1 must fail, or the cost is
-// at most 1, and every lower bound that it keeps was run and failed. It stops at a limit that no parse
-// can complete under, instead of doubling for ever.
+// on it.
 func computeCost(t *testing.T, run func(limit uint64) error) uint64 {
 	t.Helper()
-	completes := func(limit uint64) bool {
+	return linearity.LeastLimit(t, func(limit uint64) bool {
 		err := run(limit)
 		var syntax zpparser.SyntaxErrors
 		var one *zpparser.SyntaxError
@@ -87,40 +86,19 @@ func computeCost(t *testing.T, run func(limit uint64) error) uint64 {
 		}
 		t.Fatalf("a parse under the compute limit %d ended with %v, which is neither success, a syntax error nor the compute limit", limit, err)
 		return false
-	}
-	lo := uint64(1) // lo fails; hi completes
-	if completes(lo) {
-		return lo
-	}
-	hi := uint64(1 << 10)
-	for !completes(hi) {
-		if hi >= 1<<50 {
-			t.Fatalf("no parse completes under the compute limit %d", hi)
-		}
-		lo, hi = hi, hi*2
-	}
-	for hi-lo > 1 {
-		if mid := lo + (hi-lo)/2; completes(mid) {
-			hi = mid
-		} else {
-			lo = mid
-		}
-	}
-	return hi
+	})
 }
 
 // scaleFactor is how many times larger the big source is than the small one, and scaleLimit is the
-// largest ratio of their costs that counts as linear.
+// largest ratio of their costs that counts as linear (linearity.Factor and linearity.Limit).
 const (
-	scaleFactor = 8
-	scaleLimit  = 24
+	scaleFactor = linearity.Factor
+	scaleLimit  = linearity.Limit
 )
 
 // scalesLinearly compares the cost of the work at a size and at scaleFactor times that size, and reports
-// the ratio of the two. The cost is linear if the ratio is about scaleFactor and quadratic if it is
-// about its square, so a ratio over scaleLimit, the middle of the two on a logarithmic scale, is a growth
-// that is not linear. The costs are counts of the parser, not times, so the ratio of a size is the same
-// on every run and under any load, and a single measure decides.
+// the ratio of the two (linearity.Linear). The costs are counts of the parser, not times, so the ratio
+// of a size is the same on every run and under any load, and a single measure decides.
 func scalesLinearly(t *testing.T, small int, cost func(n int) uint64) (ratio float64, ok bool) {
 	t.Helper()
 	a, b := cost(small), cost(small*scaleFactor)
@@ -129,9 +107,9 @@ func scalesLinearly(t *testing.T, small int, cost func(n int) uint64) (ratio flo
 	if a < uint64(small)/2 || b < uint64(small*scaleFactor)/2 {
 		t.Fatalf("the costs %d at %d and %d at %d are under the size: the work was not measured", a, small, b, small*scaleFactor)
 	}
-	ratio = float64(b) / float64(max(a, 1))
+	ratio, ok = linearity.Linear(a, b)
 	t.Logf("%d: %d units, %d: %d units, ratio %.2f", small, a, small*scaleFactor, b, ratio)
-	return ratio, ratio <= scaleLimit
+	return ratio, ok
 }
 
 // sourceCost is the compute cost of the generated parser of ZeroParse sources on src, with the options
@@ -156,24 +134,14 @@ func TestRecoveryScalesLinearly(t *testing.T) {
 }
 
 // allocCost returns what building the result of parser.Parse on src takes in allocations: the number of
-// objects and of bytes. It is the load-independent measure of the whole source API, with the lexer, the
-// error messages and the builder of the grammar, which the compute counter of the generated parser does
-// not cover. A parse is warmed up first, so that one-time tables are not counted. Then the parse runs with
-// the collector off, after two collections that empty the pools, so that no freed buffer is allocated
-// again and the counters of the runtime are exact: one run gives the same count every time, whatever the
-// load. The test does not run in parallel, so that the counters hold the work of this goroutine. It does
-// not see a growth that allocates nothing, such as a loop that rescans the tokens; the compute cost
-// covers the generated parser, and the lexer and the builder have no counter of their work.
+// objects and of bytes (linearity.Allocs, with the collector off). It is the load-independent measure of
+// the whole source API, with the lexer, the error messages and the builder of the grammar, which the
+// compute counter of the generated parser does not cover. The test does not run in parallel, so that the
+// counters hold the work of this goroutine. It does not see a growth that allocates nothing, such as a
+// loop that rescans the tokens; the compute cost covers the generated parser, and the lexer and the
+// builder have no counter of their work.
 func allocCost(src string) (mallocs, bytes uint64) {
-	parser.Parse(src)
-	runtime.GC()
-	runtime.GC()
-	defer debug.SetGCPercent(debug.SetGCPercent(-1))
-	var before, after runtime.MemStats
-	runtime.ReadMemStats(&before)
-	parser.Parse(src)
-	runtime.ReadMemStats(&after)
-	return after.Mallocs - before.Mallocs, after.TotalAlloc - before.TotalAlloc
+	return linearity.Allocs(func() { parser.Parse(src) })
 }
 
 // scaleAllocSources are the sources of scaleSources and valid grammars, which reach the builder of the
@@ -194,9 +162,10 @@ func TestSourceAPIAllocationsScaleLinearly(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			m1, b1 := allocCost(c.make(2000))
 			m2, b2 := allocCost(c.make(2000 * scaleFactor))
-			mr, br := float64(m2)/float64(max(m1, 1)), float64(b2)/float64(max(b1, 1))
+			mr, mok := linearity.Linear(m1, m2)
+			br, bok := linearity.Linear(b1, b2)
 			t.Logf("objects %d -> %d (%.2f), bytes %d -> %d (%.2f)", m1, m2, mr, b1, b2, br)
-			if mr > scaleLimit || br > scaleLimit {
+			if !mok || !bok {
 				t.Errorf("allocations grow %.1f times in objects and %.1f times in bytes for %d times as large a source (limit %d)", mr, br, scaleFactor, scaleLimit)
 			}
 		})
