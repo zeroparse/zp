@@ -52,12 +52,20 @@ var ScanIntervalsOff = false
 // of ScanHotSpan characters always has; a test of a code point examines that code point alone.
 const scanReach = 2 * utf8.UTFMax
 
-// scanTable holds the runs of a site in one value mode. ids holds, for each position from lo, the
-// number of the run that covers it (its index plus one), or 0. A position belongs to at most one run:
-// the runs of a table lie in different stretches of characters of the class.
+// scanTable holds the runs of a site in one value mode, in the order they were made: a run's number is
+// its index plus one, and a position belongs to at most one run, as the runs of a table lie in
+// different stretches of characters of the class. bits holds a bit for each position from lo, set for
+// the positions that a run covers, so that a probe of a position that no run covers reads one word.
+// head holds, for each word of bits, the number of the first run in the order of positions that covers
+// a position of the word, and each run links the next run in that order that covers a position of the
+// word of its end (scanRun.next), so a probe of a covered position follows the runs of its word. A run
+// covers at least ScanHotSpan positions and its end, so a word meets a bounded number of runs; making
+// or extending a run changes the links of its own words alone and moves no other run, whatever the
+// order in which the runs of a table are made.
 type scanTable struct {
 	lo   int
-	ids  []int32
+	bits []uint64
+	head []int32
 	runs []scanRun
 	// bufBytes counts the sequences of elements that extending runs allocated; the first sequence of a
 	// run is the list of the walk that made it, counted where it was allocated.
@@ -76,6 +84,9 @@ type scanRun struct {
 	// buf holds, for the walks that build a value, the elements of the run in buf[len(buf)-count:]. The
 	// part before them is room that no list holds, which a walk that extends the run fills.
 	buf []*core.Node
+	// next is the number of the next run in the order of positions if it covers a position of the word of
+	// end, and 0 otherwise.
+	next int32
 }
 
 // remAt returns the number of characters from b to the end of the run, and whether b is an iteration
@@ -104,36 +115,102 @@ func (t *scanTable) At(pos int) int32 {
 	if t == nil {
 		return 0
 	}
-	if i := pos - t.lo; uint(i) < uint(len(t.ids)) {
-		return t.ids[i]
+	if i := uint(pos - t.lo); i < uint(len(t.bits))*64 && t.bits[i/64]&(1<<(i%64)) != 0 {
+		return t.find(pos)
 	}
 	return 0
 }
 
-// mark gives the positions of [from, to) that no run covers to the run id.
-func (t *scanTable) mark(from, to int, id int32) {
-	if len(t.ids) == 0 {
-		t.lo = from
-		t.ids = make([]int32, max(to-from, 64))
-	} else if from < t.lo || to > t.lo+len(t.ids) {
-		// Grow the window to cover [from, to), doubling on the side that grows.
-		lo, hi := t.lo, t.lo+len(t.ids)
+// find returns the number of the run that covers pos, following the runs of the word of pos, or 0 if
+// none does: a bit can stay set after a stream drops the run that set it (PruneScanRecords).
+func (t *scanTable) find(pos int) int32 {
+	j := t.head[(pos-t.lo)/64]
+	for j != 0 && t.runs[j-1].end < pos {
+		j = t.runs[j-1].next
+	}
+	if j == 0 || t.runs[j-1].first > pos {
+		return 0
+	}
+	return j
+}
+
+// grow grows the window to cover the positions of [from, to), doubling on the side that grows.
+func (t *scanTable) grow(from, to int) {
+	if len(t.bits) == 0 {
+		t.lo = from &^ 63
+		n := max((to-t.lo+63)/64, 2)
+		t.bits, t.head = make([]uint64, n), make([]int32, n)
+	} else if from < t.lo || to > t.lo+64*len(t.bits) {
+		lo, hi := t.lo, t.lo+64*len(t.bits)
 		if from < lo {
-			lo = min(from, hi-2*len(t.ids))
+			lo = max(min(from, hi-2*64*len(t.bits)), 0) &^ 63
 		}
 		if to > hi {
-			hi = max(to, lo+2*len(t.ids))
+			hi = max(to, lo+2*64*len(t.bits))
 		}
-		lo = max(lo, 0)
-		grown := make([]int32, hi-lo)
-		copy(grown[t.lo-lo:], t.ids)
-		t.lo, t.ids = lo, grown
+		n := (hi - lo + 63) / 64
+		bits, head := make([]uint64, n), make([]int32, n)
+		copy(bits[(t.lo-lo)/64:], t.bits)
+		copy(head[(t.lo-lo)/64:], t.head)
+		t.lo, t.bits, t.head = lo, bits, head
 	}
-	for i := from - t.lo; i < to-t.lo; i++ {
-		if t.ids[i] == 0 {
-			t.ids[i] = id
+}
+
+// cover marks the positions of [from, to) as covered by the run id, which covers them: it sets their
+// bits and makes the run the head of each of their words that no run before it meets.
+func (t *scanTable) cover(id int32, from, to int) {
+	for i := uint(from - t.lo); i < uint(to-t.lo); i++ {
+		t.bits[i/64] |= 1 << (i % 64)
+	}
+	t.heads(id, from, to)
+}
+
+// heads makes the run id the head of each word that the positions of [from, to) meet, unless a run
+// before it in the order of positions is.
+func (t *scanTable) heads(id int32, from, to int) {
+	first := t.runs[id-1].first
+	for w := (from - t.lo) / 64; w <= (to-1-t.lo)/64; w++ {
+		if h := t.head[w]; h == 0 || t.runs[h-1].first > first {
+			t.head[w] = id
 		}
 	}
+}
+
+// link makes the run before position first that ends in the word of first link the run id.
+func (t *scanTable) link(id int32, first int) {
+	var pred int32
+	for j := t.head[(first-t.lo)/64]; j != 0 && t.runs[j-1].first < first; j = t.runs[j-1].next {
+		pred = j
+	}
+	if pred != 0 {
+		t.runs[pred-1].next = id
+	}
+}
+
+// insert adds the run r, whose positions no run covers, to the table and returns its number.
+func (t *scanTable) insert(r scanRun) int32 {
+	t.grow(r.first, r.end+1)
+	// The next run in the order of positions that meets the word of r's end.
+	r.next = 0
+	for j := t.head[(r.end-t.lo)/64]; j != 0; j = t.runs[j-1].next {
+		if t.runs[j-1].first > r.end {
+			r.next = j
+			break
+		}
+	}
+	id := int32(len(t.runs) + 1)
+	t.link(id, r.first)
+	t.runs = append(t.runs, r)
+	t.cover(id, r.first, r.end+1)
+	return id
+}
+
+// extend covers the positions of [start, first) by the run id, whose first position moved back from
+// first to start over positions that no run covered.
+func (t *scanTable) extend(id int32, start, first int) {
+	t.grow(start, first)
+	t.link(id, start)
+	t.cover(id, start, first)
 }
 
 // ScanWalk is the state of a walk of a scan site that has matched ScanHotSpan characters.
@@ -222,7 +299,7 @@ func (p *Parser) ScanTake(w *ScanWalk, id int32, count int, own []*core.Node, bu
 	ScanHits.Add(1)
 	w.hit, w.Tab = true, nil
 	if w.start < r.first && !ScanIntervalsOff {
-		p.scanExtend(t, id, r, w.start, count-(r.count-rb), own, build)
+		p.scanExtend(t, id, w.start, count-(r.count-rb), own, build)
 	}
 	if build {
 		if rs, ok := r.remAt(w.start); ok {
@@ -248,7 +325,8 @@ func (p *Parser) ScanTake(w *ScanWalk, id int32, count int, own []*core.Node, bu
 // of characters that the walk matched before the run's first position. It extends nothing if that
 // position is no iteration start of the walk, which a parse that decodes from the start never meets.
 // Extending charges nothing, as marking positions does not.
-func (p *Parser) scanExtend(t *scanTable, id int32, r *scanRun, start, before int, own []*core.Node, build bool) {
+func (p *Parser) scanExtend(t *scanTable, id int32, start, before int, own []*core.Node, build bool) {
+	r := &t.runs[id-1]
 	first := r.first
 	if before != first-start || r.rem != nil {
 		// Characters of several units: note the iteration starts of the walk before first.
@@ -289,7 +367,7 @@ func (p *Parser) scanExtend(t *scanTable, id int32, r *scanRun, start, before in
 	r.first = start
 	r.count += before
 	r.examined = max(r.examined, p.Hw)
-	t.mark(start, first, id)
+	t.extend(id, start, first)
 }
 
 // unitsAt returns the number of units of the character at i, which the parse has loaded, without
@@ -366,8 +444,7 @@ func (p *Parser) scanMake(w *ScanWalk, count int, kids []*core.Node) {
 		t = &scanTable{}
 		p.scanTabs[w.site] = t
 	}
-	t.runs = append(t.runs, r)
-	t.mark(r.first, r.end+1, int32(len(t.runs)))
+	t.insert(r)
 }
 
 // ScanList ends a walk of a scan site that builds a value and matched ScanHotSpan characters or more:
@@ -408,27 +485,31 @@ func (p *Parser) ScanFailList(w *ScanWalk, base, count int) {
 // stream that committed at pos never parses again.
 func (p *Parser) PruneScanRecords(pos int) {
 	for _, t := range p.scanTabs {
-		if t == nil || len(t.ids) == 0 || pos <= t.lo {
+		if t == nil || len(t.bits) == 0 || pos <= t.lo {
 			continue
 		}
-		cut := min(pos-t.lo, len(t.ids))
-		if 2*cut < len(t.ids) {
+		cut := min((pos-t.lo)/64, len(t.bits))
+		if 2*cut < len(t.bits) {
 			continue
 		}
-		// Keep the runs that reach past pos, renumbered, and the window from pos.
-		keep := make([]int32, len(t.runs)+1)
+		// Keep the runs that reach past pos, in the order they were made, and the window from the word of
+		// pos. A kept run links only runs after it, which are kept too; the heads are those of the kept runs.
+		num := make([]int32, len(t.runs)+1)
 		runs := t.runs[:0:0]
 		for i, r := range t.runs {
 			if r.end > pos {
 				runs = append(runs, r)
-				keep[i+1] = int32(len(runs))
+				num[i+1] = int32(len(runs))
 			}
 		}
-		ids := make([]int32, len(t.ids)-cut)
-		for i, id := range t.ids[cut:] {
-			ids[i] = keep[id]
+		for i := range runs {
+			runs[i].next = num[runs[i].next]
 		}
-		t.lo, t.ids, t.runs = t.lo+cut, ids, runs
+		t.lo, t.bits, t.runs = t.lo+64*cut, append([]uint64(nil), t.bits[cut:]...), runs
+		t.head = make([]int32, len(t.bits))
+		for i, r := range runs {
+			t.heads(int32(i+1), max(r.first, t.lo), r.end+1)
+		}
 	}
 }
 
@@ -439,7 +520,7 @@ func (p *Parser) scanBytes() uint64 {
 		if t == nil {
 			continue
 		}
-		n += uint64(unsafe.Sizeof(scanTable{})) + uint64(cap(t.ids))*4 + uint64(cap(t.runs))*uint64(unsafe.Sizeof(scanRun{})) + t.bufBytes
+		n += uint64(unsafe.Sizeof(scanTable{})) + uint64(cap(t.bits))*8 + uint64(cap(t.head))*4 + uint64(cap(t.runs))*uint64(unsafe.Sizeof(scanRun{})) + t.bufBytes
 		for i := range t.runs {
 			n += uint64(cap(t.runs[i].rem)) * 4
 		}
