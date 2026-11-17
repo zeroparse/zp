@@ -50,6 +50,7 @@ const (
 	SkipEarlyStore             // records are stored when their iteration ends and never completed
 	SkipIgnoreEnv              // the key leaves out the environment
 	SkipKeepEnv                // a hit leaves the environment as it is, not the end environment of the record
+	SkipAnyList                // a walk that builds values takes the records of value-free walks
 )
 
 // The states of a slot.
@@ -61,12 +62,16 @@ const (
 
 // skipRecord is the state of a position and, once recorded, what the rest of a walk from it did:
 // where it ended and with which environment (nil for a site not keyed by it), its farthest failure, the input it examined, the
-// elements it collected (a run site that builds a value) and the errors it recovered.
+// elements it collected (a run site that builds a value) and the errors it recovered. list reports
+// that a walk that builds values made the record, so that it holds the elements: the value-free
+// twin of a rule walks the same site without them, and a walk that builds values does not take a
+// record of such a walk, but records the position again.
 type skipRecord struct {
 	end, far       int
 	exp            []ExpID
 	from, examined int
 	state          uint8
+	list           bool
 	env            *Env
 	vals           valSuffix
 	errs           *RecEntry // nil for none, so that a record of no errors stays small
@@ -411,7 +416,7 @@ func (p *Parser) SkipHit() bool {
 	p.skipClose()
 	p.Spend()
 	r := w.slots.get(p.Pos, p.walkEnv())
-	if r.state != skipRecorded {
+	if r.state != skipRecorded || w.build && !r.list && SkipRecordMutation != SkipAnyList {
 		return false
 	}
 	p.Spend()
@@ -546,13 +551,13 @@ func (p *Parser) skipEnd(paid bool) {
 		// The last iteration failed or matched nothing: the walk ended at its start.
 		v := vs[len(vs)-1]
 		vs = vs[:len(vs)-1]
-		next = skipRecord{end: v.pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded, env: endEnv}
+		next = skipRecord{end: v.pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded, list: w.build, env: endEnv}
 		p.skipLink(w, &next, v, nil)
 		p.skipPut(v.pos, v.env, next)
 	}
 	for i := len(vs) - 1; i >= 0; i-- {
 		v := vs[i]
-		r := skipRecord{end: next.end, far: next.far, exp: next.exp, from: Min2(v.from, next.from), examined: max(v.examined, next.examined), state: skipRecorded, env: endEnv}
+		r := skipRecord{end: next.end, far: next.far, exp: next.exp, from: Min2(v.from, next.from), examined: max(v.examined, next.examined), state: skipRecorded, list: w.build, env: endEnv}
 		switch {
 		case v.far > next.far:
 			r.far, r.exp = v.far, v.exp

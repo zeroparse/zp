@@ -793,7 +793,10 @@ Besides what a record of a skip-run site holds, it holds
   elements, which later lists hold as a suffix; a list that is made from its
   own elements and a recorded suffix copies the suffix, except where the
   sequence has room before the suffix that no record uses. The elements of a
-  record are final: no later step of the parse changes them;
+  record are final: no later step of the parse changes them. A rule and its
+  [value-free twin](#evaluations-of-rules) walk the same sites, and a walk
+  whose iterations have values takes no record that a walk without values
+  made, which holds no elements; it records the position again;
 - the errors that the rest of the walk recovered: a walk that reuses the
   record recovers them again, as a memoized result does.
 
