@@ -3613,7 +3613,24 @@ $\alpha_k$, and then, when the call is of a rule that the parse memoizes, the
 holder of the link has the class and position of $h_k$. So a run whose links
 after $k + 1$ meet the hypotheses has at most five of them besides those of
 the second form of 1, of 2 and of 3, and the later evaluations $f'_m$ of the
-links of 2 lie in distinct iterations of $T$. Three parts stay open: a bound
+links of 2 lie in distinct iterations of $T$. So do their calls $\hat{g}$,
+which the parse evaluates on the way from $T$ down to $\alpha_m$, with keys
+of the rule of $g$, which it memoizes since it answers $g$, or of its twin:
+they are distinct evaluations of keys, neither steps of a growth nor in a
+context of growths, and by Lemma 3 at most six of them have keys of one class
+at one position. When $f_m$ and $f'_m$ have one variant and the entry that
+answers $g$ is not one of an earlier parse, that entry was stored in state $1$,
+since one stored in state $0$ would answer $\hat{g}$, by an evaluation of the
+key of $g$, which is that of $\hat{g}$. So $\hat{g}$ is not the first
+evaluation of its key, it stores its result in state $0$, and the memo answers
+every later call of that key outside contexts of growths: such links have
+their calls $\hat{g}$ at distinct keys. A bound on the links of 2 in a run is
+therefore a bound on the number of positions of their calls $\hat{g}$, each
+inside the evaluation $f'_m$ of a call that a unit below shares, from
+$t_{k+1}$ to $q$. Each unit below shares at most sixteen calls, but the units
+below are not bounded in number, and this proof does not bound the units
+below whose shared calls hold the later evaluations of links. Three parts
+stay open: a bound
 on the links of 2, at each of which a unit below evaluates a shared call as
 the twin and the continuation as the rule, or the reverse, or the unit below
 evaluates it inside a lookahead and the continuation outside every lookahead
@@ -3622,8 +3639,8 @@ the kind of *Calls that call no rule* through the rule of $\sigma$; and the
 units below that commit only by deciding their continuation or for a path
 that enters the growth again. The hypothesis on the units below holds for a
 unit that shares more than sixteen calls with a continuation and holds
-$\alpha_k$ in a shared call after the sixteenth only when that unit commits by
-its words: that call begins what remains of both, and since it examines
+$\alpha_k$ in the seventeenth, the first shared call after the sixteenth,
+only when that unit commits by its words: that call begins what remains of both, and since it examines
 input, the first characters do not part.
 
 ## Lemma 5 (Growth)
