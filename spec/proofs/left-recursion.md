@@ -51,7 +51,8 @@ The proof cites the following, and no other rule about growth.
   is at most two more than the length of the input it consumes. Only the
   growths of the rule's own cycle form the context of a call. A leader that
   grows where another growth of its cycle is in progress grows again in each
-  context in which it is called there; a step of such a growth may reuse an
+  context in which it is called there, unless the call reuses a memoized
+  result or a result kept in a context of the same growths; a step of such a growth may reuse an
   earlier step under the same condition, and a run of steps that read no other
   growing result may be taken at once.
 
@@ -238,7 +239,9 @@ context has at most $N$ growths.
 Several leaders of one cycle at $p$ give nested growths. The growth of $L'$ in
 step $i$ of the growth of $L$ reads $r_{i-1}$ and so can be a different
 function of its start in each step; it is not shared between steps, which is
-(G5) "grows again in each context". Its result is determined as above.
+(G5) "grows again in each context", except where a call reuses a result that
+the same growing results determine, which is then the result it would grow
+to. Its result is determined as above.
 
 **$\mathcal{M}$ passes through the same results.** By induction on the steps
 of the growth, $\mathcal{M}$ and $\mathcal{R}$ have the same current result
