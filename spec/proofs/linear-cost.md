@@ -886,7 +886,11 @@ through their counterparts in the reference parse, whatever the records
 answer, and *Families in every parse* in Lemma 5 those that growth
 steps and evaluations in a context of growths own, up to a constant
 factor, against a parse that keeps no record, resumes no run and answers
-nothing in contexts; it leaves the parts that step 8 states. The same holds of the iterations themselves of a candidate site
+nothing in contexts; it leaves the parts that step 8 states. The units
+of the copying operations there are counted by the same claims, and the
+tries of an Operators Rule there add nothing open beyond step 3 (the
+sixth part of step 8). What is said above of the activations of such a
+source holds of the iterations themselves of a candidate site
 that keeps records and is no recorded site of the parse, which are
 activations of a source of this list: the count of Lemma 4 is not shown for
 them. Step 8 of [Open Steps](#open-steps) lists both, as its sixth
@@ -11841,9 +11845,29 @@ theorem covers such a parse.
    open of them is what is open of that count in such a parse.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
-   calls, which Lemma 6 counts through the count of Lemma 4, and of the
-   tries of an Operators Rule called there, which step 3 is to bound by its
-   operators applied and its body evaluations.
+   calls. Lemma 6 counts them as activations of the operation through the
+   count of Lemma 4, whose claims are stated for every scanning source,
+   and such a unit is owned and held as any activation is, through the
+   evaluation that performs the operation, so *Descent in the reference
+   parse*, *Heads without the records* and *Families in every parse* count
+   it inside the iterations as they count the activations of the other
+   sources there, under the reading of Lemma 6 by which Lemma 4 counts it
+   outside them. The rest of the sum of Lemma 6, the input of the matches
+   that the parse keeps, which nest, and the iterations of the evaluations
+   that the operation reads, which are activations, uses nothing of the
+   records, and a reused iteration holds no copy. The tries of an
+   Operators Rule called there step 3 is to bound by the operators that
+   the rule applies and by its body evaluations. A bound of that form,
+   shown evaluation by evaluation of the rule, holds inside the iterations
+   as outside, since a record or a resumed walk only takes whole
+   iterations out of the parse, and both of its terms are counted there:
+   the operators applied as activations by the same three claims, and the
+   body evaluations by Lemma 3 and, for a rule that the parse does not
+   memoize, by Lemma 10 (*Activations that do not succeed in a parse that
+   keeps records*), which rests on step 3 for an Operators Rule inside the
+   iterations as outside them. So neither adds an open part of its own to
+   the iterations: what stays open of them is the reading of Lemma 6 and
+   step 3.
    The list is that of the conditions of
    [Run Sites](../runtime/parsing.md#run-sites) as they stand. Were they to
    ask, of the element and of every rule that it calls, that each repetition
