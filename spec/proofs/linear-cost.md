@@ -4046,6 +4046,124 @@ $\mathcal{R}$ evaluates a class again in every growth that reaches it,
 so the classes of the owner calls of those earlier activations give no
 bound of the growths.
 
+**Heads without the records.** This claim bounds the activations that
+memoized evaluations own, those inside the iterations of the kind among
+them, by the activations that the heads hold in a parse with no records,
+no entries of an earlier parse and no reuse in a context of growths. Let
+the records of the parse be exact, (R1) of the [Setting](#setting), and
+let $\mathcal{X}$ be the parse of the same grammar and input, of the same
+kind, a [Document](../runtime/documents.md) parse when the parse is one,
+that memoizes the rules that the parse memoizes, has no entries from
+earlier parses, keeps no record of any site, resumes no run, reuses
+nothing kept in a context of growths, stops at no limit, and stores as
+the [Setting](#setting) requires. Then the successful activations of
+$\sigma$ at $q$ that memoized evaluations own in the parse are at most
+six times the successful activations of $\sigma$ at $q$ that the heads
+of $\mathcal{X}$ hold, the evaluation where $\mathcal{X}$ begins
+included.
+
+*Proof.* $\mathcal{X}$ is a parse of the Setting: its records are exact,
+since it keeps none, and its memo meets the requirement of the Setting
+by its definition. Its reference parse is $\mathcal{R}$, since
+$\mathcal{R}$ evaluates every call and uses no entry and no record, so
+it depends neither on the entries of earlier parses nor on the records
+(*Counterparts*).
+
+Let a memoized evaluation $M$ of the parse own a successful activation
+$\alpha$ of $\sigma$ at $q$. By 2 of *Descent in the reference parse*,
+$\mathcal{R}(M)$ is the owner call of the counterpart of $\alpha$: that
+counterpart lies in the own region of $\mathcal{R}(M)$, with no
+evaluation made by a call of a rule that the parse memoizes between
+them. Let $M$ be other than the evaluation where the parse begins. It is
+an evaluation of a key, of a class $C$ at a position $p$, so the call
+$z$ of which $\mathcal{R}(M)$ is the body evaluation is of a rule that
+the parse memoizes other than a leader and reads no growth open at its
+start, and it contains a successful activation in $\mathcal{R}$. Let
+$z_0$ be the outermost call on the path from the evaluation where
+$\mathcal{R}$ begins down to $z$, $z$ itself possibly. The path above
+$z_0$ holds no call, so no step of a growth either, each of which lies
+inside the call of a leader; no alternative on it is skipped, since each
+holds the activation (*Counterparts*); and $\mathcal{X}$ takes no record
+and resumes no walk. So $\mathcal{X}$ makes an evaluation $x$, a call,
+with $\mathcal{R}(x) = z_0$. Apply *Covered keys* to $\mathcal{X}$ with
+this $x$ and $z$: case (a) does not arise, since $\mathcal{X}$ has no
+entries of an earlier parse; case (b) does not arise, since it reuses
+nothing kept in a context of growths and so answers no call or step, and
+takes no run of steps, from what it keeps apart from the table; case (c)
+does not arise, since $z$ holds an activation in $\mathcal{R}$; and case
+(d) does not arise, since $\mathcal{X}$ keeps no record. So $\mathcal{X}$
+makes an evaluation of the key of $z$, of the class $C$, and so has a
+head $H$ of the class $C$, its first evaluation of a key of that class.
+
+$\mathcal{R}(H)$ and $\mathcal{R}(M)$ are body evaluations in
+$\mathcal{R}$ of calls with keys of one class that read no growth open
+at their start, so they take the same steps up to the variants of their
+calls (*Counterparts*), and the evaluations inside one correspond one to
+one, in order, to those inside the other. A call of a rule that the
+parse memoizes corresponds to a call of the same rule or of its twin,
+which the parse memoizes too (Lemma 3), so the own regions correspond.
+Let $\beta$ be the evaluation inside $\mathcal{R}(H)$ that corresponds to
+the counterpart of $\alpha$: a successful activation of $\sigma$ at $q$
+in the own region of $\mathcal{R}(H)$. $\mathcal{X}$ makes, inside $H$,
+an evaluation whose counterpart is $\beta$. On the path from
+$\mathcal{R}(H)$ down to $\beta$ every call is of a rule that the parse
+does not memoize, which the memo never answers; no step of a growth lies
+there, since one lies inside the call of a leader, which the parse
+memoizes; no alternative on it is skipped, since each holds $\beta$; and
+$\mathcal{X}$ takes no record and resumes no walk. So $\mathcal{X}$
+evaluates every evaluation on that path (*Counterparts*), and makes an
+activation $\alpha_{\mathcal{X}}$ with the counterpart $\beta$, which
+succeeds, as $\beta$ does, and lies in the own region of $H$, since no
+call on the path is of a rule that the parse memoizes. So $H$ holds it.
+When $M$ is the evaluation where the parse begins, the same holds with
+$H$ the evaluation where $\mathcal{X}$ begins, a head of its own, whose
+counterpart is the evaluation where $\mathcal{R}$ begins, as that of $M$
+is.
+
+Map $\alpha$ to $\alpha_{\mathcal{X}}$. For one $M$ the map is injective:
+distinct activations held by $M$ have distinct counterparts in
+$\mathcal{R}(M)$, these correspond to distinct evaluations inside
+$\mathcal{R}(H)$, and distinct evaluations of $\mathcal{X}$ have distinct
+counterparts, so distinct counterparts come from distinct activations of
+$\mathcal{X}$. Memoized evaluations of distinct classes map to distinct
+heads, and an activation lies in the own region of at most one of the
+heads of $\mathcal{X}$, the evaluation where it begins included: an
+evaluation of a key inside another evaluation is made by a call of a
+rule that the parse memoizes, outside the own region of the other. A class has at
+most six memoized evaluations (Lemma 3), so at most six activations of
+the parse map to one activation of $\mathcal{X}$. $\square$
+
+The claim uses of the parse only its evaluations $M$ and $\alpha$, their
+counterparts and 2 of *Descent in the reference parse*, whose path from
+$\mathcal{R}(M)$ down to the counterpart of $\alpha$ holds only
+counterparts of evaluations of the parse. So it holds whatever the parse
+answers from the memo, from an entry of an earlier parse or from a
+record, and whatever runs of a Document it resumes, since a resumed
+iteration contains no evaluation of the parse and so lies on that path
+only as $\alpha$ itself; and it compares no two evaluations of the parse.
+It gives the parse no credit for its records: a walk of the head of a
+class is counted in $\mathcal{X}$ with all its iterations.
+
+What it leaves is the number of the successful activations of $\sigma$
+at $q$ that the heads of $\mathcal{X}$ hold. That is the count of
+*Links to heads* and *Activations held by heads* in a parse that keeps
+no records, has no entries of an earlier parse and reuses nothing in a
+context of growths, so that cases (a), (b) and (d) of the covered keys
+and the third open part of step 1 of [Open Steps](#open-steps) do not
+arise in it, with the open parts of that count that remain: for a source
+in a rule that calls no rule and is not memoized at its calls, the leaf
+links that lead to an activation held by a head, which step 1 leaves
+open. So the leaf reference links of the activations that memoized
+evaluations own in the parse, inside the iterations of the kind or
+outside, are counted as the leaf links of such a parse, with the open
+parts of step 1 for that parse, and the records add no open part of
+their own to them. Whatever bound step 1 gives for $\mathcal{X}$ is in
+terms of the evaluations of $\mathcal{X}$, whose calls at one position
+are counterparts of calls of $\mathcal{R}$ there, as those of the parse
+are, but can bind the variables to combinations of values that no call
+of the parse binds, inside the walks that records answer in the parse;
+that the $K$ of $\mathcal{X}$ is at most that of the parse is not shown.
+
 **Leaf links in a parse that keeps records.** In a parse whose records are
 exact, (R1) of the [Setting](#setting), *Growths around a leaf link*,
 *Calls that call no rule* and *Outer links across runs* hold as stated,
@@ -10407,8 +10525,14 @@ theorem covers such a parse.
    is no bounded scan; the claims of Lemma 5 on the parts
    that a step evaluates at the position of its growth are not read for
    those evaluations of $\mathcal{R}$, and leave out steps in which such
-   a part reaches a position far from its growth. Open too are the leaf
-   reference links, which stay as the leaf links of step 1. The
+   a part reaches a position far from its growth. *Heads without the
+   records* bounds the same activations, inside the iterations as outside,
+   by six times those that the heads hold in a parse that keeps no
+   records, has no entries of an earlier parse and reuses nothing in a
+   context of growths, so the leaf reference links, which make roots of
+   their own, are counted as the leaf links of step 1 in such a parse and
+   stay open with them, and the records add no open part to them; that
+   the $K$ of that parse is at most the $K$ of the parse is not shown. The
    activations inside the iterations that a growth step or an evaluation
    in a context of growths owns are bounded, with those outside them, by
    the count of Lemma 5 in a parse that keeps no records and reuses
