@@ -35,6 +35,7 @@ var layout = []place{
 	// pkg/runtime/vm and pkg/runtime/instrument. Its compile entry keeps the compiler imports,
 	// and the package goes away when its runtime parts move to their packages.
 	{pkg: "engine", target: "pkg/compiler"},
+	{pkg: "pkg/grammar", target: "pkg/grammar"},
 	{pkg: "pkg/grammar/ast", target: "pkg/grammar/ast"},
 	{pkg: "pkg/lint", target: "pkg/lint"},
 	{pkg: "pkg/runtime/query", target: "pkg/runtime/query"},
@@ -304,10 +305,10 @@ func layerOf(t string) layer {
 		return layerRuntime
 	case under(t, "cmd"):
 		return layerCmd
-	case under(t, "pkg/compiler"), under(t, "pkg/lint"), under(t, "pkg/sample"), under(t, "pkg/editfuzz"), under(t, "internal/fixture"):
-		return layerPublic
 	case under(t, "pkg/grammar/ast"):
 		return layerGrammar
+	case under(t, "pkg/compiler"), t == "pkg/grammar", under(t, "pkg/lint"), under(t, "pkg/sample"), under(t, "pkg/editfuzz"), under(t, "internal/fixture"):
+		return layerPublic
 	case under(t, "internal/lsp"):
 		return layerLSP
 	case under(t, "internal/driver"):

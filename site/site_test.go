@@ -208,14 +208,15 @@ func TestBuild(t *testing.T) {
 			`id="TraceEvent.LineCol"`, `id="Profile.Snapshot"`, "type Limits struct", `id="LimitError.Error"`, "type SyntaxError struct", `id="SyntaxError.ExpectedInMessage"`,
 			"type Node struct", `id="Node.Clone"`, `id="NodeKind.String"`, `id="Cursor.At"`,
 		},
-		"reference/codegen/index.html":   {`id="Go.Generate"`, `id="Generator"`, `id="LibMode.String"`, "Content []byte"},
-		"reference/lint/index.html":      {`id="Config.Run"`, `id="Checks"`, `id="Severity.String"`},
-		"reference/grammar/index.html":   {`id="Format"`, `id="Grammar.Rules"`, "type RuleDef struct"},
-		"reference/cli/index.html":       {`id="cmd-parse"`, "<code>-g string</code>", "-backend string", `id="commands"`},
-		"docs/design/records/index.html": {"012. Typed Values in Generated Parsers", "Implemented"},
-		"docs/optimizations/index.html":  {"Optimization Catalog", "001. Value-free rule bodies", "076. Inline value-free plain generated Go rules", "077. Inline value-building and memoized Node expressions in generated Go parsers"},
-		"docs/performance/index.html":    {`id="1-value-free-rule-bodies-value-free-twins-transient-rules-0b2c903"`, `id="76-inline-value-free-plain-generated-go-rules"`, `id="77-inline-value-building-and-memoized-node-expressions-in-generated-go-parsers"`},
-		"playground/index.html":          {`id="pg-grammar"`, `src="../playground/app.js"`, `href="../playground/playground.css"`},
+		"reference/codegen/index.html":    {`id="Go.Generate"`, `id="Generator"`, `id="LibMode.String"`, "Content []byte"},
+		"reference/lint/index.html":       {`id="Config.Run"`, `id="Checks"`, `id="Severity.String"`},
+		"reference/grammar/index.html":    {`id="Format"`, `id="Load"`, `id="FromFS"`, "type Source struct"},
+		"reference/grammarast/index.html": {`id="Grammar.Rules"`, "type RuleDef struct"},
+		"reference/cli/index.html":        {`id="cmd-parse"`, "<code>-g string</code>", "-backend string", `id="commands"`},
+		"docs/design/records/index.html":  {"012. Typed Values in Generated Parsers", "Implemented"},
+		"docs/optimizations/index.html":   {"Optimization Catalog", "001. Value-free rule bodies", "076. Inline value-free plain generated Go rules", "077. Inline value-building and memoized Node expressions in generated Go parsers"},
+		"docs/performance/index.html":     {`id="1-value-free-rule-bodies-value-free-twins-transient-rules-0b2c903"`, `id="76-inline-value-free-plain-generated-go-rules"`, `id="77-inline-value-building-and-memoized-node-expressions-in-generated-go-parsers"`},
+		"playground/index.html":           {`id="pg-grammar"`, `src="../playground/app.js"`, `href="../playground/playground.css"`},
 		"docs/guide/running-parsers/index.html": {
 			`id="compiled-grammars"`, `href="../../../spec/"`, `<pre><code class="language-zp">`,
 		},
@@ -747,14 +748,15 @@ func TestNavigation(t *testing.T) {
 	if !strings.Contains(ordinaryReference, ">CLI Reference</a>") || strings.Contains(ordinaryReference, "Package ") {
 		t.Error("CLI should remain directly visible and package links should appear only inside Go API Reference")
 	}
-	if !strings.Contains(apiGroup[1], `aria-current="page">Package <code>zp/pkg/grammar/ast</code>`) {
+	if !strings.Contains(apiGroup[1], `aria-current="page">Package <code>zp/pkg/grammar</code>`) {
 		t.Error("current package is not marked within its Go API group")
 	}
 	for path, heading := range map[string]string{
-		"reference/index.html":         `<h1 id="api-reference">Go API Reference</h1>`,
-		"reference/engine/index.html":  `<h1 id="top">Package <code>zp/engine</code></h1>`,
-		"reference/grammar/index.html": `<h1 id="top">Package <code>zp/pkg/grammar/ast</code></h1>`,
-		"reference/cli/index.html":     `<h1 id="top">CLI Reference</h1>`,
+		"reference/index.html":            `<h1 id="api-reference">Go API Reference</h1>`,
+		"reference/engine/index.html":     `<h1 id="top">Package <code>zp/engine</code></h1>`,
+		"reference/grammar/index.html":    `<h1 id="top">Package <code>zp/pkg/grammar</code></h1>`,
+		"reference/grammarast/index.html": `<h1 id="top">Package <code>zp/pkg/grammar/ast</code></h1>`,
+		"reference/cli/index.html":        `<h1 id="top">CLI Reference</h1>`,
 	} {
 		content, err := os.ReadFile(filepath.Join(out, filepath.FromSlash(path)))
 		if err != nil {
