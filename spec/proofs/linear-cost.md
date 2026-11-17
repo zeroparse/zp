@@ -80,7 +80,7 @@ $\hat{n} = n + 1$. The parse is the memoized parse of the
 [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules), whose
 memo stores the result of every evaluation of a memoized rule, or of its
 twin, at a position outside every context of growths except possibly the
-first, as [Conditions for Linear
+first of the rule and the first of its twin, as [Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost) requires.
 "A constant" below means a number that depends only on the grammar and the
 backend.
@@ -2992,9 +2992,13 @@ at its start and holds an activation at any depth, and case (c) of the
 covered keys does not arise. Case (a) does not arise, by the statement of
 that claim, and case (b) arises only at a call that the parse answers from
 what it keeps apart from the table, which it keeps only in a context of
-growths. So the parse made an evaluation $y$ of the key of $z^\circ$, which
-ended before $e_i$ ended, and the last paragraph of that proof gives $y$ a
-lookahead state no greater than that of $e_{i+1}$. The variant of each call
+growths, and such a call is in a context of growths itself, since by (D) of
+the [memoization proof](memoization.md#setting) what it is answered from read
+a growth that is open at its position, with the same current result, when it
+is answered. So the parse made an evaluation $y$ of the key of $z^\circ$, which
+ended before $e_i$ ended. $y$ is evaluated in the lookahead state of the call
+on that way that it corresponds to, which the last paragraph of that proof
+bounds by the lookahead state of $e_{i+1}$. The variant of each call
 on the two ways depends only on its place and on the variant of the body
 that makes it (*Counterparts*), and the way follows an answered call only
 into an earlier evaluation of its key, so with $e_i$ and $e'_i$ of one
