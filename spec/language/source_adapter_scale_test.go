@@ -2,9 +2,9 @@ package language_test
 
 import (
 	"errors"
-	"math"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"testing"
@@ -124,23 +124,22 @@ func TestRecoveryScalesLinearly(t *testing.T) {
 // allocCost returns what building the result of parser.Parse on src takes in allocations: the number of
 // objects and of bytes. It is the load-independent measure of the whole source API, with the lexer, the
 // error messages and the builder of the grammar, which the compute counter of the generated parser does
-// not cover. The count of a run does not depend on its time, so another process on the machine does not
-// change it; the run is warmed up first so that one-time tables are not counted, and the least of five runs counts, because
-// a buffer that a collection frees is allocated again in the run after it. The test does not run in
-// parallel, so that the runtime counters hold this goroutine's work. It does not see a growth that
-// allocates nothing, such as a loop that rescans the tokens; the compute cost covers the parser.
+// not cover. A parse is warmed up first, so that one-time tables are not counted. Then the parse runs with
+// the collector off, after two collections that empty the pools, so that no freed buffer is allocated
+// again and the counters of the runtime are exact: one run gives the same count every time, whatever the
+// load. The test does not run in parallel, so that the counters hold the work of this goroutine. It does
+// not see a growth that allocates nothing, such as a loop that rescans the tokens; the compute cost
+// covers the generated parser, and the lexer and the builder have no counter of their work.
 func allocCost(src string) (mallocs, bytes uint64) {
 	parser.Parse(src)
-	mallocs, bytes = math.MaxUint64, math.MaxUint64
-	for i := 0; i < 5; i++ {
-		var before, after runtime.MemStats
-		runtime.ReadMemStats(&before)
-		parser.Parse(src)
-		runtime.ReadMemStats(&after)
-		mallocs = min(mallocs, after.Mallocs-before.Mallocs)
-		bytes = min(bytes, after.TotalAlloc-before.TotalAlloc)
-	}
-	return mallocs, bytes
+	runtime.GC()
+	runtime.GC()
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	parser.Parse(src)
+	runtime.ReadMemStats(&after)
+	return after.Mallocs - before.Mallocs, after.TotalAlloc - before.TotalAlloc
 }
 
 // scaleAllocSources are the sources of scaleSources and valid grammars, which reach the builder of the
