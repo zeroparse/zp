@@ -28,6 +28,18 @@ type Module struct {
 	SourceInfo bool
 	// DefaultValue reports that value actions were dropped (Options.DefaultValue).
 	DefaultValue bool
+	// RunKeys holds the keys of the run sites that are not free of the environment, by increasing
+	// site.
+	RunKeys []RunKeyInfo
+}
+
+// RunKeyInfo is the key of the records of a run site that is not free of the environment: the
+// variables that its element reads, directly or in the rules it calls, and those it binds (Vars),
+// and those it binds (Bind), as string table indices sorted by name. A walk that takes a record
+// binds the variables of Bind to the values the walk of the record left in them.
+type RunKeyInfo struct {
+	Site       int
+	Vars, Bind []int
 }
 
 // RuleStreams reports whether the rule body that starts at entry passes values to the stream:

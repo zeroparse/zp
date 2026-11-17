@@ -115,6 +115,12 @@ func (w *Encoder) WriteModule(m *Module) {
 	for i := range m.Terms {
 		w.term(&m.Terms[i])
 	}
+	w.Uint(len(m.RunKeys))
+	for _, k := range m.RunKeys {
+		w.Int(k.Site)
+		w.ints(k.Vars)
+		w.ints(k.Bind)
+	}
 }
 
 func (w *Encoder) term(t *Term) {
@@ -306,6 +312,11 @@ func (r *Decoder) ReadModule() *Module {
 	m.Terms = sized[Term](r, n, 6)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Terms = append(m.Terms, r.term())
+	}
+	n = r.Count()
+	m.RunKeys = sized[RunKeyInfo](r, n, 3)
+	for i := 0; i < n && r.Err == nil; i++ {
+		m.RunKeys = append(m.RunKeys, RunKeyInfo{Site: int(r.int32()), Vars: r.ints(), Bind: r.ints()})
 	}
 	return m
 }
@@ -562,6 +573,20 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			declared(v)
 		}
 	}
+	for i, k := range m.RunKeys {
+		if err == nil && (k.Site <= 0 || i > 0 && k.Site <= m.RunKeys[i-1].Site) {
+			fail("invalid run key site %d", k.Site)
+		}
+		for _, v := range k.Vars {
+			declared(v)
+		}
+		for _, v := range k.Bind {
+			declared(v)
+			if err == nil && !slices.Contains(k.Vars, v) {
+				fail("run key of site %d binds %q, which it does not hold", k.Site, m.Strings[v])
+			}
+		}
+	}
 	if len(m.Starts) == 0 {
 		fail("no start rule")
 	}
@@ -622,6 +647,15 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			fail("invalid maximum %d for minimum %d", max, min)
 		}
 	}
+	keys := make(map[int]bool, len(m.RunKeys))
+	for _, k := range m.RunKeys {
+		keys[k.Site] = true
+	}
+	keyed := func(site int32) {
+		if err == nil && !keys[int(site)] {
+			fail("run site %d is keyed by the variables but has no run key", site)
+		}
+	}
 	for ip, x := range m.Code {
 		n := len(m.Code)
 		switch x.Op {
@@ -653,6 +687,8 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 				}
 			} else if x.C < 0 || int(x.C) > n {
 				fail("invalid run site %d", x.C)
+			} else if x.C > 0 && x.B&2 == 0 {
+				keyed(x.C)
 			}
 		case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover:
 			forward(ip, x.A, n)
@@ -698,6 +734,8 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			}
 			if x.B < 1 || int(x.B) > n {
 				fail("invalid skip-run site %d", x.B)
+			} else if x.C&2 == 0 {
+				keyed(x.B)
 			}
 		case OpCall:
 			in("rule", int(x.A), len(m.Rules))
