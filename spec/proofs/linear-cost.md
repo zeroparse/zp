@@ -472,8 +472,17 @@ condition 5.
 
 The memo that this lemma counts is that of
 [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules). It memoizes
-a leader in every parse, and a [Document](../runtime/documents.md#reuse-model)
-also memoizes the transient rules. A parse with missing-token insertion, which
+a leader in every parse. A [Document](../runtime/documents.md#reuse-model)
+also stores results of the transient rules, the rules that the first
+exception above leaves out, but this lemma and the ones after it do not take
+those rules as memoized: a lookup of such a rule walks only the first 32
+entries at its position and misses the others, so with more than 32 keys at
+one position every call of the rule there can miss. Such a call is then
+evaluated as in a parse from scratch, which memoizes none of them, and
+[Lemma 10](#lemma-10-rules-that-are-not-memoized) counts these evaluations by
+the calls, as for every rule that is not memoized; where the Document's memo
+answers such a call, it saves an evaluation that the count already holds. A
+parse with missing-token insertion, which
 is outside the classes, leaves unmemoized every rule other than a leader that
 contains `#missing`, directly or through the rules it calls. A first evaluation
 may leave no result, a result computed inside a lookahead or a `skip` answers
@@ -8103,8 +8112,9 @@ kind, with the same entries from earlier parses, that memoizes the rules
 that the parse memoizes, keeps no record of any site, resumes no run,
 reuses nothing kept in a context of growths, stops at no limit, and
 stores the result of an evaluation of a rule that is not cycle-free
-exactly where the parse stores it. A Document memoizes the transient
-rules as well (Lemma 3), so $\mathcal{P}$ memoizes them when the parse
+exactly where the parse stores it. A Document also stores results of
+the transient rules, which Lemma 3 does not take as memoized;
+$\mathcal{P}$, of the same kind, stores and looks them up as the parse
 does. Then $\mathcal{P}$ is a parse of the
 [Setting](#setting), and every successful activation of a source $\sigma$
 at $q$ that a growth step or an evaluation in a context of growths owns in
