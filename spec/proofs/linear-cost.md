@@ -1248,6 +1248,50 @@ most a constant times $B + A_s + 1$. Summing $A_f(Q)$ over the rules,
 $A_f \le c'' (B + E_{\mathrm{nm}} + A_s)$, where $E_{\mathrm{nm}}$ is that
 number of evaluations, which gives the bound. $\square$
 
+**Activations that do not succeed in a parse that keeps records.** In a
+parse whose records are exact, (R1) of the [Setting](#setting),
+*Activations that do not succeed* holds as stated, with $A_s$ and $A_f$
+the numbers of the activations that the parse evaluates, the iterations
+of the walks of the sites that keep records among them; an iteration
+that a record answers is no activation and is in neither number. So does
+Lemma 10, on which its proof rests.
+
+*Proof.* The two proofs count evaluations that the parse makes, and they
+use three things of it.
+
+1. That each evaluation of a scanning source has at most one activation
+   that does not succeed, its last. This is 7 of *Restarts in a parse
+   that keeps records*, which shows it of a walk that takes a record.
+2. That a place is evaluated at most a constant number of times in one
+   body evaluation outside the scanning sources that enclose it, and at
+   most that many times in one activation of the innermost such source:
+   the argument of Lemma 1 and the *One place* of Lemma 10. Every
+   evaluation of a place that the parse makes lies in a body evaluation
+   that the parse makes, and, when a scanning source of that body
+   encloses the place, in an activation of the innermost one, which the
+   parse evaluates, since an iteration that a record answers holds no
+   evaluation. Inside that body evaluation or activation the place is
+   reached through the repetitions with an upper bound that enclose it,
+   as without records: a walk that takes a record starts no evaluation
+   between the position of the record and its end (1 of *Restarts in a
+   parse that keeps records*), so a record takes evaluations away and
+   adds none.
+3. In Lemma 10, that each call of a rule that the parse does not memoize
+   evaluates its body at most once, and that every body evaluation other
+   than the one where the parse begins is made by a call. A walk that
+   takes a record makes no call and evaluates no body. The rest of that
+   proof, the chain of the rules called from one place, is about the
+   grammar and those counts.
+
+The proofs use nothing else of the parse. $\square$
+
+The claim bounds $A_f$ and the evaluations of the rules that are not
+memoized by $B$ and by all the successful activations that the parse
+evaluates, those of the recorded walks included, which is why Lemma 17
+bounds $A_r$ before it is applied (*Order* in Lemma 17). The exception
+for the Operators Rules, which step 3 of [Open Steps](#open-steps)
+keeps, is the same with records.
+
 **Order of the bounds.** The bounds follow one another in this order, and none
 rests on a later one. First, the claims of this lemma from *Failure after a
 source* to *Nothing in a memoized link is a head*, other than *Activations that do not succeed*,
@@ -4191,6 +4235,71 @@ activation, $e$ of its last need not be $e'$ of its first, and that case is
 not followed. And the hypothesis leaves out dropped steps and growths on the
 path from $T$ down to the unit, case 5, the exception of the restarts, and
 the cases of a Document parse.
+
+**Iterations at one scan in a parse that keeps records.** In a parse
+whose records are exact, (R1) of the [Setting](#setting), let the
+iterations of $T$ be those that the parse evaluates; a reaching iteration
+is one of them, since it contains an activation. Then 1 and 3 of
+*Iterations at one scan* hold as stated. 2 and 4 hold as stated for the
+links of which the following holds: no shared call of the unit $w_i$ up
+to the call of $e_i$ lies, in $w_i$ or on the way of $\kappa_i$ from its
+last start to $e'_i$, in an iteration that a record answers. For the
+other links 2 and 4 are not shown.
+
+*Proof.* When $T$ is a walk that takes a record, it evaluates its
+iterations first, each from the end of the one before, and after the
+record it evaluates none, so the iterations that it evaluates follow one
+another in time and in the input as those of a repetition without
+records do, and each of them but the last consumed input and succeeded
+(7 of *Restarts in a parse that keeps records*). The proof uses the
+following of the parse.
+
+1. For 1: the order in which the parser starts the activations and the
+   iterations of $T$, that $T$ evaluates an iteration after $it_k$ only
+   when $it_k$ succeeded, and *Restarts* and *Repeats*, which hold
+   (*Restarts in a parse that keeps records*).
+2. For 3: that an evaluation which succeeds and is not abandoned lies in
+   the match of the one above it and ends no later (1 of that claim);
+   that an iteration after $it_{k'}$ starts at or after its end; which of
+   two evaluations that contain $\alpha_i$ contains the other; and that
+   the evaluated iterations of $T$ but the last end where the next
+   starts, with starts that increase, which the paragraph above gives.
+3. For 2: that $e'_i$ starts after $w_i$ ends and inside $T$; that after
+   an iteration of $T$ ends the parser starts no evaluation before its
+   end until $\alpha_i$, which rests on where the parser goes back (1 of
+   that claim: a walk that takes a record adds no return); and, from
+   *Direct activations*, that from the last start of $\kappa_i$ to $e'_i$
+   the parser keeps the evaluations of $c_1, \ldots, c_{j-1}$ and
+   examines no other input. Under the hypothesis each of those calls is
+   evaluated, or answered by the memo, in $w_i$ and on that way, at the
+   positions and with the ends that the proof names. A walk that takes a
+   record on that way, outside the evaluations of those calls, moves the
+   parser over the input that the iterations
+   which the record answers would consume (3 of that claim), and those
+   iterations would consume it through shared calls, since that way
+   examines no other input; by the hypothesis no shared call lies in
+   them, so the record covers no input, and the parser moves from
+   $\tau_0$ to $t_i$ through the evaluations of the shared calls alone.
+   So an iteration of $T$ that ends in that time ends between two of
+   them, as the proof states.
+4. For 4: the order of the evaluations that are kept before another,
+   which rests on where the parser goes back, as in 3; 2 of the claim,
+   under the hypothesis; and that the evaluations of the shared calls of
+   $w_{i_{a+1}}$ before $e_{i_{a+1}}$ and those that $\kappa_{i_a}$
+   keeps on its way to $e'_{i_a}$ are evaluations of calls that the parse
+   makes, which the hypothesis gives for both links.
+
+The proof uses nothing else of the parse. $\square$
+
+Without the hypothesis, a shared call of $w_i$ can lie in an iteration
+that a record answers, in $w_i$ before $e_i$ or on the way of $\kappa_i$,
+when the unit and its continuation begin with a repetition whose
+iterations hold their shared calls. The boundaries $B_i$ are then
+positions at which the parse makes no evaluation of a call, and the
+hypothesis of no refinement in 4, which compares evaluations, is not
+stated for such a call. The claims that follow, from *Memoized breaks*
+to *Consecutive activations in one own region*, rest on 1 to 4 and have
+not been read again for a parse that keeps records.
 
 **Memoized breaks.** Under the hypotheses of *Iterations at one scan*, let
 $i$ be linked, let an evaluation from $it_{k'}$ down to $e'_i$ be abandoned,
@@ -9531,8 +9640,13 @@ theorem covers such a parse.
    which rests on the Run Sites proof, and *Seed reads*, which proves
    nothing, are not among them. *Repeats inside a growth in a parse that
    keeps records* shows the first case of *Repeats inside a growth* of
-   Lemma 5, on which the claims on leaf links rest. The claims that follow
-   *Activations held by heads*, from *Iterations at one scan* on, and the
+   Lemma 5, on which the claims on leaf links rest. *Activations that do
+   not succeed in a parse that keeps records* shows that claim and Lemma
+   10 of such a parse, and *Iterations at one scan in a parse that keeps
+   records* shows 1 and 3 of *Iterations at one scan*, and 2 and 4 of it
+   for the links none of whose shared calls lies in an iteration that a
+   record answers. The claims that follow it, from *Memoized breaks* to
+   *Consecutive activations in one own region*, and the
    other claims of Lemma 5, the bound of the second case of *Repeats
    inside a growth* among them,
    have not been read again for a parse that keeps records, for the
