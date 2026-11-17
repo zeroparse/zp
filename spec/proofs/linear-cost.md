@@ -8680,19 +8680,20 @@ $G'$ is a growth step or an evaluation in a context of growths, as $G$
 is. A step of a growth of a leader at its position is matched by a step
 of the same rank of a growth of the same leader there, since a call of a
 leader that is evaluated grows. If $G$ is in a context of growths, a
-growth of its cycle is open at its position, and $G$ lies in a step of
-it. No answered call $y$ lies between that step and $G$: the calls between
-them start at the position where the step started, so they are left calls
-of rules of the cycle (*Calls in a context of growths*), made in the
-context of that growth, while $y$ is outside every context. If the path
-reaches that step's place through no answered call, $G'$ lies at the same
-position in a step of the image of that growth. Otherwise the last
-answered call $y$ on the path contains the growth, and
-$\mathcal{R}(y_1)$ takes the steps of $\mathcal{R}(y)$, so $\mathcal{P}$
-evaluates inside $y_1$ the counterpart of that growth, or reaches it by a
-further jump, and by the induction $G'$ lies in a step of a growth of the
-same leader at that position. Either way $G'$ is in a context of growths
-too.
+growth $h$ of its cycle is open at its position, and $G$ lies in a step
+$H$ of it. If the path reaches the place of $H$ through no answered call,
+$\mathcal{P}$ makes there a step $H'$ of the image of $h$. Otherwise the
+last answered call $y$ above $H$ contains $h$, and $\mathcal{R}(y_1)$
+takes the steps of $\mathcal{R}(y)$, so $\mathcal{P}$ evaluates inside
+$y_1$ the counterpart of $h$, or reaches it by a further jump, and by the
+induction makes a step $H'$ of a growth of the same leader at that
+position, at the place of $H$. Either way the calls between $H$ and $G$
+start at the position where $H$ started, so they are left calls of rules
+of the cycle (*Calls in a context of growths*), and in $\mathcal{P}$ they
+are made in $H'$ at that position, in the context of the growth of $H'$;
+$\mathcal{P}$ answers nothing in contexts, so no answered call $y$ lies
+between $H$ and $G$, $G'$ lies at the place of $G$ in $H'$, and it is in a
+context of growths too.
 
 *Images of activations.* Let $G$ own $\alpha$. The calls on the path from
 $G$ down to $\alpha$ are of rules that the parse does not memoize, since
