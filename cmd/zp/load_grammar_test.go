@@ -39,4 +39,13 @@ func TestLoadGrammarDetectsJSON(t *testing.T) {
 	if err != nil || len(g.Rules()) != 1 {
 		t.Fatalf("JSON without an extension: %v", err)
 	}
+	// Without -to, convert writes the other encoding of the one Load decides.
+	var back strings.Builder
+	if err := convertCmd([]string{writeFile(t, "grammar2", out.String())}, &back); err != nil || back.String() != "rule main = \"a\"\n" {
+		t.Errorf("convert without -to: %q, %v", back.String(), err)
+	}
+	compiled := writeFile(t, "g.zpc", "ZPC\x00")
+	if err := convertCmd([]string{compiled}, &back); err == nil || err.Error() != compiledNeedsSource(compiled, "convert").Error() {
+		t.Errorf("compiled grammar: %v", err)
+	}
 }
