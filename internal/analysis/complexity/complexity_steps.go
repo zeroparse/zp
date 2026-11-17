@@ -198,7 +198,7 @@ func (k *classifier) selfPaths(u *unit) [][]*cont {
 // stepMessage describes a step that is not committing.
 func (k *classifier) stepMessage(u *unit) string {
 	if u.kind == unitLatePart {
-		return fmt.Sprintf("%s of %s at %s, which the first step of its growth need not reach, can fail after %s and is not committing against %s",
+		return fmt.Sprintf("%s of %s at %s, which the first step of its growth need not reach, contains %s and is not committing against %s",
 			u.kind, u.rule, at(u.rule, u.pos), u.src, u.witness)
 	}
 	return fmt.Sprintf("%s of %s at %s can fail after %s and is not committing against %s",
@@ -213,13 +213,16 @@ func (k *classifier) stepMessage(u *unit) string {
 // part succeeded there without the seed. When the part fails after a scanning source, the step is
 // dropped, the growth ends with the seed, and the parser goes on at the end of the seed with what
 // follows the calls that started the growth, which can examine again the input that the part
-// examined.
+// examined. A part that abandons a scanning source inside it and ends no farther than the seed
+// drops the step in the same way.
 //
 // Each such part is a unit at the growth position. Its continuation is the seed, matched by the
 // other parts of the body that read no growing result (the paths of the first step), followed by
 // what follows the leader (its FOLLOW, which holds the step tails and what follows the calls that
-// start the growth). The part itself is left out: it reads no growing result, so it fails in the
-// first step wherever it fails in a later one, and the seed came from another part.
+// start the growth). The part itself is left out: it reads no growing result, so it ends in the
+// first step as it ends in a later one. When it fails there, the seed came from another part; when
+// it matched the seed, the later step evaluates it again where the first step did and the growth
+// ends, as after the first step, whose units in the part are checked against what follows them.
 func (k *classifier) addLateParts(r *grammar.RuleDef, cycle int) {
 	start := &cont{items: []grammar.Expr{r.Expr}, next: &cont{end: endRule, rule: r.Name}}
 	_, first, late, ok := k.leftPathsLate(start, cycle, r.Name)
@@ -231,6 +234,9 @@ func (k *classifier) addLateParts(r *grammar.RuleDef, cycle int) {
 			continue
 		}
 		src := k.tailFailsAfterSource(p)
+		if src == nil {
+			src = k.abandonedSource(p)
+		}
 		if src == nil {
 			continue
 		}
@@ -257,6 +263,56 @@ func (k *classifier) addLateParts(r *grammar.RuleDef, cycle int) {
 		}
 		k.units = append(k.units, u)
 	}
+}
+
+// abandonedSource returns a scanning source of the path p that a unit inside it can abandon, or
+// nil: one inside an option, a repetition, a choice, a lookahead or the base of a #recover of the
+// path or of a rule that it calls, directly or indirectly. A late part that abandons such a source
+// and then ends no farther than the seed drops the step as one that fails does.
+func (k *classifier) abandonedSource(p *cont) *source {
+	seen := map[string]bool{}
+	var found *source
+	var visit func(e grammar.Expr)
+	visit = func(e grammar.Expr) {
+		astfacts.WalkExpr(e, func(x grammar.Expr) {
+			if found != nil {
+				return
+			}
+			var inner []grammar.Expr
+			switch x := x.(type) {
+			case *grammar.Optional:
+				inner = []grammar.Expr{x.Expr}
+			case *grammar.Repeat:
+				inner = []grammar.Expr{x.Expr}
+			case *grammar.Choice:
+				inner = x.Alts
+			case *grammar.And:
+				inner = []grammar.Expr{x.Expr}
+			case *grammar.Not:
+				inner = []grammar.Expr{x.Expr}
+			case *grammar.Recovery:
+				inner = []grammar.Expr{x.Expr}
+			case *grammar.Ref:
+				if r := k.byName[x.Name]; r != nil && !seen[x.Name] {
+					seen[x.Name] = true
+					visit(r.Expr)
+				}
+			}
+			for _, in := range inner {
+				if found == nil && k.containsSource(in) {
+					found = k.sourceIn(in)
+				}
+			}
+		})
+	}
+	for c := p; c != nil && found == nil; c = c.next {
+		for _, it := range c.items {
+			if it != nil && found == nil {
+				visit(it)
+			}
+		}
+	}
+	return found
 }
 
 // contPos returns the position of the first item of the path p, or that of e.

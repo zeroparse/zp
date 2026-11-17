@@ -1027,6 +1027,41 @@ func Controls() []Control {
 			Input:  lateInput,
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
+		// A late part that gives up a scan inside an option, a repetition or an optional choice,
+		// directly or in a rule that it calls, and then succeeds no farther than the seed drops
+		// the step as a failing one does.
+		{
+			Name: "Late part of a growth step that gives up a scan in an option", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" z?\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Late part of a growth step that gives up a scan in a called option", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" w\nrule w = z?\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Late part of a growth step that gives up a scan in a repetition", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" z*\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Late part of a growth step that gives up a scan in an optional choice", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" (z / \"q\")?\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		// The same option after an alternative that the step evaluates again and that succeeds
+		// again: the late part is never reached.
+		{
+			Name: "Option after an alternative that matches again", Family: "growth steps", Positive: true,
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = l \"+\" \"b\" / \"a\" \"b\" / \"a\" z?\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
 		// With "q" in place of "a" the late part fails at once where the seed begins.
 		{
 			Name: "Late part of a growth step that commits", Family: "growth steps", Positive: true,

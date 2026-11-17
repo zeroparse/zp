@@ -1294,9 +1294,10 @@ The conditions below use these terms.
     `(l "+" / "a") "b"` in `l = (l "+" / "a") "b" / "a" z` matches through
     `"a"`; a later step in which it fails after its left call reads the seed
     goes on to parts that the first step did not reach, such as `"a" z`. A
-    part that reads no growing result and ends no farther than the seed ends
-    the step with the seed; one that ends farther gives a longer result, which
-    the next step reads as the seed. When the growth ends, it ends with the
+    part that reads no growing result and fails, or succeeds no farther than
+    the seed, ends the step with the seed, and condition 2 checks it; one that
+    ends farther gives a longer result, which the next step reads as the
+    seed. When the growth ends, it ends with the
     seed and the parser continues at its end;
   - for any other alternative, the later alternatives of the choice, unless
     every way in which the alternative can fail lies after a `#cut` in it;
@@ -1848,18 +1849,26 @@ evicts entries, gives no linear bound by these conditions, and has to say so.
    can match otherwise in each step. The **late parts** of a leader are the
    paths of its body, through left calls of other rules of the cycle, that
    examine the input at the position where it grows before any left call of
-   a leader, and that the body evaluates after such a point: `"a" z` in
+   a leader, or that begin with a left call of another leader of the cycle,
+   and that the body evaluates after such a point: `"a" z` in
    `l = (l "+" / "a") "b" / "a" z`. A late part that contains a scanning
-   source and can fail after it, up to the end of the body, is checked as a
-   unit that starts at the position where the rule grows. When it fails, the
+   source is checked as a unit that starts at the position where the rule
+   grows when it can fail after the source, up to the end of the body, or
+   when it can give the source up inside it: in an option, a repetition, an
+   alternative of a choice, a lookahead or the expression of a `#recover`,
+   in the part itself or in a rule that it calls. When it fails, or succeeds
+   after giving up the source with a result no longer than the seed, the
    step is dropped, the growth ends with the seed, and the parser goes on at
    the end of the seed with what follows the calls that start the growth. So
    its continuation is the seed followed by what follows the leader: the
    other paths of the body that examine the input there before any left
    call of a leader, each continued, at the end of the body, through every
    call of the leader, the reads of the seed included. The late part itself
-   is left out: when the first step reached it, it failed there too, so
-   either way another path matched the seed. In
+   is left out: when the first step reached it and it failed there too,
+   another path matched the seed, and when it matched the seed, the step
+   evaluates it again where the first step did and the growth ends there,
+   as after the first step, whose units in the part are checked against what
+   follows them. In
    `s = (l / "+{" / "}")* $$` with `l = (l "+" / "a") "b" / "a" z` and
    `z = "b" "+" "{" [ab+{]* "}" "!"`, on `ab+{` repeated and a final `}`,
    the second step of each growth reads the seed `ab`, matches `+`, fails at
@@ -1867,9 +1876,12 @@ evicts entries, gives no linear bound by these conditions, and has to say so.
    scans the rest of the input and fails at its end, the step is dropped,
    and the next growth, four characters on, scans the rest again. `"a" z` is
    not committing against the seed `"a" "b"` followed by `"+{"`, so `l`
-   fails the condition; with `"q" z` in place of `"a" z` it is committing,
-   and with `l = l "+" "b" / "a" "b" / "a" z` no part is late, since the
-   later steps evaluate `"a" "b"` again and it matches again.
+   fails the condition. The same holds with `"a" z?` in place of `"a" z`:
+   `z` scans the rest and fails, the option matches nothing, and the part
+   ends after `a`, short of the seed, so the step is dropped all the same.
+   With `"q" z` in place of `"a" z` the part is committing, and with
+   `l = l "+" "b" / "a" "b" / "a" z` no part is late, since the later steps
+   evaluate `"a" "b"` again and it matches again.
    A step that succeeds with a result no longer than the seed
    is dropped as well, but it gives back the input that it examined beyond
    its result only through the units in it that are abandoned, which this

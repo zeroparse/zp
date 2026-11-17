@@ -105,7 +105,7 @@ func TestLateParts(t *testing.T) {
 		// "a" z, which scans the rest of the input and fails at its end; the next growth, four
 		// characters on, scans it again.
 		{"after an inner choice", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\n" + z, ClassUnknown,
-			"the late part of l at 3:30 in rule l, which the first step of its growth need not reach, can fail after the repetition [ab+{]* at 4:22 in rule z and is not committing against the seed of the growth of l", 0},
+			"the late part of l at 3:30 in rule l, which the first step of its growth need not reach, contains the repetition [ab+{]* at 4:22 in rule z and is not committing against the seed of the growth of l", 0},
 		// The same with the scan in a repetition of a rule that scans, in a rule that it calls,
 		// in a repetition whose element calls a left-recursive rule (no run site), and in the
 		// skip of a #recover that is not a reused skip.
@@ -121,6 +121,13 @@ func TestLateParts(t *testing.T) {
 		// of m and l reject the grammar as well.
 		{"after a left call of another leader", lateMain + "rule l = l \"y\" / m \"b\" / \"a\" z\nrule m = m \"x\" / l \"+\" / \"a\"\n" + z, ClassUnknown,
 			"the late part of l at 3:26 in rule l", 0},
+		// A late part that gives up the scan inside an option, a rule that it calls, a repetition
+		// or an optional choice, and then succeeds no farther than the seed, drops the step as a
+		// failing one does.
+		{"gives up a scan in an option", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z?\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n", ClassUnknown, "the late part of l", 0},
+		{"gives up a scan in a called option", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" w\nrule w = z?\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n", ClassUnknown, "the late part of l", 0},
+		{"gives up a scan in a repetition", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z*\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n", ClassUnknown, "the late part of l", 0},
+		{"gives up a scan in an optional choice", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" (z / \"q\")?\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n", ClassUnknown, "the late part of l", 0},
 		// A late part that succeeds keeps the step, and its lookahead, which scans, is checked as
 		// the unit it is; the late part adds no degree to it.
 		{"kept step with a scanning lookahead", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" !([ab+{]* \"}\" \"!\")\n", ClassUnknown, "the late part of l", 2},
@@ -128,6 +135,7 @@ func TestLateParts(t *testing.T) {
 		// later one is never reached; the inner choice is followed by nothing that fails; the
 		// late part begins otherwise than the seed; nothing fails after the scan.
 		{"earlier alternative matches again", lateMain + "rule l = l \"+\" \"b\" / \"a\" \"b\" / \"a\" z\n" + z, ClassLinear, "", 0},
+		{"option after an alternative that matches again", lateMain + "rule l = l \"+\" \"b\" / \"a\" \"b\" / \"a\" z?\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n", ClassLinear, "", 0},
 		{"nothing fails after the inner choice", lateMain + "rule l = (l \"+\" \"b\" / \"a\" \"b\") / \"a\" z\n" + z, ClassLinear, "", 0},
 		{"late part committing against the seed", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"q\" z\n" + z, ClassLinear, "", 0},
 		// A skip of single characters is a reused skip, whose records keep the parse linear.
