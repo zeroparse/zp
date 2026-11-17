@@ -8669,19 +8669,19 @@ whose entries lag behind by more than $T$ edits shows.
 
 **Copies in every parse.** Let the parse and $\mathcal{P}$ be as in
 *Families in every parse*. Then every body evaluation $e$ of the parse has
-an image, an evaluation $e^*$ of $\mathcal{P}$ such that $\mathcal{R}(e)$
-and $\mathcal{R}(e^*)$ take the same steps, and each evaluation of
+an image, an evaluation $\bar{e}$ of $\mathcal{P}$ such that $\mathcal{R}(e)$
+and $\mathcal{R}(\bar{e})$ take the same steps, and each evaluation of
 $\mathcal{P}$ is the image of at most a constant number of evaluations of
 the parse. So a copying operation in the action or a predicate of $e$
-reads the values and the own spans that it reads in $e^*$, and the copies
+reads the values and the own spans that it reads in $\bar{e}$, and the copies
 that the parse makes cost at most a constant times those that
 $\mathcal{P}$ makes, which Lemma 6 bounds in $\mathcal{P}$.
 
 *Proof.* The proof of *Images of owners* uses of $G$ only that the parse
 makes it, up to the paragraph on its kind, so it gives every body
-evaluation $e$ that the parse makes an evaluation $e^*$ of $\mathcal{P}$
+evaluation $e$ that the parse makes an evaluation $\bar{e}$ of $\mathcal{P}$
 with the same steps, of the key of $e$, since the steps of the jumps and
-of the path below them are those of $\mathcal{R}$. Take that $e^*$ as
+of the path below them are those of $\mathcal{R}$. Take that $\bar{e}$ as
 the image when $e$ is the body evaluation of a call of a rule that the
 parse memoizes, a growth step or an evaluation in a context of growths.
 An evaluation of the first kind outside every context reads no growing
@@ -8704,7 +8704,7 @@ the argument of *Images of activations*. So each evaluation of $\mathcal{P}$ is 
 image of at most a constant number of evaluations of the parse.
 
 The values that a copy reads are those of the evaluations that it reads,
-which are the same in $e$ and $e^*$, those of the counterparts in
+which are the same in $e$ and $\bar{e}$, those of the counterparts in
 $\mathcal{R}$: an answer from the memo gives the value of the evaluation
 ([memoization
 theorem](memoization.md#theorem-memoization-never-changes-the-result)), a
