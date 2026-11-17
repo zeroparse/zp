@@ -3153,8 +3153,7 @@ Operators Rule end a path without deciding. This step reads "all its parts
 are cheap" as including the repetition itself, so that a repetition with a
 scanning source of its own is not looked into; the specification does not
 say so in these words, and the classifier reads it that way, testing the
-repetition itself for a scanning source along with its parts (`cheapAll` in
-`internal/complexity`). A growth starts only at a call of a rule of a
+repetition itself for a scanning source along with its parts. A growth starts only at a call of a rule of a
 left-recursion cycle. Such a call passes no symbol of $A_K$: it is not alike
 with one, since alike calls are calls of rules on no left-recursion cycle,
 and among the paths that it stands for is one that reaches, through left
