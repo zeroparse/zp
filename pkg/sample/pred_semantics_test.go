@@ -3,7 +3,7 @@ package sample_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/sample"
+	"zeroparse.dev/zp/pkg/sample"
 )
 
 // predicateSemantics are grammars whose predicates the generator must decide as the parser does. Each

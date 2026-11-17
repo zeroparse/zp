@@ -30,15 +30,15 @@ var layout = []place{
 	// pkg/runtime/instrument; all four are runtime side and allowed to the library.
 	{pkg: "core", target: "pkg/runtime"},
 	{pkg: "core/impl", target: "pkg/runtime/value/impl"},
-	{pkg: "editfuzz", target: "pkg/editfuzz"},
+	{pkg: "pkg/editfuzz", target: "pkg/editfuzz"},
 	// engine splits into pkg/compiler (compilation), pkg/runtime (the Parser interface),
 	// pkg/runtime/vm and pkg/runtime/instrument. Its compile entry keeps the compiler imports,
 	// and the package goes away when its runtime parts move to their packages.
 	{pkg: "engine", target: "pkg/compiler"},
 	{pkg: "grammar", target: "pkg/grammar"},
-	{pkg: "lint", target: "pkg/lint"},
+	{pkg: "pkg/lint", target: "pkg/lint"},
 	{pkg: "pkg/runtime/query", target: "pkg/runtime/query"},
-	{pkg: "sample", target: "pkg/sample"},
+	{pkg: "pkg/sample", target: "pkg/sample"},
 	// The fixture suites of zp test are a tool over the compiler, in the layer of the public tool
 	// packages, though internal.
 	{pkg: "internal/fixture", target: "internal/fixture"},
