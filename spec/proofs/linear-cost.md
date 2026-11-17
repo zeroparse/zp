@@ -81,7 +81,10 @@ the memoization proof, is evaluated again and repeats the first activation at
 the position in it; the memo bounds these for a
 memoized rule and the cycles of calls that nest at one end bound for a rule that
 calls no rule when the call is the first that the two share, and it shows,
-apart from three open points, that evaluations of a call that nest without a
+apart from three open points and two nestings that it excludes, through a
+part that a dropped step evaluates before its read of the seed and through a
+later kept step that does not match its result through a read of its seed
+outside lookaheads, that evaluations of a call that nest without a
 bound and end at one position make the call nest at one end. It proves the sum
 over the positions for the activations owned by memoized evaluations of the
 sources of rules that call a rule or are memoized at their calls, by charging
@@ -339,13 +342,14 @@ counted among the calls of that parse. Every call of a parse of the text is
 the counterpart of a call of $\mathcal{R}$ at the same position with the same
 values of the variables (*Counterparts*), so the $K$ of the parse is at most
 $K$, and so is the $K$ of every parse of the same text that a claim below
-compares with the parse: $\mathcal{X}$ of *Descent in the reference parse* in
+compares with the parse: $\mathcal{X}$ of *Heads without the records* in
 Lemma 4 and $\mathcal{P}$ of *Families in every parse* in Lemma 5. A count
 that such a claim makes in the other parse, at most a constant times that
 parse's $K$ at each position, is so at most a constant times $K$ at each
 position, whatever the parse answers from entries of an earlier parse,
-resumes or answers from records. So a [Document](../runtime/documents.md)
-parse is bound by the same constant as a parse of its text from scratch.
+resumes or answers from records. So the $K$ of a
+[Document](../runtime/documents.md) parse is the $K$ of a parse of its text
+from scratch; $K_R$ above and $L$ of the theorem remain the parse's own.
 
 $K$ is the $K$ of the parse wherever each call of $\mathcal{R}$ repeats, at
 its position and with its values, a call of the parse. It does inside a call
@@ -358,7 +362,7 @@ the lookaheads that the evaluation it answers from observed ([Lemma 4 of the
 memoization
 proof](memoization.md#lemma-4-answering-from-a-dependent-result)); and
 inside an iteration that a record made as (M1) and (M2) of *Covered keys
-through records* state answers, as *Descent in the reference parse* shows.
+through records* state answers, as the proof of *Heads without the records* shows.
 It is not shown for the calls of $\mathcal{R}$ in an alternative that the
 parse skips by the next character, inside a lookahead that such a kept
 result observed, inside an iteration that a record that (R1) alone allows
@@ -2210,7 +2214,8 @@ link with $e'_j = Y_{l'}$, at a position $s_0 < p$, and let the parse keep no
 records of scan sites. Then, after $e_j$ ends, $w_j$ evaluates no call of
 $r$ at $p$, unless the sequence of the activations of $\sigma$ at $q$ leaves
 out the activation at $q$ of that call, and if $w_j$ starts before $w_l$ ends, no evaluation inside $w_j$ outside the shared calls that it evaluates before $e_j$ fails before $e_j$ starts, and $Y_l$ lies in none of those shared calls, this is the case that
-*Nesting at one end* rules out, with $e_j$ as $X$ and $Y_l$ as $T$, unless $r$
+*Nesting at one end* rules out, with $e_j$ as $X$ and $Y_l$ as $T$, under its
+hypotheses and apart from its open points, unless $r$
 is a scan-only rule.
 
 *Proof.* $e_j$ and $e'_j$ are evaluations of one call of the rule $Y$ of
@@ -2476,7 +2481,8 @@ of $Y_{l'}$. Then $E_1$ succeeds and ends at $p$, and $Y_l$ is the body
 evaluation of $E_1$, lies inside a body evaluation of $E_1$ other than as
 it, or contains $E_1$ and is not its body evaluation. In the second case,
 this is the case that *Nesting at one end* rules out, with $E_1$ as $X$ and
-$Y_l$ as $T$, and in the third, with $Y_l$ as $X$ and $E_1$ as $T$, unless
+$Y_l$ as $T$, and in the third, with $Y_l$ as $X$ and $E_1$ as $T$, under its
+hypotheses and apart from its open points, unless
 $r$ is a scan-only rule.
 
 *Proof.* $Y_{l'}$ is no growth step, since the parser leaves it at $p$ from
@@ -2803,17 +2809,21 @@ evaluations of $Z$ nest without a bound through $t$, each in the call $t$ of
 the one around it, all of those calls ending at one position, each holding a
 successful activation of such a source, each dropped step of a growth
 between them holding the inner one after a read of its seed, and each kept
-step of a growth between them, after the step between them, matching through
-a read of its seed, $t$ nests at one end: calls that start at that position nest
+step of a growth between them, after the step between them, matching its
+result through a read of its seed that succeeds outside every lookahead, or a
+call whose result includes one, $t$ nests at one end: calls that start at that position nest
 only through left recursion, which the growths bound, so some call $X$ starts
 before the position and holds another, $T$, that does too, and the claim gives
 $Y$ in $E_t$. A nesting through a part that a dropped step evaluates at the
 position of its growth before a read of its seed is left open, and so is one
-through a growth whose later kept step matches its result without its seed,
-reading it only inside a lookahead, as the second step of `E` does in
-`E = E "x" / &(E "b") "a" "b" "c" / "a"` on `abc`: that step matches `abc`
-from the position of the growth again, so the end of $X$ is not reached
-through the step that holds $T$.
+through a growth whose later kept step matches its result without a read of
+its seed outside lookaheads: one that reads it only inside a lookahead, as the
+second step of `E` does in `E = E "x" / &(E "b") "a" "b" "c" / "a"` on `abc`,
+or only in an alternative that it abandons, as the second step of `E` does in
+`E = (E / "") "a" / "a" "b" "c"` on `abc`, where the first alternative reads
+the seed `a` and fails at `b`. Each of those steps matches `abc` from the
+position of the growth again, so the end of $X$ is not reached through the
+step that holds $T$.
 
 *Proof.* By induction on the number of calls on the path from $X$ to $T$.
 Each call on that path is of a rule of the recursion of $t$, since $A$
@@ -2950,8 +2960,10 @@ inside growths: the claim allows the kept growth steps on it and those
 dropped steps, but a dropped step that holds $T$ in a part that it evaluates
 at the position of its growth is not excluded. Third, each kept step of a
 growth on that path after the one that holds $T$ must match its result
-through a read of its seed outside lookaheads, and a step that reads it
-only inside a lookahead is not excluded.
+through a read of its seed that succeeds outside every lookahead, or a call
+whose result includes one, and a step that reads it only inside a lookahead,
+or only in an alternative that it abandons, is not excluded (the two
+witnesses after *Nesting at one end*).
 The claims above leave out the links between which the parser leaves or
 starts a growth step at the position, and so do not use this case.
 
@@ -4575,8 +4587,10 @@ let $\mathcal{X}$ be the parse of the same grammar and input, of the same
 kind, a [Document](../runtime/documents.md) parse when the parse is one,
 that memoizes the rules that the parse memoizes, has no entries from
 earlier parses, keeps no record of any site, resumes no run, reuses
-nothing kept in a context of growths, stops at no limit, and stores as
-the [Setting](#setting) requires. Then the successful activations of
+nothing kept in a context of growths, stops at no limit, stores as
+the [Setting](#setting) requires, and answers a call in a context of growths
+from the memo only as *Answers in contexts* of the Setting asks, or answers
+none there. Then the successful activations of
 $\sigma$ at $q$ that memoized evaluations own in the parse are at most
 six times the successful activations of $\sigma$ at $q$ that the heads
 of $\mathcal{X}$ hold, the evaluation where $\mathcal{X}$ begins
@@ -9233,7 +9247,7 @@ later call with its key at $\pi$, in the same lookahead state or a greater
 one (*Answered calls*). A step of the combination that does not make the
 call at $\pi$ answers a call or a step around it: from the memo, from a
 result kept in a context of growths, or by a run of steps taken at once.
-Let a step $k$ of the combination evaluate the call at $\pi$, so that it
+Let a step $k$ of the combination make the call at $\pi$, so that it
 evaluates every call and step on the path down to $\pi$, and let an
 earlier step of the combination answer, outermost on the path, a call or
 step $y$ around $\pi$. The steps evaluate the path alike above $\pi$, so
@@ -9256,7 +9270,13 @@ that place. In the second case $k$ makes at the place of $y''$ a call or
 step with its key, in a lookahead state no smaller and in a context of the
 same growths: those open at the start of $y'$, which are those of $y$, and
 those that the calls and steps on the path below start, which both $y'$
-and $k$ evaluate. So $y''$ is not a memo answer either, by the argument
+and $k$ evaluate. A growth open above $y$ at a position after that of $y$
+contains nothing that starts before it, so it is not around $y$; and a
+growth of a leader $L$ open above $y$ at the position of $y$ that is of
+the cycle of $y''$ there is of the cycle of $y$ too, since every call
+between them is made at that position: $L$ reaches $y$, $y$ reaches $y''$
+and $y''$ reaches $L$ by left calls, so $L$ is in the context of $y$ and
+of $y'$ alike. So $y''$ is not a memo answer either, by the argument
 for $y$, and stands for an earlier evaluation in turn. Following these
 answers back in time ends, at an evaluation that made a call with the key
 of the call at $\pi$, in the lookahead state at $\pi$ or a smaller one.
@@ -11032,8 +11052,9 @@ for a constant $c$, where $K$ is here the greater of the $K$ of
 [Setting](#setting). The first is counted in a parse of the same text from
 scratch and is at least the $K$ of the parse ([Setting](#setting)): it is a
 property of the grammar and the text, not of what the parse kept from earlier
-parses, so a [Document](../runtime/documents.md) parse is bound by the same
-constant as a parse of its text from scratch. When no variable holds a string and every
+parses, so a [Document](../runtime/documents.md) parse has the $K$ of
+Classification of a parse of its text from scratch. $K_R$ and $L$ remain the
+parse's own; in the class Linear both are constants. When no variable holds a string and every
 binding binds a literal or a variable with finite values, $K$ is a constant by
 Lemma 8 and $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
@@ -11861,7 +11882,8 @@ theorem covers such a parse.
    evaluation outside the shared calls before the earlier evaluation of the
    link fails before that evaluation starts, and none of whose shared calls
    before that evaluation holds the frame of the earlier outer link, meets
-   *Nesting at one end*, apart from a scan-only rule of the scan in a parse without
+   *Nesting at one end*, under its hypotheses on the dropped and the later
+   kept steps of growths and apart from its open points, apart from a scan-only rule of the scan in a parse without
    records of scan sites, which no claim treats, and in a parse that keeps no records of scan sites the unit of
    the index evaluates no call of the rule of the scan at the position of the
    scan after its shared call, unless the sequence of activations leaves out
@@ -11891,7 +11913,8 @@ theorem covers such a parse.
    the call and the frame of the earlier outer link lies inside a body
    evaluation of the earlier one other than as it, or contains the earlier
    one other than as its body evaluation, *Nesting at one end* rules the case
-   out, apart from a scan-only rule of the scan in a parse without records of
+   out, under its hypotheses on the dropped and the later kept steps of
+   growths and apart from its open points, apart from a scan-only rule of the scan in a parse without records of
    scan sites, which no claim treats (*The frame of an outer link as the later
    evaluation of a shared call*). Not shown is the case in
    which the frame of the earlier outer link is the body evaluation of the
@@ -12020,7 +12043,9 @@ theorem covers such a parse.
    shared, apart from the three points that it leaves open, a nesting
    through a part that a dropped step evaluates at the position of its growth
    before a read of its seed, and a nesting through a growth whose later kept
-   step matches its result without its seed; what remains is
+   step matches its result without a read of its seed outside lookaheads,
+   reading it only inside a lookahead or only in an alternative that it
+   abandons; what remains is
    to bound the frames left at the earlier positions by it. And the leaf links
    between which the parser leaves or starts, at their position, a growth
    step or an evaluation in a context of growths, which that claim leaves
@@ -12031,7 +12056,8 @@ theorem covers such a parse.
    leader whose current result ends there can grow beyond it, nor that each
    dropped step of a growth on the path between them holds the inner one after
    a read of its seed, nor that each later kept step of such a growth matches
-   its result through a read of its seed. Third, the
+   its result through a read of its seed that succeeds outside every
+   lookahead, or a call whose result includes one. Third, the
    memoized links that the comparison leaves out: in a Document parse, a link
    whose comparison meets an entry of an earlier parse that answers a call in
    a context of growths, or a call whose corresponding call in the later
