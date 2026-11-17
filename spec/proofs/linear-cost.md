@@ -3560,8 +3560,8 @@ read them so):
   the iteration of (M1) began; where the walk of (M1) found the second
   record, it found it in the environment that its iteration left. A walk
   may find fewer records than that. By
-  [Run Sites](../runtime/parsing.md#run-sites) and the paragraph *Kinds*
-  in the [Setting](run-sites.md#setting) of the Run Sites proof, the
+  [Run Sites](../runtime/parsing.md#run-sites) and [Record
+  Kinds](run-sites.md#record-kinds) in the Run Sites proof, the
   records of the walks inside lookaheads are kept apart from those of the
   walks outside them, a position has one record at a time for one
   lookahead state and one key, which at a site that is not free of the
@@ -4087,9 +4087,11 @@ and 2 of [Lemma 2](run-sites.md#lemma-2-cost-once-hot) of the Run Sites
 proof, for the records of one key), and, where a walk whose iterations
 have values takes no record that a walk without values made, (M2), case 2
 of that lemma counts the second evaluation once for each of the two kinds
-of walk (the paragraph *Kinds* in the [Setting](run-sites.md#setting) of
-that proof), which gives its bound of $3(n + 1)$ for
-a class in place of $2(n + 1)$. They do not bound the iterations that
+of walk ([Record Kinds](run-sites.md#record-kinds)): at most $2(n + 1)$
+evaluations for a class at the positions whose slot is not yet recorded
+under its key for the kind of the walk, beside the $n + 1$ at the
+positions whose slot is fresh, which is $3(n + 1)$ for a class in place
+of $2(n + 1)$. They do not bound the iterations that
 a walk evaluates whatever the slot holds, which those lemmas count for
 each walk and not for each position: its first iterations up to the
 minimum of the repetition, the last iteration of a walk that ends plain,
