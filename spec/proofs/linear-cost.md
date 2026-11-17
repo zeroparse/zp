@@ -7496,15 +7496,18 @@ and the first activation of a head taken among those activations.
 *Proof.* Call an activation **outside** when it is no iteration of the
 kind and lies inside none. The following fact is used throughout.
 
-(P) Let $\alpha$ be an outside activation of the parse, and let an
-evaluation $Y$ of $\mathcal{R}$ take the same steps, up to the variants of
-its calls, as an evaluation that contains the counterpart of $\alpha$.
-Then no iteration of the kind lies on the path from $Y$ down to the place
-of that counterpart. An iteration of $\mathcal{R}$ that contains the
+(P) Let $\alpha$ be an outside activation of the parse, let $X$ be an
+evaluation of $\mathcal{R}$ that contains the counterpart of $\alpha$,
+and let an evaluation $Y$ of $\mathcal{R}$ reach a place through the
+expressions, in their rules or in the twins, through which $X$ reaches
+that counterpart: as $Y$ does when it takes the steps of $X$ up to the
+variants of its calls, or takes them outside lookaheads that the path does
+not enter. Then no iteration of the kind lies on the path from $Y$ down to
+that place. An iteration of $\mathcal{R}$ that contains the
 counterpart of $\alpha$ is the counterpart of an iteration that the parse
 evaluates, of a walk of the same site, which contains $\alpha$ (the
 paragraph before 1 in the proof of *Heads in a parse that keeps
-records*), so none is of the kind. $Y$ reaches the corresponding place
+records*), so none is of the kind. $Y$ reaches that place
 through the same expressions, so the iterations on its path are
 iterations of the same repetitions, in a rule or in its twin, and so of
 the same sites, as in 1 of that proof, which keep no records.
@@ -7535,9 +7538,12 @@ to a call of a leader, where case (d) does not arise.
 $\mathcal{R}(h)$ down to the place that corresponds to the counterpart of
 the activation of $g$, and, at each call or step $y$ that the parse does
 not evaluate, goes on from $\mathcal{R}(y')$, which takes the steps of
-$\mathcal{R}(y)$ outside the lookaheads that $y'$ observed. By (P) for
-$\mathcal{R}(h)$ and for each $\mathcal{R}(y')$ in turn, no iteration of
-the kind lies on any segment of that path, so no record answers an
+$\mathcal{R}(y)$ outside the lookaheads that $y'$ observed. Each segment of that path, from $\mathcal{R}(h)$ or from an
+$\mathcal{R}(y')$, lies outside the lookaheads that $y'$ observed and goes
+through the expressions through which the evaluation that it continues
+reaches the counterpart of the activation of $g$, so by (P), applied to
+each segment in turn, no iteration of the kind lies on any segment of that
+path, so no record answers an
 evaluation on it, and the parse evaluates every call and step on it that
 it neither answers nor takes in a run of steps. The rest of the proof
 uses of the parse which calls and steps it evaluates and from what it
