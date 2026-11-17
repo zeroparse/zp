@@ -1575,7 +1575,10 @@ The conditions below use these terms.
   by a literal, and a call of `A` by an alike call that is cheap (below). A
   call or a repetition of that side that does not pass the symbol of `A` at
   hand stands for its paths, each of which must pass the rest of `A`, and a
-  lookahead of that side is passed over when it costs a constant. The rest of
+  lookahead of that side is passed over when it costs a constant. The check
+  expands calls finitely: where the expansion of a call comes back to a call
+  of the same rule, directly or through other calls, the check stops there,
+  and `!K` decides nothing on that path. The rest of
   the other side then matches only where `A` matches. When `!K` is on the side
   of the unit, which alone evaluates it, `K` contains no scanning source, and
   neither does a negative lookahead that a path of the unit passes before it
@@ -1595,15 +1598,23 @@ The conditions below use these terms.
     paid for it there. An expression without a scanning source is cheap, as is
     a call that the memo answers, a call of a rule that calls no rule, which
     repeats only its own scan, and a call of a rule whose body is cheap in all
-    its parts. A call of a rule that reads variables is cheap only where both
+    its parts, where the rule is not on a left-recursion cycle, the call has
+    no level restriction, and a call of the same rule met again while that
+    body is checked is not cheap. Nothing else is cheap. A call of a rule
+    that reads variables is cheap only where both
     sides have the same variables, which holds until either side passes a
     predicate that binds a variable or the end of a rule body that binds. A
     call that the memo does not answer and that contains a scanning source is
     not cheap when the continuation reaches it after the end of a rule body,
     in what follows a call that nests at one end, or after an operand of an
     Operators Rule that nests, unless it calls a scan-only rule (which reads no variable);
-  - an option, choice, repetition or lookahead that a path passes is looked
-    into only when all its parts are cheap;
+  - an option, choice or repetition that a path passes is looked into only
+    when it has no scanning source of its own and all its parts are cheap;
+    otherwise it ends the path. One whose parts are cheap only with the same
+    variables is looked into only where both sides still have them. A
+    lookahead is not looked into: one that the unit passes before it parts
+    contains no scanning source, and one that only the continuation
+    evaluates costs a constant (below);
   - a lookahead that only the continuation evaluates, or an alternative of it
     before the one that the unit's match implies, costs a constant: it has no
     scanning source of its own, and each call in it is answered by the memo or
