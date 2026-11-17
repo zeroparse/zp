@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -40,7 +41,7 @@ func TestLintFormattingCancelsWithinDiagnostics(t *testing.T) {
 func TestLintShortMessageParity(t *testing.T) {
 	for _, text := range []string{"", strings.Repeat("😀", 36), strings.Repeat("x", 37), strings.Repeat("😀", 38), strings.Repeat("x", 41), strings.Repeat("😀", 8192), strings.Repeat("\xff", 60)} {
 		expr := &ast.Ref{Name: text}
-		want := ast.FormatExpr(expr)
+		want := fmt.FormatExpr(expr)
 		if r := []rune(want); len(r) > 40 {
 			want = string(r[:37]) + "..."
 		}

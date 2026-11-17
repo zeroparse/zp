@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -70,9 +71,9 @@ func (c *renderControl) check() {
 
 func (c *renderControl) formatType(t ast.TypeExpr) string {
 	if c == nil {
-		return ast.FormatType(t)
+		return fmt.FormatType(t)
 	}
-	out, err := ast.FormatTypeContext(c.ctx, t)
+	out, err := fmt.FormatTypeContext(c.ctx, t)
 	if err != nil {
 		panic(renderCancellation{err})
 	}
@@ -80,9 +81,9 @@ func (c *renderControl) formatType(t ast.TypeExpr) string {
 }
 func (c *renderControl) formatGrammar(g *ast.Grammar) string {
 	if c == nil {
-		return ast.Format(g)
+		return fmt.Format(g)
 	}
-	out, err := ast.FormatContext(c.ctx, g)
+	out, err := fmt.FormatContext(c.ctx, g)
 	if err != nil {
 		panic(renderCancellation{err})
 	}

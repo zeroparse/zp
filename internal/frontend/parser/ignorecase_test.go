@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -156,7 +157,7 @@ func TestIgnoreCaseOperatorsRulePragma(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := ast.Format(back), ast.Format(g); got != want || !strings.Contains(got, "} #ignorecase") {
+	if got, want := fmt.Format(back), fmt.Format(g); got != want || !strings.Contains(got, "} #ignorecase") {
 		t.Fatalf("formatted JSON round trip:\n%s\nwant:\n%s", got, want)
 	}
 	for _, bad := range []string{

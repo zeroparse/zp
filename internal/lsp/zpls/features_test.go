@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/lsp/protocol"
-	"zeroparse.dev/zp/pkg/grammar/ast"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 )
 
 func TestDiagnostics(t *testing.T) {
@@ -161,7 +161,7 @@ func TestFormatting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ast.Format(g)
+	want := syntaxfmt.Format(g)
 	c.open("file:///f.zp", src)
 	if got := formatDoc(c, "file:///f.zp", src); got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
@@ -759,7 +759,7 @@ func TestExampleGrammars(t *testing.T) {
 		if a.prog == nil {
 			t.Errorf("%s: not compiled", path)
 		}
-		if got := applyEdits(src, formatEdits(a)); got != ast.Format(a.g) {
+		if got := applyEdits(src, formatEdits(a)); got != syntaxfmt.Format(a.g) {
 			t.Errorf("%s: formatting edits give\n%s", path, got)
 		}
 	}

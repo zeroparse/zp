@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -277,7 +278,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 		at := func(aspect string, e ast.Expr) (int, bool) {
 			i, ok := idx[e]
 			if !ok {
-				problem(aspect, "expression %s is not in the body", ast.FormatExpr(e))
+				problem(aspect, "expression %s is not in the body", syntaxfmt.FormatExpr(e))
 			}
 			return i, ok
 		}
@@ -336,7 +337,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 					pos++
 				}
 				if pos != len(e.Items) {
-					problem("class runs", "%d items in %s, %d in the Core sequence", len(e.Items), ast.FormatExpr(e), pos)
+					problem("class runs", "%d items in %s, %d in the Core sequence", len(e.Items), syntaxfmt.FormatExpr(e), pos)
 				}
 				if len(runs) == 0 {
 					return

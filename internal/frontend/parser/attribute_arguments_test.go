@@ -8,6 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -46,7 +47,7 @@ func TestRepetitionPragmaBounds(t *testing.T) {
 				t.Fatal(err)
 			}
 			assertBounds(decoded)
-			formatted := ast.Format(decoded)
+			formatted := fmt.Format(decoded)
 			reparsed, err := parser.Parse(formatted)
 			if err != nil {
 				t.Fatal(err)
@@ -160,12 +161,12 @@ func TestAttributeScalarJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := ast.Format(decoded)
+	formatted := fmt.Format(decoded)
 	g2, err := parser.Parse(formatted)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ast.FormatExpr(decoded.Rules()[0].Expr) != ast.FormatExpr(g2.Rules()[0].Expr) {
+	if fmt.FormatExpr(decoded.Rules()[0].Expr) != fmt.FormatExpr(g2.Rules()[0].Expr) {
 		t.Fatalf("argument structure changed after formatting: %s", formatted)
 	}
 }
@@ -192,7 +193,7 @@ func TestAttributeOmittedSlots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		again, err := parser.Parse(ast.Format(decoded))
+		again, err := parser.Parse(fmt.Format(decoded))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -217,7 +218,7 @@ func TestAttributeNativeIntegerRoundTrip(t *testing.T) {
 		Name: "main", Expr: &ast.Attributed{Expr: &ast.Literal{Value: "a"},
 			Attrs: []*ast.Attribute{{Name: "custom", Args: []any{minimum, maximum, -1}, KwArgs: map[string]any{"minimum": minimum}}}},
 	}}}}
-	source := ast.Format(g)
+	source := fmt.Format(g)
 	parsed, err := parser.Parse(source)
 	if err != nil {
 		t.Fatalf("formatted native integers: %v\n%s", err, source)

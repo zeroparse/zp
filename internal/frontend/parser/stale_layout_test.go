@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -33,7 +34,7 @@ func TestEditedAttributeKeepsComments(t *testing.T) {
 			}
 			a := g.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.Attributed).Attrs[0]
 			tc.edit(a)
-			got := ast.Format(g)
+			got := fmt.Format(g)
 			if got != tc.want {
 				t.Fatalf("got:\n%s\nwant:\n%s", got, tc.want)
 			}

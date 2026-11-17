@@ -1,4 +1,4 @@
-package ast_test
+package fmt_test
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -36,7 +37,7 @@ func TestFormatRoundTripThroughParseGrammar(t *testing.T) {
 			if err != nil {
 				t.Skipf("does not parse on its own: %v", err)
 			}
-			text := ast.Format(g)
+			text := fmt.Format(g)
 			g2, err := engine.ParseGrammar(text)
 			if err != nil {
 				t.Fatalf("printed grammar does not parse: %v", err)
@@ -44,7 +45,7 @@ func TestFormatRoundTripThroughParseGrammar(t *testing.T) {
 			if got, want := withoutSources(t, g2), withoutSources(t, g); got != want {
 				t.Errorf("printed grammar parses back differently:\n got %s\nwant %s", got, want)
 			}
-			if again := ast.Format(g2); again != text {
+			if again := fmt.Format(g2); again != text {
 				t.Errorf("printing is not stable")
 			}
 		})

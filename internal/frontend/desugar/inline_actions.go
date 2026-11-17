@@ -5,6 +5,7 @@ import (
 	"strings"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -475,7 +476,7 @@ func (n *InlineActionNames) Expr(text string) string {
 		return text
 	}
 	return n.names.substitute(text, false, func(name string) string {
-		return ast.FormatExpr(n.names[name].node)
+		return syntaxfmt.FormatExpr(n.names[name].node)
 	})
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/factstest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -31,7 +32,7 @@ func viewBodies(t *testing.T, src string, opts Options) (map[string]string, map[
 	v, _, rules, _ := testView(t, src, opts)
 	bodies := map[string]string{}
 	for _, r := range rules {
-		bodies[r.Name] = ast.FormatExpr(r.Expr)
+		bodies[r.Name] = fmt.FormatExpr(r.Expr)
 	}
 	return bodies, v.Applied
 }
@@ -52,7 +53,7 @@ func builtTexts(t *testing.T, src string, opts Options) map[string]string {
 		}
 		astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
 			if !orig[x] {
-				got[ast.FormatExpr(x)] = text[x]
+				got[fmt.FormatExpr(x)] = text[x]
 			}
 		})
 	}
@@ -182,13 +183,13 @@ func TestNormalViewText(t *testing.T) {
 				}
 				text, ok := text[x]
 				if !ok {
-					t.Errorf("%s, built by the view, stands for no text of the grammar", ast.FormatExpr(x))
+					t.Errorf("%s, built by the view, stands for no text of the grammar", fmt.FormatExpr(x))
 				}
-				got[ast.FormatExpr(x)] = text
+				got[fmt.FormatExpr(x)] = text
 			})
 			for spelling, text := range c.want {
 				if got[spelling] != text {
-					t.Errorf("%s stands for %q, want %q (view %s)", spelling, got[spelling], text, ast.FormatExpr(rules[0].Expr))
+					t.Errorf("%s stands for %q, want %q (view %s)", spelling, got[spelling], text, fmt.FormatExpr(rules[0].Expr))
 				}
 			}
 		})
@@ -270,7 +271,7 @@ func TestNormalViewLawSwitch(t *testing.T) {
 						t.Errorf("matching %v, no law: %v", matching, none.Applied)
 					}
 					for i, r := range rules {
-						if got, want := ast.FormatExpr(r.Expr), ast.FormatExpr(source[i].Expr); got != want {
+						if got, want := fmt.FormatExpr(r.Expr), fmt.FormatExpr(source[i].Expr); got != want {
 							t.Errorf("matching %v, no law: rule %s is %s, want %s", matching, r.Name, got, want)
 						}
 					}
