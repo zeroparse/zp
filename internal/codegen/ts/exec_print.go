@@ -919,7 +919,15 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 					return paren(h+" === undefined", 6, outer)
 				}
 			}
-			return "!" + p.expr(x.X, 12)
+			s := p.expr(x.X, 12)
+			// The negation of a condition that the target prints as a constant is a constant.
+			switch s {
+			case "true":
+				return "false"
+			case "false":
+				return "true"
+			}
+			return "!" + s
 		}
 		t := p.typeOf(x.X)
 		neg := "-" + p.expr(x.X, 12)
@@ -1000,7 +1008,26 @@ func (p *printer) binary(x *exec.Binary, outer int) string {
 		}
 	}
 	switch op {
-	case "===", "!==", "<", "<=", ">", ">=", "&&", "||":
+	case "&&", "||":
+		// An operand that the target prints as a constant decides the result or drops out, where that
+		// leaves out no evaluation: the left operand is always evaluated.
+		absorb, unit := "false", "true"
+		if op == "||" {
+			absorb, unit = "true", "false"
+		}
+		l := p.expr(x.X, n)
+		switch l {
+		case absorb:
+			return absorb // the right operand is never evaluated
+		case unit:
+			return p.expr(x.Y, outer)
+		}
+		r := p.expr(x.Y, n+1)
+		if r == unit {
+			return p.expr(x.X, outer)
+		}
+		return paren(l+" "+op+" "+r, n, outer)
+	case "===", "!==", "<", "<=", ">", ">=":
 		return plain()
 	}
 	switch t.Kind {

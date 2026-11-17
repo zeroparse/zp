@@ -387,8 +387,8 @@ export function marshal(n: Node | null): string;
 - **Public names.** The public API of a generated TypeScript parser is what `parser.ts` exports, plus the names of
   `types.ts` with `-types`. From the library it re-exports `Value`, `Unit`, `CodePoints`, `Bytes`, `NodeField`,
   `NodeJSON`, `Node`, `marshal`, `SyntaxError`, `SyntaxErrors`, `ParseResult`, `ParseOptions`, `Limits`,
-  `ParseInterruptionKind`, `ParseInterruptionError`, `Unlimited`, `TraceKind`, `TraceEvent`, `Profile`,
-  `ProfileLocation`, `SkipReasonCount`, `RuleProfile` and `ProfileSnapshot`, and with `-limits` also
+  `ParseInterruptionKind`, `ParseInterruptionError`, `Unlimited`, `TraceKind`, `TraceEvent`, `TraceFunction`,
+  `SkipReason`, `Profile`, `CallSite`, `SkipReasonCount`, `RuleProfile` and `ProfileSnapshot`, and with `-limits` also
   `CancellationSignal`. Without `-limits` the exported `ParseOptions` and `Limits` are the forms without `signal` and
   `limits.compute`. `TraceKind` is `"enter"`, `"exit"` or `"skipped"`. The other exports of `lib.ts`, such as
   `ProfileData`, are the contract between the library and the generated code. They are not

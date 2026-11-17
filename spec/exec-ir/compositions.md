@@ -135,7 +135,7 @@ row includes what its backends print into packages of their own.
 | Composition | Generated Go, nodes | Generated Go, typed values | The engine | TypeScript |
 |:--|:--|:--|:--|:--|
 | firstCall | `[]` | `[]` | `[]` | `[]` |
-| call | `[budget, document, observe]` | `[budget, document, observe, typed]` |  | `[budget, observe]` |
+| call | `[budget, document, observe]` | `[budget, document, observe, typed]` |  | `[budget]` |
 | callMemo |  | `[document, observe, typed]` |  |  |
 | grow | `[]` | `[typed]` | `[missing]` | `[]` |
 | observed | `[document, observe]` | `[document, observe, typed]` |  |  |

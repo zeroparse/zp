@@ -100,11 +100,12 @@ func TestGeneratedTSProfile(t *testing.T) {
 }
 
 const tsProfileTestHooks = `
-const profileProbes:ProfileObservation[]=[];
+const profileProbes:Observation[]=[];
+const profileRecorders:ProfileRecorder[]=[];
 const profileOptions:ResolvedParseOptions[]=[];
-const originalProfileCall=Parser.prototype.call;
-Parser.prototype.call=function(r:Rule,min:number):R {
- if(this.observation instanceof ProfileObservation)profileProbes.push(this.observation);
+const originalProfileCall=ObservedParser.prototype.call;
+ObservedParser.prototype.call=function(r:Rule,min:number):R {
+ if(this.observation!==null){profileProbes.push(this.observation);profileRecorders.push(...((this.observation as unknown as {recorders:ProfileRecorder[]|null}).recorders??[]))}
  return originalProfileCall.call(this,r,min);
 };
 function resolveOptions(g:Grammar,options:ParseOptions|undefined,input:string|Uint8Array):ResolvedParseOptions|Error {
@@ -113,7 +114,8 @@ function resolveOptions(g:Grammar,options:ParseOptions|undefined,input:string|Ui
  return resolved;
 }
 export function testProfileReleased():boolean {
- const clean=profileProbes.every(o=>{const x=o as unknown as {data:unknown;clock:unknown;profileScope:unknown;frames:unknown[];seen:Map<unknown,unknown>;open:Map<unknown,unknown>};return x.data===null&&x.clock===null&&x.profileScope===null&&x.frames.length===0&&x.seen.size===0&&x.open.size===0})&&profileOptions.every(o=>o.profile===null&&o.profileClock===null);
+ const clean=profileProbes.every(o=>(o as unknown as {recorders:unknown}).recorders===null)&&profileRecorders.every(r=>{const x=r as unknown as {data:unknown;clock:unknown;scope:unknown;frames:unknown[];seen:Map<unknown,unknown>;open:Map<unknown,unknown>};return x.data===null&&x.clock===null&&x.scope===null&&x.frames.length===0&&x.seen.size===0&&x.open.size===0})&&profileOptions.every(o=>o.profiles.length===0&&o.profileClock===null);
+ profileRecorders.length=0;
  profileProbes.length=0;profileOptions.length=0;return clean&&testReleased();
 }
 `
@@ -132,13 +134,15 @@ function checkProfile(s:p.ProfileSnapshot,events:readonly p.TraceEvent[]):void{
  check(Number.isFinite(s.time)&&s.time>=0,"root time");
  check(stable(s.rules.map(r=>r.rule))===stable(Array.from(new Set(events.map(e=>e.rule))).sort()),"sorted complete rows");
  for(const r of s.rules){
-  const calls=exits.filter(e=>e.rule===r.rule),seen=new Map<string,number>();let repeats=0,max=0,at={pos:0,level:0};
-  for(const e of calls)if(!e.memo&&e.evals>0){const key=e.pos+":"+e.level,n=(seen.get(key)??0)+1;seen.set(key,n);if(n>1)repeats++;if(n>max){max=n;at={pos:e.pos,level:e.level}}}
+  const calls=exits.filter(e=>e.rule===r.rule),seen=new Map<string,number>();let repeats=0,max=0,at={pos:0,line:0,col:0,level:0};
+  for(const e of calls)if(!e.memo&&e.evals>0){const key=e.pos+":"+e.level,n=(seen.get(key)??0)+1;seen.set(key,n);if(n>1)repeats++;if(n>max){max=n;at={pos:e.pos,line:0,col:0,level:e.level}}}
   check(r.entered===entries.filter(e=>e.rule===r.rule).length&&r.calls===calls.length&&r.evals===calls.reduce((a,e)=>a+e.evals,0)&&r.memoHits===calls.filter(e=>e.memo).length,"row counters");
   check(r.matched===calls.filter(e=>e.matched).length&&r.failed===calls.filter(e=>!e.matched).length&&r.consumed===calls.reduce((a,e)=>a+(e.matched?e.end-e.pos:0),0),"outcome counters");
   check(r.skipped===skips.filter(e=>e.rule===r.rule).length&&r.skipReasons.reduce((a,e)=>a+e.count,0)===r.skipped,"skip counters");
   check(r.repeats===repeats&&r.maxEvals===max&&stable(r.maxEvalsAt)===stable(at),"position-level history");
-  check(!r.examinedKnown&&!r.wastedKnown&&r.examined===0&&r.wasted===0,"unknown metrics");
+  const reach=(e:p.TraceEvent)=>Math.max(e.examined-e.pos,0),wasted=calls.filter(e=>!e.matched&&!e.memo);
+  let longest=0,longestAt={pos:0,line:0,col:0,level:0};for(const e of wasted)if(reach(e)>longest){longest=reach(e);longestAt={pos:e.pos,line:0,col:0,level:e.level}}
+  check(r.examined===calls.reduce((a,e)=>a+reach(e),0)&&r.wasted===wasted.reduce((a,e)=>a+reach(e),0)&&r.longestFail===longest&&stable(r.longestFailAt)===stable(longestAt)&&r.reusedElements===0,"examined counters");
   check(Number.isFinite(r.time)&&Number.isFinite(r.selfTime)&&r.selfTime>=0&&r.time>=r.selfTime,"row timing");
  }
 }
@@ -151,7 +155,7 @@ const routes:Route[]=[
 ];
 TYPEDROUTE
 const source=INPUT;
-check(stable(new p.Profile().snapshot())===stable({parses:0,entered:0,calls:0,evals:0,memoHits:0,skipped:0,time:0,rules:[]}),"empty profile");
+check(stable(new p.Profile().snapshot())===stable({parses:0,entered:0,calls:0,evals:0,memoHits:0,skipped:0,reusedElements:0,examined:0,time:0,rules:[]}),"empty profile");
 for(const route of routes)for(const unit of [p.CodePoints,p.Bytes])for(const controlled of [false,true]){
  const options={unit,limits:{compute:controlled?100000:0}};
  const profile=new p.Profile();let events:p.TraceEvent[]=[];
@@ -161,7 +165,7 @@ for(const route of routes)for(const unit of [p.CodePoints,p.Bytes])for(const con
   const other=new p.Profile();route(source,{...options,...filter,profile:other,trace:()=>{}});check(stable(counts(other.snapshot()))===stable(counts(s)),"filters independent");
  }
  const alone=new p.Profile();route(source,{...options,profile:alone});check(stable(counts(alone.snapshot()))===stable(counts(s)),"profile without trace");
- const inside=new p.Profile();let pending=false;route(source,{...options,profile:inside,trace:e=>{if(e.kind==="exit"&&e.depth===1){pending=true;check(inside.snapshot().calls===profile.snapshot().calls-1,"exit update pending within callback")}}});check(pending,"root exit callback");
+ const inside=new p.Profile();let recorded=false;route(source,{...options,profile:inside,trace:e=>{if(e.kind==="exit"&&e.depth===1){recorded=true;check(inside.snapshot().calls===profile.snapshot().calls,"exit recorded before the trace functions receive it")}}});check(recorded,"root exit callback");
  const saved=stable(s);s.rules[0]!.rule="mutated";s.rules[0]!.maxEvalsAt.pos=-1;for(const row of s.rules)for(const reason of row.skipReasons)reason.count=-1;s.rules.length=0;
  check(stable(profile.snapshot())===saved,"deep owned snapshot");
  const prior=profile.snapshot();route(source,{...options,profile});const twice=profile.snapshot();check(twice.parses===2&&twice.calls===prior.calls*2&&twice.evals===prior.evals*2,"accumulating profile");
@@ -192,7 +196,7 @@ try{
  clock({now(){return 5}});const coarse=new p.Profile();p.parseWithOptions(source,{profile:coarse});check(coarse.snapshot().time===0&&coarse.snapshot().rules.every(r=>r.time===0&&r.selfTime===0),"coarse clock accepted");
  for(const invalid of [NaN,Infinity]){clock({now(){return invalid}});let threw=false;try{p.parseWithOptions(source,{profile:new p.Profile()})}catch(x){threw=true;check(x instanceof Error&&x.message.includes("finite"),"invalid clock diagnostic")}check(threw,"invalid clock refused")}
  let ticks=3;clock({now(){return ticks--}});let threw=false;try{p.parseWithOptions(source,{profile:new p.Profile()})}catch(x){threw=true;check(x instanceof Error&&x.message.includes("monotonic"),"backward clock diagnostic")}check(threw,"backward clock refused");
- if(PLAIN){let ticks=0;clock({now(){return ticks}});const timed=new p.Profile();p.parseWithOptions(source,{profile:timed,trace:e=>{if(e.rule==="part"&&e.kind==="exit")ticks+=10}});const s=timed.snapshot();check(s.rules.find(r=>r.rule==="part")!.time===20&&s.rules.find(r=>r.rule==="main")!.selfTime===0&&s.time===20,"child exit callback timing")}
+ if(PLAIN){let ticks=0;clock({now(){return ticks}});const timed=new p.Profile();p.parseWithOptions(source,{profile:timed,trace:()=>{ticks+=10}});const s=timed.snapshot();check(s.time===0&&s.rules.every(r=>r.time===0&&r.selfTime===0),"trace function time excluded")}
  const original={marker:true};let secondary=false,secondaryCalls=0;clock({now(){if(secondary){secondaryCalls++;throw new Error("secondary clock")}return 0}});threw=false;try{p.parseWithOptions(source,{profile:new p.Profile(),trace:e=>{if(e.kind==="exit"){secondary=true;throw original}}})}catch(x){threw=true;check(x===original,"callback wins secondary host error")}check(threw&&secondaryCalls===1,"exit throw and secondary clock failure occurred");
 }finally{Object.defineProperty(host,"performance",descriptor)}
 check(p.testProfileReleased(),"host failure cleanup");
