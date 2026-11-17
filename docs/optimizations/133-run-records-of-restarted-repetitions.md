@@ -22,7 +22,7 @@ length, of which the part below the furthest position is under 64 units, so the 
 | Execution profile | Applied / Partial / Not applied / Not applicable | Reason |
 |:--|:--|:--|
 | Closure, bytecode, iterative bytecode | Applied | `RunHot`, `RunWalked` and the `Skip*` walk operations of the engine core |
-| Generated Go and TypeScript | Not applied | The generated runtimes keep no run records; their cost on a restarted repetition is the polynomial order |
+| Generated Go and TypeScript | Applied | The generated runtimes keep the same records with the same threshold and charges (`RunHot`, `RunWalked` and the walk operations of their libraries); a generated Document resumes no run, so every walk keeps records |
 | Documents | Not applied | Outside a lookahead, a site that the document can resume is resumed as before and keeps no run records; the records of the other parses of a document last for one parse |
 | Streams | Applied | Records last for one parse, and those before a commit are dropped |
 | Missing-token insertion | Not applied | A parse that inserts tokens keeps no records |
@@ -75,9 +75,9 @@ earlier revision.
 
 A record is reused only in the environment object it was made in. A grammar that rebinds a variable to the same new
 value at every position builds a new environment each time and stays quadratic even when its site is hot
-(`TestAlternatingWalksTurnHot`). Class scans, left recursion and the Document path keep no run records.
+(`TestAlternatingWalksTurnHot`). Class scans, left recursion and the engine's Document path keep no run records.
 
 ## Decision and Limits
 
-Adopted on the closure and bytecode backends. Not covered: generated parsers, class scans, left-recursive restarts and
-walks under environments that equal each other but are built separately.
+Adopted on the closure and bytecode backends and in the generated Go and TypeScript parsers. Not covered: class scans,
+left-recursive restarts and walks under environments that equal each other but are built separately.

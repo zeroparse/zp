@@ -894,10 +894,15 @@ type Parser struct {
 	ac             ActCtx
 	saved          []*core. // captures saved across a reset in longest
 			Node
-	// skipTables are the records of the walks of skip-run sites, indexed by 2*site, plus 1 in a
-	// lookahead; skip is the walk in progress (skip_runs.go).
+	// skipTables are the records of the walks of skip-run and run sites, indexed by 2*site, plus 1
+	// in a lookahead; skips[:skipN] are the walks in progress, the innermost last, and runCold the
+	// state of the run sites that are not hot, indexed as skipTables (skip_runs.go). skipBytes counts
+	// the bytes of the elements and errors that records hold, for the memory limit.
 	skipTables []*skipSlots
-	skip       skipWalk
+	skips      []skipWalk
+	skipN      int
+	runCold    []runCold
+	skipBytes  uint64
 	// scanTables are the records of the walks of scan sites by site, scanCold whether each site is hot,
 	// by 2*site, plus 1 in a lookahead, and scanWalk the walk that ScanReach reached (scan_sites.go).
 	scanTables []map[int]scanRecord

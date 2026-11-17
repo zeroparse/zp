@@ -1,4 +1,6 @@
 // A character class that a choice tries again from every "[" until the end of the line.
 @start
 rule main = (c / .)*
-rule c = "[" ("\\" . / [^\]\\\n])* "]"
+// The maximum keeps the repetition in the class from being a run site, whose records would answer
+// the tries after the first and make this negative control linear; it is not noise.
+rule c = "[" ("\\" . / [^\]\\\n]) #repeat(,1000000) "]"

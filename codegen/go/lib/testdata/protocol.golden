@@ -195,6 +195,9 @@ method (*Parser) RecoveryErrorText(*zeroparse.dev/zp/core.SyntaxError) string
 method (*Parser) RejectBudgetClass(rune, *BudgetClass) bool
 method (*Parser) Reset(Mark)
 method (*Parser) Restore(int, int)
+method (*Parser) RunBegin(int, bool, bool)
+method (*Parser) RunHot(int) bool
+method (*Parser) RunWalked(int, int)
 method (*Parser) ScanEnd(int, int, int)
 method (*Parser) ScanKids(int, int, int, int) []*zeroparse.dev/zp/core.Node
 method (*Parser) ScanReach(int, int, int) int
@@ -206,6 +209,8 @@ method (*Parser) Single(int, bool) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) SkipBegin(int)
 method (*Parser) SkipEnd()
 method (*Parser) SkipHit() bool
+method (*Parser) SkipKids() []*zeroparse.dev/zp/core.Node
+method (*Parser) SkipValue(*zeroparse.dev/zp/core.Node)
 method (*Parser) SkipVisit()
 method (*Parser) Spend()
 method (*Parser) SpendRead(uint64)
@@ -296,13 +301,16 @@ method (*TParser) Predicate(func(*TActCtx) (any, any)) bool
 method (*TParser) PushKid(any)
 method (*TParser) RecoverAttr(tmatcher, tmatcher, bool) (any, bool)
 method (*TParser) Reset(Mark)
+method (*TParser) RunBegin(int, bool, bool)
 method (*TParser) ScanKids(int, int, int, int) []any
 method (*TParser) ScopeValue(Shaper, any, int) any
 method (*TParser) SetCapture(int, any)
 method (*TParser) ShapeCapture(Shaper, any, int) any
 method (*TParser) ShapeSingle(Shaper, any, int) (any, bool)
 method (*TParser) Single(int, bool) (any, bool)
+method (*TParser) SkipKids() []any
 method (*TParser) SkipTerminal(*TerminalProgram) bool
+method (*TParser) SkipValue(any)
 method (*TParser) TConvertResult(*TRule, any) any
 method (*TParser) TConvertResultOwned(*TRule, any, any) any
 method (*TParser) TermBinary(int, any, any) (any, any)
@@ -420,4 +428,5 @@ var EmptyFrame *CaptureFrame
 var EmptyTFrame *TCaptureFrame
 var ListKind *zeroparse.dev/zp/core/impl.Kind
 var MatchKind *zeroparse.dev/zp/core/impl.Kind
+var RunHotSpan int
 var SeqKind *zeroparse.dev/zp/core/impl.Kind

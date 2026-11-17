@@ -263,11 +263,11 @@ fail:
 
 func e10(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var x1, size, x8, x9, x13, x14, x16, x17, x21, x24, x25 int
-	var x2, x11, x19 rt.Mark
+	var x1, size, x8, x9, x11, x15, x16, x18, x19, x21, x25, x28, x29 int
+	var x2, x13, x23 rt.Mark
 	var x4, ch rune
-	var x5, ok bool
-	var v26 *core.Node
+	var x5, ok, x10, x20 bool
+	var v30 *core.Node
 	x1 = p.Pos
 	x2 = p.Mark()
 	if p.Pos < len(p.In) {
@@ -307,16 +307,27 @@ func e10(p *rt.Parser, _ int) (*core.Node, bool) {
 	if 15 < x9 {
 		p.ScanEnd(4, x8, x9)
 	}
+	x11 = p.Pos
+	x10 = p.RunHot(2)
+	if x10 {
+		p.RunBegin(2, false, false)
+	}
 	for {
 		p.Spend()
-		x11 = p.Mark()
+		if x10 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x13 = p.Mark()
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 34 && p.In[p.Pos+1] == 34) && p.Control.Take(2) {
 			p.Pos += 2
 		} else if _, ok = p.MatchLiteral(lit8, "\"\"", 9, false); !ok {
-			goto L12
+			goto L14
 		}
-		x13 = p.Pos
-		x14 = 0
+		x15 = p.Pos
+		x16 = 0
 		for {
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
@@ -329,21 +340,28 @@ func e10(p *rt.Parser, _ int) (*core.Node, bool) {
 				break
 			}
 			p.Pos += size
-			x14++
-			if x14 == 16 {
-				x14 = p.ScanReach(6, x13, x14)
+			x16++
+			if x16 == 16 {
+				x16 = p.ScanReach(6, x15, x16)
 			}
 		}
-		if 15 < x14 {
-			p.ScanEnd(6, x13, x14)
+		if 15 < x16 {
+			p.ScanEnd(6, x15, x16)
 		}
-		if p.Pos == x11.Pos {
+		if p.Pos == x13.Pos {
 			break
 		}
 		continue
-	L12:
-		p.Reset(x11)
+	L14:
+		p.Reset(x13)
 		break
+	}
+	if x10 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x11 >= rt.RunHotSpan {
+			p.RunWalked(2, x11)
+		}
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
@@ -354,8 +372,8 @@ func e10(p *rt.Parser, _ int) (*core.Node, bool) {
 L7:
 	p.Reset(x2)
 L6:
-	x16 = p.Pos
-	x17 = 0
+	x18 = p.Pos
+	x19 = 0
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -368,23 +386,34 @@ L6:
 			break
 		}
 		p.Pos += size
-		x17++
-		if x17 == 16 {
-			x17 = p.ScanReach(8, x16, x17)
+		x19++
+		if x19 == 16 {
+			x19 = p.ScanReach(8, x18, x19)
 		}
 	}
-	if 15 < x17 {
-		p.ScanEnd(8, x16, x17)
+	if 15 < x19 {
+		p.ScanEnd(8, x18, x19)
+	}
+	x21 = p.Pos
+	x20 = p.RunHot(3)
+	if x20 {
+		p.RunBegin(3, false, false)
 	}
 	for {
 		p.Spend()
-		x19 = p.Mark()
+		if x20 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x23 = p.Mark()
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 13) && p.Control.Take(1) {
 			p.Pos++
 		} else if _, ok = p.MatchLiteral(lit9, "\r", 11, false); !ok {
-			goto L20
+			goto L24
 		}
-		x21 = p.Pos
+		x25 = p.Pos
 		p.Silent++
 		p.LookBegin(2)
 		if p.Pos < len(p.In) {
@@ -395,21 +424,21 @@ L6:
 		}
 		if !ok || (ch == 10) {
 			p.Expect(p.Pos, 12)
-			goto L22
+			goto L26
 		}
 		p.Pos += size
 		p.LookEnd(true)
 		p.Silent--
-		p.Pos = x21
-		goto L23
-	L22:
+		p.Pos = x25
+		goto L27
+	L26:
 		p.LookEnd(false)
 		p.Silent--
-		p.Pos = x21
-		goto L20
-	L23:
-		x24 = p.Pos
-		x25 = 0
+		p.Pos = x25
+		goto L24
+	L27:
+		x28 = p.Pos
+		x29 = 0
 		for {
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
@@ -422,26 +451,33 @@ L6:
 				break
 			}
 			p.Pos += size
-			x25++
-			if x25 == 16 {
-				x25 = p.ScanReach(10, x24, x25)
+			x29++
+			if x29 == 16 {
+				x29 = p.ScanReach(10, x28, x29)
 			}
 		}
-		if 15 < x25 {
-			p.ScanEnd(10, x24, x25)
+		if 15 < x29 {
+			p.ScanEnd(10, x28, x29)
 		}
-		if p.Pos == x19.Pos {
+		if p.Pos == x23.Pos {
 			break
 		}
 		continue
-	L20:
-		p.Reset(x19)
+	L24:
+		p.Reset(x23)
 		break
+	}
+	if x20 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x21 >= rt.RunHotSpan {
+			p.RunWalked(3, x21)
+		}
 	}
 	goto L3
 L3:
-	v26 = p.NewTerminal(x1, p.Text(x1, p.Pos))
-	return v26, true
+	v30 = p.NewTerminal(x1, p.Text(x1, p.Pos))
+	return v30, true
 }
 
 func r2(p *rt.Parser) (*core.Node, bool) {

@@ -1028,9 +1028,8 @@ func Controls() []Control {
 		},
 		// A token where the blanks ended consumes the opener of a comment that is not closed, which
 		// is no match of the blanks, and the scan of the next comment runs to the end again. The
-		// blanks keep the region bound, and the scan inside the comment stays a scanning source. The
-		// engine measures linear through the records of run sites, which generated parsers do not
-		// keep: there it is quadratic.
+		// blanks keep the region bound, and the scan inside the comment stays a scanning source. It
+		// measures linear through the records of run sites.
 		{
 			Name: "Comments that are not closed after tokens", Family: "region bounds",
 			Source: "rule main = (ws t)* ws $$\nrule t = \"/\" \"*\" [a-z]+\nrule ws = (\" \" / c)*\nrule c = \"/*\" (!\"*/\" .)* \"*/\"\n",

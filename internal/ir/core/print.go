@@ -154,8 +154,11 @@ func (p *printer) node(n Node, d int) {
 		if n.ScanSite != 0 {
 			fmt.Fprintf(&p.b, " scan-site=%d", n.ScanSite)
 		}
-		if n.Run != 0 && !p.gen {
+		if n.Run != 0 {
 			fmt.Fprintf(&p.b, " run=%d", n.Run)
+			if n.RunEnvFree {
+				p.b.WriteString(" env-free")
+			}
 		}
 		if n.Resume != 0 && !p.gen {
 			fmt.Fprintf(&p.b, " resume=%d", n.Resume)
