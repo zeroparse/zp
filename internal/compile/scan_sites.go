@@ -8,15 +8,15 @@ import (
 
 // Scan sites.
 //
-// A rule that calls no rule is not memoized (a transient rule), so it is walked again at every
-// position where a failed alternative leads back, as a run of blanks is. A repetition of a single
-// character (a character class or any character) without an upper bound in such a rule is a scan
-// site: an iteration reads one character and nothing else, so the walk from a start ends at a
-// position, examines the input up to a position, matches a number of characters and builds
-// elements that depend on the start and the input alone, whatever the rule around it does, and a
-// record kept at the start holds for every later walk from there (state/scan_sites.go). A
-// repetition that is a skip-run site records its walks as one, and one that delivers the elements
-// of a #stream is not a site.
+// A repetition of a single character (a character class or any character) without an upper bound is
+// walked again at every position where a failed alternative leads back, as a run of blanks is, and
+// a walk that begins at another position of the same run walks the rest of it again. Such a
+// repetition is a scan site, in any rule: an iteration reads one character and nothing else, so the
+// walk from a position ends where the stretch of characters of the class ends, examines the input up
+// to a position, matches a number of characters and builds elements that depend on the position and
+// the input alone, whatever the rule around it does, and a run that a walk records holds for every
+// later walk from any of its iteration starts (state/scan_sites.go). A repetition that is a skip-run
+// site records its walks as one, and one that delivers the elements of a #stream is not a site.
 //
 // The rules whose other repetitions are made restartable (run_sites.go), pure scan rules, are
 // narrower: they are also called from two places or more, have no attribute but @start, no type and
@@ -51,16 +51,13 @@ func (prog *Program) scanRules(control *cancel.Control, defs []*grammar.RuleDef,
 	return out
 }
 
-// markScanSites numbers the scan sites of the rules that call no rule.
-func (prog *Program) markScanSites(control *cancel.Control, calls map[string][]string) {
+// markScanSites numbers the scan sites of the rules.
+func (prog *Program) markScanSites(control *cancel.Control) {
 	prog.scanRepeats = map[*grammar.Repeat]int{}
 	if NoScanSites || NoRunSites {
 		return
 	}
 	for _, r := range prog.RuleList {
-		if len(calls[r.Name]) != 0 {
-			continue
-		}
 		ScanSiteRepeats(r.Def.Expr, control, func(rep *grammar.Repeat, site bool) {
 			if site && prog.skipSites[rep] == 0 {
 				prog.scanRepeats[rep] = prog.NumSkipSites + prog.NumRunSites + 1 + 2*prog.NumScanSites
@@ -70,8 +67,8 @@ func (prog *Program) markScanSites(control *cancel.Control, calls map[string][]s
 	}
 }
 
-// ScanSiteRepeats calls f for each repetition without an upper bound in e, the body of a rule that
-// calls no rule, in order, with whether it is a scan site: it repeats a character class or any
+// ScanSiteRepeats calls f for each repetition without an upper bound in e, the body of a rule, in
+// order, with whether it is a scan site: it repeats a character class or any
 // character and does not deliver the elements of a #stream. A repetition in a #recover skip is
 // reported as a site; it is one unless it is a skip-run site, which records its walks as one.
 func ScanSiteRepeats(e grammar.Expr, control *cancel.Control, f func(rep *grammar.Repeat, site bool)) {

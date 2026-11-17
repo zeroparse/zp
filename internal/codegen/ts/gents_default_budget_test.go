@@ -10,11 +10,11 @@ import (
 // A budget of zero selects the default of max(2^20, 1024 times the input length) in the position unit,
 // for every entry point, and Unlimited disables the limit. The grammar scans the rest of the input from
 // every position of a scan from every position, so its cost grows with the cube of the input length; the
-// call of q keeps the inner scan from being a scan site, whose records would answer it again.
+// inner scan repeats a sequence, so it is no scan site, whose runs would answer it again.
 func TestGeneratedTSDefaultBudget(t *testing.T) {
 	t.Parallel()
 	g, err := parseTest(`rule main = (. &mid)* !.
-rule mid = (. &(.* q))*
+rule mid = (. &((q .)*))*
 rule q = ""`)
 	if err != nil {
 		t.Fatal(err)

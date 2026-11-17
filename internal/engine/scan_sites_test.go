@@ -78,6 +78,7 @@ func TestScanSitesAreMarked(t *testing.T) {
 		{"a pure rule called twice", "rule main = r \"a\" / r \"b\"\nrule r = [x]*", 1},
 		{"a pure rule called once", "rule main = r \"a\"\nrule r = [x]*", 1},
 		{"a repetition of a call", "rule main = r \"a\" / r \"b\"\nrule r = s*\nrule s = \"x\"", 0},
+		{"a rule that calls a rule", "rule main = r \"a\" / r \"b\"\nrule r = s [x]*\nrule s = \"x\"", 1},
 		{"a rule with a capture", "rule main = r \"a\" / r \"b\"\nrule r = c:[x]*", 1},
 		{"a rule with an action", "rule main = r \"a\" / r \"b\"\nrule r = [x]* => 1", 1},
 		{"a rule with a predicate", "var n int\nrule main = r \"a\" / r \"b\"\nrule r = ([x] { n < 3 })*", 0},
@@ -657,8 +658,8 @@ rule ws = [ ]*`
 
 // scanIntervalControls are grammars whose failed alternatives walk a run again from each of its
 // positions: X matches [ab] and then the rest of the run fails to reach "c", so X* restarts the walk
-// one position further. The walk is inline, in a scan rule, builds a value, or runs over characters
-// of two bytes. In the last controls, whose inputs fail, the walks begin at each position of the run
+// one position further. The walk is inline, in a scan rule, in a rule that calls a rule, builds a
+// value, or runs over characters of two bytes. In the last controls, whose inputs fail, the walks begin at each position of the run
 // from its end back to its start, as the levels of a recursion fail.
 var scanIntervalControls = []struct {
 	name, src string
@@ -666,6 +667,7 @@ var scanIntervalControls = []struct {
 }{
 	{"inline", "rule main = X* \"y\"\nrule X = [ab] [b]* \"c\" / [ab]\n", scanControlInput("b")},
 	{"scan rule", "rule main = X* \"y\"\nrule X = [ab] bs \"c\" / [ab]\nrule bs = [b]*\n", scanControlInput("b")},
+	{"rule that calls a rule", "rule main = X* \"y\"\nrule X = [ab] bs \"c\" / [ab]\nrule bs = N [b]*\nrule N = \"\"\n", scanControlInput("b")},
 	{"values", "rule main = X* \"y\"\nrule X = Y / [ab]\nrule Y = [ab] bs:[b]* \"c\" => $bs\n", scanControlInput("b")},
 	{"two bytes", "rule main = X* \"y\"\nrule X = Y / [aé]\nrule Y = [aé] bs:[é]* \"c\" => $bs\n", scanControlInput("é")},
 	{"backwards", "rule main = e\nrule e = \" \" e / ws \"!\" / ws \"?\" / ws \"y\"\nrule ws = xs:[ ]* => text($xs)\n", func(n int) string { return strings.Repeat(" ", n) + "x" }},

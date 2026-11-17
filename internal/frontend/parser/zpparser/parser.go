@@ -3796,8 +3796,8 @@ func u1(p *rt.TParser) (any, bool) {
 
 func i1(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, x1, x7, x13, x18, size int
-	var v, k4, v6, k10, v12, k16, v19, k20, v22 any
+	var start, x1, x7, x13, x18, size, x19, x20 int
+	var v, k4, v6, k10, v12, k16, v21, k22, v24 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
@@ -3832,6 +3832,8 @@ L9:
 	x13 = p.Pos
 	p.Silent++
 	x18 = p.Pos
+	x19 = p.Pos
+	x20 = 0
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -3844,29 +3846,36 @@ L9:
 			break
 		}
 		p.Pos += size
+		x20++
+		if x20 == 16 {
+			x20 = p.ScanReach(39, x19, x20)
+		}
 	}
-	v19 = p.NewMatch(x18, p.Pos, p.Text(x18, p.Pos), true)
-	k16 = v19
+	if 15 < x20 {
+		p.ScanEnd(39, x19, x20)
+	}
+	v21 = p.NewMatch(x18, p.Pos, p.Text(x18, p.Pos), true)
+	k16 = v21
 	p.Silent--
 	p.Pos = x13
-	if v22, ok = u2(p); !ok {
+	if v24, ok = u2(p); !ok {
 		goto fail
 	}
-	k20 = v22
+	k22 = v24
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "file"
 	{
 		var tr30 any
 		{
-			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k20, "Pkg", "Pkg")
+			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k22, "Pkg", "Pkg")
 			if tf1 != nil {
 				c.TermRaise(tf1)
 			}
-			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k20, "Decls", "Decls")
+			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k22, "Decls", "Decls")
 			if tf2 != nil {
 				c.TermRaise(tf2)
 			}
-			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k20, "TrailingComments", "TrailingComments")
+			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k22, "TrailingComments", "TrailingComments")
 			if tf3 != nil {
 				c.TermRaise(tf3)
 			}
@@ -3874,7 +3883,7 @@ L9:
 			if tf4 != nil {
 				c.TermRaise(tf4)
 			}
-			tv5, tf5 := c.P.TermMember(c, rt.MemberField, k20, "Head", "Head")
+			tv5, tf5 := c.P.TermMember(c, rt.MemberField, k22, "Head", "Head")
 			if tf5 != nil {
 				c.TermRaise(tf5)
 			}
@@ -15650,11 +15659,11 @@ L6:
 		p.Pos += size
 		x8++
 		if x8 == 16 {
-			x8 = p.ScanReach(39, x7, x8)
+			x8 = p.ScanReach(43, x7, x8)
 		}
 	}
 	if 15 < x8 {
-		p.ScanEnd(39, x7, x8)
+		p.ScanEnd(43, x7, x8)
 	}
 	v9 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
 	v = p.ScopeValue(sh11, v9, start)
@@ -19126,7 +19135,7 @@ func u253(p *rt.TParser) (any, bool) {
 
 func i253(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, x3, x4, x6, x7, size, x9, x15, x16 int
+	var start, x3, x4, x5, x6, x7, size, x9, x15, x16 int
 	var v, k1, v10, v11, v12, k13, v17, v20 any
 	var c *rt.TActCtx
 	var ok bool
@@ -19137,7 +19146,7 @@ func i253(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit65, "//", 30, false); !ok {
 		goto fail
 	}
-	x3, x4 = p.Pos, len(p.KidStack)
+	x3, x5, x4 = p.Pos, len(p.KidStack), 0
 	for {
 		p.Spend()
 		x6, x7 = p.Pos, len(p.Recovered)
@@ -19156,15 +19165,16 @@ func i253(p *rt.TParser) (any, bool) {
 		v10 = p.NewMatch(x9, p.Pos, p.Text(x9, p.Pos), true)
 		v11 = p.ScopeValue(sh11, v10, x6)
 		p.PushKid(v11)
-		if p.Pos == x6 {
-			break
+		x4++
+		if x4 == 16 {
+			x4 = p.ScanReach(46, x3, x4)
 		}
 		continue
 	L8:
 		p.Restore(x6, x7)
 		break
 	}
-	v12 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
+	v12 = p.NewNode("list", x3, p.Pos, p.ScanKids(46, x3, x5, x4))
 	k1 = v12
 	x15, x16 = p.Pos, len(p.Recovered)
 	if v20, ok = s260(p); !ok {
@@ -25444,7 +25454,7 @@ func u338(p *rt.TParser) (any, bool) {
 
 func v338(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, rec, x1, x2, size int
+	var start, rec, x1, x2, size, x4, x5 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
@@ -25465,6 +25475,8 @@ L3:
 	if _, ok = s356(p); !ok {
 		goto fail
 	}
+	x4 = p.Pos
+	x5 = 0
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -25477,6 +25489,13 @@ L3:
 			break
 		}
 		p.Pos += size
+		x5++
+		if x5 == 16 {
+			x5 = p.ScanReach(41, x4, x5)
+		}
+	}
+	if 15 < x5 {
+		p.ScanEnd(41, x4, x5)
 	}
 	if !p.AtEndBatch() {
 		p.Expect(p.Pos, rt.IdEndInput)
@@ -25776,11 +25795,11 @@ L5:
 		p.Pos += size
 		x7++
 		if x7 == 16 {
-			x7 = p.ScanReach(39, x6, x7)
+			x7 = p.ScanReach(43, x6, x7)
 		}
 	}
 	if 15 < x7 {
-		p.ScanEnd(39, x6, x7)
+		p.ScanEnd(43, x6, x7)
 	}
 	v = nil
 	return v, true

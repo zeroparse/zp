@@ -295,13 +295,13 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
-		// The same restart of a scan in a rule that calls a rule, which is no scan site, so that no
-		// record answers the levels.
+		// The same restart of a scan in a rule that calls a rule. Its repetition is a scan site too, whose
+		// runs answer the levels; the analysis does not claim it.
 		{
 			Name: "Scan of a rule that calls a rule restarted at the end of nested alternatives", Family: "nesting restarts",
 			Source: "rule main = e S $$\nrule e = \"(\" (e R \"x\" / e) / \".\"\nrule R = [ ]* Q\nrule Q = \"\"\nrule S = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Scan restarted through a looked-through call", Family: "nesting restarts",

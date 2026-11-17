@@ -222,9 +222,6 @@ func TestBudgetClassOptimizedRoutes(t *testing.T) {
 	late := string(ranges[len(ranges)-1].Lo)
 	gap := string(ranges[len(ranges)-1].Lo + 1)
 	class := &grammar.CharClass{Ranges: ranges}
-	calling := func(e grammar.Expr) grammar.Expr {
-		return &grammar.Seq{Items: []grammar.Expr{e, &grammar.Ref{Name: "e"}}}
-	}
 	cases := []struct {
 		name  string
 		expr  grammar.Expr
@@ -233,9 +230,9 @@ func TestBudgetClassOptimizedRoutes(t *testing.T) {
 	}{
 		{"guard-hit", &grammar.Choice{Alts: []grammar.Expr{class, &grammar.Literal{Value: gap}}}, late, bytecode.OpGuard},
 		{"guard-miss-fallback", &grammar.Choice{Alts: []grammar.Expr{class, &grammar.Literal{Value: gap}}}, gap, bytecode.OpGuard},
-		// A repetition in a rule that calls no rule is a scan site; with the call of e it is a plain scan.
-		{"scan", calling(&grammar.Atomic{Expr: &grammar.Repeat{Expr: class, Min: 1, Max: -1}}), late, bytecode.OpScan},
-		{"negated-scan", calling(&grammar.Atomic{Expr: &grammar.Repeat{Expr: &grammar.CharClass{Ranges: ranges, Negated: true}, Min: 1, Max: -1}}), gap, bytecode.OpScan},
+		// A repetition of one character without a maximum is a scan site; with one it is a plain scan.
+		{"scan", &grammar.Atomic{Expr: &grammar.Repeat{Expr: class, Min: 1, Max: 1000}}, late, bytecode.OpScan},
+		{"negated-scan", &grammar.Atomic{Expr: &grammar.Repeat{Expr: &grammar.CharClass{Ranges: ranges, Negated: true}, Min: 1, Max: 1000}}, gap, bytecode.OpScan},
 		{"scan-site", &grammar.Atomic{Expr: &grammar.Repeat{Expr: class, Min: 1, Max: -1}}, late, bytecode.OpScanSite},
 		{"negated-scan-site", &grammar.Atomic{Expr: &grammar.Repeat{Expr: &grammar.CharClass{Ranges: ranges, Negated: true}, Min: 1, Max: -1}}, gap, bytecode.OpScanSite},
 	}

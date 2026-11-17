@@ -8,7 +8,7 @@ import (
 // ScanSiteGrammars are grammars with scan sites (see "Scan Sites" in spec/runtime/parsing.md):
 // repetitions of one character, which a failed alternative restarts at the same position, at later
 // positions of the same run and at positions further back, in rules called from one place or more,
-// and under labels, captures and actions. Their parse trees hold the values of the scan sites, which later walks share.
+// in rules that call rules, and under labels, captures and actions. Their parse trees hold the values of the scan sites, which later walks share.
 var ScanSiteGrammars = []struct{ Name, Src, Alphabet string }{
 	{"a scan restarted by alternatives", `rule main = (r "!" / r "?" / r "w" / [abz])* $$
 rule r = [ab]*`, "abz!?w"},
@@ -49,6 +49,10 @@ rule ws = xs:[ ]* => text($xs)`, "( )!"},
 rule r = c:[ab]* => text($c)`, "ab !?w"},
 	{"walks from each position of a run", `rule main = X* "y"? $$
 rule X = [ab] [b]* "c" / [ab]`, "abcy"},
+	{"walks from each position in a rule that calls a rule", `rule main = X* "y"? $$
+rule X = [ab] bs "c" / [ab]
+rule bs = N xs:[b]* => text($xs)
+rule N = ""`, "abcy"},
 	{"walks from each position over characters of several bytes", `rule main = X* "y"? $$
 rule X = Y / [aé]
 rule Y = [aé] bs:[bé]* "c" => $bs`, "abécy\xff"},
