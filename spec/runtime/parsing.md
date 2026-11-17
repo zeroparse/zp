@@ -1659,7 +1659,8 @@ growths, only the first may leave no result.
 The reference implementation and the generated parsers store so in every
 parse outside the contexts of growths, apart from the entries that a
 Document keeps from earlier parses. The conformance tests `TestMemoStorePolicy`
-(the engine's closure and bytecode backends, streams and Documents),
+(the engine's closure and bytecode backends, and streams),
+`TestMemoStorePolicyDocument` (the engine's Documents),
 `TestGeneratedStorePolicy` (generated Go, streams and Documents) and
 `TestGeneratedTSStorePolicy` (generated TypeScript, Documents) hold the evaluations
 of a rule to what a memo that stores every first call and one that defers each
