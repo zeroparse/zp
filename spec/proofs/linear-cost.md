@@ -3735,9 +3735,12 @@ none, which are those of *Replayed activations* in a Document parse, no
 link has case (e) on its path. A free activation among them can still
 have case (e) on the path of its reference link, when the earlier
 evaluation $e^k$ of that link lies in $\mathcal{R}$ in an iteration that a
-resumed walk reuses; no claim follows the path past that iteration, as
-*Covered keys through records* follows it past a record, and the record
-that the walk resumes can be of an earlier parse. The claim does not cover
+resumed walk reuses. *Covered keys through resumed runs* below follows
+the path past that iteration, as *Covered keys through records* follows
+it past a record, and such an activation is held by no head unless case
+(a) or (b) arises on the path followed through the records and the
+resumed runs, where an iteration that comes from an earlier parse counts
+as case (a). The claim does not cover
 the claims on leaf links and on the scans, nor the first case of *Repeats
 inside a growth*, of a parse that resumes runs.
 
@@ -3929,6 +3932,139 @@ path followed through the records is not examined here beyond what
 *Covered keys* states of them: the statement of *Links lead to repeated
 evaluations* on where case (a) arises is of the paths of links and is not
 extended to the paths followed through the records.
+
+**Covered keys through resumed runs.** This claim uses, beyond
+[Lemma 3](documents.md#lemma-3-resumed-runs) and [Lemma
+4](documents.md#lemma-4-recorded-iterations-read-no-open-growth) of the
+Documents proof, how a [Document](../runtime/documents.md) stores and
+resumes the records of runs (*Runs* in [Reuse
+Model](../runtime/documents.md#reuse-model)), read so:
+
+- (N1) a record of a run of a repetition at a position is stored by a
+  walk of the repetition that starts at the position, when that walk ends,
+  and it holds, with its start, each iteration of the walk that matched,
+  whether the walk evaluated it or reused it from the record that it
+  resumed; it is stored only when no call during the walk read the current
+  result of a growth, directly or through an entry, nor reused a result
+  that read one;
+- (N2) a walk resumes whole only a record of its repetition at its own
+  start, stored earlier in the same parse or by an earlier parse, and
+  across one edit only a record of the previous parse.
+
+Whether a walk of a twin resumes a record that a walk of its rule stored
+does not enter: the claim follows a repetition in its rule and in the twin
+alike. In a Document parse whose records of sites, if it keeps any, are
+exact, (R1) of the [Setting](#setting), and whose records of runs are
+stored and resumed so:
+
+1. *Reused iterations were evaluated.* Let a walk $W$ of the parse resume
+   a run, and let $\iota$ be an iteration of $\mathcal{R}(W)$ that $W$
+   reuses. Then either $\iota$ **comes from an earlier parse**: $W$
+   reuses it from a record of an earlier parse, or from a record of this
+   parse that holds it as an iteration that the walk which stored the
+   record reused, and so on through records of this parse to a record of
+   an earlier parse; or, before $W$ started, the parse evaluated an
+   iteration $\iota_0$ of a walk of the same repetition, in its rule or in
+   the twin, at the position of $\iota$, and $\mathcal{R}(\iota_0)$ and
+   $\iota$ take the same steps up to the variants of their calls. So a
+   call inside $\iota$ of a rule that the parse memoizes corresponds to a
+   call at the same place inside $\mathcal{R}(\iota_0)$ with a key of the
+   same class, which holds an activation at any depth when the first
+   does, and neither reads a growth open at its start.
+2. *Covered keys.* 2 of *Covered keys through records* holds with $x$
+   also an iteration that the parse evaluates of a walk of any repetition,
+   and with the path **followed through the records and the resumed
+   runs**: followed as there and, at an iteration $\iota$ that a resumed
+   walk reuses and that does not come from an earlier parse, into the
+   iteration $\mathcal{R}(\iota_0)$ of 1, where an iteration on the path
+   that comes from an earlier parse counts as case (a), since what answers
+   it was stored by an earlier parse, as an entry of case (a) was.
+3. *Heads.* *Heads in the reference parse* and *Reference links lead to
+   repeated evaluations* hold outside cases (a) and (b) on their paths
+   followed through the records and the resumed runs, with no case (d)
+   or (e). So a free activation whose reference link has case (e) on its
+   path is held by no head, unless case (a) or (b) arises on that path
+   followed through the records and the resumed runs.
+
+*Proof.* 1\. By (N2), $W$ resumed a record $\rho$ at its start $s$, and
+by Lemma 3 of the Documents proof and its proof $W$ visits the
+iterations that $\mathcal{R}(W)$ visits, in the same order, so it reuses
+an iteration of $\rho$ as $\iota$. If $\rho$ is of an earlier parse,
+$\iota$ comes from an earlier parse. Otherwise $W$ resumed $\rho$ whole,
+$\iota$ starts at the start $r$ of that iteration, and by (N1) $\rho$ was stored,
+before $W$ started, by a walk $W_1$ of the same repetition at $s$ when
+$W_1$ ended, and its iteration at $r$ is the iteration of $W_1$ at $r$,
+which $W_1$ evaluated or reused. If $W_1$ reused it, from the record
+$\rho_1$ that $W_1$ resumed, which was stored before $W_1$ started and so
+before $\rho$, the same holds of $W_1$, $\rho_1$ and $r$. The records of
+the parse are stored one after another, so by induction on that order
+the chain ends at a record of an earlier parse, and then $\iota$ comes
+from an earlier parse, or at a walk $W_n$ of the same repetition at $s$
+that evaluated an iteration $\iota_0$ at $r$, before $W_n$ ended and so
+before $W$ started; $W_n$ stored a record, so no call during it read the
+current result of a growth (N1).
+
+$\mathcal{R}(\iota_0)$ and $\iota$ are iterations of $\mathcal{R}$ at $r$
+of the element of one repetition, in its rule or in the twin, on the text
+of this parse. Neither, nor a call inside either, reads the current result
+of a growth: $\mathcal{R}(\iota_0)$ by the proof of Lemma 3 of the
+Documents proof, since $\iota_0$ read none, and $\iota$ by Lemma 4 of that
+proof and its proof, which compare it with the evaluation in $\mathcal{R}$
+of the recorded iteration, here $\mathcal{R}(\iota_0)$, reading none. The
+element reads no variable and no capture from outside, its cut decides
+only between its own alternatives and whether the repetition fails, and
+the lookahead state reaches no decision of the parser, so by the first
+paragraph of the proof of *Covered keys through records*, with this in
+place of *Growths lie outside the recorded walks*, $\mathcal{R}(\iota_0)$
+and $\iota$ take the same steps up to the variants of their calls. The
+rest is as in 1 of that claim.
+
+2\. As 2 of *Covered keys through records*, with one more case for the
+first evaluation of $\mathcal{R}$ on a segment from $\mathcal{R}(v)$ down
+to $z'$ that has no counterpart in the parse: it lies inside an iteration
+$\iota$ that a resumed walk $W$ reuses, by *Counterparts*, where $\iota$
+is itself the evaluation of the parse whose counterpart it is. $\iota$
+contains $z'$, and $W$, whose counterpart contains $\iota$, is evaluated
+inside $v$, since nothing before the first evaluation without a
+counterpart on the segment lacks one. If $\iota$ comes from an earlier
+parse, case (a) arises on the path. Otherwise 1 gives the iteration
+$\iota_0$, evaluated before $W$ started and so ended before $x$ ends, and
+the call $z''$ at the place of $z'$ in $\mathcal{R}(\iota_0)$, with a key
+of the class of $z$, which reads no growth open at its start; the next
+segment leads from $\mathcal{R}(\iota_0)$ to $z''$, and the induction
+hypothesis for $\iota_0$, which completed before $x$ does, gives an
+evaluation of a key of the class of $z$ before it ended, unless case (a),
+(b) or (c) arises further on the path. At an iteration that a record of
+a site answers, 1 of *Covered keys through records* holds in such a parse
+as stated, since its proof uses the parse only through (M1), (M2) and
+*Counterparts*, which carries its induction past the resumed walks.
+
+3\. As 3 of *Covered keys through records*, with one more case: the
+first evaluation without a counterpart on the path from the evaluation
+where $\mathcal{R}$ begins down to $z$ lies inside an iteration $\iota$
+that a resumed walk $W$ of the parse reuses. $\mathcal{R}(W)$ starts
+before $z$, which lies in $\iota$, and $z$ ends before $\mathcal{R}(Z)$
+starts, so $\mathcal{R}(Z)$ does not contain $\mathcal{R}(W)$:
+$\mathcal{R}(W)$ contains $\mathcal{R}(Z)$, in an iteration that $W$
+evaluates after $\iota$, or ends before $\mathcal{R}(Z)$ starts. In
+either case the parse starts $W$ before $Z$, as it makes its evaluations
+in the order in which $\mathcal{R}$ makes their counterparts
+(*Counterparts*). If $\iota$ comes from an earlier parse, case (a) arises
+on the path. Otherwise by 1 the parse evaluated $\iota_0$ before $W$
+started, and by 2 with $x = \iota_0$ and the call at the place of $z$ in
+$\mathcal{R}(\iota_0)$ it made an evaluation of a key of the class of $z$
+before $\iota_0$ ended. So $Z$ is not the first of its class. The proof of
+*Reference links lead to repeated evaluations* uses nothing else of the
+parse, as there. $\square$
+
+The claim counts nothing and changes no path of a link: *Heads in a parse
+that resumes runs* shows that no link of an activation of *Replayed
+activations* has case (e). In the first parse of a Document, and in the
+first parse after a batch, no walk resumes a record of an earlier parse,
+since a batch drops every run, so no iteration comes from an earlier
+parse. Where case (a)
+arises, at an entry or at an iteration that comes from an earlier parse,
+is not examined here.
 
 **Descent in the reference parse.** This claim bounds the activations
 that memoized evaluations own, those inside the iterations of the kind
@@ -10841,9 +10977,11 @@ theorem covers such a parse.
    first case of *Repeats inside a growth*. It leaves a free activation
    whose reference link has case (e) on its path, when the earlier
    evaluation of the link lies in $\mathcal{R}$ in an iteration that a
-   resumed walk reuses: no claim follows the path past that iteration, as
-   *Covered keys through records* follows it past a record, and the run
-   that the walk resumes can be of an earlier parse.
+   resumed walk reuses; *Covered keys through resumed runs* holds such an
+   activation by no head unless case (a) or (b) arises on the path followed through
+   the records and the resumed runs, an iteration that comes from an
+   earlier parse counting as case (a), as an entry of an earlier parse
+   does.
    *Replays* and *Replayed activations* are stated with the iterations of
    the walks of the repetitions, in their rules or in the twins, at which the
    parse resumes a run left out,
