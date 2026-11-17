@@ -7205,7 +7205,8 @@ the resumption removes from the records that the parse can resume
 ([Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)),
 so a later growth of its key can evaluate the walk at the same place;
 the head then need not hold what that growth holds, and *Heads hold what
-later growths hold* is not shown for such a parse.
+later growths hold* is not shown for such a parse, which the eighth part
+of step 8 of [Open Steps](#open-steps) leaves open.
 
 So the count above holds of the successful activations of $\sigma$ at $q$
 that growth steps and evaluations in a context of growths own and that are
@@ -7384,8 +7385,8 @@ evaluates; if it resumes none, it evaluates elements that the parse
 never evaluates, and its stores of the calls made there have no
 counterpart in the parse. In a parse that resumes a run, the activations that growth steps
 and evaluations in a context of growths own inside the iterations of the
-kind are therefore not bounded here, and step 8 of [Open
-Steps](#open-steps) lists them with the walks that a Document resumes.
+kind are therefore not bounded here, and the eighth part of step 8 of
+[Open Steps](#open-steps) lists them.
 
 The growth steps themselves remain. By *Calls in a context of growths* and
 *Growths inside a step*, the steps of the growths that are not outer are
@@ -10273,7 +10274,7 @@ theorem covers such a parse.
    value that an action reads).
 8. **What the records leave.** The theorem assumes that the records are
    exact, (R1) of the [Setting](#setting), and excludes the suffix copies.
-   Seven parts are open. First, (R2) and (R3) are shown only for the sites
+   Eight parts are open. First, (R2) and (R3) are shown only for the sites
    that *Sites that meet the conditions* in the [Setting](#setting) names,
    the run sites free of the environment in the parses of the backends of
    the engine, marked free where the program is loaded: for a site that is
@@ -10299,12 +10300,8 @@ theorem covers such a parse.
    Third, the walks at which a Document
    resumes a run are walks without records, and so are the repetitions that
    are not restartable and that *Sites that are walked a constant number of
-   times* does not cover; both stay under step 1. A parse that resumes a
-   run is also outside *Families in a parse that keeps records* and
-   *Families without the records*, so in it the activations that growth
-   steps and evaluations in a context of growths own are not bounded by
-   those claims, inside the iterations of the walks of the sites that keep
-   records or outside. Fourth, the order of the
+   times* does not cover; both stay under step 1. What else a parse that
+   resumes a run leaves open is the eighth part. Fourth, the order of the
    bounds, which the theorem takes as a hypothesis (*Order* in Lemma 17):
    $B$, $A_u$ and $O$ must be bounded with no use of the iterations of the
    recorded walks, of the activations that do not succeed or of the
@@ -10413,7 +10410,7 @@ theorem covers such a parse.
    nothing in a context of growths (*Families without the records*), so
    what is open of them is what is open of that count in such a parse,
    when the parse resumes no run of a Document; in a parse that resumes
-   one they are open, as the third part states.
+   one they are open, as the eighth part states.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
    calls, which Lemma 6 counts through the count of Lemma 4, and of the
@@ -10454,4 +10451,17 @@ theorem covers such a parse.
    *Activations held by heads*, leaves out as it leaves out the activations
    of the sixth part, and the steps that its walks make outside their
    iterations, the lookups, the stores and the suffix copies, which (R3)
-   would bound, are counted by no claim.
+   would bound, are counted by no claim. Eighth, the parses that resume
+   runs of a [Document](../runtime/documents.md). A walk that a Document
+   resumes reuses recorded iterations, each an activation that makes no
+   call, so the parse evaluates nothing inside them, and *Counterparts in
+   the reference parse* and *Covered keys* do not list them among the
+   evaluations of $\mathcal{R}$ that the parse does not make, as they list
+   the iterations that a record answers, case (d). The claims that rest
+   on them are not shown of such a parse where a resumed iteration lies
+   on the paths that they follow. *Families in a parse that keeps
+   records* and *Families without the records* are stated for a parse
+   that resumes no run, and in a parse that resumes one the activations
+   that growth steps and evaluations in a context of growths own are not
+   bounded by them, inside the iterations of the walks of the sites that
+   keep records or outside.
