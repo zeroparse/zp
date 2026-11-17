@@ -8589,8 +8589,9 @@ context*), stops at no limit, stores the result of every evaluation of a
 memoized rule outside every context of growths except possibly the first
 of its variant at its position outside every context, each store keeping
 the join, and answers every call outside every context that the entry of
-its key answers. Both parses are read as *Transient calls of a Document*
-in Lemma 3 reads a Document, evaluating every call of a transient rule.
+its key answers. The parse is read as *Transient calls of a Document* in
+Lemma 3 reads a Document, evaluating every call of a transient rule, and
+$\mathcal{P}$ evaluates every such call, answering none from its memo.
 Then $\mathcal{P}$ is a parse of the [Setting](#setting), and every
 successful activation $\alpha$ of a source $\sigma$ at $q$ that a growth
 step or an evaluation in a context of growths owns in the parse has an
@@ -8622,8 +8623,11 @@ it, as follows.
 *Images of owners.* Let $G$ be a growth step or an evaluation in a
 context of growths of the parse. Follow the path in $\mathcal{R}$ from
 the evaluation where $\mathcal{R}$ begins down to $\mathcal{R}(G)$. The
-parse evaluates every call and step on it, since it makes $G$; it does
-not take a step on it in a run taken at once, and no iteration on it is
+parse evaluates every call and step on it, since it makes $G$, a call of a
+transient rule that the Document answers counting as evaluated in the
+reading; in that reading a call of a memoized rule inside such a call is
+not made, so none lies on the path. It does not take a step on the path
+in a run taken at once, and no iteration on it is
 one that a record or a resumed walk answers. $\mathcal{P}$ evaluates every
 iteration on it, keeping no record and resuming no run, skips no
 alternative on it, since the skip depends on the input alone and the
@@ -8632,7 +8636,10 @@ their results, which are those of their counterparts (*Counterparts in
 the reference parse*). If $\mathcal{P}$ evaluates every call and step on
 the path, the evaluation of $\mathcal{P}$ whose counterpart is
 $\mathcal{R}(G)$ is the **image** $G'$ of $G$. Otherwise let $y$ be the
-first call on it that $\mathcal{P}$ answers. The answer is not the current
+first call on it that $\mathcal{P}$ answers. $\mathcal{P}$ evaluates every
+call of a rule that it does not memoize, transient or not, so $y$ is a
+call of a memoized rule, which $\mathcal{P}$ makes and answers, not one
+that a reading takes as answered. The answer is not the current
 result of an open growth, since $\mathcal{R}(y)$ would then make no call,
 and $\mathcal{P}$ answers nothing in contexts, so $y$ is outside every
 context of growths and $\mathcal{P}$ answers it from an entry of the
@@ -8690,8 +8697,8 @@ too.
 *Images of activations.* Let $G$ own $\alpha$. The calls on the path from
 $G$ down to $\alpha$ are of rules that the parse does not memoize, since
 $G$ is the innermost owner (*Owners* in Lemma 4), so $\mathcal{P}$, which
-memoizes the same rules, evaluates them (in a Document as *Transient calls of
-a Document* in Lemma 3 reads it); it evaluates every iteration on
+memoizes the same rules, evaluates them, a call of a transient rule
+included, which the parse evaluates in the reading; it evaluates every iteration on
 it and skips no alternative on it; and no step of a growth lies there,
 whose call, of a leader, would be memoized. So $\mathcal{P}$ evaluates,
 at the place of $\alpha$ in $G'$, an activation $\alpha'$ of $\sigma$ at
