@@ -7,7 +7,7 @@ import (
 
 // checkCutLeftCalls rejects, in the rules of a cycle with more than one leader, a #cut that is
 // passed after a left call in the alternative, iteration or option that it commits, and a
-// lookahead that can make a left call. The growth of one leader reads the other, and such a cut
+// lookahead or the skip of an Operators Rule that can make a left call. The growth of one leader reads the other, and such a cut
 // or lookahead makes a later step of a nested growth reach an alternative that its first step did
 // not, so the growths cannot be told apart by what they include.
 func (k *classifier) checkCutLeftCalls() {
@@ -91,6 +91,8 @@ func (k *classifier) cutLeftScan(rule string, e grammar.Expr, s cutLeftState) (s
 		}
 		st, f := k.cutLeftScan(rule, e.Expr, s)
 		return st || (s.start && k.nullable(e)), f
+	case *grammar.OperatorsRule:
+		return k.cutLeftOperators(rule, e, s)
 	case *grammar.And:
 		return k.cutLeftLookahead(rule, e, e.Expr, s)
 	case *grammar.Not:
@@ -120,4 +122,16 @@ func (k *classifier) cutLeftLookahead(rule string, e, body grammar.Expr, s cutLe
 		k.reason(rule, exprPos(e), "the lookahead %s at %s can make a left call in a cycle with more than one leader, which the classifier does not analyze", k.show(e), at(rule, exprPos(e)))
 	}
 	return s.start, found
+}
+
+// cutLeftOperators walks an Operators Rule. Its skip runs before the first operand, where the
+// rule body begins, and its results are kept apart from those computed outside it as the results
+// of a lookahead are, so a skip that can make a left call is reported as such a lookahead is.
+func (k *classifier) cutLeftOperators(rule string, e *grammar.OperatorsRule, s cutLeftState) (start, found bool) {
+	if e.Skip != nil {
+		if _, found = k.cutLeftScan(rule, e.Skip, cutLeftState{start: s.start}); found {
+			k.reason(rule, exprPos(e.Skip), "the skip %s of the Operators Rule at %s can make a left call in a cycle with more than one leader, which the classifier does not analyze", k.show(e.Skip), at(rule, exprPos(e)))
+		}
+	}
+	return s.start && k.nullable(e), found
 }

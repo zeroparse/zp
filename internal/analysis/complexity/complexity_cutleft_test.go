@@ -6,7 +6,8 @@ import (
 )
 
 // TestCutLeftCalls checks that, in a cycle with more than one leader, a #cut passed after a left
-// call and a lookahead that can make a left call are not classified, and that the same shapes
+// call and a lookahead or the skip of an Operators Rule that can make a left call are not
+// classified, and that the same shapes
 // with the cut before the call, after input is consumed, in a cycle with one leader, or without
 // the left call are.
 func TestCutLeftCalls(t *testing.T) {
@@ -66,6 +67,14 @@ rule R = (v:(Q R) #cut "b" / "c") / S "y"
 rule Q = "w"?`, ClassUnknown, "passed after a left call", false},
 		{"left call after an option in a discard", `rule S = S "w" / R "z"
 rule R = (-("w"? R) #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
+		// The skip of an Operators Rule runs where the rule body begins and keeps its results
+		// apart as a lookahead does, so a left call in it is excluded as one in a lookahead is.
+		{"skip of an Operators Rule calling S", `rule S = S "x" / R "y" / "a"
+rule R = R "z" / E / "c"
+rule E = #operators {
+    skip S "k"
+    operand "n"
+}`, ClassUnknown, "the skip S \"k\" of the Operators Rule", false},
 		{"control: cut before the left call", `rule S = S "w" / R "z"
 rule R = (#cut R "b" / "c") / "d" / S "y"`, ClassLinear, "", false},
 		{"control: cut after a call that is not a left call", `rule S = S "w" / "(" S #cut ")" / R "z"
@@ -74,6 +83,23 @@ rule R = (R "b" / "c") / S "y"`, ClassLinear, "", false},
 rule R = (R "b" / "c") / S "y"`, ClassLinear, "", false},
 		{"control: one leader in the cycle", `rule S = S "w" / "c" R "z"
 rule R = (R #cut "b" / "c") / "x"`, ClassLinear, "", false},
+		{"control: skip of an Operators Rule in a cycle with one leader", `rule S = S "x" / E / "a"
+rule E = #operators {
+    skip S "k"
+    operand "n"
+}`, ClassUnknown, "", false},
+		{"control: skip of an Operators Rule without a left call", `rule S = S "x" / R "y" / "a"
+rule R = R "z" / E / "c"
+rule E = #operators {
+    skip " "*
+    operand "n"
+}`, ClassPoly, "", false},
+		{"control: skip of an Operators Rule whose operand makes the left call", `rule S = S "x" / R "y" / "a"
+rule R = R "z" / E / "c"
+rule E = #operators {
+    skip " "*
+    operand S "k"
+}`, ClassUnknown, "", false},
 		{"control: lookahead without a left call", `rule S = S "w" / R "z"
 rule R = R "b" / S "y" / !(!"q" "d") "c" / S "x"`, ClassUnknown, "", false},
 	}
