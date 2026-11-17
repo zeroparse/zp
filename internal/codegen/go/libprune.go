@@ -240,9 +240,10 @@ func identifiers(src []byte, add func(string)) {
 
 // shakeLib drops the top-level declarations of files that nothing kept names, then the imports
 // that the rest no longer uses, and the files left without declarations. roots are the files of the
-// parser, api those of them that its users call (api.go, types.go): the exported methods of a
-// library type that api names, or that the declaration or the exported methods of such a type name,
-// are kept, since a user can call them without naming them in the parser.
+// parser, api the parts of them that its users call (api.go, types.go and the userSurface of
+// parser.go): the exported methods of a library type that api names, or that the declaration or the
+// exported methods of such a type name, are kept, since a user can call them without naming them in
+// the parser.
 func shakeLib(files []libFile, roots, api [][]byte) ([]libFile, error) {
 	fset := token.NewFileSet()
 	var units []*libUnit
@@ -415,6 +416,47 @@ func shakeLib(files []libFile, roots, api [][]byte) ([]libFile, error) {
 		out = append(out, libFile{f.name, data})
 	}
 	return out, nil
+}
+
+// userSurface returns the parts of src, a generated Go file of the parser's package, that a user of
+// the package reaches without naming the library: the signatures of its exported functions and of
+// the exported methods of its exported types, the surfaces of its exported types (typeSurface), and
+// the declarations of its exported constants and variables. A type of the parser that embeds a
+// library type, such as the typed Document, thus makes the exported methods of that type user API.
+func userSurface(src []byte) ([]byte, error) {
+	fset := token.NewFileSet()
+	file, err := goparser.ParseFile(fset, "parser.go", src, goparser.SkipObjectResolution)
+	if err != nil {
+		return nil, err
+	}
+	off := func(p token.Pos) int { return fset.Position(p).Offset }
+	var b bytes.Buffer
+	for _, d := range file.Decls {
+		switch d := d.(type) {
+		case *goast.FuncDecl:
+			if !d.Name.IsExported() || d.Recv != nil && !goast.IsExported(recvName(d.Recv.List[0].Type)) {
+				continue
+			}
+			b.Write(src[off(d.Type.Pos()):off(d.Type.End())])
+			b.WriteByte('\n')
+		case *goast.GenDecl:
+			for _, s := range d.Specs {
+				switch s := s.(type) {
+				case *goast.TypeSpec:
+					if s.Name.IsExported() {
+						b.WriteString(typeSurface(src, off, s))
+						b.WriteByte('\n')
+					}
+				case *goast.ValueSpec:
+					if slices.ContainsFunc(s.Names, (*goast.Ident).IsExported) {
+						b.Write(src[off(s.Pos()):off(s.End())])
+						b.WriteByte('\n')
+					}
+				}
+			}
+		}
+	}
+	return b.Bytes(), nil
 }
 
 // typeSurface returns the text of the type of s that a user of the type can reach: all of it but
