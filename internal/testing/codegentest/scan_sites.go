@@ -59,6 +59,15 @@ rule Y = [aé] bs:[bé]* "c" => $bs`, "abécy\xff"},
 	{"walks from positions further back", `rule main = e $$
 rule e = " " e / ws "!" / ws "?"
 rule ws = xs:[ ]* => text($xs)`, " !?"},
+	// The value-free twin of r walks each stretch before the walk that builds its list, at every start
+	// of the stretch: runs of one table must not answer the walks of the other.
+	{"a value-free twin before a list", `rule main = (-r "!" / r "?" / [ab ])* $$
+rule r = c:[ab]* => text($c)`, "ab !?"},
+	// Walks inside lookaheads record runs before the walks outside them, which take them and must give
+	// the expectation of the test at the end as they would without runs.
+	{"lookaheads before the walks outside", `rule main = (&(ws "!") ws "!" / &(xs "!") xs "!" / ws "?" / xs "?" / [ x])* $$
+rule ws = [ ]*
+rule xs = c:[x]* => text($c)`, " x!?"},
 }
 
 // ScanSiteInputs returns the inputs a grammar of ScanSiteGrammars is parsed with: n random strings
