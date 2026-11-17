@@ -1972,11 +1972,15 @@ evicts entries, gives no linear bound by these conditions, and has to say so.
    result of S only where the growth of S stops. In a cycle with more than one
    leader, moreover, no `#cut` in a body of a rule of the cycle can be passed
    after a left call in the alternative, iteration or option that it commits,
-   and no lookahead in such a body can make a left call. A leader grows again
+   and no lookahead in such a body, nor the `skip` of an Operators Rule of the
+   cycle, can make a left call. A leader grows again
    in each step of another leader at its position, and the first step of that
    growth reads its own failed seed: a cut passed after a left call, or a
    lookahead that reads the growing result, can make a later step take an
-   alternative that the first step did not reach. In
+   alternative that the first step did not reach. A `skip` counts as a
+   lookahead here, since the results computed in it are kept apart from those
+   computed outside it as the results computed in a lookahead are (see
+   [Evaluations of Rules](#evaluations-of-rules)). In
    `S = S "w" / R "z"` with `R = (R #cut "b" / S "y" / "c") / S "x"`, the
    cut keeps a later step of `R` from ending with `"c"`, so that it reaches
    `S "x"`, and on `cb...bz xz...xz` each step of `S` grows `R` over the `b`

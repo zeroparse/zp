@@ -7373,8 +7373,9 @@ cycle with more than one leader (*Calls in a context of growths*). A read at
 $p$ is a call at $p$ of a rule of the cycle, so it is a left call, made in a
 body of the cycle or inside a call of a rule of the cycle at $p$, which is a
 left call too; a body off the cycle evaluated at $p$ makes no call at $p$ of a
-rule of the cycle. A lookahead that reads a growing result therefore makes a
-left call in a body of the cycle, which condition 5 excludes. A cut commits
+rule of the cycle. A lookahead that reads a growing result, or the `skip` of
+an Operators Rule of the cycle that reads one, therefore makes a left call in
+a body of the cycle, which condition 5 excludes. A cut commits
 only the innermost choice, option or repetition around it in its own rule
 ([Cut](../language/parser-expressions.md#cut)). A cut whose committed
 alternative, iteration or option does not hold the read before the cut is
@@ -10861,8 +10862,8 @@ names a term or condition of the specification and the lemmas that use it.
 - Condition 2 for growing units and their continuations: Lemma 5,
   *Sources at fixed offsets*.
 - Condition 3 (Growth) and condition 5 (Carried growth): Lemma 5. The cuts
-  and lookaheads after left calls in a cycle with more than one leader: Lemma
-  5, *Plain reads*.
+  passed after left calls, and the lookaheads and `skip`s that make left
+  calls, in a cycle with more than one leader: Lemma 5, *Plain reads*.
 - Condition 1 (Variables), with the bindings that bind a value that the input
   determines, which give the class Linear given an environment bound: Lemma 3
   through $K$, and *Values of variables* in Lemma 11. The variables with
