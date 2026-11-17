@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 func TestOutputSchemaPrototype(t *testing.T) {
