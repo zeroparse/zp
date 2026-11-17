@@ -834,8 +834,10 @@ corresponds. *Units in a parse that keeps records* in Lemma 4 compares
 instead the iterations of one site at one position that take the same
 steps, in whatever lookahead state and variant, and *Activations held by
 the heads of units* there bounds in that way the activations that a
-memoized evaluation inside such an iteration holds, under the hypotheses
-of *Activations held by heads*; for those that the iterations themselves
+memoized evaluation inside such an iteration holds, for records made as
+(M1) and (M2) of *Covered keys through records* state and under the
+hypotheses of *Activations held by heads* with the paths followed through
+the records, among them that every link is memoized; for those that the iterations themselves
 hold it leaves the number of the iterations of one class that the parse
 evaluates. The same holds of the iterations themselves of a candidate site
 that keeps records and is no recorded site of the parse, which are
@@ -3846,7 +3848,7 @@ of the kind, 4 is *Replayed activations*. For one inside an iteration of
 the kind it compares the unit that holds it with the head of the class of
 that unit, and not the evaluation of a key around the iteration with the
 head of its class: that head can take a record where the later evaluation
-evaluates the iteration, in another lookahead state or variant, whose
+evaluates the iteration, in another lookahead state, whose
 slots are kept apart ([Skip Runs](../runtime/parsing.md#skip-runs)), and
 then nothing in it corresponds to the activation. The class of an
 iteration leaves out the lookahead state and the variant, as the class of
@@ -3971,7 +3973,11 @@ $\mathcal{R}(e_i)$ itself, at the place of $\mathcal{R}(X)$ in
 $\mathcal{R}(e'_i)$, with a key of the class of $X$, which reads no growth
 open at its start and holds an activation at the place of the counterpart
 of $\alpha_i$; it uses of $X$ only that it is $e'_i$ or lies inside it and
-that it holds $\alpha_i$ at some depth, which the region of $X$ does. By 2
+that it holds $\alpha_i$ at some depth, which the region of $X$ does.
+$X$ is $e'_i$ or lies inside it: the two contain $\alpha_i$, so they
+nest, and if $e'_i$ lay strictly inside $X$, the call of a rule that the
+parse memoizes that makes $e'_i$ would lie between $X$ and $\alpha_i$,
+and $\alpha_i$ outside the region of $X$. By 2
 of *Covered keys through records* with $x = e_i$, the parse made an
 evaluation of a key of the class of $X$ before $e_i$ ended, so before
 $e'_i$ started, outside cases (a) and (b) on the path followed through the
@@ -4069,7 +4075,7 @@ a walk evaluates whatever the slot holds, which those lemmas count for
 each walk and not for each position: its first iterations up to the
 minimum of the repetition, the last iteration of a walk that ends plain,
 whose position the walk does not mark, and the iterations of a walk made
-before the site keeps records
+before the site turns hot
 ([Lemma 3](run-sites.md#lemma-3-cost-before-hot) of that proof). Nor do
 they bound the iterations of one class at a site whose records are kept
 under the environment as an object, where equal environments that are
@@ -4467,7 +4473,9 @@ of the parse, are not bounded here
 (step 8 of [Open Steps](#open-steps)); *Activations held by the heads of
 units* above bounds, of the first, those that a memoized evaluation
 inside the iteration holds, and reduces the others to a count of the
-iterations of one class.
+iterations of the classes of the heads that hold an activation, which is
+one class when the first activation at the position is the only one that
+the heads hold.
 
 This gives the case that the comparison misses without the classes: in
 `main = (-r "x" / r "y")* $$; r = [a-c]* t?; t = "d"` on `abcy`, the first
@@ -10115,8 +10123,11 @@ theorem covers such a parse.
    whatever their lookahead states and variants; *Covered iterations* and
    *Links to the heads of units* show, for records made as (M1) and (M2)
    of *Covered keys through records* state, that an activation of a
-   memoized link, or a free one with a reference link, is held by no head
-   of a class of units, with no case (d); and *Activations held by the
+   memoized link that meets the hypothesis of *Links lead to repeated
+   evaluations* on the growths at its position, or a free one with a
+   reference link of a rule that the parse memoizes, is held by no head
+   of a class of units, with no case (d), unless case (a) or (b) of the
+   covered keys arises on the path followed through the records; and *Activations held by the
    heads of units* bounds by six times those that the heads hold the
    activations that a memoized evaluation inside such an iteration holds,
    under the hypotheses of *Activations held by heads* with the paths
@@ -10124,11 +10135,16 @@ theorem covers such a parse.
    itself holds, those of a source in the element or in a rule that the
    element calls through rules that the parse does not memoize, the same
    claims show that at one position they lie in the iterations of the
-   classes of those heads, one in each iteration, and what is open is the
+   classes of those heads, at one place for each activation that those
+   heads hold, so, when the first activation at the position is the only
+   one that the heads hold, in the iterations of one class, one in each;
+   what is open is the
    number of the iterations of one class that the parse evaluates whatever
    the slot holds: the first iterations of a walk up to the minimum, the
    last iteration of a walk that ends plain, the iterations of a walk made
-   before the site keeps records, and the iterations at a site whose
+   before the site turns hot
+   ([Lemma 3](run-sites.md#lemma-3-cost-before-hot) of the Run Sites
+   proof), and the iterations at a site whose
    records are kept under the environment as an object. No claim bounds
    those at one position, and the leaf links stay as in step 1.
    The same holds of the units of a copying operation that is a scanning
@@ -10157,7 +10173,7 @@ theorem covers such a parse.
    other is the number of the walks that evaluate the iteration at one $p$
    whatever its slot holds: a walk evaluates its first iterations up to the
    minimum of the repetition, a walk that ends plain its last iteration,
-   and a walk made before the site keeps records all of its iterations
+   and a walk made before the site turns hot all of its iterations
    ([Skip Runs](../runtime/parsing.md#skip-runs),
    [Run Sites](../runtime/parsing.md#run-sites)). So neither the records
    nor what is proved of Lemma 4 gives a count at one position of the
