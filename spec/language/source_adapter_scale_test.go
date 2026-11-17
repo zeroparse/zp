@@ -160,7 +160,8 @@ func TestScaleDetectorSeesQuadraticTime(t *testing.T) {
 // TestScaleDetectorSeesGeneratedClassRetries is the negative control of TestRecoveryScalesLinearly on a
 // generated parser: the parser of a repetition that tries a class from every "[" and falls back to any
 // character, as the recovery of declarations did before it ended an open class at the end of its line,
-// takes time that grows with the square of the line, and the measure must report it.
+// takes time that grows with the square of the line when no records of a run site answer the tries, and
+// the measure must report it.
 func TestScaleDetectorSeesGeneratedClassRetries(t *testing.T) {
 	ratio, ok := scalesLinearly(t, 250, func(n int) time.Duration {
 		src := strings.Repeat("[", n) + "\n"

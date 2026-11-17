@@ -716,6 +716,7 @@ func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field 
 	b.streaming = false
 	if !stream {
 		n.Run = b.prog.RunSite(e)
+		n.RunEnvFree = n.Run != 0 && b.prog.EnvFree(n.Run)
 	}
 	// A skip-run site and a projected repetition are never resumed, nor is a value-free repetition
 	// of one character outside a stream, which matches as a scan.

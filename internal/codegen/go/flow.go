@@ -325,7 +325,16 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 	case *flow.StreamStart:
 		p.write("p.StreamStart()\n")
 	case *flow.SkipBegin:
-		p.write(fmt.Sprintf("p.SkipBegin(%d)\n", s.Site))
+		if s.Run {
+			p.write(fmt.Sprintf("p.RunBegin(%d, %t, %t)\n", s.Site, s.Build, s.KeyEnv))
+		} else {
+			p.write(fmt.Sprintf("p.SkipBegin(%d)\n", s.Site))
+		}
+	case *flow.SkipValue:
+		p.write(fmt.Sprintf("p.SkipValue(%s)\n", p.expr(s.X)))
+	case *flow.RunWalked:
+		start := p.expr(s.Start)
+		p.write(fmt.Sprintf("if p.Pos-%s >= RunHotSpan {\np.RunWalked(%d, %s)\n}\n", start, s.Site, start))
 	case *flow.SkipVisit:
 		p.write("p.SkipVisit()\n")
 	case *flow.SkipEnd:
@@ -481,6 +490,10 @@ func (p *flowPrinter) expr(x flow.Expr) string {
 		return fmt.Sprintf("p.StreamsIn(%d, %v)", p.g.Cur.ID, p.g.Cur.Rec)
 	case *flow.SkipHit:
 		return "p.SkipHit()"
+	case *flow.RunHot:
+		return fmt.Sprintf("p.RunHot(%d)", x.Site)
+	case *flow.SkipKids:
+		return "p.SkipKids()"
 	case *flow.ScanReach:
 		return fmt.Sprintf("p.ScanReach(%d, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Count))
 	case *flow.ScanKids:

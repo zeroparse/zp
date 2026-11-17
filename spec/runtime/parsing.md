@@ -750,9 +750,9 @@ repetition for which all of the following hold:
   level, is not in a left-recursion cycle and contains no `#stream`,
   `#missing`, `#error` or `#diagnostic`;
 - it is restartable: it is in the expression of another repetition whose
-  maximum is neither 0 nor 1, or in a rule that such an expression calls,
-  directly or indirectly, or in a rule that calls itself, directly or
-  indirectly. Any other repetition is reached once by a derivation through
+  maximum is neither 0 nor 1, or in a rule that calls itself, directly or
+  indirectly, or in a rule that such an expression or such a rule calls,
+  directly or indirectly. Any other repetition is reached once by a derivation through
   sequences, alternatives and calls, so a walk of it begins at each position
   at most once per environment and no walk could reuse the record of another.
 
@@ -826,6 +826,15 @@ runs do. The [Run Sites](../proofs/run-sites.md) proof shows that a reused
 record gives what the rest of the walk would, and bounds the evaluations of a
 site's element. In a parse of an [incremental document](documents.md) outside a
 lookahead, a run site that the document can resume is resumed as before.
+
+Parsers generated as Go or TypeScript source keep the records of run sites as
+this section describes, with the same threshold for turning a site hot, the
+same keys and the same charges for looking up and storing records, taking a
+record over and moving and copying the elements of lists. A generated
+[Document](documents.md) resumes no run: each walk of a run site in its parse
+walks as in a parse of the text alone, with the input it examines tracked as
+for a memoized call. A generated stream drops the records of the positions
+before the input it commits, as for skip-run sites.
 
 ### Scan Sites
 
@@ -1987,6 +1996,42 @@ evicts entries, gives no linear bound by these conditions, and has to say so.
    cut keeps a later step of `R` from ending with `"c"`, so that it reaches
    `S "x"`, and on `cb...bz xz...xz` each step of `S` grows `R` over the `b`
    characters again before `R` reads the growing result of `S`.
+
+The bound also needs the parse to keep records of the walks of its
+repetitions, the **records condition** of the
+[Linear Cost](../proofs/linear-cost.md#setting) proof. A **recorded site** is
+a repetition without an upper bound, outside the skips whose walks are
+[reused](#skip-runs), that is a [run site](#run-sites) or repeats a single
+character, and is no `#stream` repetition; its walks are recorded unless a
+Document resumes a run at them. For a constant c_R ≥ 1:
+
+- (R1) a walk that takes a record leaves what the walk that evaluated its
+  remaining iterations would leave: the same end, outcome, examined range,
+  values, recovered errors and environment, so that the parse gives what it
+  gives without records;
+- (R2) the recorded walks of a site evaluate its element, in the whole parse
+  and in both variants of its rule, at most c_R · (K_σ · n + W_σ)
+  times, where W_σ is the number of its recorded walks, K_σ = 1
+  when the site is free of the environment, and otherwise K_σ is the
+  largest number of distinct combinations of the values of the variables that
+  its element reads, directly or in the rules it calls, among the visits that
+  its recorded walks make to one position;
+- (R3) outside the iterations that it evaluates, a recorded walk makes at most
+  c_R steps, and at most c_R more for each iteration that it evaluates,
+  apart from its suffix copies, the elements of a record that a walk whose
+  iterations build values copies behind its own when it takes the record, and
+  apart from the recovered errors that it takes over with a record.
+
+The bound is then the one of [Classification](#classification) with K the
+greater of its K and the largest K_σ of the recorded sites, apart
+from the suffix copies. The condition is shown for a parse that inserts no
+missing token, of the reference implementation or of a parser generated as Go
+or TypeScript source, in which every recorded site that the parse walks is a
+run site free of the environment. It is not shown for a parse that walks a run
+site that is not free of the environment, whose records are kept under the
+environment as an object and so give no bound K_σ, or a repetition of a
+single character outside the reused skips, whose record answers only a walk
+from the same start; the proof says nothing of such a parse.
 
 ### Cost View
 

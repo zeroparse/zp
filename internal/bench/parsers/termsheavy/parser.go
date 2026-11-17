@@ -486,35 +486,62 @@ fail:
 
 func e5(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var x2, x3, x4 int
-	var x5 rt.Mark
-	var ok bool
-	var v7, v8, v9 *core.Node
+	var x2, x3, x5 int
+	var x4, ok bool
+	var x6 rt.Mark
+	var v8, v9, v10 *core.Node
 	x2, x3 = p.Pos, len(p.KidStack)
-	x4 = 0
+	x4 = p.RunHot(1)
+	if x4 {
+		p.RunBegin(1, true, false)
+	}
+	x5 = 0
 	for {
 		p.Spend()
-		x5 = p.Mark()
-		if v7, ok = p.Call(rules[2], 0); !ok {
-			goto L6
+		if x4 {
+			if x5 >= 1 {
+				if p.SkipHit() {
+					break
+				}
+			}
+			p.SkipVisit()
 		}
-		v8 = p.ScopeValue(sh1, v7, x5.Pos)
-		x4++
-		p.KidStack = append(p.KidStack, v8)
-		if p.Pos == x5.Pos {
+		x6 = p.Mark()
+		if v8, ok = p.Call(rules[2], 0); !ok {
+			goto L7
+		}
+		v9 = p.ScopeValue(sh1, v8, x6.Pos)
+		x5++
+		if x4 {
+			p.SkipValue(v9)
+		} else {
+			p.KidStack = append(p.KidStack, v9)
+		}
+		if p.Pos == x6.Pos {
 			break
 		}
 		continue
-	L6:
-		p.Reset(x5)
+	L7:
+		p.Reset(x6)
 		break
 	}
-	if x4 < 1 {
-		p.DropKids(x3)
+	if x5 < 1 {
+		if x4 {
+			p.SkipEnd()
+		} else {
+			p.DropKids(x3)
+		}
 		goto fail
 	}
-	v9 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
-	p.SetCapture(0, v9)
+	if x4 {
+		v10 = p.NewBranch(rt.ListKind, x2, p.SkipKids())
+	} else {
+		if p.Pos-x2 >= rt.RunHotSpan {
+			p.RunWalked(1, x2)
+		}
+		v10 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
+	}
+	p.SetCapture(0, v10)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit3, ";", 5, false); !ok {
@@ -620,28 +647,51 @@ fail:
 
 func q1(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
-	var start, x1, x2 int
+	var start, x2, x3, x4 int
 	var v *core.Node
-	var ok bool
+	var x1, ok bool
 	start = p.Pos
-	x1 = 0
+	x2 = p.Pos
+	x1 = p.RunHot(1)
+	if x1 {
+		p.RunBegin(1, false, false)
+	}
+	x3 = 0
 	for {
 		p.Spend()
-		x2 = p.Pos
-		if _, ok = q2(p); !ok {
-			goto L3
+		if x1 {
+			if x3 >= 1 {
+				if p.SkipHit() {
+					break
+				}
+			}
+			p.SkipVisit()
 		}
-		x1++
-		if p.Pos == x2 {
+		x4 = p.Pos
+		if _, ok = q2(p); !ok {
+			goto L5
+		}
+		x3++
+		if p.Pos == x4 {
 			break
 		}
 		continue
-	L3:
-		p.Pos = x2
+	L5:
+		p.Pos = x4
 		break
 	}
-	if x1 < 1 {
+	if x3 < 1 {
+		if x1 {
+			p.SkipEnd()
+		}
 		goto fail
+	}
+	if x1 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x2 >= rt.RunHotSpan {
+			p.RunWalked(1, x2)
+		}
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
@@ -777,36 +827,63 @@ func u1(p *rt.TParser) (any, bool) {
 
 func i1(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, x3, x4, x5, x6 int
-	var v, k1, v8, v9, v10 any
+	var start, x3, x4, x6, x7 int
+	var v, k1, v9, v10, v11 any
 	var c *rt.TActCtx
-	var ok bool
+	var x5, ok bool
 	start = p.Pos
 	x3, x4 = p.Pos, len(p.KidStack)
-	x5 = 0
+	x5 = p.RunHot(1)
+	if x5 {
+		p.RunBegin(1, true, false)
+	}
+	x6 = 0
 	for {
 		p.Spend()
-		x6 = p.Pos
-		if v8, ok = u2(p); !ok {
-			goto L7
+		if x5 {
+			if x6 >= 1 {
+				if p.SkipHit() {
+					break
+				}
+			}
+			p.SkipVisit()
 		}
-		v9 = p.ScopeValue(sh1, v8, x6)
-		x5++
-		p.PushKid(v9)
-		if p.Pos == x6 {
+		x7 = p.Pos
+		if v9, ok = u2(p); !ok {
+			goto L8
+		}
+		v10 = p.ScopeValue(sh1, v9, x7)
+		x6++
+		if x5 {
+			p.SkipValue(v10)
+		} else {
+			p.PushKid(v10)
+		}
+		if p.Pos == x7 {
 			break
 		}
 		continue
-	L7:
-		p.Pos = x6
+	L8:
+		p.Pos = x7
 		break
 	}
-	if x5 < 1 {
-		p.DropKids(x4)
+	if x6 < 1 {
+		if x5 {
+			p.SkipEnd()
+		} else {
+			p.DropKids(x4)
+		}
 		goto fail
 	}
-	v10 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
-	k1 = v10
+	if x5 {
+		v11 = p.NewNode("list", x3, p.Pos, p.SkipKids())
+	} else {
+		if p.Pos-x3 >= rt.RunHotSpan {
+			p.RunWalked(1, x3)
+		}
+		v11 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
+	}
+	k1 = v11
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.Parser.MatchLiteral(lit3, ";", 5, false); !ok {

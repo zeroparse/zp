@@ -269,35 +269,62 @@ fail:
 
 func e5(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var x2, x3, x4 int
-	var x5 rt.Mark
-	var ok bool
-	var v7, v8, v9 *core.Node
+	var x2, x3, x5 int
+	var x4, ok bool
+	var x6 rt.Mark
+	var v8, v9, v10 *core.Node
 	x2, x3 = p.Pos, len(p.KidStack)
-	x4 = 0
+	x4 = p.RunHot(1)
+	if x4 {
+		p.RunBegin(1, true, false)
+	}
+	x5 = 0
 	for {
 		p.Spend()
-		x5 = p.Mark()
-		if v7, ok = r2(p); !ok {
-			goto L6
+		if x4 {
+			if x5 >= 1 {
+				if p.SkipHit() {
+					break
+				}
+			}
+			p.SkipVisit()
 		}
-		v8 = p.ScopeValue(sh1, v7, x5.Pos)
-		x4++
-		p.KidStack = append(p.KidStack, v8)
-		if p.Pos == x5.Pos {
+		x6 = p.Mark()
+		if v8, ok = r2(p); !ok {
+			goto L7
+		}
+		v9 = p.ScopeValue(sh1, v8, x6.Pos)
+		x5++
+		if x4 {
+			p.SkipValue(v9)
+		} else {
+			p.KidStack = append(p.KidStack, v9)
+		}
+		if p.Pos == x6.Pos {
 			break
 		}
 		continue
-	L6:
-		p.Reset(x5)
+	L7:
+		p.Reset(x6)
 		break
 	}
-	if x4 < 1 {
-		p.DropKids(x3)
+	if x5 < 1 {
+		if x4 {
+			p.SkipEnd()
+		} else {
+			p.DropKids(x3)
+		}
 		goto fail
 	}
-	v9 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
-	p.SetCapture(0, v9)
+	if x4 {
+		v10 = p.NewBranch(rt.ListKind, x2, p.SkipKids())
+	} else {
+		if p.Pos-x2 >= rt.RunHotSpan {
+			p.RunWalked(1, x2)
+		}
+		v10 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
+	}
+	p.SetCapture(0, v10)
 	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
@@ -479,35 +506,62 @@ fail:
 
 func e12(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var x2, x3, x4 int
-	var x5 rt.Mark
-	var ok bool
-	var v7, v8, v9 *core.Node
+	var x2, x3, x5 int
+	var x4, ok bool
+	var x6 rt.Mark
+	var v8, v9, v10 *core.Node
 	x2, x3 = p.Pos, len(p.KidStack)
-	x4 = 0
+	x4 = p.RunHot(1)
+	if x4 {
+		p.RunBegin(1, true, false)
+	}
+	x5 = 0
 	for {
 		p.Spend()
-		x5 = p.Mark()
-		if v7, ok = q2(p); !ok {
-			goto L6
+		if x4 {
+			if x5 >= 1 {
+				if p.SkipHit() {
+					break
+				}
+			}
+			p.SkipVisit()
 		}
-		v8 = p.ScopeValue(sh1, v7, x5.Pos)
-		x4++
-		p.KidStack = append(p.KidStack, v8)
-		if p.Pos == x5.Pos {
+		x6 = p.Mark()
+		if v8, ok = q2(p); !ok {
+			goto L7
+		}
+		v9 = p.ScopeValue(sh1, v8, x6.Pos)
+		x5++
+		if x4 {
+			p.SkipValue(v9)
+		} else {
+			p.KidStack = append(p.KidStack, v9)
+		}
+		if p.Pos == x6.Pos {
 			break
 		}
 		continue
-	L6:
-		p.Reset(x5)
+	L7:
+		p.Reset(x6)
 		break
 	}
-	if x4 < 1 {
-		p.DropKids(x3)
+	if x5 < 1 {
+		if x4 {
+			p.SkipEnd()
+		} else {
+			p.DropKids(x3)
+		}
 		goto fail
 	}
-	v9 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
-	p.SetCapture(0, v9)
+	if x4 {
+		v10 = p.NewBranch(rt.ListKind, x2, p.SkipKids())
+	} else {
+		if p.Pos-x2 >= rt.RunHotSpan {
+			p.RunWalked(1, x2)
+		}
+		v10 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
+	}
+	p.SetCapture(0, v10)
 	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
@@ -673,36 +727,63 @@ func u1(p *rt.TParser) (any, bool) {
 
 func i1(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, x3, x4, x5, x6 int
-	var v, k1, v8, v9, v10 any
+	var start, x3, x4, x6, x7 int
+	var v, k1, v9, v10, v11 any
 	var c *rt.TActCtx
-	var ok bool
+	var x5, ok bool
 	start = p.Pos
 	x3, x4 = p.Pos, len(p.KidStack)
-	x5 = 0
+	x5 = p.RunHot(1)
+	if x5 {
+		p.RunBegin(1, true, false)
+	}
+	x6 = 0
 	for {
 		p.Spend()
-		x6 = p.Pos
-		if v8, ok = s2(p); !ok {
-			goto L7
+		if x5 {
+			if x6 >= 1 {
+				if p.SkipHit() {
+					break
+				}
+			}
+			p.SkipVisit()
 		}
-		v9 = p.ScopeValue(sh1, v8, x6)
-		x5++
-		p.PushKid(v9)
-		if p.Pos == x6 {
+		x7 = p.Pos
+		if v9, ok = s2(p); !ok {
+			goto L8
+		}
+		v10 = p.ScopeValue(sh1, v9, x7)
+		x6++
+		if x5 {
+			p.SkipValue(v10)
+		} else {
+			p.PushKid(v10)
+		}
+		if p.Pos == x7 {
 			break
 		}
 		continue
-	L7:
-		p.Pos = x6
+	L8:
+		p.Pos = x7
 		break
 	}
-	if x5 < 1 {
-		p.DropKids(x4)
+	if x6 < 1 {
+		if x5 {
+			p.SkipEnd()
+		} else {
+			p.DropKids(x4)
+		}
 		goto fail
 	}
-	v10 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
-	k1 = v10
+	if x5 {
+		v11 = p.NewNode("list", x3, p.Pos, p.SkipKids())
+	} else {
+		if p.Pos-x3 >= rt.RunHotSpan {
+			p.RunWalked(1, x3)
+		}
+		v11 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
+	}
+	k1 = v11
 	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(k1)
 		if tf1 != nil {
