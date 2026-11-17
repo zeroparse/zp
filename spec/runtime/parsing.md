@@ -1282,15 +1282,22 @@ The conditions below use these terms.
     included: as in
     `A = A S [^!]* "!" / A S / "n"`, the next step can scan again, from the
     end of the new seed, the input that the unit examined. What the step
-    evaluates after the unit fails runs at the position where the rule grows,
-    and condition 3 covers its cost. When the left call fails in the first
-    step, that evaluation is the one of the first step after the same failure,
-    except that later growing units read the seed, so unless one of them
-    succeeds, the step ends where the first step ended, at the end of the
-    seed. Otherwise the check as an alternative that is not growing keeps the
-    later alternatives from consuming the character at the position where the
-    rule grows, so the step again ends no farther than the seed. Either way
-    the growth ends with the seed and the parser continues at its end;
+    evaluates after the unit fails starts at the position where the rule
+    grows: condition 3 covers what each step evaluates again there, and
+    condition 2 checks the late parts among it, which the first step need not
+    have reached. When the unit failed in the first step too, as it does when
+    it fails with its left call, that evaluation is the one of the first step
+    after the same failure, except that later growing units read the seed, so
+    unless one of them succeeds, the step ends where the first step ended, at
+    the end of the seed. A unit that goes on at its start after a path through
+    its left call fails can instead have matched in the first step, as
+    `(l "+" / "a") "b"` in `l = (l "+" / "a") "b" / "a" z` matches through
+    `"a"`; a later step in which it fails after its left call reads the seed
+    goes on to parts that the first step did not reach, such as `"a" z`. A
+    part that reads no growing result and ends no farther than the seed ends
+    the step with the seed; one that ends farther gives a longer result, which
+    the next step reads as the seed. When the growth ends, it ends with the
+    seed and the parser continues at its end;
   - for any other alternative, the later alternatives of the choice, unless
     every way in which the alternative can fail lies after a `#cut` in it;
   - for an iteration, an option or a lookahead, what follows the repetition,
@@ -1827,10 +1834,47 @@ evicts entries, gives no linear bound by these conditions, and has to say so.
    step and `[ac-z]`, and so does `S = F T` with `F = S "a" / "b"`; with
    `T = "c" / "d" "!"` or with `"!"?` at the end of `T`, no step tail can
    fail after a scanning source, and with `S ";"` in `main`, the step is
-   committing. A step that succeeds with a result no longer than the seed
+   committing.
+   A step after the first can also fail at the position where the rule
+   grows, in a part of the body that reads no growing result. Such a part
+   fails in a later step wherever it fails in the first, and the first step
+   reaches it unless a part before it matched there. A later step can pass
+   over that earlier part: a left call that reads the seed can match where it
+   failed in the first step, in an alternative of a choice other than the
+   last, and when what follows the choice then fails, the later alternatives
+   of the choice are not tried. The same holds after an expression that the
+   paths do not look into, such as an option, that can make a left call of
+   the cycle, and after a left call of another leader of the cycle, which
+   can match otherwise in each step. The **late parts** of a leader are the
+   paths of its body, through left calls of other rules of the cycle, that
+   examine the input at the position where it grows before any left call of
+   a leader, and that the body evaluates after such a point: `"a" z` in
+   `l = (l "+" / "a") "b" / "a" z`. A late part that contains a scanning
+   source and can fail after it, up to the end of the body, is checked as a
+   unit that starts at the position where the rule grows. When it fails, the
+   step is dropped, the growth ends with the seed, and the parser goes on at
+   the end of the seed with what follows the calls that start the growth. So
+   its continuation is the seed followed by what follows the leader: the
+   other paths of the body that examine the input there before any left
+   call of a leader, each continued, at the end of the body, through every
+   call of the leader, the reads of the seed included. The late part itself
+   is left out: when the first step reached it, it failed there too, so
+   either way another path matched the seed. In
+   `s = (l / "+{" / "}")* $$` with `l = (l "+" / "a") "b" / "a" z` and
+   `z = "b" "+" "{" [ab+{]* "}" "!"`, on `ab+{` repeated and a final `}`,
+   the second step of each growth reads the seed `ab`, matches `+`, fails at
+   `{`, and goes on to `"a" z`, which the first step never reached: `z`
+   scans the rest of the input and fails at its end, the step is dropped,
+   and the next growth, four characters on, scans the rest again. `"a" z` is
+   not committing against the seed `"a" "b"` followed by `"+{"`, so `l`
+   fails the condition; with `"q" z` in place of `"a" z` it is committing,
+   and with `l = l "+" "b" / "a" "b" / "a" z` no part is late, since the
+   later steps evaluate `"a" "b"` again and it matches again.
+   A step that succeeds with a result no longer than the seed
    is dropped as well, but it gives back the input that it examined beyond
    its result only through the units in it that are abandoned, which this
-   condition checks in turn. A unit whose only scanning
+   condition checks in turn, and so does a step that a late part ends with
+   a longer result, which the next step reads as the seed. A unit whose only scanning
    sources are bounded scans contains no scanning source in this sense: a
    restart repeats them, and their bound counts the repetition.
 3. **Growth.** No scanning source can be evaluated, outside the left calls of

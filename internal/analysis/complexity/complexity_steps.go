@@ -40,6 +40,7 @@ func (k *classifier) addStepUnits() {
 			continue
 		}
 		cycle := k.an.Cycle[r.Name]
+		k.addLateParts(r, cycle)
 		tails, ok := k.memberStarts(r.Name, &cont{end: endRule, rule: r.Name}, cycle)
 		u := &unit{id: len(k.units), kind: unitStep, rule: r.Name, expr: r.Expr, pos: exprPos(r.Expr),
 			self: tails, calls: map[string]bool{}, cycle: cycle}
@@ -196,6 +197,76 @@ func (k *classifier) selfPaths(u *unit) [][]*cont {
 
 // stepMessage describes a step that is not committing.
 func (k *classifier) stepMessage(u *unit) string {
+	if u.kind == unitLatePart {
+		return fmt.Sprintf("%s of %s at %s, which the first step of its growth need not reach, can fail after %s and is not committing against %s",
+			u.kind, u.rule, at(u.rule, u.pos), u.src, u.witness)
+	}
 	return fmt.Sprintf("%s of %s at %s can fail after %s and is not committing against %s",
 		u.kind, u.rule, at(u.rule, u.pos), u.src, u.witness)
+}
+
+// addLateParts adds the units of a step after the first of the growth of the leader r at the
+// position where it grows. In such a step the left calls read the seed, and a step tail that fails
+// can lead the body back to a part that examines the input from the growth position without reading
+// a growing result: an alternative after the one whose tail failed, as "a" z in
+// l = (l "+" / "a") "b" / "a" z. The first step may never have reached that part, since an earlier
+// part succeeded there without the seed. When the part fails after a scanning source, the step is
+// dropped, the growth ends with the seed, and the parser goes on at the end of the seed with what
+// follows the calls that started the growth, which can examine again the input that the part
+// examined.
+//
+// Each such part is a unit at the growth position. Its continuation is the seed, matched by the
+// other parts of the body that read no growing result (the paths of the first step), followed by
+// what follows the leader (its FOLLOW, which holds the step tails and what follows the calls that
+// start the growth). The part itself is left out: it reads no growing result, so it fails in the
+// first step wherever it fails in a later one, and the seed came from another part.
+func (k *classifier) addLateParts(r *grammar.RuleDef, cycle int) {
+	start := &cont{items: []grammar.Expr{r.Expr}, next: &cont{end: endRule, rule: r.Name}}
+	_, first, late, ok := k.leftPathsLate(start, cycle, r.Name)
+	if !ok {
+		return
+	}
+	for i, p := range first {
+		if !late[i] {
+			continue
+		}
+		src := k.tailFailsAfterSource(p)
+		if src == nil {
+			continue
+		}
+		var seed []*cont
+		for j, q := range first {
+			if j != i {
+				seed = append(seed, q)
+			}
+		}
+		if len(seed) == 0 {
+			continue
+		}
+		u := &unit{id: len(k.units), kind: unitLatePart, rule: r.Name, expr: r.Expr, pos: contPos(p, r.Expr),
+			self: []*cont{p}, calls: map[string]bool{}, cycle: cycle, src: src, hasSource: true,
+			conts: []contSpec{{paths: seed, what: fmt.Sprintf("the seed of the growth of %s, followed by what follows %s", r.Name, r.Name)}}}
+		for c := p; c != nil; c = c.next {
+			for _, it := range c.items {
+				if it != nil {
+					for _, n := range compile.AllCallsControlled(it, nil, k.control) {
+						u.calls[n] = true
+					}
+				}
+			}
+		}
+		k.units = append(k.units, u)
+	}
+}
+
+// contPos returns the position of the first item of the path p, or that of e.
+func contPos(p *cont, e grammar.Expr) grammar.Pos {
+	for c := p; c != nil; c = c.next {
+		for _, it := range c.items {
+			if it != nil {
+				return exprPos(it)
+			}
+		}
+	}
+	return exprPos(e)
 }

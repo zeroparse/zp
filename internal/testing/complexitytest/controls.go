@@ -42,6 +42,9 @@ const Cap = 20_000_000
 // by "z".
 func parens(n int) string { return rep("(", n) + "n" + rep(")z", n) }
 
+// lateInput is the input of the late-part controls: "ab+{" n times, then "}".
+func lateInput(n int) string { return rep("ab+{", n) + "}" }
+
 func double(n int) []int { return []int{n, 2 * n, 4 * n} }
 
 // regionGrammar is a grammar of nested terms whose blanks hold comments. The lookahead
@@ -986,6 +989,56 @@ func Controls() []Control {
 			Name: "Dropped growth step without a scan", Family: "growth steps", Positive: true,
 			Source: "rule main = (S / [ac-z])* $$\nrule S = (S \"a\" / \"b\") T\nrule T = \"c\" / \"d\" \"!\"\n",
 			Input:  func(n int) string { return rep("bcad", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		// The second step of each growth of l reads the seed "ab", matches "+", fails at "{" and goes
+		// on to "a" z, which the first step never reached: z scans the rest of the input and fails
+		// at its end, the step is dropped, and the next growth, four characters on, scans it again.
+		// The scan is a repetition of single characters, a repetition of a rule that scans, a scan
+		// in a rule that the element calls, a repetition whose element calls a left-recursive rule
+		// (no run site), and the skip of a #recover that is not a reused skip.
+		{
+			Name: "Late part of a growth step that scans", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" [ab+{]* \"}\" \"!\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Late part of a growth step with a repetition of a scanning rule", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" c+ \"}\" \"!\"\nrule c = \"a\" [ab+{]*\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Late part of a growth step with a scan in a called rule", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" c+ \"}\" \"!\"\nrule c = \"a\" d\nrule d = [ab+{]*\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Late part of a growth step with a left-recursive call in the element", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Late part of a growth step with a recovery skip", Family: "growth steps",
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" r\nrule r = (\"b\" \"+\" \"{\" \"!\") #recover(skip=(c / x)* \"}\") \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		// With "q" in place of "a" the late part fails at once where the seed begins.
+		{
+			Name: "Late part of a growth step that commits", Family: "growth steps", Positive: true,
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"q\" z\nrule z = \"b\" \"+\" \"{\" [ab+{]* \"}\" \"!\"\n",
+			Input:  lateInput,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		// A skip of single characters is a reused skip: its records keep the late part linear.
+		{
+			Name: "Late part of a growth step with a reused skip", Family: "growth steps", Positive: true,
+			Source: "rule main = (l / \"+{\" / \"}\")* $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" r\nrule r = (\"b\" \"+\" \"{\" \"!\") #recover(skip=[ab+{]* \"}\") \"!\"\n",
+			Input:  lateInput,
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
 		},
 		// A recovery ends after its skip, which reaches sp from every position of a run of letters.

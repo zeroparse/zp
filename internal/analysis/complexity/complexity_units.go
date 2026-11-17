@@ -83,11 +83,13 @@ const (
 	unitOperand
 	unitOperator
 	unitStep
+	unitLatePart
 )
 
 func (u unitKind) String() string {
 	return [...]string{"the alternative", "an iteration of the repetition", "the option", "the lookahead",
-		"the base of the #recover", "the operand", "the operator part", "a step of the growth"}[u]
+		"the base of the #recover", "the operand", "the operator part", "a step of the growth",
+		"the late part"}[u]
 }
 
 // contSpec is one continuation of a unit, with a description for witnesses.
@@ -1405,7 +1407,7 @@ func (k *classifier) checkUnits() {
 			k.checkGrowingUnit(u)
 			continue
 		}
-		if u.kind == unitStep {
+		if u.kind == unitStep || u.kind == unitLatePart {
 			k.checkStepUnit(u)
 			continue
 		}
@@ -1437,8 +1439,28 @@ func (k *classifier) checkUnits() {
 // one of the leader grower: in the first step of its growth its own left calls read the failed
 // seed and end their paths, while a left call of another leader can match and is a path of first.
 func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, first []*cont, ok bool) {
+	paths, first, _, ok = k.leftPathsLate(start, cycle, grower)
+	return paths, first, ok
+}
+
+// leftPathsLate is leftPaths that also tells, for each path of first, whether a step of the growth
+// after the first can reach it where the first step does not (late). The first step evaluates the
+// paths of first in order, and the first that succeeds ends it. A later step evaluates them in the
+// same order, and each succeeds or fails as in the first step, since it reads no growing result,
+// unless the step does not evaluate it: when an alternative of a choice before the last reaches a
+// left call, that call can match in a later step where it failed in the first, and when what
+// follows the choice then fails, the later alternatives of the choice, which the first step may
+// have matched, are not tried. The same holds after an expression that the walk does not look into
+// and that contains a left call of the cycle, such as an option, and after a left call of another
+// leader, which can match otherwise in each step. The paths of first after such a point are late.
+func (k *classifier) leftPathsLate(start *cont, cycle int, grower string) (paths, first []*cont, late []bool, ok bool) {
 	ok = true
 	budget := leadBudget
+	shadow := false
+	addFirst := func(p *cont) {
+		first = append(first, p)
+		late = append(late, shadow)
+	}
 	var visit func(p *cont, depth int)
 	visit = func(p *cont, depth int) {
 		for {
@@ -1462,20 +1484,28 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 				p = rest.then(e.Expr)
 			case *grammar.Seq:
 				if len(e.Items) == 0 {
-					first = append(first, rest)
+					addFirst(rest)
 					return
 				}
 				p = rest.then(e.Items...)
 			case *grammar.Choice:
-				for _, alt := range e.Alts {
+				growing := false
+				for i, alt := range e.Alts {
+					n := len(paths)
 					visit(rest.then(alt), depth)
+					if i < len(e.Alts)-1 && len(paths) > n {
+						growing = true
+					}
+				}
+				if growing && k.contCanFail(rest) {
+					shadow = true
 				}
 				return
 			case *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.EndInput,
 				*grammar.BeginLine, *grammar.EndLine:
 				// Nothing is examined before a left call that follows: the growth goes on there.
 				if len(rest.items) == 0 {
-					first = append(first, rest)
+					addFirst(rest)
 					return
 				}
 				p = rest
@@ -1485,18 +1515,19 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 						// A call that can match without examining the input: what follows it
 						// can start a growth, and the call may also examine input first.
 						if !k.examinesNothing(e.Name, map[string]bool{}, true) {
-							first = append(first, p)
+							addFirst(p)
 						}
 						p = rest
 						continue
 					}
-					first = append(first, p)
+					addFirst(p)
 					return
 				}
 				if k.an.Leaders[e.Name] {
 					paths = append(paths, rest)
 					if grower != "" && e.Name != grower {
-						first = append(first, p)
+						addFirst(p)
+						shadow = true
 					}
 					return
 				}
@@ -1507,13 +1538,38 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 				p = rest.then(k.byName[e.Name].Expr)
 				depth++
 			default:
-				first = append(first, p)
+				addFirst(p)
+				if k.leftCallIn(e, cycle) {
+					shadow = true
+				}
 				return
 			}
 		}
 	}
 	visit(start, 0)
-	return paths, first, ok
+	return paths, first, late, ok
+}
+
+// contCanFail reports whether an item of the path c, through its next parts, can fail.
+func (k *classifier) contCanFail(c *cont) bool {
+	for ; c != nil; c = c.next {
+		for _, it := range c.items {
+			if it != nil && !k.an.AlwaysSucceeds(it) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// leftCallIn reports whether e can make a left call of a rule of the cycle.
+func (k *classifier) leftCallIn(e grammar.Expr, cycle int) bool {
+	for _, n := range k.an.LeftCalls(e, nil) {
+		if k.an.Cyclic[n] && k.an.Cycle[n] == cycle {
+			return true
+		}
+	}
+	return false
 }
 
 // checkGrowingUnit checks a growing unit. In each step of a growth after the first its left call
@@ -1902,6 +1958,11 @@ func (k *classifier) checkNesting() {
 	}
 	inner := map[*unit][]*unit{}
 	for _, u := range nc {
+		if u.kind == unitLatePart {
+			// The growths that drop such a step start again where the units inside it start again:
+			// the step multiplies no restart of theirs, and it gives no degree of its own.
+			continue
+		}
 		seen := map[*unit]bool{}
 		add := func(v *unit) {
 			if v.nc && !seen[v] {
@@ -1987,7 +2048,7 @@ func (k *classifier) checkNesting() {
 	}
 	for _, u := range nc {
 		switch {
-		case u.kind == unitStep:
+		case u.kind == unitStep || u.kind == unitLatePart:
 			// As for a growing unit, whose left call is a call of its recursion, the classifier
 			// gives no degree for a step that is not committing.
 			k.reason(u.rule, u.pos, "%s", k.stepMessage(u))

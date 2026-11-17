@@ -81,3 +81,74 @@ rule T = "c" / "d" [a-z]* "!"
 		})
 	}
 }
+
+// lateMain is the start rule of the late-part cases: it repeats l, and the pieces of input that l
+// leaves, on input ("ab+{")^n "}".
+const lateMain = "@start\nrule s = (l / \"+{\" / \"}\")* $$\n"
+
+// TestLateParts checks the late parts of a growth: parts of the body of a leader that read no
+// growing result and that a step after the first can reach where the first step did not, because
+// a left call that reads the seed matched where it failed in the first step and what followed it
+// failed. Such a part that fails after a scanning source drops the step, and the next growth can
+// scan the same input again. reason is the start of the reason of a late part that is not
+// committing, or "" for none; degree is the witnessed degree of the class unknown.
+func TestLateParts(t *testing.T) {
+	t.Parallel()
+	const z = "rule z = \"b\" \"+\" \"{\" [ab+{]* \"}\" \"!\"\n"
+	for _, tc := range []struct {
+		name, src string
+		class     ComplexityClass
+		reason    string
+		degree    int
+	}{
+		// The second step of each growth reads the seed ab, matches +, fails at { and goes on to
+		// "a" z, which scans the rest of the input and fails at its end; the next growth, four
+		// characters on, scans it again.
+		{"after an inner choice", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\n" + z, ClassUnknown,
+			"the late part of l at 3:30 in rule l, which the first step of its growth need not reach, can fail after the repetition [ab+{]* at 4:22 in rule z and is not committing against the seed of the growth of l", 0},
+		// The same with the scan in a repetition of a rule that scans, in a rule that it calls,
+		// in a repetition whose element calls a left-recursive rule (no run site), and in the
+		// skip of a #recover that is not a reused skip.
+		{"repetition of a scanning rule", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" c+ \"}\" \"!\"\nrule c = \"a\" [ab+{]*\n", ClassUnknown, "the late part of l", 0},
+		{"scan in a called rule", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" c+ \"}\" \"!\"\nrule c = \"a\" d\nrule d = [ab+{]*\n", ClassUnknown, "the late part of l", 0},
+		{"element with a left-recursive call", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" (c / x)* \"}\" \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n", ClassUnknown, "the late part of l", 0},
+		{"scan in a recovery skip", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" r\nrule r = (\"b\" \"+\" \"{\" \"!\") #recover(skip=(c / x)* \"}\") \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n", ClassUnknown, "the late part of l", 0},
+		// A late part that is not the last alternative: the alternative after it fails too.
+		{"late part before the last alternative", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z / \"q\"\n" + z, ClassUnknown, "the late part of l", 0},
+		// A late part that succeeds keeps the step, and its lookahead, which scans, is checked as
+		// the unit it is; the late part adds no degree to it.
+		{"kept step with a scanning lookahead", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" !([ab+{]* \"}\" \"!\")\n", ClassUnknown, "the late part of l", 2},
+		// Controls. A first alternative that the step evaluates again succeeds again, so the
+		// later one is never reached; the inner choice is followed by nothing that fails; the
+		// late part begins otherwise than the seed; nothing fails after the scan.
+		{"earlier alternative matches again", lateMain + "rule l = l \"+\" \"b\" / \"a\" \"b\" / \"a\" z\n" + z, ClassLinear, "", 0},
+		{"nothing fails after the inner choice", lateMain + "rule l = (l \"+\" \"b\" / \"a\" \"b\") / \"a\" z\n" + z, ClassLinear, "", 0},
+		{"late part committing against the seed", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"q\" z\n" + z, ClassLinear, "", 0},
+		// A skip of single characters is a reused skip, whose records keep the parse linear.
+		{"reused skip", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" r\nrule r = (\"b\" \"+\" \"{\" \"!\") #recover(skip=[ab+{]* \"}\") \"!\"\n", ClassLinear, "", 0},
+		{"late part that cannot fail after its scan", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" [ab+{]*\n", ClassLinear, "", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			c := classifySource(t, tc.src)
+			if c.Class != tc.class {
+				t.Fatalf("class %v, want %v\ncauses %v\nreasons %v", c.Class, tc.class, c.Causes, c.Reasons)
+			}
+			if tc.degree != 0 && c.WitnessedDegree != tc.degree {
+				t.Errorf("witnessed degree %d, want %d\ncauses %v", c.WitnessedDegree, tc.degree, c.Causes)
+			}
+			found := false
+			for _, r := range c.Reasons {
+				if strings.HasPrefix(r.Message, "the late part") {
+					found = true
+					if tc.reason == "" || !strings.HasPrefix(r.Message, tc.reason) {
+						t.Errorf("reason %q, want %q", r.Message, tc.reason)
+					}
+				}
+			}
+			if tc.reason != "" && !found {
+				t.Errorf("no late-part reason, want %q\nreasons %v", tc.reason, c.Reasons)
+			}
+		})
+	}
+}
