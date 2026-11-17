@@ -19,8 +19,8 @@ import (
 // spec/runtime/parsing.md in generated TypeScript parsers, as the engine's TestMemoStorePolicy does:
 // of the evaluations of a memoized rule at a position outside every context of growths, only the
 // first may leave no result in the memo, so a parse and a recognition evaluate the rule of each
-// case of codegentest.StorePolicyCases as often as the policy allows (generated TypeScript has no
-// streams).
+// case of codegentest.StorePolicyCases as often as the policy allows. Generated TypeScript has no streams (stream generation is only
+// supported for Go) and no Documents, so neither entry exists to test there.
 func TestGeneratedTSStorePolicy(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {

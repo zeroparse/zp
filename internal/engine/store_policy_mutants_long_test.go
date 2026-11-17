@@ -26,4 +26,10 @@ func TestMemoStorePolicyMutantsFail(t *testing.T) {
 			[]printedEdit{{sparse, "\t\tfirst = markSeenPage(page, pos) || t.MarkSparseSeen(pos+1<<12, r)\n"}},
 			test, here},
 	})
+	// A Document parse stores every call: a Document that defers a first call evaluates more.
+	runPrintedMutants(t, "document/document.go", []printedMutant{
+		{"a Document defers the first call of a rule at a position",
+			[]printedEdit{{"Memo: d.memo, MemoAll: true,", "Memo: d.memo, DeferMemo: true, MemoAll: true,"}},
+			"^TestMemoStorePolicyDocument$", here},
+	})
 }
