@@ -239,9 +239,12 @@ context has at most $N$ growths.
 Several leaders of one cycle at $p$ give nested growths. The growth of $L'$ in
 step $i$ of the growth of $L$ reads $r_{i-1}$ and so can be a different
 function of its start in each step; it is not shared between steps, which is
-(G5) "grows again in each context", except where a call reuses a result that
-the same growing results determine, which is then the result it would grow
-to. Its result is determined as above.
+(G5) "grows again in each context", except where a call reuses a memoized
+result, which reads no growth open at its start ([Lemma 3 of the memoization
+proof](memoization.md#lemma-3-answering-from-a-sound-entry)), or a result kept
+in a context of the same growths ([Lemma
+4](memoization.md#lemma-4-answering-from-a-dependent-result)); either is the
+result it would grow to. Its result is determined as above.
 
 **$\mathcal{M}$ passes through the same results.** By induction on the steps
 of the growth, $\mathcal{M}$ and $\mathcal{R}$ have the same current result
