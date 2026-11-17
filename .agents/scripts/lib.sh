@@ -7,7 +7,6 @@
 #   wt/<name>/         worktrees
 #   runs/ slots/ benchlock/ benchlock.seq benchlock-stalls.log   run queue (written by the scripts only)
 #   gates/<tag>.log    gate logs
-# BENCHLOCK_DIR and TESTSLOT_DIR still override the queue paths, for a state directory laid out differently.
 
 zp_state=${ZP_AGENT_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/zp-team}
 export ZP_AGENT_STATE=$zp_state

@@ -5,7 +5,7 @@
 set -euo pipefail
 # shellcheck source=lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
-R=${BENCHLOCK_DIR:-$zp_state}/runs
+R=$zp_state/runs
 tag=${1:-}
 [ -n "$tag" ] || { echo "usage: benchstop.sh <tag>" >&2; exit 2; }
 found=0

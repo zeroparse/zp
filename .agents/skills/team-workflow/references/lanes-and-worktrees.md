@@ -4,7 +4,7 @@
 
 - Never work or read skills in the root checkout: other lanes move it, and it goes stale.
   Run `.agents/scripts/lane-new.sh <name> <branch>`: it fetches and creates your worktree at
-  `$ZP_TEAM_STATE/wt/<name>` from fresh `origin/main` on a new branch with a prefix from `AGENTS.md`.
+  `$ZP_AGENT_STATE/wt/<name>` from fresh `origin/main` on a new branch with a prefix from `AGENTS.md`.
 - Read `AGENTS.md` and the onboarding skill inside your worktree, because they change on main.
 - Scratch files go in an untracked `.scratch/` inside your worktree. Never stage them.
   Never use the system temp directory for work you need later, because a reboot wipes it.

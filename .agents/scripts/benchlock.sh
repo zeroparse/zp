@@ -4,7 +4,7 @@
 # The command runs in a process group of its own, recorded in runs/<tag>.<pid> while it runs, so
 # benchstop.sh can stop exactly the groups this script started and nothing else.
 #
-# State: $BENCHLOCK_DIR, default $ZP_AGENT_STATE (see lib.sh). The layout is the one of the earlier
+# State: $ZP_AGENT_STATE (see lib.sh). The layout is the one of the earlier
 # zsh version of this script, so jobs queued by either version are ranked together.
 #
 # Deadlock freedom: every waiter is ranked by the key (start, seq). seq is a counter handed out
@@ -16,7 +16,7 @@ set -euo pipefail
 # shellcheck source=lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 [ $# -ge 2 ] || { echo "usage: benchlock.sh <owner-tag> <command...>" >&2; exit 2; }
-D=${BENCHLOCK_DIR:-$zp_state}
+D=$zp_state
 L=$D/benchlock
 R=$D/runs
 stall=${BENCHLOCK_STALL:-300}

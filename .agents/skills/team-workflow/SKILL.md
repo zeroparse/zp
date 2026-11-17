@@ -18,8 +18,7 @@ state directory below is disposable coordination scratch.
 
 ## Set up a machine
 
-1. The state directory is `$ZP_AGENT_STATE` (default `${XDG_STATE_HOME:-$HOME/.local/state}/zp-team`,
-   written `$ZP_TEAM_STATE` in the references below). The scripts in `.agents/scripts/` create it,
+1. The state directory is `$ZP_AGENT_STATE` (default `${XDG_STATE_HOME:-$HOME/.local/state}/zp-team`). The scripts in `.agents/scripts/` create it,
    its queue files and `wt/` on first use; `AGENTS.md` lists them with their usage. They need
    `bash`, `git` and `perl`.
 2. Create `$ZP_AGENT_STATE/review/` for handovers, and `landing-train.md` with the format line

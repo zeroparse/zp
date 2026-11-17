@@ -6,7 +6,7 @@
 set -euo pipefail
 # shellcheck source=lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
-D=${BENCHLOCK_DIR:-$zp_state}
+D=$zp_state
 echo "state: $D"
 echo "lock owner: $(cat "$D/benchlock/owner" 2>/dev/null || echo none)"
 for f in "$D"/runs/*; do

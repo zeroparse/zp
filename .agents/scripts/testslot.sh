@@ -4,11 +4,11 @@
 # directory slots/<i> holding a `pid` file; a slot whose holder PID is dead is reclaimed.
 # Claiming runs under a short global mutex (slots/.mutex) so that reclaiming a dead holder's slot
 # cannot race with a new holder taking it. Holders release without the mutex (pid file first).
-# State: $TESTSLOT_DIR, default $ZP_AGENT_STATE/slots (the layout of the earlier zsh version).
+# State: $ZP_AGENT_STATE/slots (the layout of the earlier zsh version).
 set -euo pipefail
 # shellcheck source=lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
-D=${TESTSLOT_DIR:-$zp_state/slots}
+D=$zp_state/slots
 n=${TESTSLOT_N:-4}
 [ $# -gt 0 ] || { echo "usage: testslot.sh <cmd...>" >&2; exit 2; }
 mkdir -p "$D"

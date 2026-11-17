@@ -5,7 +5,7 @@ together take hours. They run only on train tips, never once per lane.
 
 ## Queue file
 
-`$ZP_TEAM_STATE/landing-train.md` is append-only for lanes. It starts with this line:
+`$ZP_AGENT_STATE/landing-train.md` is append-only for lanes. It starts with this line:
 
 ```text
 Format: READY <branch> <sha> base <sha> | <scope, Refs #N> | <checks run, each with its exit status> | <review verdict file>; the leader's go is a separate LEADER go line
