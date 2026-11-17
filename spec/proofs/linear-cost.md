@@ -8595,9 +8595,13 @@ Then $\mathcal{P}$ is a parse of the [Setting](#setting), and every
 successful activation $\alpha$ of a source $\sigma$ at $q$ that a growth
 step or an evaluation in a context of growths owns in the parse has an
 **image**: a successful activation of $\sigma$ at $q$ in $\mathcal{P}$
-that a growth step or an evaluation in a context of growths owns there.
-Each activation of $\mathcal{P}$ is the image of at most a constant number
-of activations of the parse.
+that a growth step or an evaluation in a context of growths owns there,
+or, when $\alpha$ is a growth activation and $\mathcal{P}$ answers the
+call that starts its growth, a successful growth activation at $q$ in
+$\mathcal{P}$ of the source at an earlier call with the key of that call,
+whatever owns that call in $\mathcal{P}$. Each activation of
+$\mathcal{P}$ is the image of at most a constant number of activations of
+the parse.
 
 *Proof.* $\mathcal{P}$ is a parse of the Setting: it keeps no record and
 resumes no run, so its records are exact; it stores outside every context
@@ -8713,6 +8717,33 @@ of activations that their owners own, and the activations of the parse
 with image $\alpha'$ are owned by owners with one of those images, one
 activation at the place of $\alpha'$ in each.
 
+A growth activation $\alpha$ is a step of the growth of a call $c$ of a
+leader, outside every context of growths since its growth is outer, and
+its place is that of $c$ (the paragraph on the family claims after
+*Second outer growths* below). The path from $G$ to $c$ is as above, so $\mathcal{P}$ reaches
+the place of $c$ in $G'$ and makes there a call $c'$ whose counterpart is
+$\mathcal{R}(c)$, outside every context too. If $\mathcal{P}$ evaluates
+$c'$, it grows the leader, its growth takes the steps of the growth of
+$c$, both being those of $\mathcal{R}(c)$, and the step of the rank of
+$\alpha$ is the image $\alpha'$, a growth activation at $q$ of $\sigma$,
+and what is said above holds with the place of $c$ for that of $\alpha$.
+Otherwise $\mathcal{P}$ answers $c'$, and, as for $y$ in *Images of
+owners*, from an entry under the key of $c$ into which it has stored the
+result of a growth $c_1$ of that key whose counterpart starts before that
+of $c$: the result of $c$ reads no growing result, since a growth that it
+reads would be open at its position and $c$ would be in its context, as
+the paragraph after (iii) below shows of every call; the parse evaluates
+$c$, so its entry, which answers every call that the entry of the earlier
+parse answers, does not answer $c$; and the result of $c_1$, which
+$\mathcal{P}$ stored, reads none either. So $\mathcal{R}(c_1)$ takes the
+steps of $\mathcal{R}(c)$, and the step of the rank of $\alpha$ of the
+growth of $c_1$ is a successful growth activation at $q$, of the source
+at the call that starts that growth, whatever owns $c_1$ in
+$\mathcal{P}$: the image of $\alpha$. The activations of the parse with
+that image are steps of that rank of growths at calls of the key of $c_1$
+outside every context whose results read no growing result, so they are
+at most three by the count of (i) below, one step of each rank in each.
+
 *Owners with one image.* It remains to bound by a constant the owners
 $G$ of the parse with one image $G'$; they have the key of $G'$ and, for
 a step, its rank. A call $y$ above, which the parse evaluates and
@@ -8775,15 +8806,21 @@ descent after a constant number of levels, and the owners with one image
 are at most a constant.
 
 So each activation of $\mathcal{P}$ is the image of at most a constant
-number of activations of the parse. $\square$
+number of activations of the parse, the growth activations whose image
+follows an answered call $c$ adding at most three. $\square$
 
 By the claim, the successful activations of $\sigma$ at $q$ that growth
 steps and evaluations in a context of growths own in such a parse,
 inside the iterations of the kind, inside resumable iterations or
-outside, are at most a constant times those of $\mathcal{P}$, whatever
-the parse answers in contexts, and the count of Lemma 5 read in
-$\mathcal{P}$, which answers nothing in contexts, bounds them, apart
-from the kinds and the parts that it leaves. The constant is built from
+outside, are at most a constant times those of $\mathcal{P}$ and, for
+growth activations, the successful growth activations at $q$ of all
+sources that $\mathcal{P}$ makes, whatever the parse answers in contexts.
+The count of Lemma 5 read in $\mathcal{P}$, which answers nothing in
+contexts, bounds the former, and the latter where a growth step or an
+evaluation in a context of growths owns them, and *Activations held by
+heads*, which rests on no bound of this lemma, where a memoized
+evaluation owns them, apart from the kinds and the parts that these
+counts leave. The constant is built from
 those of (i) to (iii) and the factor $|\text{rules}|$ of the images that
 contain one activation, a function of the grammar alone. The claim compares the
 two parses; it does not show that the parse makes fewer evaluations than
