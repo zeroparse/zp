@@ -2030,7 +2030,11 @@ interface SkipRecord {
   from: number;
   examined: number;
   list: boolean;
-  env: Env | null;
+  // key holds the values of the variables of the key that the walk from the position started with,
+  // and bind those that the rest of the walk left in the variables that the element binds (in the
+  // order of RunKey.bind); null for a site not keyed by the variables.
+  key: Value[] | null;
+  bind: Value[] | null;
   kids: ValBuf | null;
   ki: number;
   errs: Errs;
@@ -2079,13 +2083,41 @@ interface ScanCold {
   hot: boolean;
 }
 
+// RunKey holds the slots of the variables that key the records of a run site that is not free of
+// the environment: vars, those that its element reads or binds and those that the rules it calls
+// read, and bind, those that it binds, which a walk that takes a record sets to the values the walk
+// of the record left in them.
+export interface RunKey {
+  readonly vars: number[];
+  readonly bind: number[];
+}
+
+// runKey returns the RunKey of the slots vars and bind; generated parsers make one for each keyed
+// run site.
+export function runKey(vars: number[], bind: number[]): RunKey {
+  return { vars, bind };
+}
+
+// WalkKey is the key of a visit: the values of the variables of the key and their hash (null and 0
+// for a site not keyed by the variables).
+interface WalkKey {
+  vals: Value[] | null;
+  h: number;
+}
+
+const noKey: WalkKey = { vals: null, h: 0 };
+
 // SkipSlots holds the slots of a site: a bit for each position from base on in the 32-bit words
-// marks, set when the slot is not fresh, and the records of the recorded slots by the environment
-// their walks started in (null for a site not keyed by it) and position.
+// marks, set when the slot is not fresh, and the records of the recorded slots by the hash of the
+// values of the key their walks started with (0 for a site not keyed by the variables) and
+// position. Records whose keys share a hash are told apart by their values (more).
 class SkipSlots {
   base = 0;
   marks: number[] = [];
-  recs = new Map<Env | null, Map<number, SkipRecord>>();
+  recs = new Map<number, Map<number, SkipRecord>>();
+  // more holds, by hash and position, the records whose key shares the hash of the one in recs but
+  // not its values.
+  more: Map<number, Map<number, SkipRecord[]>> | null = null;
 
   // marked reports whether the slot of pos is not fresh.
   marked(pos: number): boolean {
@@ -2093,15 +2125,26 @@ class SkipSlots {
     return i >= 0 && i >>> 5 < this.marks.length && (this.marks[i >>> 5]! & (1 << (i & 31))) !== 0;
   }
 
-  // get returns the record of pos for walks that start in the environment env, if any.
-  get(pos: number, env: Env | null): SkipRecord | undefined {
-    return this.recs.get(env)?.get(pos);
+  // get returns the record of pos for walks that start with the key k, if any. Comparing the values
+  // of the key charges as comparing those of a memo key does.
+  get(pos: number, k: WalkKey, control: BudgetControl | null): SkipRecord | undefined {
+    const r = this.recs.get(k.h)?.get(pos);
+    if (r === undefined || k.vals === null || sameValues(r.key, k.vals, control)) {
+      return r;
+    }
+    for (const x of this.more?.get(k.h)?.get(pos) ?? []) {
+      if (sameValues(x.key, k.vals, control)) {
+        return x;
+      }
+    }
+    return undefined;
   }
 
-  // put marks the slot of pos and stores its record r, if any, and reports whether it made the
-  // records of a new environment. Room made for bits before base is as large as the bits, so walks
-  // that start farther and farther back copy them a logarithmic number of times.
-  put(pos: number, env: Env | null, r: SkipRecord | null): boolean {
+  // put marks the slot of pos and stores its record r, if any, for walks that start with the key k,
+  // and reports whether it made the records of a new hash. Room made for bits before base is as
+  // large as the bits, so walks that start farther and farther back copy them a logarithmic number
+  // of times.
+  put(pos: number, k: WalkKey, r: SkipRecord | null, control: BudgetControl | null): boolean {
     if (this.marks.length === 0) {
       this.base = pos - (pos & 31);
     } else if (pos < this.base) {
@@ -2119,13 +2162,19 @@ class SkipSlots {
     if (r === null) {
       return false;
     }
-    let m = this.recs.get(env);
+    r.key = k.vals;
+    let m = this.recs.get(k.h);
     const made = m === undefined;
     if (m === undefined) {
       m = new Map();
-      this.recs.set(env, m);
+      this.recs.set(k.h, m);
     }
     const old = m.get(pos);
+    if (old !== undefined && k.vals !== null && !sameValues(old.key, k.vals, control)) {
+      // Another key with the same hash holds the slot: the record goes with the others.
+      this.putMore(pos, k.h, r, control);
+      return made;
+    }
     if (old !== undefined && old.list && !r.list) {
       // A record with values serves the walks without values too, and holds what this one holds
       // besides them, so it stays: a key holds a record without values only until a walk with
@@ -2135,15 +2184,37 @@ class SkipSlots {
     m.set(pos, r);
     return made;
   }
+
+  // putMore stores r in the records of the hash h at pos whose key shares the hash of the one in
+  // recs, keeping a record with values over one without, as put does.
+  putMore(pos: number, h: number, r: SkipRecord, control: BudgetControl | null): void {
+    this.more ??= new Map();
+    let m = this.more.get(h);
+    if (m === undefined) {
+      m = new Map();
+      this.more.set(h, m);
+    }
+    const rs = m.get(pos) ?? [];
+    for (let i = 0; i < rs.length; i++) {
+      if (sameValues(rs[i]!.key, r.key, control)) {
+        if (!rs[i]!.list || r.list) {
+          rs[i] = r;
+        }
+        return;
+      }
+    }
+    rs.push(r);
+    m.set(pos, rs);
+  }
 }
 
-// SkipVisit is a recording visit of the walk in progress: its position and the environment its
-// iteration started in (null for a site not keyed by it), the number of elements collected before
+// SkipVisit is a recording visit of the walk in progress: its position and the key its iteration
+// started with (noKey for a site not keyed by the variables), the number of elements collected before
 // it (vi) and of entries of the record of recovered errors (e0), and once the iteration ended its
 // farthest failure and expectations, the input it examined and the errors it recovered.
 interface SkipVisit {
   pos: number;
-  env: Env | null;
+  key: WalkKey;
   vi: number;
   e0: number;
   far: number;
@@ -2157,11 +2228,11 @@ interface SkipVisit {
 // sites of their own, so the walks in progress form a stack (Parser.skips), and the innermost one
 // is the one in use.
 class SkipWalk {
-  // keyEnv reports that the records of the site are keyed by the environment the walk starts in,
-  // and that a walk that reuses one takes its end environment. The walks of a site whose element
-  // reads or binds no variable, directly or in the rules it calls, do neither: their records hold
-  // for every environment, which a walk keeps.
-  keyEnv = false;
+  // key holds the slots of the variables that key the records of the site (RunKey), null for a
+  // site whose element reads or binds no variable, directly or in the rules it calls: its records
+  // hold for every environment, which a walk keeps. A walk that reuses the record of a keyed site
+  // binds the variables of the key's bind to the values the walk of the record left in them.
+  key: RunKey | null = null;
   // recording reports that the walk records its visits (it met a position that is not fresh).
   recording = false;
   // table is the index of the slots in skipTables, and slots the slots, undefined until a walk of
@@ -2171,7 +2242,6 @@ class SkipWalk {
   // prev is the position of the last iteration of a plain walk, or -1; the walk marks it when the
   // iteration has matched.
   prev = -1;
-  prevEnv: Env | null = null;
   visits: SkipVisit[] = [];
   // open reports that the last visit's iteration is running with its expectations isolated: the
   // enclosing record is far0 and base0, and the examined range from before it savedLow and
@@ -3471,17 +3541,17 @@ export class Parser {
 
   // skipBegin starts a walk of the skip-run site at the current position.
   skipBegin(site: number): void {
-    this.walkBegin(site, false, false);
+    this.walkBegin(site, false, null);
   }
 
   // runBegin starts a walk of the hot run site at the current position. build reports that its
-  // iterations have values (skipValue), which skipKids gathers in a list, and keyEnv that its
-  // records are keyed by the environment (SkipWalk.keyEnv).
-  runBegin(site: number, build: boolean, keyEnv: boolean): void {
-    this.walkBegin(site, build, keyEnv);
+  // iterations have values (skipValue), which skipKids gathers in a list, and key the key of its
+  // records, null for a site free of the environment (SkipWalk.key).
+  runBegin(site: number, build: boolean, key: RunKey | null): void {
+    this.walkBegin(site, build, key);
   }
 
-  walkBegin(site: number, build: boolean, keyEnv: boolean): void {
+  walkBegin(site: number, build: boolean, key: RunKey | null): void {
     if (this.skipN === this.skips.length) {
       this.alloc(objectBytes(20));
       this.skips.push(new SkipWalk());
@@ -3491,7 +3561,7 @@ export class Parser {
     const i = 2 * site + (this.silent > 0 ? 1 : 0);
     w.table = i;
     w.slots = this.skipTables[i];
-    w.keyEnv = keyEnv;
+    w.key = key;
     w.build = build;
     w.placed = false;
     w.visits.length = 0;
@@ -3508,10 +3578,26 @@ export class Parser {
     this.walk().vals.push(v);
   }
 
-  // walkEnv returns the environment that keys the records of the walk at the current position: the
-  // environment of the parse for a site keyed by it, null otherwise.
-  walkEnv(): Env | null {
-    return this.walk().keyEnv ? this.env : null;
+  // walkKey returns the key of the walk at the current position: the values of the variables of the
+  // key and their hash for a site keyed by them, noKey otherwise. Reading the values and hashing
+  // them charge as for a memo key.
+  walkKey(): WalkKey {
+    const k = this.walk().key;
+    if (k === null) {
+      return noKey;
+    }
+    const vals = this.envValues(k.vars);
+    return { vals, h: memoKeyHash(0, 0, vals, this.control) };
+  }
+
+  // walkBind returns the values of the variables that the element of the walk's site binds, in the
+  // order of RunKey.bind, null for a site not keyed by the variables.
+  walkBind(): Value[] | null {
+    const k = this.walk().key;
+    if (k === null || k.bind.length === 0) {
+      return null;
+    }
+    return this.envValues(k.bind);
   }
 
   // skipRecords reports whether the walk records from the current position on, which it starts to
@@ -3529,7 +3615,7 @@ export class Parser {
   skipMarkPrev(): void {
     const w = this.walk();
     if (w.prev >= 0) {
-      this.skipSlot(w.prev, w.prevEnv, null);
+      this.skipSlot(w.prev, noKey, null);
       w.prev = -1;
     }
   }
@@ -3544,7 +3630,7 @@ export class Parser {
     const w = this.walk();
     this.skipClose();
     this.spend();
-    const r = w.slots?.get(this.pos, this.walkEnv());
+    const r = w.slots?.get(this.pos, this.walkKey(), this.control);
     if (r === undefined || (w.build && !r.list)) {
       return false;
     }
@@ -3553,8 +3639,10 @@ export class Parser {
     this.documentTouchFrom(r.from);
     this.mergeKept(r.far, r.exp);
     this.pos = r.end;
-    if (w.keyEnv) {
-      this.env = r.env;
+    if (w.key !== null) {
+      for (let i = 0; i < w.key.bind.length; i++) {
+        this.bindValue(w.key.bind[i]!, r.bind![i]!);
+      }
     }
     this.recAdd(r.errs);
     w.hit = r;
@@ -3569,12 +3657,11 @@ export class Parser {
     if (!this.skipRecords()) {
       this.skipMarkPrev();
       w.prev = this.pos;
-      w.prevEnv = this.walkEnv();
       return;
     }
     this.skipClose();
     this.alloc(objectBytes(9));
-    w.visits.push({ pos: this.pos, env: this.walkEnv(), vi: w.vals.length, e0: this.recovered.length, far: 0, exp: noExp, from: 0, examined: 0, errs: null });
+    w.visits.push({ pos: this.pos, key: this.walkKey(), vi: w.vals.length, e0: this.recovered.length, far: 0, exp: noExp, from: 0, examined: 0, errs: null });
     w.open = true;
     // The visit measures the input it examines from its position on.
     w.savedLow = this.docLow;
@@ -3661,10 +3748,10 @@ export class Parser {
     this.skipClose();
     const vs = w.visits;
     let n = vs.length;
-    let endEnv = this.walkEnv();
+    let endBind = this.walkBind();
     const hit = w.hit;
     if (hit !== null) {
-      endEnv = hit.env;
+      endBind = hit.bind;
     }
     if (w.build && (n > 0 || hit !== null)) {
       this.placeVals(w, hit, paid);
@@ -3673,13 +3760,13 @@ export class Parser {
     if (next === null && n > 0) {
       // The last iteration failed or matched nothing: the walk ended at its start.
       const v = vs[--n]!;
-      next = { end: v.pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, list: w.build, env: endEnv, kids: null, ki: 0, errs: null };
+      next = { end: v.pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, list: w.build, key: null, bind: endBind, kids: null, ki: 0, errs: null };
       this.skipLink(w, next, v, null);
-      this.skipPut(v.pos, v.env, next);
+      this.skipPut(v.pos, v.key, next);
     }
     for (let i = n - 1; i >= 0; i--) {
       const v = vs[i]!;
-      const r: SkipRecord = { end: next!.end, far: next!.far, exp: next!.exp, from: Math.min(v.from, next!.from), examined: Math.max(v.examined, next!.examined), list: w.build, env: endEnv, kids: null, ki: 0, errs: null };
+      const r: SkipRecord = { end: next!.end, far: next!.far, exp: next!.exp, from: Math.min(v.from, next!.from), examined: Math.max(v.examined, next!.examined), list: w.build, key: null, bind: endBind, kids: null, ki: 0, errs: null };
       if (v.far > r.far) {
         r.far = v.far;
         r.exp = v.exp;
@@ -3687,7 +3774,7 @@ export class Parser {
         r.exp = mergeSkipExpected(v.exp, r.exp);
       }
       this.skipLink(w, r, v, next!.errs);
-      this.skipPut(v.pos, v.env, r);
+      this.skipPut(v.pos, v.key, r);
       next = r;
     }
     vs.length = 0;
@@ -3757,13 +3844,13 @@ export class Parser {
 
   // skipPut stores the record r of the position pos, for walks that start in env, in the slots of
   // the walk.
-  skipPut(pos: number, env: Env | null, r: SkipRecord): void {
+  skipPut(pos: number, k: WalkKey, r: SkipRecord): void {
     this.spend();
-    this.skipSlot(pos, env, r);
+    this.skipSlot(pos, k, r);
   }
 
   // skipSlot sets the slot of pos in the slots of the walk, making them.
-  skipSlot(pos: number, env: Env | null, r: SkipRecord | null): void {
+  skipSlot(pos: number, k: WalkKey, r: SkipRecord | null): void {
     const w = this.walk();
     let s = w.slots;
     if (s === undefined) {
@@ -3773,7 +3860,7 @@ export class Parser {
       this.alloc(objectBytes(3) + arrayBytes(0) + mapBytes);
     }
     const words = s.marks.length;
-    const made = s.put(pos, env, r);
+    const made = s.put(pos, k, r, this.control);
     // The words the marks grew by, and the record with its map entry.
     this.alloc(8 * (s.marks.length - words) + (r === null ? 0 : objectBytes(10) + mapEntryBytes) + (made ? mapBytes : 0));
   }

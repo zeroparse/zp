@@ -5,7 +5,9 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -124,6 +126,7 @@ func GenerateParser(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOpti
 		}
 		tsg.Desc(compile.FixedDescs[0]) // the fixed expectations come first
 		tsg.rules()
+		tsg.runKeys()
 		if tsg.FlowErr != nil {
 			return nil, tsg.FlowErr
 		}
@@ -133,6 +136,7 @@ func GenerateParser(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOpti
 		if rec != nil {
 			tsg.Prog, tsg.Table = rec, "recRules"
 			tsg.rules()
+			tsg.runKeys()
 			tsg.Prog, tsg.Table = prog, "rules"
 			if tsg.FlowErr != nil {
 				return nil, tsg.FlowErr
@@ -322,6 +326,9 @@ type Generator struct {
 	codegen.Generator
 	// plainUsed holds the plain rules whose function (plainCall) is called.
 	plainUsed map[*compile.Rule]bool
+	// keyUsed holds the run sites of the rule table being generated whose key constant
+	// (runKeyName) the emitted code refers to; runKeys writes only those.
+	keyUsed map[int]bool
 	// optionsType is the name of the library's options type that the entry points take: ParseOptions
 	// with limit controls, PlainParseOptions without.
 	optionsType string
@@ -772,4 +779,30 @@ export function createDocument(input: string | Uint8Array, options?: %[1]s): { d
 }
 
 `, g.optionsType, start.ID)
+}
+
+// runKeys writes the constants of the keys of the run sites of the program being generated that are
+// not free of the environment (runKeyName), as the slots of their variables: those of the sites
+// whose code the rules emitted refer to (keyUsed), so that no constant goes unread. It runs after
+// the rules of the table, and the constants are initialized before a parse starts.
+func (g *Generator) runKeys() {
+	keys := g.Prog.RunKeys()
+	for _, site := range slices.Sorted(maps.Keys(keys)) {
+		if !g.keyUsed[site] {
+			continue
+		}
+		k := keys[site]
+		fmt.Fprintf(&g.Init, "const %s = runKey(%s, %s);\n", g.runKeyName(site), tsIntList(g.Prog.Vars.Slots(k.Vars)), tsIntList(g.Prog.Vars.Slots(k.Bind)))
+	}
+	g.keyUsed = nil
+}
+
+// runKeyName names the constant of the key of the run site in the rule table being generated, and
+// records that the code refers to it.
+func (g *Generator) runKeyName(site int) string {
+	if g.keyUsed == nil {
+		g.keyUsed = map[int]bool{}
+	}
+	g.keyUsed[site] = true
+	return fmt.Sprintf("%sRunKey%d", g.Table, site)
 }

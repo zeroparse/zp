@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"go/format"
 	"go/token"
+	"maps"
 	"math"
 	"path"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -281,9 +283,11 @@ func generateOnce(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOption
 		}
 		fmt.Fprintf(&genGo.Init, "\tzpGrammar.SetVars(%s, []any{%s})\n", goStrings(names), strings.Join(vals, ", "))
 	}
+	writeRunKeys(&genGo.Init, "zpGrammar", prog)
 
 	if rec != nil && !opts.TypedOnly {
 		genGo.Init.WriteString("\tzpRecGrammar.Share(zpGrammar)\n")
+		writeRunKeys(&genGo.Init, "zpRecGrammar", rec)
 	}
 
 	var out strings.Builder
@@ -1641,4 +1645,26 @@ func joinPrefixed(items []string) string {
 		return ""
 	}
 	return ", " + strings.Join(items, ", ")
+}
+
+// writeRunKeys writes the calls that give the grammar g the keys of the run sites of prog that are
+// not free of the environment, by site, as the slots of their variables.
+func writeRunKeys(w *strings.Builder, g string, prog *compile.Program) {
+	keys := prog.RunKeys()
+	for _, site := range slices.Sorted(maps.Keys(keys)) {
+		k := keys[site]
+		fmt.Fprintf(w, "\t%s.SetRunKey(%d, %s, %s)\n", g, site, goSlots(prog, k.Vars), goSlots(prog, k.Bind))
+	}
+}
+
+// goSlots returns the Go expression of the slots of the variables names of prog, nil for none.
+func goSlots(prog *compile.Program, names []string) string {
+	if len(names) == 0 {
+		return "nil"
+	}
+	slots := make([]string, len(names))
+	for i, n := range names {
+		slots[i] = strconv.Itoa(prog.Vars.Index(n))
+	}
+	return "[]int{" + strings.Join(slots, ", ") + "}"
 }

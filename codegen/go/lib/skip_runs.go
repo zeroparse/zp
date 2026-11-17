@@ -35,7 +35,8 @@ const (
 )
 
 // skipRecord is the state of a position and, once recorded, what the rest of a walk from it did:
-// where it ended and with which environment (nil for a site not keyed by it), its farthest failure
+// where it ended and the values it left in the variables that the element binds (bind, in the
+// order of the site's run key; none for a site not keyed by the variables), its farthest failure
 // and the expectations there, the input it examined in a Document parse ([from, examined)), the
 // elements it collected (a run site that builds values; nodes in a Node parse, tvals in a typed
 // one) and the errors it recovered. list reports that a walk that builds values made the record:
@@ -47,17 +48,33 @@ type skipRecord struct {
 	from, examined int
 	state          uint8
 	list           bool
-	env            *Env
-	nodes          valSuffix[*core.Node]
-	tvals          valSuffix[any]
-	errs           *recEntry // nil for none, so that a record of no errors stays small
+	// key holds the values of the variables of the key that the walk from the position started with.
+	key, bind []any
+	nodes     valSuffix[*core.Node]
+	tvals     valSuffix[any]
+	errs      *recEntry // nil for none, so that a record of no errors stays small
 }
 
-// skipKey is the key of a record: the position and the environment the walk from the position
-// started in, nil for a site whose records are not keyed by it (skipWalk.keyEnv).
+// skipKey indexes the records: the position and the hash of the values of the variables of the
+// key that the walk from the position started with, zero for a site not keyed by them
+// (skipWalk.key). Records whose keys share a hash are told apart by their values (skipSlots.more).
 type skipKey struct {
 	pos int
-	env *Env
+	h   uint64
+}
+
+// walkKey is the key of a visit: the values of the variables of the key, and their hash.
+type walkKey struct {
+	vals []any
+	h    uint64
+}
+
+// RunKey holds the slots of the variables that key the records of a run site that is not free of
+// the environment: Vars, those that its element reads or binds and those that the rules it calls
+// read, and Bind, those that it binds, which a walk that takes a record sets to the values the walk
+// of the record left in them.
+type RunKey struct {
+	Vars, Bind []int
 }
 
 // valBuf holds the elements that walks collected. A record holds a suffix of a buffer, which is
@@ -83,6 +100,8 @@ type skipSlots struct {
 	base  int
 	marks []uint64
 	recs  map[skipKey]skipRecord
+	// more holds the records whose key shares the hash of the one in recs but not its values.
+	more  map[skipKey][]skipRecord
 	floor int
 	// kept is the number of records after dropped ones were last removed.
 	kept int
@@ -99,23 +118,31 @@ func (s *skipSlots) marked(pos int) bool {
 	return i >= 0 && i>>6 < len(s.marks) && s.marks[i>>6]&(1<<(i&63)) != 0
 }
 
-// get returns the slot of pos for walks that start in the environment env; a fresh slot is the
-// zero record.
-func (s *skipSlots) get(pos int, env *Env) skipRecord {
+// getSkip returns the slot of pos for walks that start with the key k; a fresh slot is the zero
+// record. Comparing the values of the key charges as comparing those of a memo key does.
+func (p *Parser) getSkip(s *skipSlots, pos int, k walkKey) skipRecord {
 	if !s.marked(pos) {
 		return skipRecord{}
 	}
-	if r, ok := s.recs[skipKey{pos, env}]; ok {
-		return r
+	sk := skipKey{pos, k.h}
+	if r, ok := s.recs[sk]; ok {
+		if len(k.vals) == 0 || p.memoKeyEqual(r.key, k.vals) {
+			return r
+		}
+		for _, r := range s.more[sk] {
+			if p.memoKeyEqual(r.key, k.vals) {
+				return r
+			}
+		}
 	}
 	return skipRecord{state: skipVisited}
 }
 
-// put sets the slot of pos to r, which is visited or recorded; a record without values leaves one
-// with values in place. Room made for bits before base is as
-// large as the bits, so walks that start farther and farther back copy them a logarithmic number of
-// times.
-func (s *skipSlots) put(pos int, env *Env, r skipRecord) {
+// putSkip sets the slot of pos for walks that start with the key k to r, which is visited or
+// recorded; a record without values leaves one with values in place. Room made for bits before
+// base is as large as the bits, so walks that start farther and farther back copy them a
+// logarithmic number of times.
+func (p *Parser) putSkip(s *skipSlots, pos int, k walkKey, r skipRecord) {
 	switch {
 	case len(s.marks) == 0:
 		s.base = pos &^ 63
@@ -134,18 +161,42 @@ func (s *skipSlots) put(pos int, env *Env, r skipRecord) {
 		if s.recs == nil {
 			s.recs = make(map[skipKey]skipRecord)
 		}
-		k := skipKey{pos, env}
-		if !r.list {
-			if old, ok := s.recs[k]; ok && old.list {
-				// A record with values serves the walks without values too, and holds what this
-				// one holds besides them, so it stays: a key holds a record without values only
-				// until a walk with values records it, and never after.
-				return
-			}
+		sk := skipKey{pos, k.h}
+		r.key = k.vals
+		old, ok := s.recs[sk]
+		if ok && len(k.vals) > 0 && !p.memoKeyEqual(old.key, k.vals) {
+			// Another key with the same hash holds the slot: the record goes with the others.
+			p.putMore(s, sk, r)
+			return
 		}
-		s.recs[k] = r
+		if ok && old.list && !r.list {
+			// A record with values serves the walks without values too, and holds what this
+			// one holds besides them, so it stays: a key holds a record without values only
+			// until a walk with values records it, and never after.
+			return
+		}
+		s.recs[sk] = r
 		s.expBytes += uint64(len(r.exp)) * expIDBytes
 	}
+}
+
+// putMore stores r in the records of sk whose key shares the hash of the one in recs, keeping a
+// record with values over one without, as putSkip does.
+func (p *Parser) putMore(s *skipSlots, sk skipKey, r skipRecord) {
+	if s.more == nil {
+		s.more = map[skipKey][]skipRecord{}
+	}
+	rs := s.more[sk]
+	for i, old := range rs {
+		if p.memoKeyEqual(old.key, r.key) {
+			if !old.list || r.list {
+				rs[i] = r
+			}
+			return
+		}
+	}
+	s.more[sk] = append(rs, r)
+	s.expBytes += uint64(len(r.exp)) * expIDBytes
 }
 
 // drop drops the slots of the positions before pos: the words of bits wholly before it at once, and
@@ -166,6 +217,11 @@ func (s *skipSlots) drop(pos int) {
 			delete(s.recs, k)
 		}
 	}
+	for k := range s.more {
+		if k.pos < pos {
+			delete(s.more, k)
+		}
+	}
 	s.kept = len(s.recs)
 }
 
@@ -174,10 +230,10 @@ type skipVisit struct {
 	pos, far       int
 	exp            []ExpID
 	from, examined int
-	// env is the environment the iteration started in (nil for a site not keyed by it), and vi the
-	// number of elements collected before it. e0 is the number of entries of the record of recovered
-	// errors before it, and errs the errors it recovered.
-	env    *Env
+	// key is the key the iteration started with (none for a site not keyed by the variables), and
+	// vi the number of elements collected before it. e0 is the number of entries of the record of
+	// recovered errors before it, and errs the errors it recovered.
+	key    walkKey
 	vi, e0 int
 	errs   recEntry
 }
@@ -196,11 +252,11 @@ type walkVals[T any] struct {
 // sites of their own, so the walks in progress form a stack (Parser.skips), and the innermost
 // one is the one in use.
 type skipWalk struct {
-	// keyEnv reports that the records of the site are keyed by the environment the walk starts in,
-	// and that a walk that reuses one takes its end environment. The walks of a site whose element
-	// reads or binds no variable, directly or in the rules it calls, do neither: their records hold
-	// for every environment, which a walk keeps.
-	keyEnv bool
+	// key holds the slots of the variables that key the records of the site (RunKey), nil for a
+	// site whose element reads or binds no variable, directly or in the rules it calls: its records
+	// hold for every environment, which a walk keeps. A walk that reuses the record of a keyed site
+	// binds the variables of the key's Bind to the values the walk of the record left in them.
+	key *RunKey
 	// recording reports that the walk records its visits (it met a position that is not fresh).
 	recording bool
 	// table is the index of the slots in skipTables, and slots the slots, nil until a walk of the
@@ -209,10 +265,9 @@ type skipWalk struct {
 	slots *skipSlots
 	// prev is the position of the last iteration of a plain walk, if prevOK; the walk marks it
 	// when the iteration has matched.
-	prev    int
-	prevEnv *Env
-	prevOK  bool
-	visits  []skipVisit
+	prev   int
+	prevOK bool
+	visits []skipVisit
 	// open reports that the last visit's iteration is running: its expectations are isolated
 	// from mk, and the examined range from before it is savedLow and savedExamined.
 	open                    bool
@@ -284,7 +339,7 @@ func (p *Parser) SkipBegin(site int) { p.skipBegin(site, false, false) }
 
 // RunBegin starts a walk of the hot run site at the current position. build reports that its
 // iterations have values (SkipValue), which SkipKids gathers in a list, and keyEnv that its records
-// are keyed by the environment (skipWalk.keyEnv).
+// are keyed by the values of the variables of the site's run key (Grammar.SetRunKey).
 func (p *Parser) RunBegin(site int, build, keyEnv bool) { p.skipBegin(site, build, keyEnv) }
 
 // RunBegin is the Parser's RunBegin in a typed parse, whose values SkipValue and SkipKids take.
@@ -307,7 +362,10 @@ func (p *Parser) skipBegin(site int, build, keyEnv bool) {
 	if i < len(p.skipTables) {
 		w.slots = p.skipTables[i]
 	}
-	w.keyEnv, w.build, w.typed = keyEnv, build, false
+	w.key, w.build, w.typed = nil, build, false
+	if keyEnv {
+		w.key = p.g.runKey(site)
+	}
 	w.nodes.placed, w.tvals.placed = false, false
 	w.visits, w.recording, w.prevOK, w.open, w.hitOK = w.visits[:0], false, false, false, false
 }
@@ -344,20 +402,35 @@ func (p *Parser) skipTable() *skipSlots {
 	return w.slots
 }
 
-// walkEnv returns the environment that keys the records of the walk at the current position: the
-// environment of the parse for a site keyed by it, nil otherwise.
-func (p *Parser) walkEnv() *Env {
-	if p.walk().keyEnv {
-		return p.Env
+// walkKey returns the key of the walk at the current position: the values of the variables of the
+// key and their hash for a site keyed by them, none otherwise. Reading the values and hashing them
+// charge as for a memo key (hashMemoKey).
+func (p *Parser) walkKey() walkKey {
+	k := p.walk().key
+	if k == nil {
+		return walkKey{}
 	}
-	return nil
+	p.chargeValueBytes(len(k.Vars) * int(anyBytes))
+	vals := p.envValues(k.Vars)
+	return walkKey{vals, p.hashMemoKey(0, 0, vals)}
+}
+
+// walkBind returns the values of the variables that the element of the walk's site binds, in the
+// order of RunKey.Bind, none for a site not keyed by the variables.
+func (p *Parser) walkBind() []any {
+	k := p.walk().key
+	if k == nil || len(k.Bind) == 0 {
+		return nil
+	}
+	p.chargeValueBytes(len(k.Bind) * int(anyBytes))
+	return p.envValues(k.Bind)
 }
 
 // skipMarkPrev marks the position of the last iteration of a plain walk, which matched.
 func (p *Parser) skipMarkPrev() {
 	w := p.walk()
 	if w.prevOK {
-		p.skipTable().put(w.prev, w.prevEnv, skipRecord{state: skipVisited})
+		p.putSkip(p.skipTable(), w.prev, walkKey{}, skipRecord{state: skipVisited})
 		w.prevOK = false
 	}
 }
@@ -383,7 +456,7 @@ func (p *Parser) SkipHit() bool {
 	w := p.walk()
 	p.skipClose()
 	p.Spend()
-	r := w.slots.get(p.Pos, p.walkEnv())
+	r := p.getSkip(w.slots, p.Pos, p.walkKey())
 	if r.state != skipRecorded || w.build && !r.list {
 		return false
 	}
@@ -392,8 +465,10 @@ func (p *Parser) SkipHit() bool {
 	p.documentTouchFrom(r.from)
 	p.MergeExpected(r.far, r.exp)
 	p.Pos = r.end
-	if w.keyEnv {
-		p.Env = r.env
+	if w.key != nil {
+		for i, slot := range w.key.Bind {
+			p.bind(slot, r.bind[i])
+		}
 	}
 	if r.errs != nil {
 		p.recAdd(*r.errs)
@@ -409,11 +484,11 @@ func (p *Parser) SkipVisit() {
 	w := p.walk()
 	if !p.skipRecording() {
 		p.skipMarkPrev()
-		w.prev, w.prevEnv, w.prevOK = p.Pos, p.walkEnv(), true
+		w.prev, w.prevOK = p.Pos, true
 		return
 	}
 	p.skipClose()
-	w.visits = append(w.visits, skipVisit{pos: p.Pos, env: p.walkEnv(), vi: w.count(), e0: len(p.Recovered)})
+	w.visits = append(w.visits, skipVisit{pos: p.Pos, key: p.walkKey(), vi: w.count(), e0: len(p.Recovered)})
 	w.open, w.savedLow, w.savedExamined = true, p.docLow, p.docExamined
 	if p.Document != nil {
 		p.docLow = p.Pos
@@ -510,10 +585,10 @@ func (p *Parser) skipEnd(paid bool) {
 	w := p.walk()
 	p.skipClose()
 	vs := w.visits
-	endEnv := p.walkEnv()
+	endBind := p.walkBind()
 	var next skipRecord
 	if w.hitOK {
-		endEnv = w.hit.env
+		endBind = w.hit.bind
 	}
 	if w.build && (len(vs) > 0 || w.hitOK) {
 		if w.typed {
@@ -531,13 +606,13 @@ func (p *Parser) skipEnd(paid bool) {
 		// The last iteration failed or matched nothing: the walk ended at its start.
 		v := vs[len(vs)-1]
 		vs = vs[:len(vs)-1]
-		next = skipRecord{end: v.pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded, list: w.build, env: endEnv}
+		next = skipRecord{end: v.pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded, list: w.build, bind: endBind}
 		p.skipLink(w, &next, v, nil)
-		p.skipPut(v.pos, v.env, next)
+		p.skipPut(v.pos, v.key, next)
 	}
 	for i := len(vs) - 1; i >= 0; i-- {
 		v := vs[i]
-		r := skipRecord{end: next.end, far: next.far, exp: next.exp, from: min(v.from, next.from), examined: max(v.examined, next.examined), state: skipRecorded, list: w.build, env: endEnv}
+		r := skipRecord{end: next.end, far: next.far, exp: next.exp, from: min(v.from, next.from), examined: max(v.examined, next.examined), state: skipRecorded, list: w.build, bind: endBind}
 		switch {
 		case v.far > next.far:
 			r.far, r.exp = v.far, v.exp
@@ -545,7 +620,7 @@ func (p *Parser) skipEnd(paid bool) {
 			r.exp = mergeSkipExpected(v.exp, next.exp)
 		}
 		p.skipLink(w, &r, v, next.errs)
-		p.skipPut(v.pos, v.env, r)
+		p.skipPut(v.pos, v.key, r)
 		next = r
 	}
 	w.visits = vs[:0]
@@ -645,9 +720,9 @@ func mergeSkipExpected(a, b []ExpID) []ExpID {
 }
 
 // skipPut stores the record r of the position pos in the slots of the walk.
-func (p *Parser) skipPut(pos int, env *Env, r skipRecord) {
+func (p *Parser) skipPut(pos int, k walkKey, r skipRecord) {
 	p.Spend()
-	p.skipTable().put(pos, env, r)
+	p.putSkip(p.skipTable(), pos, k, r)
 }
 
 // pruneSkipRecords drops the records of the positions before pos, where a stream that committed

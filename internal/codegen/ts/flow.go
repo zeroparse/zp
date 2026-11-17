@@ -392,7 +392,11 @@ func (p *tsFlowPrinter) stmt(s flow.Stmt) {
 		p.write(fmt.Sprintf("p.trail.length = %sTrail;\n", m.Name))
 	case *flow.SkipBegin:
 		if s.Run {
-			p.write(fmt.Sprintf("p.runBegin(%d, %t, %t);\n", s.Site, s.Build, s.KeyEnv))
+			key := "null"
+			if s.KeyEnv {
+				key = p.g.runKeyName(s.Site)
+			}
+			p.write(fmt.Sprintf("p.runBegin(%d, %t, %s);\n", s.Site, s.Build, key))
 		} else {
 			p.write(fmt.Sprintf("p.skipBegin(%d);\n", s.Site))
 		}

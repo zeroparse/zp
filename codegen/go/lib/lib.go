@@ -340,6 +340,28 @@ type grammar struct {
 	initEnv  *Env
 	varNames []string
 	envDepth int
+	// runKeys holds, by site, the key of a run site that is not free of the environment (SetRunKey),
+	// nil for the other sites.
+	runKeys []*RunKey
+}
+
+// SetRunKey sets the slots of the variables that key the records of the run site, which is not
+// free of the environment.
+//
+// SetRunKey is for generated parsers; not a stable API.
+func (g *grammar) SetRunKey(site int, vars, bind []int) {
+	for len(g.runKeys) <= site {
+		g.runKeys = append(g.runKeys, nil)
+	}
+	g.runKeys[site] = &RunKey{Vars: vars, Bind: bind}
+}
+
+// runKey returns the key of the run site, which is not free of the environment.
+func (g *grammar) runKey(site int) *RunKey {
+	if site < len(g.runKeys) && g.runKeys[site] != nil {
+		return g.runKeys[site]
+	}
+	panic(fmt.Sprintf("run site %d is keyed by the variables but the grammar has no key for it", site))
 }
 
 // SetVars makes the variables names, with the initial values vals, the starting environment of
@@ -442,6 +464,7 @@ func (g *grammar) Share(base *grammar) {
 	rules, nseen := g.rules, g.nseen
 	*g = *base
 	g.rules, g.nseen = rules, nseen
+	g.runKeys = nil   // and so are its run sites (SetRunKey)
 	g.indexInitVals() // the rules are the recognizer's own
 }
 
