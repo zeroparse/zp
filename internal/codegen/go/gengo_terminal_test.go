@@ -106,6 +106,32 @@ func TestTerminalProgramGeneration(t *testing.T) {
 	}
 }
 
+// TestLiteralExpectedTextTerminalProgram checks that the corpus case for the text of literal
+// expected items builds a terminal program in a lean typed parser, so that raising the size a
+// terminal program needs cannot silently drop what the case covers.
+func TestLiteralExpectedTextTerminalProgram(t *testing.T) {
+	t.Parallel()
+	codegentest.PinOrdinary(t)
+	for _, c := range codegentest.GenCorpus(t) {
+		if c.Name != "literal expected text" {
+			continue
+		}
+		g, err := parseTest(c.Src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "terminal", Start: "main", Types: true, TypedOnly: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(code), "p.SkipTerminal(term") {
+			t.Error("the case builds no terminal program")
+		}
+		return
+	}
+	t.Fatal("no corpus case")
+}
+
 // TestTerminalProgramDisabledParity compares lean typed parsers that match terminal expressions
 // through programs with the same parsers generated without them, and their errors with the
 // engine's, in both position units.
