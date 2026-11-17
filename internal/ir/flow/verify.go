@@ -235,9 +235,16 @@ func (v *verifier) stmt(s Stmt) error {
 	case *AppendError:
 		return v.expr(s.X)
 	case *SkipBegin:
-		if s.Site <= 0 {
-			return fmt.Errorf("%s: skip-run site %d", v.f.Name, s.Site)
+		if s.Site <= 0 || !s.Run && (s.Build || s.KeyEnv) {
+			return fmt.Errorf("%s: skip-run site %d (run %t, build %t, keyed %t)", v.f.Name, s.Site, s.Run, s.Build, s.KeyEnv)
 		}
+	case *SkipValue:
+		return v.expr(s.X)
+	case *RunWalked:
+		if s.Site <= 0 {
+			return fmt.Errorf("%s: run site %d", v.f.Name, s.Site)
+		}
+		return v.expr(s.Start)
 	case *Step, *Silent, *SetWhere, *DeclareNames, *Comment, *ObserveSkip, *SkipVisit, *SkipEnd:
 	default:
 		return fmt.Errorf("unknown statement %T", s)

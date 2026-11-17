@@ -280,7 +280,7 @@ site whose walks build values is bounded only by the copies of its lists.
 ## Scope
 
 The lemmas cover the engine's three backends, which keep records for run
-sites, in every kind of parse they run:
+sites, in every kind of parse they run, and the generated parsers:
 
 - **Loaded programs.** A [compiled grammar](../runtime/compiled-grammars.md)
   marks in the [instruction](../bytecode/README.md) of each site whether it
@@ -299,9 +299,13 @@ sites, in every kind of parse they run:
   parse, and runs as an ordinary repetition, which the lemmas do not need.
   Every other site walks as in a fresh parse.
 
- Generated Go and TypeScript parsers keep records only for skip-run
-sites. Their run-site repetitions are ordinary repetitions, whose cost these
-lemmas do not bound.
+- **Generated parsers.** Parsers generated as Go or TypeScript source keep
+  the records of run sites as the engine does, with the same threshold, keys
+  and records, in a batch parse, a typed parse (Go), a stream (Go), whose
+  records are dropped as above, and a Document, which resumes no run, so that
+  every walk in its parse walks as in a fresh parse. The lemmas hold of them
+  as of the engine: they rest on what a walk records and reuses, which the
+  generated runtimes do as the engine's walk operations do.
 
 ## Scan Sites
 

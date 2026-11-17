@@ -909,9 +909,11 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 		start, base = l.decl("x", flow.TypeInt), l.decl("x", flow.TypeInt)
 		l.emit(&flow.Set{Dst: []flow.LValue{start, base}, X: []flow.Expr{pos, &flow.KidsLen{}}})
 	}
+	run := l.runBegin(n, build, start)
 	count := l.decl("x", flow.TypeInt)
 	l.set(count, &flow.Int{})
 	lp := l.newLoop(n.Max)
+	run.visit(l, count, lp)
 	m := l.mark(s, n.Body, !own)
 	if own {
 		l.clearScope(es, n.Body)
@@ -933,7 +935,7 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 	}
 	l.emit(&flow.Inc{V: count})
 	if build {
-		l.emit(&flow.PushKid{X: v})
+		l.emit(run.push(&flow.PushKid{X: v}, v))
 	}
 	l.emit(&flow.If{Cond: &flow.Cmp{Op: "==", L: pos, R: use(m.pos)}, Then: []flow.Stmt{&flow.Exit{To: lp.Label}}})
 	if l.used[f] {
@@ -941,9 +943,9 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 		l.close(bf)
 		l.reset(m)
 		if build {
-			l.cutFail(cut, fail, &flow.DropKids{Base: use(base)})
+			l.cutFail(cut, fail, run.drop(&flow.DropKids{Base: use(base)})...)
 		} else {
-			l.cutFail(cut, fail)
+			l.cutFail(cut, fail, run.drop(nil)...)
 		}
 		l.exitLoop(lp)
 	} else {
@@ -953,17 +955,111 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 	if n.Min > 0 {
 		cond := &flow.Cmp{Op: "<", L: use(count), R: &flow.Int{N: n.Min}}
 		if build {
-			l.failIf(nil, cond, fail, &flow.DropKids{Base: use(base)})
+			l.failIf(nil, cond, fail, run.drop(&flow.DropKids{Base: use(base)})...)
 		} else {
-			l.failIf(nil, cond, fail)
+			l.failIf(nil, cond, fail, run.drop(nil)...)
 		}
 	}
 	if !build {
+		run.end(l, nil)
 		return &flow.Nil{}
 	}
 	list := l.decl("v", flow.TypeValue)
-	l.set(list, l.branch(true, use(start), &flow.Kids{Base: use(base)}))
+	run.end(l, func(hot bool) {
+		var kids flow.Expr = &flow.Kids{Base: use(base)}
+		if hot {
+			kids = &flow.SkipKids{}
+		}
+		l.set(list, l.branch(true, use(start), kids))
+	})
 	return use(list)
+}
+
+// runSite is the lowering of a repetition that is a run site (core.Repeat.Run), whose walks keep
+// records once the site is hot (RunHot); nil for any other repetition, whose methods then emit what
+// a plain repetition does. A walk tests hot once, when it begins: a hot walk is a walk of the site
+// (SkipBegin with Run), and a walk of a site that is not hot is an ordinary repetition that tells
+// the site where it walked (RunWalked). The engine's backends walk the same way.
+type runSite struct {
+	n            *core.Repeat
+	hot, start   *flow.Var
+	build, value bool
+}
+
+// runBegin begins the lowering of the repetition n, whose walk begins at the position, held in
+// start if not nil (the variable of a walk that builds a value). It returns nil if n is no run site.
+func (l *lowerer) runBegin(n *core.Repeat, build bool, start *flow.Var) *runSite {
+	if n.Run == 0 || n.Project != "" {
+		return nil
+	}
+	r := &runSite{n: n, hot: l.decl("x", flow.TypeBool), start: start, build: build}
+	if start == nil {
+		r.start = l.decl("x", flow.TypeInt)
+		l.set(r.start, pos)
+	}
+	l.set(r.hot, &flow.RunHot{Site: n.Run})
+	l.emit(&flow.If{Cond: use(r.hot), Then: []flow.Stmt{&flow.SkipBegin{Site: n.Run, Run: true, Build: build, KeyEnv: !n.RunEnvFree}}})
+	return r
+}
+
+// visit emits the beginning of an iteration of a hot walk, after the charge of the iteration: from
+// the minimum on, the walk takes the rest from the record of the position, if there is one, and
+// leaves the loop lp; otherwise the iteration is a visit of the walk.
+func (r *runSite) visit(l *lowerer, count *flow.Var, lp *flow.Loop) {
+	if r == nil {
+		return
+	}
+	hit := []flow.Stmt{&flow.If{Cond: &flow.SkipHit{}, Then: []flow.Stmt{&flow.Exit{To: lp.Label}}}}
+	if r.n.Min > 0 {
+		hit = []flow.Stmt{&flow.If{Cond: &flow.Cmp{Op: ">=", L: use(count), R: &flow.Int{N: r.n.Min}}, Then: hit}}
+	}
+	l.emit(&flow.If{Cond: use(r.hot), Then: append(hit, &flow.SkipVisit{})})
+}
+
+// push returns the statement that adds the value v of an iteration: plain, the statement keep.
+func (r *runSite) push(keep flow.Stmt, v flow.Expr) flow.Stmt {
+	if r == nil {
+		return keep
+	}
+	return &flow.If{Cond: use(r.hot), Then: []flow.Stmt{&flow.SkipValue{X: v}}, Else: []flow.Stmt{keep}}
+}
+
+// drop returns the statements that end a walk that fails: plain, the statement plain (none if nil).
+func (r *runSite) drop(plain flow.Stmt) []flow.Stmt {
+	var els []flow.Stmt
+	if plain != nil {
+		els = []flow.Stmt{plain}
+	}
+	if r == nil {
+		return els
+	}
+	return []flow.Stmt{&flow.If{Cond: use(r.hot), Then: []flow.Stmt{&flow.SkipEnd{}}, Else: els}}
+}
+
+// end emits the end of a walk that matched. list, if not nil, emits the list of the values, from
+// SkipKids in a hot walk (hot) and from the stack in a plain one. A hot walk that builds no value
+// ends with SkipEnd; a plain walk tells the site where it walked.
+func (r *runSite) end(l *lowerer, list func(hot bool)) {
+	if r == nil {
+		if list != nil {
+			list(false)
+		}
+		return
+	}
+	b := &flow.If{Cond: use(r.hot)}
+	l.emit(b)
+	l.stack = append(l.stack, &b.Then)
+	if list != nil {
+		list(true)
+	} else {
+		l.emit(&flow.SkipEnd{})
+	}
+	l.stack[len(l.stack)-1] = &b.Else
+	l.emit(&flow.RunWalked{Site: r.n.Run, Start: use(r.start)})
+	if list != nil {
+		list(false)
+	}
+	l.stack = l.stack[:len(l.stack)-1]
 }
 
 // scanSiteRepeat lowers the scan site n, a repetition of one character without a maximum or a scope of
@@ -1340,13 +1436,18 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 			l.set(frame, &flow.NewFrame{N: names})
 		}
 	}
+	stream := n == l.streaming
+	var run *runSite
+	if !stream {
+		run = l.runBegin(n, build && field == "", start)
+	}
 	count := l.decl("x", flow.TypeInt)
 	l.set(count, &flow.Int{})
-	stream := n == l.streaming
 	if stream {
 		l.emit(&flow.If{Cond: &flow.StreamOn{}, Then: []flow.Stmt{&flow.StreamStart{}}})
 	}
 	lp := l.newLoop(n.Max)
+	run.visit(l, count, lp)
 	if field != "" {
 		l.emit(&flow.ClearVals{F: frame})
 	}
@@ -1399,7 +1500,7 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 		}})
 	}
 	if build {
-		l.emit(&flow.PushKid{X: v})
+		l.emit(run.push(&flow.PushKid{X: v}, v))
 	}
 	l.emit(&flow.If{Cond: &flow.Cmp{Op: "==", L: pos, R: m.at()}, Then: []flow.Stmt{&flow.Exit{To: lp.Label}}})
 	if l.used[f] {
@@ -1410,9 +1511,9 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 		}
 		l.reset(m)
 		if build {
-			l.cutFail(cut, fail, &flow.DropKids{Base: use(base)})
+			l.cutFail(cut, fail, run.drop(&flow.DropKids{Base: use(base)})...)
 		} else {
-			l.cutFail(cut, fail)
+			l.cutFail(cut, fail, run.drop(nil)...)
 		}
 		l.exitLoop(lp)
 	} else {
@@ -1422,16 +1523,23 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 	if n.Min > 0 {
 		cond := &flow.Cmp{Op: "<", L: use(count), R: &flow.Int{N: n.Min}}
 		if build {
-			l.failIf(nil, cond, fail, &flow.DropKids{Base: use(base)})
+			l.failIf(nil, cond, fail, run.drop(&flow.DropKids{Base: use(base)})...)
 		} else {
-			l.failIf(nil, cond, fail)
+			l.failIf(nil, cond, fail, run.drop(nil)...)
 		}
 	}
 	if !build {
+		run.end(l, nil)
 		return &flow.Nil{}
 	}
 	list := l.decl("v", flow.TypeValue)
-	l.set(list, l.branch(true, use(start), &flow.Kids{Base: use(base)}))
+	run.end(l, func(hot bool) {
+		var kids flow.Expr = &flow.Kids{Base: use(base)}
+		if hot {
+			kids = &flow.SkipKids{}
+		}
+		l.set(list, l.branch(true, use(start), kids))
+	})
 	return use(list)
 }
 

@@ -167,7 +167,11 @@ func (p *Parser) heldBytes() uint64 {
 	for _, t := range p.ctxs {
 		n += t.bytes
 	}
-	n += uint64(cap(p.skipTables))*ptrBytes + uint64(cap(p.skip.visits))*uint64(unsafe.Sizeof(skipVisit{}))
+	n += uint64(cap(p.skipTables))*ptrBytes + uint64(cap(p.skips))*uint64(unsafe.Sizeof(skipWalk{}))
+	n += p.skipBytes
+	for _, w := range p.skips {
+		n += uint64(cap(w.visits))*uint64(unsafe.Sizeof(skipVisit{})) + uint64(cap(w.nodes.vals)+cap(w.tvals.vals))*ptrBytes
+	}
 	n += p.scanBytes()
 	for _, s := range p.skipTables {
 		if s != nil {

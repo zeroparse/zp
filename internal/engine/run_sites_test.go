@@ -13,114 +13,6 @@ import (
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
-// runSiteGrammars are grammars with run sites (compile/run_sites.go): repetitions outside skip
-// expressions whose parse builds no value (the start rule has an action, so the elements' values
-// are not needed), each with the characters of its random inputs. They exercise the parts of what a
-// record holds, as the skip-run grammars do, and nested walks.
-var runSiteGrammars = []struct{ Name, Src, Alphabet string }{
-	{"repetition restarted by an alternative", `rule main = (a "y" / "q" a / [x])* $$ => 1
-rule a = x+ => 1
-rule x = "x"`, "xyqz"},
-	{"recursion over a scan", `rule main = t a? $$ => 1
-rule t = a t "!" / a "?" t / [x!?] t / ""
-rule a = x+ => 1
-rule x = "x"`, "x!z"},
-	{"nested walks", `rule main = (g "y" / g "z" / [abc,])* $$ => 1
-rule g = (w ","?)+ => 1
-rule w = [a-b]+ "c"? => 1`, "abc,yzq"},
-	{"minimum and empty elements", `rule main = (a "!" / [xy])* $$ => 1
-rule a = (x? y?)#repeat(2,) => 1
-rule x = "x"
-rule y = "y"`, "xy!z"},
-	{"lookahead in the element", `rule main = (a "!" / [xy])* $$ => 1
-rule a = (!"xx" x)+ => 1
-rule x = "x" / "y"`, "xy!z"},
-	{"expectations", `rule main = (a "!" / "q" a "?" / [xyz])* $$ => 1
-rule a = (x / "y" z)+ => 1
-rule x = "x"
-rule z = "z"`, "xyz!?qw"},
-	{"silent walks", `rule main = (!(a "!") "x" / a "!" / [,y])* $$ => 1
-rule a = (x ","?)+ => 1
-rule x = "x" "y"?`, "xy,!z"},
-	{"line starts", `rule main = (l "!" / [ab\n])* $$ => 1
-rule l = (^ "a" / x)+ => 1
-rule x = "b" / "\n"`, "ab\n!z"},
-}
-
-// runValueGrammars are grammars whose run sites build values, capture and read variables in their
-// elements, and recover errors in them or in the rules they call; they have no action at the top,
-// so the values of the start rule are the parse trees.
-var runValueGrammars = []struct{ Name, Src, Alphabet string }{
-	{"values of restarted lists", `rule main = (a "y" / "q" a / [x])* $$
-rule a = x+
-rule x = "x"`, "xyqz"},
-	{"nested lists", `rule main = (g "y" / g "z" / [abc,])* $$
-rule g = (w ","?)+
-rule w = [a-b]+ "c"?`, "abc,yzq"},
-	{"minimum and empty elements", `rule main = (a "!" / [xy])* $$
-rule a = (x? y?)#repeat(2,)
-rule x = "x"
-rule y = "y"`, "xy!z"},
-	{"captures in the element", `rule main = (a "!" / "q" a "?" / [xyz])* $$
-rule a = (c:x d:y? => $c)+
-rule x = "x"
-rule y = "y"`, "xyz!?qw"},
-	{"actions in the element", `rule main = (a "!" / [xy])* $$
-rule a = (v:x => $v)+
-rule x = "x" "y"?`, "xy!z"},
-	{"variables in predicates", `var n int
-rule main = (a "!" / "q" a / [xz])* $$
-rule a = ({ n < 3 } x { n := n + 1 })+
-rule x = "x"`, "xz!q"},
-	{"two environments at one position", `var n int
-rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyzwq])* $$
-rule r = a "y" / a "w" / a "z" / a "q"
-rule a = "x" ("x" { n < 3 })*`, "xyzwq!?"},
-	{"walks that merge with others in the middle", `rule main = (r "!" / r "?" / r "w" / [abz])* $$
-rule r = ("ab" / "a" / "b")*`, "abz!?w"},
-	{"bindings that a record restores", `var n int
-rule main = (r "!" / r "?" / r "w" / [xyzwq])* $$
-rule r = ("x" { n := n + 1 })* { n == 3 }`, "xyzwq!?"},
-	{"errors that a record replays", `rule main = (a "?" / "x" a "?" / "x" "x" a "!" / [xz!?])* $$
-rule a = e+
-rule e = ("x" "z") #recover(skip=[x])`, "xz!?"},
-	{"recovery in the element", `rule main = (a "!" / "q" a "?" / [xyz])* $$
-rule a = (x #recover(skip=[y]+))+
-rule x = "x" "z"`, "xzy!?q"},
-	{"recovery in a called rule", `rule main = (l "!" / [abz])* $$
-rule l = (e)+
-rule e = ("a" "b" #recover(skip=[z]+))`, "abz!"},
-	{"lookahead and silent walks", `rule main = (!(a "!") "x" / a "!" / [,y])* $$
-rule a = (x ","?)+
-rule x = "x" "y"?`, "xy,!z"},
-	{"a site free of the environment under rebindings", `var n int
-rule main = ({ n := 1 } r "!" / { n := 2 } r "?" / r "#" / [xyzw!?#])* $$
-rule r = ("x" / "yz" / b)*
-rule b = "w" { n := 3 }`, "xyzw!?#"},
-	{"a called rule that reads a variable", `var n int
-rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyz!?])* $$
-rule r = e*
-rule e = "x" { n < 3 } / "y"`, "xyz!?"},
-	{"walks of a value-free twin", `rule main = (y / "a")* $$ / w $$
-rule y = a "?" => 1
-rule w = "a" a "!"
-rule a = ("a" / "b")*`, "ab!?"},
-	{"lookahead walks before lists", `rule main = (!(a "?") !(a ",") &(x:a "!" { len($x) > 3 }) w / a "," / [ab!?,])* $$
-rule w = a "!"
-rule a = ("a" / "b")*`, "ab!?,"},
-}
-
-// runValueInputs are inputs, besides random ones, that reach what a grammar of runValueGrammars is
-// about: here a walk that a record of another environment would answer wrongly.
-var runValueInputs = map[string][]string{
-	"two environments at one position":    {"xxxq!", "xxxq?", "xxxq?xxxq!", "xxxxxq?!"},
-	"bindings that a record restores":     {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
-	"errors that a record replays":        {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
-	"a called rule that reads a variable": {"xxxx?", "xxxx!", "xyxx?", "xxxx?xxx!"},
-	"walks of a value-free twin":          {"aaaaaa!", "ababab!", "aaa?aaaa!"},
-	"lookahead walks before lists":        {"aaaaaa!", "ababab,", "aba?abab!", "ab,ab!"},
-}
-
 // hotSpans are the thresholds at which the differential tests of run sites run: the one of the
 // engine, at which the short inputs of the tests stay cold, and short ones, at which sites turn hot
 // in the middle of a parse and the records answer the walks after it.
@@ -155,13 +47,13 @@ func TestRunSitesMatchPlainRepetitions(t *testing.T) { atHotSpans(t, runSitesMat
 
 func runSitesMatchPlainRepetitions(t *testing.T) {
 	rng := rand.New(rand.NewSource(113))
-	for _, g := range runValueGrammars {
+	for _, g := range codegentest.RunValueGrammars {
 		prog := mustCompile(t, g.Src)
 		if prog.NumRunSites == 0 {
 			t.Errorf("%s: no run sites", g.Name)
 		}
 		plain := compileWithout(t, g.Src, &compile.NoRunSites)
-		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
+		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rng), codegentest.RunValueInputs[g.Name]...)
 		turns := state.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
@@ -184,15 +76,15 @@ func runSitesMatchPlainRepetitions(t *testing.T) {
 
 // TestRunSitesOfLoadedPrograms checks that a program loaded from a compiled grammar keys the
 // records of its run sites as the compiled program does: parses and Document parses of the grammars
-// of runValueGrammars, many of whose sites are keyed by the environment, give the results of plain
+// of codegentest.RunValueGrammars, many of whose sites are keyed by the environment, give the results of plain
 // repetitions on the bytecode backends, which run loaded programs.
 func TestRunSitesOfLoadedPrograms(t *testing.T) { atHotSpans(t, runSitesOfLoadedPrograms) }
 
 func runSitesOfLoadedPrograms(t *testing.T) {
 	rng := rand.New(rand.NewSource(115))
-	for _, g := range runValueGrammars {
+	for _, g := range codegentest.RunValueGrammars {
 		plain := compileWithout(t, g.Src, &compile.NoRunSites)
-		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
+		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rng), codegentest.RunValueInputs[g.Name]...)
 		turns := state.RunHotTurns.Load()
 		for _, mode := range []CompiledMode{CompiledParse, CompiledDocument} {
 			data, err := mustCompile(t, g.Src).Marshal("", mode)
@@ -237,7 +129,7 @@ func TestRunSitesMatchParsesWithoutRecords(t *testing.T) { atHotSpans(t, runSite
 
 func runSitesMatchWithoutRecords(t *testing.T) {
 	rng := rand.New(rand.NewSource(112))
-	for _, g := range runSiteGrammars {
+	for _, g := range codegentest.RunSiteGrammars {
 		prog := mustCompile(t, g.Src)
 		inputs := codegentest.SkipRunInputs(g.Alphabet, 300, rng)
 		turns := state.RunHotTurns.Load()
@@ -268,7 +160,7 @@ func runSitesMatchWithoutRecords(t *testing.T) {
 // TestRunSitesAreMarked checks that the grammars of TestRunSitesMatchParsesWithoutRecords have run
 // sites, so that the comparison does not pass for want of any.
 func TestRunSitesAreMarked(t *testing.T) {
-	for _, g := range runSiteGrammars {
+	for _, g := range codegentest.RunSiteGrammars {
 		prog := mustCompile(t, g.Src)
 		if n := prog.NumRunSites; n == 0 {
 			t.Errorf("%s: no run sites", g.Name)
@@ -307,7 +199,7 @@ func TestRunSitesReuseRecords(t *testing.T) {
 	}
 	defer func() { state.SkipRecordsOff = false }()
 	in := strings.Repeat("x", 400) + "z"
-	for _, g := range runSiteGrammars[:2] {
+	for _, g := range codegentest.RunSiteGrammars[:2] {
 		prog := mustCompile(t, g.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 200_000}}
@@ -381,14 +273,14 @@ func TestRunSitesNegativeControls(t *testing.T) {
 		{state.SkipAnyList, "walks of a value-free twin"},
 		{state.SkipAnyList, "lookahead walks before lists"},
 	} {
-		for _, g := range runValueGrammars {
+		for _, g := range codegentest.RunValueGrammars {
 			if g.Name != tc.grammar {
 				continue
 			}
 			prog := mustCompile(t, g.Src)
 			state.SkipRecordMutation = tc.mutation
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				if diffs := skipRunMismatches(t, prog, runValueInputs[g.Name], b); len(diffs) == 0 {
+				if diffs := skipRunMismatches(t, prog, codegentest.RunValueInputs[g.Name], b); len(diffs) == 0 {
 					t.Errorf("mutation %d, %s: no difference on the inputs of %s", tc.mutation, b, g.Name)
 				}
 			}
@@ -407,14 +299,14 @@ func TestRunSitesNegativeControls(t *testing.T) {
 		{compile.EnvFreeAll, "bindings that a record restores"},
 		{compile.EnvFreeCalleesIgnore, "a called rule that reads a variable"},
 	} {
-		for _, g := range runValueGrammars {
+		for _, g := range codegentest.RunValueGrammars {
 			if g.Name != tc.grammar {
 				continue
 			}
 			// (The mutation stays on while the backends build their programs.)
 			compile.EnvFreeMutation = tc.mutation
 			prog := mustCompile(t, g.Src)
-			inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(114))), runValueInputs[g.Name]...)
+			inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(114))), codegentest.RunValueInputs[g.Name]...)
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) == 0 {
 					t.Errorf("compile mutation %d, %s: no difference on the inputs of %s", tc.mutation, b, g.Name)
@@ -470,7 +362,7 @@ func TestRunSitesTurnHotAtTheEngineThreshold(t *testing.T) {
 		t.Fatalf("threshold %d", state.RunHotSpan)
 	}
 	in := strings.Repeat("x", 300) + "z" + strings.Repeat("x", 200) + "!"
-	for _, g := range append(runSiteGrammars[:2:2], runValueGrammars[0]) {
+	for _, g := range append(codegentest.RunSiteGrammars[:2:2], codegentest.RunValueGrammars[0]) {
 		prog := mustCompile(t, g.Src)
 		plain := compileWithout(t, g.Src, &compile.NoRunSites)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {

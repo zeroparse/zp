@@ -214,14 +214,30 @@ type DropKids struct{ Base Expr }
 type StreamStart struct{}
 
 // SkipBegin begins a walk of the skip-run site Site (core.Repeat.Site) at the position: the
-// iterations of the repetition that follow are visits of the walk, until SkipEnd.
-type SkipBegin struct{ Site int }
+// iterations of the repetition that follow are visits of the walk, until SkipEnd. With Run, Site is
+// a run site (core.Repeat.Run) whose records are keyed by the environment if KeyEnv; with Build,
+// the iterations have values (SkipValue), which SkipKids gathers in a list.
+type SkipBegin struct {
+	Site               int
+	Run, Build, KeyEnv bool
+}
+
+// SkipValue adds the value X of the iteration that matched to the walk begun with Build.
+type SkipValue struct{ X Expr }
+
+// RunWalked ends the walk of the run site Site that was not hot (RunHot), which began at Start:
+// a walk of RunHotSpan or more units that walked input again below the furthest position the walks
+// of the site passed turns the site hot.
+type RunWalked struct {
+	Site  int
+	Start Expr
+}
 
 // SkipVisit ends the iteration of the walk before, if any, and begins one at the position.
 type SkipVisit struct{}
 
 // SkipEnd ends the iteration of the walk before, if any, ends the walk and records the rest of it
-// from each position it visited.
+// from each position it visited. A walk begun with Build drops the values it gathered.
 type SkipEnd struct{}
 
 // ScanEnd ends a walk of the value-free scan site Site (core.Scan.Site) that began at Start and matched
@@ -302,6 +318,8 @@ func (*EmitStream) stmt()    {}
 func (*SkipBegin) stmt()     {}
 func (*SkipVisit) stmt()     {}
 func (*SkipEnd) stmt()       {}
+func (*SkipValue) stmt()     {}
+func (*RunWalked) stmt()     {}
 func (*ScanEnd) stmt()       {}
 func (*Append) stmt()        {}
 func (*SetWhere) stmt()      {}
@@ -364,6 +382,14 @@ type StreamOn struct{}
 // record of the position; it then takes the rest of the walk from the record, which moves the
 // position to its end, and the walk stops.
 type SkipHit struct{}
+
+// RunHot reports whether the walks of the run site Site keep records: a walk of a site that is not
+// hot is an ordinary repetition, ended with RunWalked.
+type RunHot struct{ Site int }
+
+// SkipKids ends the walk begun with Build as SkipEnd does, and is the child list of the values of
+// its iterations, then those of the record it took, as Kids is of a plain repetition.
+type SkipKids struct{}
 
 // ScanHotSpan is the number of characters that a walk of a scan site matches before it looks for the
 // record of its start (ScanReach); the runtimes and the engine use the same number.
@@ -635,6 +661,8 @@ func (*RecLen) expr()          {}
 func (*KidsLen) expr()         {}
 func (*StreamOn) expr()        {}
 func (*SkipHit) expr()         {}
+func (*RunHot) expr()          {}
+func (*SkipKids) expr()        {}
 func (*ScanReach) expr()       {}
 func (*ScanKids) expr()        {}
 func (*Nil) expr()             {}

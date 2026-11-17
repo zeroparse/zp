@@ -391,7 +391,17 @@ func (p *tsFlowPrinter) stmt(s flow.Stmt) {
 		p.readVar(p.part(m, 2))
 		p.write(fmt.Sprintf("p.trail.length = %sTrail;\n", m.Name))
 	case *flow.SkipBegin:
-		p.write(fmt.Sprintf("p.skipBegin(%d);\n", s.Site))
+		if s.Run {
+			p.write(fmt.Sprintf("p.runBegin(%d, %t, %t);\n", s.Site, s.Build, s.KeyEnv))
+		} else {
+			p.write(fmt.Sprintf("p.skipBegin(%d);\n", s.Site))
+		}
+	case *flow.SkipValue:
+		p.read(s.X)
+		p.write(fmt.Sprintf("p.skipValue(%s);\n", p.expr(s.X)))
+	case *flow.RunWalked:
+		p.read(s.Start)
+		p.write(fmt.Sprintf("p.runWalked(%d, %s);\n", s.Site, p.expr(s.Start)))
 	case *flow.SkipVisit:
 		p.write("p.skipVisit();\n")
 	case *flow.SkipEnd:
@@ -676,6 +686,10 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		return "p.kidStack.length"
 	case *flow.SkipHit:
 		return "p.skipHit()"
+	case *flow.RunHot:
+		return fmt.Sprintf("p.runHot(%d)", x.Site)
+	case *flow.SkipKids:
+		return "p.skipKids()"
 	case *flow.ScanReach:
 		return fmt.Sprintf("p.scanReach(%d, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Count))
 	case *flow.ScanKids:

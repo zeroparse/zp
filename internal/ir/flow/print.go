@@ -128,7 +128,16 @@ func (p *printer) stmt(s Stmt, d int) {
 	case *EmitStream:
 		p.line(d, "emit %s", p.expr(s.X))
 	case *SkipBegin:
-		p.line(d, "skip begin %d", s.Site)
+		switch {
+		case !s.Run:
+			p.line(d, "skip begin %d", s.Site)
+		default:
+			p.line(d, "run begin %d build=%t key-env=%t", s.Site, s.Build, s.KeyEnv)
+		}
+	case *SkipValue:
+		p.line(d, "skip value %s", p.expr(s.X))
+	case *RunWalked:
+		p.line(d, "run walked %d %s", s.Site, p.expr(s.Start))
 	case *SkipVisit:
 		p.line(d, "skip visit")
 	case *SkipEnd:
@@ -237,6 +246,8 @@ func (p *printer) expr(x Expr) string {
 		return "streaming"
 	case *SkipHit:
 		return "skiphit"
+	case *RunHot:
+		return fmt.Sprintf("runhot(%d)", x.Site)
 	case *Nil:
 		return "nil"
 	case *Int:
@@ -299,6 +310,8 @@ func (p *printer) expr(x Expr) string {
 		return fmt.Sprintf("vals(%d)", x.N)
 	case *Kids:
 		return "kids(" + p.expr(x.Base) + ")"
+	case *SkipKids:
+		return "skipkids"
 	case *ScanReach:
 		return fmt.Sprintf("scanreach(%d, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Count))
 	case *ScanKids:

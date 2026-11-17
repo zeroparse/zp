@@ -71,6 +71,21 @@ func TestSkipRunsGeneratedDocuments(t *testing.T) {
 
 func testSkipRunsGeneratedDocuments(t *testing.T) {
 	goBin := skipRunsGoBin(t)
+	var grammars []struct{ Name, Src, Alphabet string }
+	for _, c := range codegentest.SkipRunGrammars {
+		switch c.Name {
+		case "repeated recovery", "line starts in the element", "look-ahead past the end", "silent walks":
+			grammars = append(grammars, c)
+		}
+	}
+	generatedDocumentEdits(t, goBin, grammars, "!a?ad\n?baz\n!aa?ac\n", 0)
+}
+
+// generatedDocumentEdits checks generated Documents of the grammars against batch parses of the
+// same package along random edits of text, with the walks of run sites turning hot at hotSpan (at
+// the threshold of the library if 0).
+func generatedDocumentEdits(t *testing.T, goBin string, grammars []struct{ Name, Src, Alphabet string }, text string, hotSpan int) {
+	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -82,17 +97,15 @@ func testSkipRunsGeneratedDocuments(t *testing.T) {
 	write("go.mod", codegentest.GoMod("skipdoc"))
 	var imports, checks strings.Builder
 	n := 0
-	for _, c := range codegentest.SkipRunGrammars {
-		switch c.Name {
-		case "repeated recovery", "line starts in the element", "look-ahead past the end", "silent walks":
-		default:
-			continue
-		}
+	for _, c := range grammars {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		codegentest.GeneratePackageIn(t, dir, "skipdoc", fmt.Sprintf("g%d", n), g, codegen.GenOptions{Start: "main", Types: true, Document: true})
+		if hotSpan > 0 {
+			write(fmt.Sprintf("g%d/span.go", n), fmt.Sprintf("package g%d\n\nimport rt %q\n\nfunc init() { rt.RunHotSpan = %d }\n", n, "zeroparse.dev/zp/codegen/go/lib", hotSpan))
+		}
 		fmt.Fprintf(&imports, "\tg%d \"skipdoc/g%d\"\n", n, n)
 		fmt.Fprintf(&checks, `	{%q, %q, func(text string, edits func(string) (int, int, string, bool)) string {
 		d, err := g%[3]d.NewDocument(text)
@@ -142,6 +155,8 @@ func differ(what, text string, got any, gotErr error, want any, wantErr error) s
 	return ""
 }
 
+var text = `+strconv.Quote(text)+`
+
 var checks = []struct {
 	name, alphabet string
 	run            func(string, func(string) (int, int, string, bool)) string
@@ -170,7 +185,7 @@ func main() {
 			}
 			return start, end, ins, true
 		}
-		if s := c.run("!a?ad\n?baz\n!aa?ac\n", edits); s != "" {
+		if s := c.run(text, edits); s != "" {
 			failed = true
 			fmt.Printf("%s: %s\n", c.name, s)
 		}
@@ -197,8 +212,8 @@ var skipRunMutations = map[string][][2]string{
 		"if false {",
 	}},
 	"early store": {{
-		"	v.examined = p.docExamined\n",
-		"	v.examined = p.docExamined\n\tp.skipTable().put(v.pos, skipRecord{end: p.Pos, far: v.far, exp: v.exp, examined: v.examined, state: skipRecorded})\n",
+		"	v.from, v.examined = p.docLow, p.docExamined\n",
+		"	v.from, v.examined = p.docLow, p.docExamined\n\tp.skipTable().put(v.pos, v.env, skipRecord{end: p.Pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded})\n",
 	}, {
 		"	p.skipClose()\n\tvs := w.visits\n",
 		"	p.skipClose()\n\tw.visits = w.visits[:0]\n\tif true {\n\t\treturn\n\t}\n\tvs := w.visits\n",

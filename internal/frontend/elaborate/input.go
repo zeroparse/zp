@@ -24,6 +24,9 @@ type Program interface {
 	ScanSite(e *grammar.Repeat) int
 	// RunSite returns the number of the run site of the repetition (core.Repeat.Run).
 	RunSite(e *grammar.Repeat) int
+	// EnvFree reports whether the skip-run or run site is free of the environment
+	// (core.Repeat.RunEnvFree).
+	EnvFree(site int) bool
 	// Resumable reports whether a repetition of the element e can be resumed by a Document
 	// (core.Repeat.Resume), and Positional whether a rule e calls reads positions.
 	Resumable(e grammar.Expr) bool

@@ -34,15 +34,15 @@ func TestSkipRunsTSMatchEngine(t *testing.T) {
 // the walk leaves as they are.
 var tsSkipRunMutations = map[string][][2]string{
 	"never record": {{
-		"if (!this.skipRecording && this.skipSlots !== undefined && this.skipSlots.marked(this.pos)) {",
+		"if (!w.recording && w.slots !== undefined && w.slots.marked(this.pos)) {",
 		"if (false) {",
 	}},
 	"early store": {{
 		"    v.exp = this.keep(from, to);\n",
-		"    v.exp = this.keep(from, to);\n    this.skipSlot(v.pos, { end: this.pos, far, exp: v.exp });\n",
+		"    v.exp = this.keep(from, to);\n    this.skipSlot(v.pos, v.env, { end: this.pos, far, exp: v.exp, from: this.pos, examined: this.pos, list: false, env: null, kids: null, ki: 0, errs: null });\n",
 	}, {
-		"    this.skipClose();\n    const vs = this.skipVisits;\n",
-		"    this.skipClose();\n    this.skipVisits.length = 0;\n    this.skipHitRec = null;\n    if (this.pos >= 0) return;\n    const vs = this.skipVisits;\n",
+		"    this.skipClose();\n    const vs = w.visits;\n",
+		"    this.skipClose();\n    w.visits.length = 0;\n    if (this.pos >= 0) return;\n    const vs = w.visits;\n",
 	}},
 }
 
@@ -51,6 +51,12 @@ var tsSkipRunMutations = map[string][][2]string{
 // and the results of the parses of the inputs of results with the last source. The spend of a
 // parse also counts the text of each recovered error node, which the walks do not change.
 func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]string, results []string, mutation [][2]string) (spends [][]uint64, out []string) {
+	return tsSpends(t, node, sources, inputs, results, mutation, "recognizeWithOptions")
+}
+
+// tsSpends is tsSkipRunSpends with the least budget of the entry point entry, recognizeWithOptions
+// or parseWithOptions.
+func tsSpends(t *testing.T, node string, sources []string, inputs [][]string, results []string, mutation [][2]string, entry string) (spends [][]uint64, out []string) {
 	t.Helper()
 	dir := t.TempDir()
 	var imports, entries strings.Builder
@@ -78,7 +84,7 @@ func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]str
 		writeTSFiles(t, filepath.Join(dir, fmt.Sprintf("g%d", i)), files)
 		in, _ := json.Marshal(inputs[i])
 		fmt.Fprintf(&imports, "import * as g%d from \"./g%d/parser.ts\";\n", i, i)
-		fmt.Fprintf(&entries, "  { inputs: %s, recognize: (s: string, budget: number) => { const e = g%[2]d.recognizeWithOptions(s, { limits: { compute: budget } }); return e instanceof g%[2]d.ParseInterruptionError && e.kind === \"compute-limit\"; }, parse: (s: string) => { const r = g%[2]d.parseWithOptions(s, {}); return JSON.stringify(r.node) + \" \" + String(r.error); } },\n", in, i)
+		fmt.Fprintf(&entries, "  { inputs: %s, recognize: (s: string, budget: number) => { const r = g%[2]d.%[3]s(s, { limits: { compute: budget } }); const e = r instanceof Error || r === null ? r : r.error; return e instanceof g%[2]d.ParseInterruptionError && e.kind === \"compute-limit\"; }, parse: (s: string) => { const r = g%[2]d.parseWithOptions(s, {}); return JSON.stringify(r.node) + \" \" + String(r.error); } },\n", in, i, entry)
 	}
 	res, _ := json.Marshal(results)
 	consumer := imports.String() + `

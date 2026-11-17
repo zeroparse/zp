@@ -1843,11 +1843,11 @@ fail:
 
 func e26(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var x1, size int
-	var x2, x5 rt.Mark
-	var ok bool
+	var x1, size, x5 int
+	var x2, x7 rt.Mark
+	var ok, x4 bool
 	var ch rune
-	var v7 *core.Node
+	var v9 *core.Node
 	x1 = p.Pos
 	x2 = p.Mark()
 	p.Silent++
@@ -1874,22 +1874,40 @@ L3:
 		goto fail
 	}
 	p.Pos += size
+	x5 = p.Pos
+	x4 = p.RunHot(2)
+	if x4 {
+		p.RunBegin(2, false, false)
+	}
 	for {
 		p.Spend()
-		x5 = p.Mark()
-		if _, ok = r39(p); !ok {
-			goto L6
+		if x4 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
 		}
-		if p.Pos == x5.Pos {
+		x7 = p.Mark()
+		if _, ok = r39(p); !ok {
+			goto L8
+		}
+		if p.Pos == x7.Pos {
 			break
 		}
 		continue
-	L6:
-		p.Reset(x5)
+	L8:
+		p.Reset(x7)
 		break
 	}
-	v7 = p.NewTerminal(x1, p.Text(x1, p.Pos))
-	return v7, true
+	if x4 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x5 >= rt.RunHotSpan {
+			p.RunWalked(2, x5)
+		}
+	}
+	v9 = p.NewTerminal(x1, p.Text(x1, p.Pos))
+	return v9, true
 fail:
 	return nil, false
 }
@@ -2018,25 +2036,36 @@ fail:
 
 func e33(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var x1, size int
-	var x3, x5 rt.Mark
-	var x7, ch rune
-	var x8, ok bool
-	var v13 *core.Node
+	var x1, x3, size int
+	var x2, x10, ok bool
+	var x5, x7 rt.Mark
+	var x9, ch rune
+	var v15 *core.Node
 	x1 = p.Pos
+	x3 = p.Pos
+	x2 = p.RunHot(3)
+	if x2 {
+		p.RunBegin(3, false, false)
+	}
 	for {
 		p.Spend()
-		x3 = p.Mark()
+		if x2 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
 		x5 = p.Mark()
+		x7 = p.Mark()
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
-			x7, _, x8 = p.In[p.Pos], 1, true
+			x9, _, x10 = p.In[p.Pos], 1, true
 		} else {
-			x7, _, x8 = p.Peek()
+			x9, _, x10 = p.Peek()
 		}
-		if !(x8 && (!(x7 == 34 || x7 == 92 || x7 == 10))) && p.Depth <= p.MaxDepth {
+		if !(x10 && (!(x9 == 34 || x9 == 92 || x9 == 10))) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 28)
-			goto L9
+			goto L11
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -2046,21 +2075,21 @@ func e33(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		if !ok || (ch == 34 || ch == 92 || ch == 10) {
 			p.Expect(p.Pos, 28)
-			goto L10
+			goto L12
 		}
 		p.Pos += size
-		goto L6
-	L10:
-		p.Reset(x5)
-	L9:
-		if !(x8 && (x7 == 92)) && p.Depth <= p.MaxDepth {
+		goto L8
+	L12:
+		p.Reset(x7)
+	L11:
+		if !(x10 && (x9 == 92)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 29)
-			goto L11
+			goto L13
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
 		} else if _, ok = p.MatchLiteral(lit32, "\\", 29, false); !ok {
-			goto L12
+			goto L14
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -2070,25 +2099,32 @@ func e33(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		if !ok {
 			p.Expect(p.Pos, rt.IdAny)
-			goto L12
+			goto L14
 		}
 		p.Pos += size
+		goto L8
+	L14:
+		p.Reset(x7)
+	L13:
 		goto L6
-	L12:
-		p.Reset(x5)
-	L11:
-		goto L4
-	L6:
-		if p.Pos == x3.Pos {
+	L8:
+		if p.Pos == x5.Pos {
 			break
 		}
 		continue
-	L4:
-		p.Reset(x3)
+	L6:
+		p.Reset(x5)
 		break
 	}
-	v13 = p.NewTerminal(x1, p.Text(x1, p.Pos))
-	return v13, true
+	if x2 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x3 >= rt.RunHotSpan {
+			p.RunWalked(3, x3)
+		}
+	}
+	v15 = p.NewTerminal(x1, p.Text(x1, p.Pos))
+	return v15, true
 }
 
 func e36(p *rt.Parser, _ int) (*core.Node, bool) {
@@ -2154,26 +2190,36 @@ fail:
 
 func e40(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var x1, x2, size, x13, x17, x19, x21, x22, x23, x26 int
-	var x4, x6, x24 rt.Mark
-	var v7, v14, v20, v27, v28, v29, v30, v31, v32, v33 *core.Node
-	var x9, ch rune
-	var x10, ok bool
-	var x18 []*core.Node
+	var x1, x2, size, x14, x18, x20, x22, x23, x24, x27 int
+	var x3, x11, ok bool
+	var x5, x7, x25 rt.Mark
+	var v8, v15, v21, v28, v29, v30, v31, v32, v33, v34 *core.Node
+	var x10, ch rune
+	var x19 []*core.Node
 	x1, x2 = p.Pos, len(p.KidStack)
+	x3 = p.RunHot(4)
+	if x3 {
+		p.RunBegin(4, true, false)
+	}
 	for {
 		p.Spend()
-		x4 = p.Mark()
-		x6 = p.Mark()
+		if x3 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x5 = p.Mark()
+		x7 = p.Mark()
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
-			x9, _, x10 = p.In[p.Pos], 1, true
+			x10, _, x11 = p.In[p.Pos], 1, true
 		} else {
-			x9, _, x10 = p.Peek()
+			x10, _, x11 = p.Peek()
 		}
-		if !(x10 && (x9 == 32 || x9 == 9 || x9 == 13 || x9 == 10)) && p.Depth <= p.MaxDepth {
+		if !(x11 && (x10 == 32 || x10 == 9 || x10 == 13 || x10 == 10)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 30)
-			goto L11
+			goto L12
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -2183,34 +2229,34 @@ func e40(p *rt.Parser, _ int) (*core.Node, bool) {
 		}
 		if !ok || !(ch == 32 || ch == 9 || ch == 13 || ch == 10) {
 			p.Expect(p.Pos, 30)
-			goto L12
+			goto L13
 		}
-		x13 = p.Pos
+		x14 = p.Pos
 		p.Pos += size
-		v14 = p.NewTerminal(x13, p.Text(x13, p.Pos))
-		v7 = v14
-		goto L8
+		v15 = p.NewTerminal(x14, p.Text(x14, p.Pos))
+		v8 = v15
+		goto L9
+	L13:
+		p.Reset(x7)
 	L12:
-		p.Reset(x6)
-	L11:
-		if !(x10 && (x9 == 47)) && p.Depth <= p.MaxDepth {
+		if !(x11 && (x10 == 47)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 31)
-			goto L15
+			goto L16
 		}
-		x17 = p.Pos
-		x18 = p.Nodes(2)[:0]
-		x19 = p.Pos
+		x18 = p.Pos
+		x19 = p.Nodes(2)[:0]
+		x20 = p.Pos
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
 		} else if _, ok = p.MatchLiteral(lit37, "//", 31, false); !ok {
-			goto L16
+			goto L17
 		}
-		v20 = p.NewTerminal(x19, "//")
-		x18 = append(x18, v20)
-		x21, x23, x22 = p.Pos, len(p.KidStack), 0
+		v21 = p.NewTerminal(x20, "//")
+		x19 = append(x19, v21)
+		x22, x24, x23 = p.Pos, len(p.KidStack), 0
 		for {
 			p.Spend()
-			x24 = p.Mark()
+			x25 = p.Mark()
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
 				ch, size, ok = p.In[p.Pos], 1, true
@@ -2219,45 +2265,56 @@ func e40(p *rt.Parser, _ int) (*core.Node, bool) {
 			}
 			if !ok || (ch == 10) {
 				p.Expect(p.Pos, 32)
-				goto L25
+				goto L26
 			}
-			x26 = p.Pos
+			x27 = p.Pos
 			p.Pos += size
-			v27 = p.NewTerminal(x26, p.Text(x26, p.Pos))
-			v28 = p.ScopeValue(sh38, v27, x24.Pos)
-			p.KidStack = append(p.KidStack, v28)
-			x22++
-			if x22 == 16 {
-				x22 = p.ScanReach(10, x21, x22)
+			v28 = p.NewTerminal(x27, p.Text(x27, p.Pos))
+			v29 = p.ScopeValue(sh38, v28, x25.Pos)
+			p.KidStack = append(p.KidStack, v29)
+			x23++
+			if x23 == 16 {
+				x23 = p.ScanReach(10, x22, x23)
 			}
 			continue
-		L25:
-			p.Reset(x24)
+		L26:
+			p.Reset(x25)
 			break
 		}
-		v29 = p.NewBranch(rt.ListKind, x21, p.ScanKids(10, x21, x23, x22))
-		x18 = append(x18, v29)
-		v30 = p.NewBranch(rt.SeqKind, x17, x18)
-		v31, _ = p.ShapeSingle(sh39, v30, x6.Pos)
-		v7 = v31
-		goto L8
+		v30 = p.NewBranch(rt.ListKind, x22, p.ScanKids(10, x22, x24, x23))
+		x19 = append(x19, v30)
+		v31 = p.NewBranch(rt.SeqKind, x18, x19)
+		v32, _ = p.ShapeSingle(sh39, v31, x7.Pos)
+		v8 = v32
+		goto L9
+	L17:
+		p.Reset(x7)
 	L16:
-		p.Reset(x6)
-	L15:
-		goto L5
-	L8:
-		v32 = p.ScopeValue(sh38, v7, x4.Pos)
-		p.KidStack = append(p.KidStack, v32)
-		if p.Pos == x4.Pos {
+		goto L6
+	L9:
+		v33 = p.ScopeValue(sh38, v8, x5.Pos)
+		if x3 {
+			p.SkipValue(v33)
+		} else {
+			p.KidStack = append(p.KidStack, v33)
+		}
+		if p.Pos == x5.Pos {
 			break
 		}
 		continue
-	L5:
-		p.Reset(x4)
+	L6:
+		p.Reset(x5)
 		break
 	}
-	v33 = p.NewBranch(rt.ListKind, x1, p.Kids(x2))
-	return v33, true
+	if x3 {
+		v34 = p.NewBranch(rt.ListKind, x1, p.SkipKids())
+	} else {
+		if p.Pos-x1 >= rt.RunHotSpan {
+			p.RunWalked(4, x1)
+		}
+		v34 = p.NewBranch(rt.ListKind, x1, p.Kids(x2))
+	}
+	return v34, true
 }
 
 func e55(p *rt.Parser) (*core.Node, bool) {
@@ -2932,22 +2989,33 @@ func r30(p *rt.Parser) (*core.Node, bool) {
 func r31(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var v *core.Node
-	var x2, x3, x5, x6, size, x14, x15 int
-	var x8, ch rune
-	var x9, ok bool
+	var x1, x11, ok bool
+	var x2, x4, x5, x7, x8, size, x16, x17 int
+	var x10, ch rune
+	x2 = p.Pos
+	x1 = p.RunHot(4)
+	if x1 {
+		p.RunBegin(4, false, false)
+	}
 	for {
 		p.Spend()
-		x2, x3 = p.Pos, len(p.Recovered)
-		x5, x6 = p.Pos, len(p.Recovered)
+		if x1 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x4, x5 = p.Pos, len(p.Recovered)
+		x7, x8 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
-			x8, _, x9 = p.In[p.Pos], 1, true
+			x10, _, x11 = p.In[p.Pos], 1, true
 		} else {
-			x8, _, x9 = p.Peek()
+			x10, _, x11 = p.Peek()
 		}
-		if !(x9 && (x8 == 32 || x8 == 9 || x8 == 13 || x8 == 10)) && p.Depth <= p.MaxDepth {
+		if !(x11 && (x10 == 32 || x10 == 9 || x10 == 13 || x10 == 10)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 30)
-			goto L10
+			goto L12
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -2957,24 +3025,24 @@ func r31(p *rt.Parser) (*core.Node, bool) {
 		}
 		if !ok || !(ch == 32 || ch == 9 || ch == 13 || ch == 10) {
 			p.Expect(p.Pos, 30)
-			goto L11
+			goto L13
 		}
 		p.Pos += size
-		goto L7
-	L11:
-		p.Restore(x5, x6)
-	L10:
-		if !(x9 && (x8 == 47)) && p.Depth <= p.MaxDepth {
+		goto L9
+	L13:
+		p.Restore(x7, x8)
+	L12:
+		if !(x11 && (x10 == 47)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 31)
-			goto L12
+			goto L14
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
 		} else if _, ok = p.MatchLiteral(lit37, "//", 31, false); !ok {
-			goto L13
+			goto L15
 		}
-		x14 = p.Pos
-		x15 = 0
+		x16 = p.Pos
+		x17 = 0
 		for {
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
@@ -2987,27 +3055,34 @@ func r31(p *rt.Parser) (*core.Node, bool) {
 				break
 			}
 			p.Pos += size
-			x15++
-			if x15 == 16 {
-				x15 = p.ScanReach(9, x14, x15)
+			x17++
+			if x17 == 16 {
+				x17 = p.ScanReach(9, x16, x17)
 			}
 		}
-		if 15 < x15 {
-			p.ScanEnd(9, x14, x15)
+		if 15 < x17 {
+			p.ScanEnd(9, x16, x17)
 		}
-		goto L7
-	L13:
-		p.Restore(x5, x6)
-	L12:
-		goto L4
-	L7:
-		if p.Pos == x2 {
+		goto L9
+	L15:
+		p.Restore(x7, x8)
+	L14:
+		goto L6
+	L9:
+		if p.Pos == x4 {
 			break
 		}
 		continue
-	L4:
-		p.Restore(x2, x3)
+	L6:
+		p.Restore(x4, x5)
 		break
+	}
+	if x1 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x2 >= rt.RunHotSpan {
+			p.RunWalked(4, x2)
+		}
 	}
 	v = nil
 	return v, true
@@ -3695,10 +3770,10 @@ fail:
 
 func e99(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var x1, x4 rt.Mark
-	var ok bool
+	var x1, x6 rt.Mark
+	var ok, x3 bool
 	var ch rune
-	var size int
+	var size, x4 int
 	x1 = p.Mark()
 	p.Silent++
 	p.LookBegin(2)
@@ -3724,19 +3799,37 @@ L2:
 		goto fail
 	}
 	p.Pos += size
+	x4 = p.Pos
+	x3 = p.RunHot(2)
+	if x3 {
+		p.RunBegin(2, false, false)
+	}
 	for {
 		p.Spend()
-		x4 = p.Mark()
-		if _, ok = q19(p); !ok {
-			goto L5
+		if x3 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
 		}
-		if p.Pos == x4.Pos {
+		x6 = p.Mark()
+		if _, ok = q19(p); !ok {
+			goto L7
+		}
+		if p.Pos == x6.Pos {
 			break
 		}
 		continue
-	L5:
-		p.Reset(x4)
+	L7:
+		p.Reset(x6)
 		break
+	}
+	if x3 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x4 >= rt.RunHotSpan {
+			p.RunWalked(2, x4)
+		}
 	}
 	return nil, true
 fail:
@@ -4854,22 +4947,33 @@ fail:
 func q22(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var v *core.Node
-	var x2, x3, x5, x6, size int
-	var x8, ch rune
-	var x9, ok bool
+	var x1, x11, ok bool
+	var x2, x4, x5, x7, x8, size int
+	var x10, ch rune
+	x2 = p.Pos
+	x1 = p.RunHot(3)
+	if x1 {
+		p.RunBegin(3, false, false)
+	}
 	for {
 		p.Spend()
-		x2, x3 = p.Pos, len(p.Recovered)
-		x5, x6 = p.Pos, len(p.Recovered)
+		if x1 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x4, x5 = p.Pos, len(p.Recovered)
+		x7, x8 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
-			x8, _, x9 = p.In[p.Pos], 1, true
+			x10, _, x11 = p.In[p.Pos], 1, true
 		} else {
-			x8, _, x9 = p.Peek()
+			x10, _, x11 = p.Peek()
 		}
-		if !(x9 && (!(x8 == 34 || x8 == 92 || x8 == 10))) && p.Depth <= p.MaxDepth {
+		if !(x11 && (!(x10 == 34 || x10 == 92 || x10 == 10))) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 28)
-			goto L10
+			goto L12
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -4879,21 +4983,21 @@ func q22(p *rt.Parser) (*core.Node, bool) {
 		}
 		if !ok || (ch == 34 || ch == 92 || ch == 10) {
 			p.Expect(p.Pos, 28)
-			goto L11
+			goto L13
 		}
 		p.Pos += size
-		goto L7
-	L11:
-		p.Restore(x5, x6)
-	L10:
-		if !(x9 && (x8 == 92)) && p.Depth <= p.MaxDepth {
+		goto L9
+	L13:
+		p.Restore(x7, x8)
+	L12:
+		if !(x11 && (x10 == 92)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 29)
-			goto L12
+			goto L14
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
 		} else if _, ok = p.MatchLiteral(lit32, "\\", 29, false); !ok {
-			goto L13
+			goto L15
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -4903,22 +5007,29 @@ func q22(p *rt.Parser) (*core.Node, bool) {
 		}
 		if !ok {
 			p.Expect(p.Pos, rt.IdAny)
-			goto L13
+			goto L15
 		}
 		p.Pos += size
-		goto L7
-	L13:
-		p.Restore(x5, x6)
-	L12:
-		goto L4
-	L7:
-		if p.Pos == x2 {
+		goto L9
+	L15:
+		p.Restore(x7, x8)
+	L14:
+		goto L6
+	L9:
+		if p.Pos == x4 {
 			break
 		}
 		continue
-	L4:
-		p.Restore(x2, x3)
+	L6:
+		p.Restore(x4, x5)
 		break
+	}
+	if x1 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x2 >= rt.RunHotSpan {
+			p.RunWalked(3, x2)
+		}
 	}
 	v = nil
 	return v, true
@@ -5176,22 +5287,33 @@ fail:
 func q30(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var v *core.Node
-	var x2, x3, x5, x6, size, x14, x15 int
-	var x8, ch rune
-	var x9, ok bool
+	var x1, x11, ok bool
+	var x2, x4, x5, x7, x8, size, x16, x17 int
+	var x10, ch rune
+	x2 = p.Pos
+	x1 = p.RunHot(4)
+	if x1 {
+		p.RunBegin(4, false, false)
+	}
 	for {
 		p.Spend()
-		x2, x3 = p.Pos, len(p.Recovered)
-		x5, x6 = p.Pos, len(p.Recovered)
+		if x1 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x4, x5 = p.Pos, len(p.Recovered)
+		x7, x8 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
-			x8, _, x9 = p.In[p.Pos], 1, true
+			x10, _, x11 = p.In[p.Pos], 1, true
 		} else {
-			x8, _, x9 = p.Peek()
+			x10, _, x11 = p.Peek()
 		}
-		if !(x9 && (x8 == 32 || x8 == 9 || x8 == 13 || x8 == 10)) && p.Depth <= p.MaxDepth {
+		if !(x11 && (x10 == 32 || x10 == 9 || x10 == 13 || x10 == 10)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 30)
-			goto L10
+			goto L12
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -5201,24 +5323,24 @@ func q30(p *rt.Parser) (*core.Node, bool) {
 		}
 		if !ok || !(ch == 32 || ch == 9 || ch == 13 || ch == 10) {
 			p.Expect(p.Pos, 30)
-			goto L11
+			goto L13
 		}
 		p.Pos += size
-		goto L7
-	L11:
-		p.Restore(x5, x6)
-	L10:
-		if !(x9 && (x8 == 47)) && p.Depth <= p.MaxDepth {
+		goto L9
+	L13:
+		p.Restore(x7, x8)
+	L12:
+		if !(x11 && (x10 == 47)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 31)
-			goto L12
+			goto L14
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
 		} else if _, ok = p.MatchLiteral(lit37, "//", 31, false); !ok {
-			goto L13
+			goto L15
 		}
-		x14 = p.Pos
-		x15 = 0
+		x16 = p.Pos
+		x17 = 0
 		for {
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
@@ -5231,27 +5353,34 @@ func q30(p *rt.Parser) (*core.Node, bool) {
 				break
 			}
 			p.Pos += size
-			x15++
-			if x15 == 16 {
-				x15 = p.ScanReach(9, x14, x15)
+			x17++
+			if x17 == 16 {
+				x17 = p.ScanReach(9, x16, x17)
 			}
 		}
-		if 15 < x15 {
-			p.ScanEnd(9, x14, x15)
+		if 15 < x17 {
+			p.ScanEnd(9, x16, x17)
 		}
-		goto L7
-	L13:
-		p.Restore(x5, x6)
-	L12:
-		goto L4
-	L7:
-		if p.Pos == x2 {
+		goto L9
+	L15:
+		p.Restore(x7, x8)
+	L14:
+		goto L6
+	L9:
+		if p.Pos == x4 {
 			break
 		}
 		continue
-	L4:
-		p.Restore(x2, x3)
+	L6:
+		p.Restore(x4, x5)
 		break
+	}
+	if x1 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x2 >= rt.RunHotSpan {
+			p.RunWalked(4, x2)
+		}
 	}
 	v = nil
 	return v, true
@@ -6967,9 +7096,9 @@ func u16(p *rt.TParser) (any, bool) {
 
 func v16(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, rec, x1, x2, x3, size, x6, x7 int
-	var v, v9, bv any
-	var ok bool
+	var start, rec, x1, x2, x3, size, x6, x8, x9 int
+	var v, v11, bv any
+	var ok, x5 bool
 	var ch rune
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
@@ -6998,23 +7127,41 @@ L4:
 		goto fail
 	}
 	p.Pos += size
+	x6 = p.Pos
+	x5 = p.RunHot(2)
+	if x5 {
+		p.RunBegin(2, false, false)
+	}
 	for {
 		p.Spend()
-		x6, x7 = p.Pos, len(p.Recovered)
-		if _, ok = s39(p); !ok {
-			goto L8
+		if x5 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
 		}
-		if p.Pos == x6 {
+		x8, x9 = p.Pos, len(p.Recovered)
+		if _, ok = s39(p); !ok {
+			goto L10
+		}
+		if p.Pos == x8 {
 			break
 		}
 		continue
-	L8:
-		p.Restore(x6, x7)
+	L10:
+		p.Restore(x8, x9)
 		break
 	}
-	v9 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	bv = rt.TFreshNode(v9)
-	v = p.ScopeValue(sh38, v9, start)
+	if x5 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x6 >= rt.RunHotSpan {
+			p.RunWalked(2, x6)
+		}
+	}
+	v11 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
+	bv = rt.TFreshNode(v11)
+	v = p.ScopeValue(sh38, v11, start)
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
@@ -7205,25 +7352,36 @@ fail:
 
 func s22(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, x1, x3, x4, x6, x7, size int
-	var v, v15, bv any
-	var x9, ch rune
-	var x10, ok bool
+	var start, x1, x3, x5, x6, x8, x9, size int
+	var v, v17, bv any
+	var x2, x12, ok bool
+	var x11, ch rune
 	start = p.Pos
 	x1 = p.Pos
+	x3 = p.Pos
+	x2 = p.RunHot(3)
+	if x2 {
+		p.RunBegin(3, false, false)
+	}
 	for {
 		p.Spend()
-		x3, x4 = p.Pos, len(p.Recovered)
-		x6, x7 = p.Pos, len(p.Recovered)
+		if x2 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x5, x6 = p.Pos, len(p.Recovered)
+		x8, x9 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
-			x9, _, x10 = p.In[p.Pos], 1, true
+			x11, _, x12 = p.In[p.Pos], 1, true
 		} else {
-			x9, _, x10 = p.Peek()
+			x11, _, x12 = p.Peek()
 		}
-		if !(x10 && (!(x9 == 34 || x9 == 92 || x9 == 10))) && p.Depth <= p.MaxDepth {
+		if !(x12 && (!(x11 == 34 || x11 == 92 || x11 == 10))) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 28)
-			goto L11
+			goto L13
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -7233,21 +7391,21 @@ func s22(p *rt.TParser) (any, bool) {
 		}
 		if !ok || (ch == 34 || ch == 92 || ch == 10) {
 			p.Expect(p.Pos, 28)
-			goto L12
+			goto L14
 		}
 		p.Pos += size
-		goto L8
-	L12:
-		p.Restore(x6, x7)
-	L11:
-		if !(x10 && (x9 == 92)) && p.Depth <= p.MaxDepth {
+		goto L10
+	L14:
+		p.Restore(x8, x9)
+	L13:
+		if !(x12 && (x11 == 92)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 29)
-			goto L13
+			goto L15
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
 		} else if _, ok = p.Parser.MatchLiteral(lit32, "\\", 29, false); !ok {
-			goto L14
+			goto L16
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -7257,26 +7415,33 @@ func s22(p *rt.TParser) (any, bool) {
 		}
 		if !ok {
 			p.Expect(p.Pos, rt.IdAny)
-			goto L14
+			goto L16
 		}
 		p.Pos += size
-		goto L8
-	L14:
-		p.Restore(x6, x7)
-	L13:
-		goto L5
-	L8:
-		if p.Pos == x3 {
+		goto L10
+	L16:
+		p.Restore(x8, x9)
+	L15:
+		goto L7
+	L10:
+		if p.Pos == x5 {
 			break
 		}
 		continue
-	L5:
-		p.Restore(x3, x4)
+	L7:
+		p.Restore(x5, x6)
 		break
 	}
-	v15 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	bv = rt.TFreshNode(v15)
-	v = p.ScopeValue(sh38, v15, start)
+	if x2 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x3 >= rt.RunHotSpan {
+			p.RunWalked(3, x3)
+		}
+	}
+	v17 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
+	bv = rt.TFreshNode(v17)
+	v = p.ScopeValue(sh38, v17, start)
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
@@ -7354,26 +7519,36 @@ fail:
 
 func s30(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, x1, x2, x4, x5, x7, x8, size, x15, x19, x21, x23, x24, x25, x26, x27, x29 int
-	var v, v9, v16, v22, v30, v31, v32, v33, v34, v35, v36 any
-	var x11, ch rune
-	var x12, ok bool
-	var x20 []any
+	var start, x1, x2, x5, x6, x8, x9, size, x16, x20, x22, x24, x25, x26, x27, x28, x30 int
+	var v, v10, v17, v23, v31, v32, v33, v34, v35, v36, v37 any
+	var x3, x13, ok bool
+	var x12, ch rune
+	var x21 []any
 	start = p.Pos
 	x1, x2 = p.Pos, len(p.KidStack)
+	x3 = p.RunHot(4)
+	if x3 {
+		p.RunBegin(4, true, false)
+	}
 	for {
 		p.Spend()
-		x4, x5 = p.Pos, len(p.Recovered)
-		x7, x8 = p.Pos, len(p.Recovered)
+		if x3 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x5, x6 = p.Pos, len(p.Recovered)
+		x8, x9 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
-			x11, _, x12 = p.In[p.Pos], 1, true
+			x12, _, x13 = p.In[p.Pos], 1, true
 		} else {
-			x11, _, x12 = p.Peek()
+			x12, _, x13 = p.Peek()
 		}
-		if !(x12 && (x11 == 32 || x11 == 9 || x11 == 13 || x11 == 10)) && p.Depth <= p.MaxDepth {
+		if !(x13 && (x12 == 32 || x12 == 9 || x12 == 13 || x12 == 10)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 30)
-			goto L13
+			goto L14
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -7383,34 +7558,34 @@ func s30(p *rt.TParser) (any, bool) {
 		}
 		if !ok || !(ch == 32 || ch == 9 || ch == 13 || ch == 10) {
 			p.Expect(p.Pos, 30)
-			goto L14
+			goto L15
 		}
-		x15 = p.Pos
+		x16 = p.Pos
 		p.Pos += size
-		v16 = p.NewMatch(x15, p.Pos, p.Text(x15, p.Pos), true)
-		v9 = v16
-		goto L10
+		v17 = p.NewMatch(x16, p.Pos, p.Text(x16, p.Pos), true)
+		v10 = v17
+		goto L11
+	L15:
+		p.Restore(x8, x9)
 	L14:
-		p.Restore(x7, x8)
-	L13:
-		if !(x12 && (x11 == 47)) && p.Depth <= p.MaxDepth {
+		if !(x13 && (x12 == 47)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 31)
-			goto L17
+			goto L18
 		}
-		x19 = p.Pos
-		x20 = p.NewVals(2)[:0]
-		x21 = p.Pos
+		x20 = p.Pos
+		x21 = p.NewVals(2)[:0]
+		x22 = p.Pos
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
 		} else if _, ok = p.Parser.MatchLiteral(lit37, "//", 31, false); !ok {
-			goto L18
+			goto L19
 		}
-		v22 = p.NewMatch(x21, p.Pos, "//", true)
-		x20 = append(x20, v22)
-		x23, x25, x24 = p.Pos, len(p.KidStack), 0
+		v23 = p.NewMatch(x22, p.Pos, "//", true)
+		x21 = append(x21, v23)
+		x24, x26, x25 = p.Pos, len(p.KidStack), 0
 		for {
 			p.Spend()
-			x26, x27 = p.Pos, len(p.Recovered)
+			x27, x28 = p.Pos, len(p.Recovered)
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
 				ch, size, ok = p.In[p.Pos], 1, true
@@ -7419,45 +7594,56 @@ func s30(p *rt.TParser) (any, bool) {
 			}
 			if !ok || (ch == 10) {
 				p.Expect(p.Pos, 32)
-				goto L28
+				goto L29
 			}
-			x29 = p.Pos
+			x30 = p.Pos
 			p.Pos += size
-			v30 = p.NewMatch(x29, p.Pos, p.Text(x29, p.Pos), true)
-			v31 = p.ScopeValue(sh38, v30, x26)
-			p.PushKid(v31)
-			x24++
-			if x24 == 16 {
-				x24 = p.ScanReach(10, x23, x24)
+			v31 = p.NewMatch(x30, p.Pos, p.Text(x30, p.Pos), true)
+			v32 = p.ScopeValue(sh38, v31, x27)
+			p.PushKid(v32)
+			x25++
+			if x25 == 16 {
+				x25 = p.ScanReach(10, x24, x25)
 			}
 			continue
-		L28:
-			p.Restore(x26, x27)
+		L29:
+			p.Restore(x27, x28)
 			break
 		}
-		v32 = p.NewNode("list", x23, p.Pos, p.ScanKids(10, x23, x25, x24))
-		x20 = append(x20, v32)
-		v33 = p.NewNode("tuple", x19, p.Pos, x20)
-		v34, _ = p.ShapeSingle(sh39, v33, x7)
-		v9 = v34
-		goto L10
+		v33 = p.NewNode("list", x24, p.Pos, p.ScanKids(10, x24, x26, x25))
+		x21 = append(x21, v33)
+		v34 = p.NewNode("tuple", x20, p.Pos, x21)
+		v35, _ = p.ShapeSingle(sh39, v34, x8)
+		v10 = v35
+		goto L11
+	L19:
+		p.Restore(x8, x9)
 	L18:
-		p.Restore(x7, x8)
-	L17:
-		goto L6
-	L10:
-		v35 = p.ScopeValue(sh38, v9, x4)
-		p.PushKid(v35)
-		if p.Pos == x4 {
+		goto L7
+	L11:
+		v36 = p.ScopeValue(sh38, v10, x5)
+		if x3 {
+			p.SkipValue(v36)
+		} else {
+			p.PushKid(v36)
+		}
+		if p.Pos == x5 {
 			break
 		}
 		continue
-	L6:
-		p.Restore(x4, x5)
+	L7:
+		p.Restore(x5, x6)
 		break
 	}
-	v36 = p.NewNode("list", x1, p.Pos, p.Kids(x2))
-	v = p.ScopeValue(sh38, v36, start)
+	if x3 {
+		v37 = p.NewNode("list", x1, p.Pos, p.SkipKids())
+	} else {
+		if p.Pos-x1 >= rt.RunHotSpan {
+			p.RunWalked(4, x1)
+		}
+		v37 = p.NewNode("list", x1, p.Pos, p.Kids(x2))
+	}
+	v = p.ScopeValue(sh38, v37, start)
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
@@ -7467,22 +7653,33 @@ func s30(p *rt.TParser) (any, bool) {
 func s31(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var v any
-	var x2, x3, x5, x6, size, x14, x15 int
-	var x8, ch rune
-	var x9, ok bool
+	var x1, x11, ok bool
+	var x2, x4, x5, x7, x8, size, x16, x17 int
+	var x10, ch rune
+	x2 = p.Pos
+	x1 = p.RunHot(4)
+	if x1 {
+		p.RunBegin(4, false, false)
+	}
 	for {
 		p.Spend()
-		x2, x3 = p.Pos, len(p.Recovered)
-		x5, x6 = p.Pos, len(p.Recovered)
+		if x1 {
+			if p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+		}
+		x4, x5 = p.Pos, len(p.Recovered)
+		x7, x8 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
-			x8, _, x9 = p.In[p.Pos], 1, true
+			x10, _, x11 = p.In[p.Pos], 1, true
 		} else {
-			x8, _, x9 = p.Peek()
+			x10, _, x11 = p.Peek()
 		}
-		if !(x9 && (x8 == 32 || x8 == 9 || x8 == 13 || x8 == 10)) && p.Depth <= p.MaxDepth {
+		if !(x11 && (x10 == 32 || x10 == 9 || x10 == 13 || x10 == 10)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 30)
-			goto L10
+			goto L12
 		}
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -7492,24 +7689,24 @@ func s31(p *rt.TParser) (any, bool) {
 		}
 		if !ok || !(ch == 32 || ch == 9 || ch == 13 || ch == 10) {
 			p.Expect(p.Pos, 30)
-			goto L11
+			goto L13
 		}
 		p.Pos += size
-		goto L7
-	L11:
-		p.Restore(x5, x6)
-	L10:
-		if !(x9 && (x8 == 47)) && p.Depth <= p.MaxDepth {
+		goto L9
+	L13:
+		p.Restore(x7, x8)
+	L12:
+		if !(x11 && (x10 == 47)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 31)
-			goto L12
+			goto L14
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
 		} else if _, ok = p.Parser.MatchLiteral(lit37, "//", 31, false); !ok {
-			goto L13
+			goto L15
 		}
-		x14 = p.Pos
-		x15 = 0
+		x16 = p.Pos
+		x17 = 0
 		for {
 			if p.Pos < len(p.In) {
 				p.Control.Take(1)
@@ -7522,27 +7719,34 @@ func s31(p *rt.TParser) (any, bool) {
 				break
 			}
 			p.Pos += size
-			x15++
-			if x15 == 16 {
-				x15 = p.ScanReach(9, x14, x15)
+			x17++
+			if x17 == 16 {
+				x17 = p.ScanReach(9, x16, x17)
 			}
 		}
-		if 15 < x15 {
-			p.ScanEnd(9, x14, x15)
+		if 15 < x17 {
+			p.ScanEnd(9, x16, x17)
 		}
-		goto L7
-	L13:
-		p.Restore(x5, x6)
-	L12:
-		goto L4
-	L7:
-		if p.Pos == x2 {
+		goto L9
+	L15:
+		p.Restore(x7, x8)
+	L14:
+		goto L6
+	L9:
+		if p.Pos == x4 {
 			break
 		}
 		continue
-	L4:
-		p.Restore(x2, x3)
+	L6:
+		p.Restore(x4, x5)
 		break
+	}
+	if x1 {
+		p.SkipEnd()
+	} else {
+		if p.Pos-x2 >= rt.RunHotSpan {
+			p.RunWalked(4, x2)
+		}
 	}
 	v = nil
 	return v, true

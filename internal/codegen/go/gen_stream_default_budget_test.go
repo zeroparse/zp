@@ -12,8 +12,9 @@ import (
 
 // The default budget of a generated stream follows the furthest position the parser demands, so that
 // the same input gives the same result, or the same limit, spend and request, whatever the chunks of
-// the reader. The call of q keeps the inner scan from being a scan site, whose records would answer it
-// again and keep the spend below the default budget.
+// the reader. The call of q keeps the inner scan from being a scan site, and the maximum of the
+// repetition in mid keeps it from being a run site, whose records would answer them again and keep
+// the spend below the default budget.
 func TestGeneratedStreamDefaultBudgetIgnoresChunking(t *testing.T) {
 	t.Parallel()
 	codegentest.NeedsBudgetControls(t)
@@ -23,7 +24,8 @@ func TestGeneratedStreamDefaultBudgetIgnoresChunking(t *testing.T) {
 	g, err := parseTest(`rule main = ^^ header items:record* #stream $$
 rule header = "#records\n"
 rule record = ^ ([a-z] &mid)* "\n"
-rule mid = ([a-z] &([a-z]* q))*
+// The maximum keeps this repetition from being a run site; it is not noise.
+rule mid = ([a-z] &([a-z]* q)) #repeat(0, 1000000)
 rule q = ""`)
 	if err != nil {
 		t.Fatal(err)

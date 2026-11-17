@@ -9,8 +9,8 @@ import (
 )
 
 // TestRegionBoundsGenerated measures the controls of the region bound in generated parsers, which
-// keep no records of run sites or scan sites: the positive control spends a budget linear in the
-// input, and the negative ones a quadratic budget.
+// keep records of run sites but none of scan sites: a control the engine measures linear spends a
+// budget linear in the input there too, and the others a quadratic budget.
 func TestRegionBoundsGenerated(t *testing.T) {
 	t.Parallel()
 	goBin := skipRunsGoBin(t)
@@ -34,9 +34,9 @@ func TestRegionBoundsGenerated(t *testing.T) {
 			lo, hi = min(lo, s), max(hi, s)
 		}
 		switch {
-		case controls[i].Positive && hi > 1.2:
+		case controls[i].Order == complexitytest.Linear && hi > 1.2:
 			t.Errorf("%s: spends %v grow faster than linearly", controls[i].Name, row)
-		case !controls[i].Positive && lo < 1.7:
+		case controls[i].Order != complexitytest.Linear && lo < 1.7:
 			t.Errorf("%s: spends %v are not quadratic", controls[i].Name, row)
 		}
 	}
