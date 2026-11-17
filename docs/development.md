@@ -293,6 +293,10 @@ reference data; the live comparisons on a CPython checkout (`ZP_CPYTHON_SRC`) an
 are not supplied. DuckDB checks use recorded reference results, not a live DuckDB oracle. These jobs do not claim
 browser-engine or deployed-site validation.
 
+### Developer Scripts
+
+`hack/` holds the scripts a contributor runs by hand: `gate.sh` (the levels above), `affected-tests.sh` (the packages a change can affect), `test-reference-tags.sh`, `sync-alpha-parsers.sh` and `test-alpha-parsers.sh` (the ready-made parsers), and `check-commits.sh`. `hack/check-commits.sh [base [head]]` checks the commits of a range before a push against `docs/commit-messages.md` and the repository rules: no AI or agent attribution, no merge commit, a summary of at most 72 characters without a final period, a body, no closing trailer, no files under `.scratch/`, and a branch prefix of `feat/`, `fix/`, `perf/` or `docs/`. It reads history only and exits 1 on any violation.
+
 ## Repository Grammar Test Coverage
 
 The guides show how to test a grammar in an application. The repository uses the same layers across its examples and parser corpus:
