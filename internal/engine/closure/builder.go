@@ -489,11 +489,12 @@ func (b *Builder) scanRepeat(n *ir.Scan) state.Matcher {
 }
 
 // scanSite is ScanRepeat for the scan site scan (state/scan_sites.go): a walk that reaches its
-// ScanHotSpan-th character looks for the record of its start, if the site is hot, and otherwise
+// ScanHotSpan-th character at a hot site looks for a run at each further position, and otherwise
 // reports itself to the cold state of the site.
 func (b *Builder) scanSite(accept func(*state.Parser, rune) bool, desc state.ExpID, min int, charge bool, site int) state.Matcher {
 	return func(p *state.Parser) (*core.Node, bool) {
 		start, span := p.Pos, state.ScanHotSpan
+		hw0 := p.ScanBegin()
 		count := 0
 		for count < span {
 			if charge {
@@ -502,22 +503,17 @@ func (b *Builder) scanSite(accept func(*state.Parser, rune) bool, desc state.Exp
 			ch, size, ok := p.Peek()
 			if !ok || !accept(p, ch) {
 				p.Expect(p.Pos, desc)
+				p.ScanShort(hw0)
 				return nil, count >= min
 			}
 			p.Pos += size
 			count++
 		}
-		hot, hit := p.ScanHot(site), false
-		hw0 := p.Hw
-		p.Hw = 0
-		if hot {
-			var rec state.ScanRecord
-			if rec, hit = p.ScanLookup(site, start); hit {
-				p.ScanJump(rec)
-				count = rec.Count()
-			}
-		}
+		w := p.ScanReach(site, start, hw0)
 		for {
+			if id := w.Tab.At(p.Pos); id != 0 {
+				count = p.ScanTakeKids(&w, id, count, -1)
+			}
 			if charge {
 				p.Spend()
 			}
@@ -529,7 +525,7 @@ func (b *Builder) scanSite(accept func(*state.Parser, rune) bool, desc state.Exp
 			p.Pos += size
 			count++
 		}
-		p.FinishScan(site, start, count, hot, hit, hw0)
+		p.ScanEnd(&w, count, nil)
 		return nil, count >= min
 	}
 }
@@ -543,23 +539,19 @@ func (b *Builder) scanSiteList(m state.Matcher, elemValue func(*state.Parser, *c
 		}
 		start, span := p.Pos, state.ScanHotSpan
 		base := len(p.KidStack)
-		var (
-			hot, hit bool
-			rec      state.ScanRecord
-			hw0      int
-		)
+		kidBase := -1
+		if build {
+			kidBase = base
+		}
+		hw0 := p.ScanBegin()
+		var w state.ScanWalk
 		count := 0
 		for n := 0; ; n++ {
 			if n == span {
-				hot = p.ScanHot(site)
-				hw0 = p.Hw
-				p.Hw = 0
-				if hot {
-					if rec, hit = p.ScanLookup(site, start); hit {
-						p.ScanJump(rec)
-						count = rec.Count()
-					}
-				}
+				w = p.ScanReach(site, start, hw0)
+			}
+			if id := w.Tab.At(p.Pos); id != 0 {
+				count = p.ScanTakeKids(&w, id, count, kidBase)
 			}
 			if charge {
 				p.Spend()
@@ -578,23 +570,26 @@ func (b *Builder) scanSiteList(m state.Matcher, elemValue func(*state.Parser, *c
 				break
 			}
 		}
-		if count < min {
-			if count >= span {
-				p.Hw = max(hw0, p.Hw)
+		if count < span {
+			p.ScanShort(hw0)
+			if count < min {
+				p.DropKids(base)
+				return nil, false
 			}
-			p.DropKids(base)
-			return nil, false
+			if !build {
+				return nil, true
+			}
+			return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 		}
 		if !build {
-			if count >= span {
-				p.FinishScan(site, start, count, hot, hit, hw0)
-			}
-			return nil, true
+			p.ScanEnd(&w, count, nil)
+			return nil, count >= min
 		}
-		if count >= span {
-			return p.FinishScanList(site, start, base, count, hot, hit, rec, hw0), true
+		if count < min {
+			p.ScanFailList(&w, base, count)
+			return nil, false
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+		return p.ScanList(&w, base, count), true
 	}
 }
 

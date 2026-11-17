@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 	"testing/iotest"
+	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -68,7 +69,7 @@ func scanSitesMatchWithoutRecords(t *testing.T) {
 }
 
 // TestScanSitesAreMarked checks which repetitions are scan sites: those of one character without a
-// maximum in the rules that call no rule, whatever the rule does with their values.
+// maximum, in any rule, whatever the rule does with their values.
 func TestScanSitesAreMarked(t *testing.T) {
 	for _, c := range []struct {
 		name, src string
@@ -76,7 +77,7 @@ func TestScanSitesAreMarked(t *testing.T) {
 	}{
 		{"a pure rule called twice", "rule main = r \"a\" / r \"b\"\nrule r = [x]*", 1},
 		{"a pure rule called once", "rule main = r \"a\"\nrule r = [x]*", 1},
-		{"a rule that calls a rule", "rule main = r \"a\" / r \"b\"\nrule r = s*\nrule s = \"x\"", 0},
+		{"a repetition of a call", "rule main = r \"a\" / r \"b\"\nrule r = s*\nrule s = \"x\"", 0},
 		{"a rule with a capture", "rule main = r \"a\" / r \"b\"\nrule r = c:[x]*", 1},
 		{"a rule with an action", "rule main = r \"a\" / r \"b\"\nrule r = [x]* => 1", 1},
 		{"a rule with a predicate", "var n int\nrule main = r \"a\" / r \"b\"\nrule r = ([x] { n < 3 })*", 0},
@@ -151,18 +152,20 @@ func scanDocumentMismatch(t *testing.T, src, alphabet string, b Backend) string 
 			t.Fatal(err)
 		}
 		d.Parse()
+		// Positions are in code points; an invalid byte of the text counts as one.
+		chars := []rune(alphabet)
 		for j := 0; j < 6; j++ {
-			cur := d.Text()
-			a := rng.Intn(len(cur) + 1)
+			cur := utf8.RuneCountInString(d.Text())
+			a := rng.Intn(cur + 1)
 			b, ins := a, ""
 			switch rng.Intn(3) {
 			case 0:
-				b = min(len(cur), a+1+rng.Intn(3))
+				b = min(cur, a+1+rng.Intn(3))
 			case 1:
-				ins = string(alphabet[rng.Intn(len(alphabet))])
+				ins = string(chars[rng.Intn(len(chars))])
 			default:
-				b = min(len(cur), a+rng.Intn(3))
-				ins = string(alphabet[rng.Intn(len(alphabet))])
+				b = min(cur, a+rng.Intn(3))
+				ins = string(chars[rng.Intn(len(chars))])
 			}
 			if err := d.Edit(a, b, ins); err != nil {
 				t.Fatalf("edit: %v", err)
@@ -650,4 +653,86 @@ rule ws = [ ]*`
 			}
 		}
 	}
+}
+
+// scanIntervalControls are grammars whose failed alternatives walk a run again from each of its
+// positions: X matches [ab] and then the rest of the run fails to reach "c", so X* restarts the walk
+// one position further. The walk is inline, in a scan rule, builds a value, or runs over characters
+// of two bytes. In the last controls, whose inputs fail, the walks begin at each position of the run
+// from its end back to its start, as the levels of a recursion fail.
+var scanIntervalControls = []struct {
+	name, src string
+	in        func(n int) string
+}{
+	{"inline", "rule main = X* \"y\"\nrule X = [ab] [b]* \"c\" / [ab]\n", scanControlInput("b")},
+	{"scan rule", "rule main = X* \"y\"\nrule X = [ab] bs \"c\" / [ab]\nrule bs = [b]*\n", scanControlInput("b")},
+	{"values", "rule main = X* \"y\"\nrule X = Y / [ab]\nrule Y = [ab] bs:[b]* \"c\" => $bs\n", scanControlInput("b")},
+	{"two bytes", "rule main = X* \"y\"\nrule X = Y / [aé]\nrule Y = [aé] bs:[é]* \"c\" => $bs\n", scanControlInput("é")},
+	{"backwards", "rule main = e\nrule e = \" \" e / ws \"!\" / ws \"?\" / ws \"y\"\nrule ws = xs:[ ]* => text($xs)\n", func(n int) string { return strings.Repeat(" ", n) + "x" }},
+	{"backwards over two bytes", "rule main = e\nrule e = \"é\" e / ws \"!\" / ws \"?\" / ws \"y\"\nrule ws = xs:[é]* => text($xs)\n", func(n int) string { return strings.Repeat("é", n) + "x" }},
+}
+
+// scanControlInput returns the input "a", n times c, "y".
+func scanControlInput(c string) func(int) string {
+	return func(n int) string { return "a" + strings.Repeat(c, n) + "y" }
+}
+
+// TestScanSitesAnswerWalksFromInsideARun checks that walks which begin at different positions of one
+// run take the rest from the run that an earlier walk recorded: the steps of the controls grow linearly
+// in the run on every backend, in parses and recognition, in both position units. With runs that answer
+// only the walks from their first position (state.ScanIntervalsOff), they grow quadratically, so the
+// test fails if the walks from inside a run do not take it.
+func TestScanSitesAnswerWalksFromInsideARun(t *testing.T) {
+	if !state.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
+	defer func() { state.ScanIntervalsOff = false }()
+	for _, c := range scanIntervalControls {
+		prog := mustCompile(t, c.src)
+		rec, err := prog.Recognizer()
+		if err != nil {
+			t.Fatal(err)
+		}
+		plain := compileWithoutScanSites(t, c.src)
+		for name, p := range map[string]*Program{"parse": prog, "recognize": rec} {
+			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+					for _, off := range []bool{false, true} {
+						state.ScanIntervalsOff = off
+						s1, s2 := scanUnitSteps(t, p, c.in(200), b, unit), scanUnitSteps(t, p, c.in(400), b, unit)
+						ratio := float64(s2) / float64(s1)
+						t.Logf("%s, %s, %s, %v, intervals off %v: %d steps at 200, %d at 400", c.name, name, b, unit, off, s1, s2)
+						if !off && ratio > 2.2 {
+							t.Errorf("%s, %s, %s, %v: steps %d at 200 and %d at 400 grow by %.2f, want linear", c.name, name, b, unit, s1, s2, ratio)
+						}
+						if off && ratio < 3.5 {
+							t.Errorf("%s, %s, %s, %v: runs that answer only their first position: steps %d and %d grow by %.2f, want quadratic", c.name, name, b, unit, s1, s2, ratio)
+						}
+					}
+					state.ScanIntervalsOff = false
+					o := ParseOptions{Backend: b, Unit: unit, Expectations: true}
+					for _, n := range []int{17, 40, 200} {
+						got, gotTree := scanExamined(t, p, c.in(n), o)
+						want, wantTree := scanExamined(t, plain, c.in(n), o)
+						if name == "parse" && (!slices.Equal(got, want) || gotTree != wantTree) {
+							t.Errorf("%s, %s, %v, n %d:\n got  %v %s\n want %v %s", c.name, b, unit, n, got, gotTree, want, wantTree)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// scanUnitSteps returns the compute steps that the parse of in charges in the position unit.
+func scanUnitSteps(t *testing.T, prog *Program, in string, b Backend, unit core.PositionUnit) uint64 {
+	t.Helper()
+	var steps uint64
+	o := ParseOptions{Backend: b, Unit: unit, Limits: core.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
+		if e.Kind == TraceExit && e.Rule == "main" {
+			steps = state.TraceParser(e).Control.Used
+		}
+	}}
+	prog.ParseWith("main", in, o)
+	return steps
 }

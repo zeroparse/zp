@@ -6,9 +6,9 @@ import (
 )
 
 // ScanSiteGrammars are grammars with scan sites (see "Scan Sites" in spec/runtime/parsing.md):
-// repetitions of one character in rules that call no rule, which a failed alternative restarts at
-// the same position, in rules called from one place or more, and under labels, captures and
-// actions. Their parse trees hold the values of the scan sites, which later walks share.
+// repetitions of one character, which a failed alternative restarts at the same position, at later
+// positions of the same run and at positions further back, in rules called from one place or more,
+// and under labels, captures and actions. Their parse trees hold the values of the scan sites, which later walks share.
 var ScanSiteGrammars = []struct{ Name, Src, Alphabet string }{
 	{"a scan restarted by alternatives", `rule main = (r "!" / r "?" / r "w" / [abz])* $$
 rule r = [ab]*`, "abz!?w"},
@@ -47,6 +47,14 @@ rule e = "(" e? (ws ")")? / ws "!"
 rule ws = xs:[ ]* => text($xs)`, "( )!"},
 	{"lookaheads around an action", `rule main = (&(r "!") r "!" / !(r "?") r "w" / r "?" / [ab ])* $$
 rule r = c:[ab]* => text($c)`, "ab !?w"},
+	{"walks from each position of a run", `rule main = X* "y"? $$
+rule X = [ab] [b]* "c" / [ab]`, "abcy"},
+	{"walks from each position over characters of several bytes", `rule main = X* "y"? $$
+rule X = Y / [aé]
+rule Y = [aé] bs:[bé]* "c" => $bs`, "abécy\xff"},
+	{"walks from positions further back", `rule main = e $$
+rule e = " " e / ws "!" / ws "?"
+rule ws = xs:[ ]* => text($xs)`, " !?"},
 }
 
 // ScanSiteInputs returns the inputs a grammar of ScanSiteGrammars is parsed with: n random strings

@@ -184,8 +184,10 @@ type Parser struct {
 	// skipTables holds the skip-run records of each site, at 2*site outside lookaheads and
 	// 2*site+1 inside them, and skip is the walk in progress (skip_runs.go).
 	skipTables []*skipSlots
-	skips      []skipWalk
-	skipN      int
+	// scanTabs holds the runs of each scan site, by site number (scan_sites.go).
+	scanTabs []*scanTable
+	skips    []skipWalk
+	skipN    int
 	// runCold holds what the walks of each run site did before the site turned hot (skip_runs.go).
 	runCold []runCold
 	// skipBytes counts the bytes of the element buffers and error lists of the skip-run records.

@@ -36,6 +36,7 @@ func (p *Parser) streamDropRecords(pos int) {
 		p.Backend.ClearInactive()
 	}
 	p.PruneSkipRecords(pos)
+	p.PruneScanRecords(pos)
 	if p.Tr != nil {
 		p.Tr.discard(pos)
 	}

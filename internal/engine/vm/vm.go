@@ -303,7 +303,8 @@ type Machine struct {
 	ents     []vmEntry  // entry stack
 	labs     []labState // state of the label, recovery and skip entries on ents
 	reps     []repState
-	scans    []scanWalk        // the walks of scan sites in progress that gather a list
+	scans    []state.ScanWalk  // the walks of scan sites in progress that gather a list
+	scanOwn  []*core.Node      // the elements of a walk of a scan site that probes a run (ScanTake)
 	posSlab  []int             // positions pushed as values (newPos); stream splits keep it
 	freeRuns []*state.RunState // runStates of finished repetitions (newRunState)
 	driver   vmDriverState
@@ -370,7 +371,7 @@ func (mc *Machine) RetainedBytes() uint64 {
 
 func (mc *Machine) StackBytes() uint64 {
 	return mc.RetainedBytes() + uint64(cap(mc.ents))*uint64(unsafe.Sizeof(vmEntry{})) +
-		uint64(cap(mc.labs))*uint64(unsafe.Sizeof(labState{})) + uint64(cap(mc.reps))*uint64(unsafe.Sizeof(repState{})) + uint64(cap(mc.scans))*uint64(unsafe.Sizeof(scanWalk{})) +
+		uint64(cap(mc.labs))*uint64(unsafe.Sizeof(labState{})) + uint64(cap(mc.reps))*uint64(unsafe.Sizeof(repState{})) + uint64(cap(mc.scans))*uint64(unsafe.Sizeof(state.ScanWalk{})) + uint64(cap(mc.scanOwn))*8 +
 		uint64(cap(mc.freeRuns))*uint64(unsafe.Sizeof((*state.RunState)(nil)))
 }
 
@@ -448,15 +449,9 @@ type repState struct {
 	skip            bool            // a skip-run site (SKIPREPEAT) or a run site whose walk has begun
 	build           bool            // a run site whose walk gathers the element values
 	cold            bool            // a run site that is not hot: an ordinary repetition until its end
-	scan, hot, hit  bool            // the walk of a scan site has reached ScanHotSpan elements; the site is hot; it took the rest from a record
+	scan            bool            // the walk of a scan site has reached ScanHotSpan elements (its state is the top of scans)
 	coldStart, site int             // where the walk of a cold run site or of a scan site began, and its number
-}
-
-// scanWalk is the state of the walk of a scan site that builds a list, beyond that of its repState
-// (state/scan_sites.go). The walks in progress are a stack, in the order of their repetitions.
-type scanWalk struct {
-	hw0  int
-	kids []*core.Node // the elements of the record that the walk took the rest from
+	hw0             int             // the high-water mark of the examined range before the walk of a scan site began
 }
 
 func (mc *Machine) save() vmSave {
@@ -616,20 +611,17 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				goto fail
 			}
 		case bytecode.OpScanSite:
-			// As OpScan without a maximum, and as closure's scanSite: the walk takes what is left of it
-			// after ScanHotSpan characters from the record of its start, or records itself.
-			start, site, count, hot, hit, hw0 := p.Pos, int(in.C), 0, false, false, 0
+			// As OpScan without a maximum, and as closure's scanSite: after ScanHotSpan characters the walk
+			// takes what is left of it from a run, or records itself.
+			start, site, count := p.Pos, int(in.C), 0
+			hw0 := p.ScanBegin()
+			var w state.ScanWalk
 			for {
 				if count == state.ScanHotSpan {
-					hot, hw0 = p.ScanHot(site), p.Hw
-					p.Hw = 0
-					if hot {
-						var rec state.ScanRecord
-						if rec, hit = p.ScanLookup(site, start); hit {
-							p.ScanJump(rec)
-							count = rec.Count()
-						}
-					}
+					w = p.ScanReach(site, start, hw0)
+				}
+				if id := w.Tab.At(p.Pos); id != 0 {
+					count, _ = p.ScanTake(&w, id, count, nil, false)
 				}
 				p.Spend()
 				ch, size, ok := p.Peek()
@@ -645,7 +637,9 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				count++
 			}
 			if count >= state.ScanHotSpan {
-				p.FinishScan(site, start, count, hot, hit, hw0)
+				p.ScanEnd(&w, count, nil)
+			} else {
+				p.ScanShort(hw0)
 			}
 			if count < int(in.B) {
 				goto fail
@@ -789,21 +783,32 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 			}
 			// A repetition that a Document resumes neither looks up nor makes records. This only keeps
 			// its cost and reuse as they were: any record would be exact. No test tells the two apart.
-			if scanSite > 0 && rep.run == nil && rep.count == state.ScanHotSpan && !rep.scan {
-				// The walk of a scan site has reached its ScanHotSpan-th element: as closure's scanSiteList.
-				rep.scan, rep.site, rep.coldStart = true, scanSite, *mc.vals[rep.base-1].(*int)
-				w := scanWalk{hw0: p.Hw}
-				p.Hw = 0
-				if rep.hot = p.ScanHot(scanSite); rep.hot {
-					var rec state.ScanRecord
-					if rec, rep.hit = p.ScanLookup(scanSite, rep.coldStart); rep.hit {
-						p.ScanJump(rec)
-						rep.count = rec.Count()
-						mc.vals = mc.vals[:rep.base]
-						w.kids = rec.Kids()
+			if scanSite > 0 && rep.run == nil {
+				// As closure's scanSiteList: the walk measures the input it examines from its start, and
+				// from its ScanHotSpan-th element takes the rest from a run if it reaches one.
+				switch {
+				case rep.count == 0 && rep.site == 0:
+					rep.site, rep.hw0 = scanSite, p.ScanBegin()
+				case rep.count == state.ScanHotSpan && !rep.scan:
+					rep.scan, rep.coldStart = true, *mc.vals[rep.base-1].(*int)
+					mc.scans = append(mc.scans, p.ScanReach(scanSite, rep.coldStart, rep.hw0))
+				}
+				if rep.scan {
+					w := &mc.scans[len(mc.scans)-1]
+					if id := w.Tab.At(p.Pos); id != 0 {
+						own := mc.scanOwn[:0]
+						for _, v := range mc.vals[rep.base:] {
+							own = append(own, asNodeValue(v))
+						}
+						mc.scanOwn = own
+						var hit bool
+						if rep.count, hit = p.ScanTake(w, id, rep.count, own, true); hit {
+							clear(mc.vals[rep.base:])
+							mc.vals = mc.vals[:rep.base]
+						}
+						clear(own)
 					}
 				}
-				mc.scans = append(mc.scans, w)
 			}
 			p.Spend()
 			if rep.max >= 0 && rep.count >= rep.max {
@@ -916,8 +921,18 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 			if rep.skip {
 				p.SkipEnd()
 			}
+			if rep.site != 0 && !rep.scan && !rep.cold && !rep.skip {
+				// The walk of a scan site that matched fewer than ScanHotSpan characters.
+				p.ScanShort(rep.hw0)
+			}
 			if rep.scan && rep.count < rep.min {
-				p.Hw = max(mc.scans[len(mc.scans)-1].hw0, p.Hw)
+				// The walk records itself before it fails, as closure's scanSiteList does.
+				w := &mc.scans[len(mc.scans)-1]
+				var kids []*core.Node
+				if p.ScanRecords(w) {
+					kids = mc.moveKids(p, rep.base)
+				}
+				p.ScanEnd(w, rep.count, kids)
 				mc.scans = mc.scans[:len(mc.scans)-1]
 			}
 			if rep.count < rep.min {
@@ -932,21 +947,14 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 			}
 			if in.A == 1 {
 				var kids []*core.Node
-				if rep.scan && rep.hit {
-					kids = mc.scans[len(mc.scans)-1].kids // (shared with the record; no element came after it)
+				if rep.scan && mc.scans[len(mc.scans)-1].Kids != nil {
+					kids = mc.scans[len(mc.scans)-1].Kids // (shared with the run; no element came after it)
 				} else {
-					// Taking the n gathered elements off is one reservation of 2n units, as Parser.Kids makes.
-					n := len(mc.vals) - rep.base
-					kids = p.Nodes(n)
-					if n > 0 {
-						p.SpendValue(2 * n)
-					}
-					for k := range kids {
-						kids[k] = asNodeValue(mc.vals[rep.base+k])
-					}
+					kids = mc.listKids(p, rep.base)
 				}
 				if rep.scan {
-					p.EndScanWalk(rep.site, rep.coldStart, rep.count, kids, rep.hot, rep.hit, mc.scans[len(mc.scans)-1].hw0)
+					w := &mc.scans[len(mc.scans)-1]
+					p.ScanEnd(w, rep.count, kids)
 					mc.scans = mc.scans[:len(mc.scans)-1]
 				}
 				start := *mc.vals[rep.base-1].(*int)
@@ -1234,4 +1242,28 @@ func (mc *Machine) freeRunState(r *state.RunState) {
 	r.Old = nil
 	mc.p.ReleaseRunLists(r)
 	mc.freeRuns = append(mc.freeRuns, r)
+}
+
+// listKids returns the values on the stack from base as the elements of a list. Taking the n gathered
+// elements off is one reservation of 2n units, as Parser.Kids makes.
+func (mc *Machine) listKids(p *state.Parser, base int) []*core.Node {
+	n := len(mc.vals) - base
+	kids := p.Nodes(n)
+	if n > 0 {
+		p.SpendValue(2 * n)
+	}
+	for k := range kids {
+		kids[k] = asNodeValue(mc.vals[base+k])
+	}
+	return kids
+}
+
+// moveKids returns the values on the stack from base as the elements of a run that a failed walk of a
+// scan site records, which makes no list and so charges nothing (Parser.ScanFailList).
+func (mc *Machine) moveKids(p *state.Parser, base int) []*core.Node {
+	kids := p.Nodes(len(mc.vals) - base)
+	for k := range kids {
+		kids[k] = asNodeValue(mc.vals[base+k])
+	}
+	return kids
 }
