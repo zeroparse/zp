@@ -35,7 +35,7 @@ var layout = []place{
 	// pkg/runtime/vm and pkg/runtime/instrument. Its compile entry keeps the compiler imports,
 	// and the package goes away when its runtime parts move to their packages.
 	{pkg: "engine", target: "pkg/compiler"},
-	{pkg: "grammar", target: "pkg/grammar"},
+	{pkg: "pkg/grammar/ast", target: "pkg/grammar/ast"},
 	{pkg: "pkg/lint", target: "pkg/lint"},
 	{pkg: "pkg/runtime/query", target: "pkg/runtime/query"},
 	{pkg: "pkg/sample", target: "pkg/sample"},
@@ -223,8 +223,8 @@ func layer2(a, b string) []string {
 		broken = append(broken, "internal/pass imports nothing of the module")
 	}
 	if under(a, "internal/ir") {
-		if !under(b, "internal/ir") && !under(b, "internal/pass") && !under(b, "internal/cancel") && b != "pkg/grammar" {
-			broken = append(broken, "internal/ir/** imports only internal/ir/**, internal/pass, internal/cancel and pkg/grammar")
+		if !under(b, "internal/ir") && !under(b, "internal/pass") && !under(b, "internal/cancel") && b != "pkg/grammar/ast" {
+			broken = append(broken, "internal/ir/** imports only internal/ir/**, internal/pass, internal/cancel and pkg/grammar/ast")
 		} else if under(b, "internal/ir") {
 			if c := dialect(a, b); c != "" {
 				broken = append(broken, c)
@@ -290,7 +290,7 @@ const (
 	layerFront    layer = "front end"
 	layerIR       layer = "ir"
 	layerPass     layer = "pass"
-	layerGrammar  layer = "grammar"
+	layerGrammar  layer = "grammar AST"
 	layerUtil     layer = "utility"
 	layerTesting  layer = "testing"
 	layerOutside  layer = "outside"
@@ -305,7 +305,7 @@ func layerOf(t string) layer {
 		return layerCmd
 	case under(t, "pkg/compiler"), under(t, "pkg/lint"), under(t, "pkg/sample"), under(t, "pkg/editfuzz"), under(t, "internal/fixture"):
 		return layerPublic
-	case under(t, "pkg/grammar"):
+	case under(t, "pkg/grammar/ast"):
 		return layerGrammar
 	case under(t, "internal/lsp"):
 		return layerLSP

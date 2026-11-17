@@ -12,13 +12,13 @@
 //     pkg/sample, pkg/editfuzz and the fixture suites of zp test) and the LSP, the public tool API
 //     over the driver, the LSP and the driver over analysis, analysis over the back end, the back
 //     end over the middle end, the middle end over the front end, and those over internal/ir,
-//     which is over internal/pass and pkg/grammar; every layer may import the runtime side and
-//     the utilities (diagnostic, cancel, cliflag), which import only pkg/grammar and which
-//     pkg/grammar does not import. Test support and the packages outside the graph (benchmarks,
-//     examples, the specification's tests) may import any layer except the LSP, and only test
-//     support imports test support outside tests.
+//     which is over internal/pass and the grammar AST (pkg/grammar/ast); every layer may import the
+//     runtime side and the utilities (diagnostic, cancel, cliflag), which import only the grammar
+//     AST and which the grammar AST does not import. Test support and the packages outside the
+//     graph (benchmarks, examples, the specification's tests) may import any layer except the
+//     LSP, and only test support imports test support outside tests.
 //     internal/pass imports nothing of the module; internal/ir/** imports only internal/ir/**,
-//     internal/pass, internal/cancel and pkg/grammar, and within it internal/ir/code imports no
+//     internal/pass, internal/cancel and pkg/grammar/ast, and within it internal/ir/code imports no
 //     dialect, code/flow imports only code and ir/core, code/action and code/exec import only
 //     code, and the packages of a dialect's subtree also each other and, under code/exec,
 //     code/action. Only the conversions (flowlower, execlower, vmlower) and test support import

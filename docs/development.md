@@ -13,7 +13,7 @@ This document describes the repository layout and architecture, how to run tests
 |:--|:--|
 | `engine/` | Public API that compiles and runs parsers at run time (`ParseGrammar`, `Compile`, `CompileSource`, `Parser.Parse`, `Document`, and others), which joins the engine to the output schema (`Parser.OutputSchema`), with its behavior tests (package `engine_test`) |
 | `codegen/` | Public package of code generation (`codegen.Go`, `codegen.TypeScript`, `codegen.Generator`), which joins the engine to the generators of `internal/codegen/`. It embeds the sources of the Go and TypeScript libraries of generated parsers (`codegen/go/lib/`, `codegen/ts/lib/`), which the generators copy into generated parsers |
-| `grammar/` | Grammar AST, structural validation (`Validate`), JSON conversion (`MarshalJSON`, `UnmarshalJSON`, strict `DecodeJSON`) and formatting as ZeroParse source (`Format`, which preserves comments). Public package. |
+| `pkg/grammar/ast/` | Grammar AST, structural validation (`Validate`), JSON conversion (`MarshalJSON`, `UnmarshalJSON`, strict `DecodeJSON`) and formatting as ZeroParse source (`Format`, which preserves comments). Public package. |
 | `internal/frontend/astfacts/` | Conservative success and cut proofs shared by the compiler and linter |
 | `lint/` | Public entry of the grammar linter (`lint.Config`) behind `zp lint`: it re-exports the types of `internal/analysis/lint/`. |
 | `internal/analysis/lint/` | Implementation of the grammar linter, shared by `lint/` and the language server: shared static analysis (`analysis.go`) and checks (`checks.go`) |

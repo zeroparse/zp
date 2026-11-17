@@ -96,8 +96,8 @@ flowchart TD
 ### The Front End
 
 - **Grammar AST (GST).** The syntax tree of the grammar language, with comments and line breaks (trivia) attached to
-  its nodes. It is the typed form of the JSON form and is owned by the public package `pkg/grammar`. The parser that
-  builds it is a scannerless, self-hosted parser generated from the grammar of the grammar language, which holds all the
+  its nodes. It is the typed form of the JSON form and is the public package `pkg/grammar/ast`, which `pkg/grammar`
+  loads, formats and converts. The parser that builds it is a scannerless, self-hosted parser generated from the grammar of the grammar language, which holds all the
   lexical knowledge.
 - **Semantic model.** A read-only result of analysis over the GST: name resolution (each reference to its
   declaration), the types of expressions and captures, scopes, the start rules and the table of type declarations. It
@@ -171,8 +171,8 @@ present design.
 
 ### Static Analysis
 
-- **`fmt`** formats the grammar AST with its trivia and keeps comments and blank lines. It is exposed by the grammar
-  package.
+- **`fmt`** formats the grammar AST with its trivia and keeps comments and blank lines. It is exposed by
+  `pkg/grammar`.
 - **`lint`** reads the grammar AST and the facts of Core IR. Findings are tied to source ranges, so they come from the
   AST; facts such as reachability and nullability come from Core IR, through the analysis manager, which shares them with
   the optimization passes. It is the public package `pkg/lint`.
@@ -225,7 +225,8 @@ in [Package Layering](layering.md), and the public packages are described in [Th
 | `cmd/zp` | The command line; reaches every feature through the driver |
 | `cmd/playground` | The WebAssembly side of the playground |
 | `pkg/compiler` | Makes executable artifacts from a grammar: parsers on the VM, reference parsers, compiled files, host-language parsers, the output schema, the optimization setting |
-| `pkg/grammar` | The grammar AST, its JSON form, loading of sources, formatting and conversion |
+| `pkg/grammar` | Grammar sources, their loading, formatting and conversion between grammar syntax and JSON |
+| `pkg/grammar/ast` | The grammar AST: its nodes, its JSON form, validation and the comments and layout attached to it |
 | `pkg/lint` | Checks, findings and suggested rewrites; the complexity classification |
 | `pkg/sample` | Generation of accepted inputs |
 | `pkg/editfuzz` | Edit fuzzing of Documents, replay and minimization |
@@ -296,9 +297,12 @@ The repository also holds `bench/`, `spec/`, `site/` and `examples/`.
 - **`pkg/compiler` makes executable artifacts from a grammar.** Lint, sampling and edit fuzzing each have their own
   vocabulary (check names and severities, generation options, the format of an edit sequence), so each is a small,
   cohesive package of its own.
-- **The grammar AST is in `pkg/grammar`.** The JSON form is a public contract of the specification, and the AST is its
-  typed form, so it follows the language specification, which changes slowly, rather than an IR, which changes often.
-  The front end receives it as the GST.
+- **The grammar AST is in `pkg/grammar/ast`, below `pkg/grammar`.** The JSON form is a public contract of the
+  specification, and the AST is its typed form, so it follows the language specification, which changes slowly, rather
+  than an IR, which changes often. The front end receives it as the GST. Loading needs the parser of the front end and
+  formatting needs the formatter, and both import the AST, so the AST is a package of its own that imports only the
+  standard library; `pkg/grammar` holds the operations on grammar sources over the parser, the formatter and the AST,
+  as `go/parser` and `go/printer` sit over `go/ast`.
 - **The output schema is on the runtime side** (`pkg/runtime/schema`), because the compiled parser, structural queries
   and the typed API use it while running. The comparison of schemas is a pure function over schemas, so it lives with
   the types.
@@ -314,7 +318,9 @@ The repository also holds `bench/`, `spec/`, `site/` and `examples/`.
   Code IR. The lowerings are packages of their own outside the IR packages, apart from the passes of each dialect. This
   is where their code lives; each one runs as a pass of the pipeline.
 - **Names avoid clashes that matter**: `internal/lsp/zpls` is not named like `pkg/grammar`, and
-  `ir/code/exec/compose` is not named like `ir/core`.
+  `ir/code/exec/compose` is not named like `ir/core`. A clash matters only between packages that are imported together:
+  `pkg/grammar/ast` shares its name with `go/ast`, which a program that reads grammars rarely imports beside it, and the
+  few files that use `internal/syntax/fmt` together with the standard `fmt` import the formatter under another name.
 
 ## The Driver Flow
 

@@ -166,7 +166,7 @@ func TestNegativeControls(t *testing.T) {
 	addEdge(mod("internal/ir/exec/core"), mod("internal/ir/core"))            // the packages under code/exec
 	addEdge(mod("bench/report"), mod("internal/lsp/zpls"))                    // internal/lsp
 	addEdge(mod("internal/analysis/lint"), mod("internal/testing/starttest")) // internal/testing
-	addEdge(mod("grammar"), mod("internal/diagnostic"))                       // the utilities are above the grammar AST
+	addEdge(mod("pkg/grammar/ast"), mod("internal/diagnostic"))               // the utilities are above the grammar AST
 	// Rule 2: edges against the arrows of the layer graph (TestLayerGraph checks every pair).
 	addEdge(mod("internal/frontend/desugar"), mod("internal/ir/exec/lower"))
 	addEdge(mod("internal/engine/closure"), mod("internal/analysis/lint"))
@@ -220,13 +220,13 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: internal/frontend/desugar -> internal/analysis/lint", []string{"the front end layer does not import the analysis layer (internal/frontend/desugar -> internal/analysis/lint)"}},
 		{"rule 2: internal/analysis/lint -> dialects exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/analysis/lint)"}},
 		{"rule 2: internal/ir/pipeline -> internal/ir/core", []string{"internal/pass imports nothing of the module (internal/pass -> internal/ir/core)"}},
-		{"rule 2: internal/ir/core -> internal/diagnostic", []string{"internal/ir/** imports only internal/ir/**, internal/pass, internal/cancel and pkg/grammar (internal/ir/core -> internal/diagnostic)"}},
+		{"rule 2: internal/ir/core -> internal/diagnostic", []string{"internal/ir/** imports only internal/ir/**, internal/pass, internal/cancel and pkg/grammar/ast (internal/ir/core -> internal/diagnostic)"}},
 		{"rule 2: internal/ir/flow -> internal/ir/exec/ops", []string{"within internal/ir, code/flow imports only code and ir/core (internal/ir/code/flow -> internal/ir/code/exec)"}},
 		{"rule 2: internal/ir/exec/ops -> internal/ir/exec/core", []string{"within internal/ir, code/exec imports only code (internal/ir/code/exec -> internal/ir/code/exec/compose)"}},
 		{"rule 2: internal/ir/exec/core -> internal/ir/core", []string{"within internal/ir, the packages under code/exec import only code, code/exec and code/action (internal/ir/code/exec/compose -> internal/ir/core)"}},
 		{"rule 2: bench/report -> internal/lsp/zpls", []string{"only cmd/** and internal/testing/** import internal/lsp/** (bench/report -> internal/lsp/zpls)"}},
 		{"rule 2: internal/analysis/lint -> internal/testing/starttest", []string{"only internal/testing/** imports internal/testing/** outside tests (internal/analysis/lint -> internal/testing/starttest)"}},
-		{"rule 2: grammar -> internal/diagnostic", []string{"the grammar layer does not import the utility layer (pkg/grammar -> internal/diagnostic)"}},
+		{"rule 2: pkg/grammar/ast -> internal/diagnostic", []string{"the grammar AST layer does not import the utility layer (pkg/grammar/ast -> internal/diagnostic)"}},
 		{"rule 2: internal/frontend/desugar -> internal/ir/exec/lower", []string{"the front end layer does not import the middle end layer"}},
 		{"rule 2: internal/engine/closure -> internal/analysis/lint", []string{"the back end layer does not import the analysis layer"}},
 		{"rule 1a: codegen/go/lib -> internal/fakevm", []string{"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not pkg/runtime/vm"}},
@@ -272,7 +272,7 @@ func TestLayerGraph(t *testing.T) {
 		layerCmd: "cmd/zp", layerPublic: "pkg/lint", layerLSP: "internal/lsp/zpls", layerDriver: "internal/ir/opt",
 		layerAnalysis: "internal/analysis/lint", layerBackend: "internal/codegen", layerMiddle: "internal/ir/flow/lower",
 		layerFront: "internal/frontend/desugar", layerIR: "internal/ir/core", layerPass: "internal/ir/pipeline",
-		layerGrammar: "grammar", layerUtil: "internal/diagnostic", layerTesting: "internal/testing/starttest",
+		layerGrammar: "pkg/grammar/ast", layerUtil: "internal/diagnostic", layerTesting: "internal/testing/starttest",
 		layerOutside: "bench/report", layerRuntime: "pkg/runtime/query",
 	}
 	below := []layer{layerDriver, layerAnalysis, layerBackend, layerMiddle, layerFront, layerIR, layerPass, layerGrammar}

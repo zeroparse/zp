@@ -11,14 +11,16 @@ package documentation as its part is implemented.
 
 ## Grammar Source and Grammar AST
 
-`pkg/grammar` owns the grammar AST and the grammar source.
+`pkg/grammar` owns the grammar source and the operations on it, and its subpackage `pkg/grammar/ast` owns the grammar
+AST and its JSON form. The AST imports only the standard library, so the front end, the IR and the diagnostics can
+build on it, while `pkg/grammar` builds on the parser and the formatter.
 
 - A **grammar source** is one grammar input: a named value made from bytes, a string, a reader or a path in a file
   system (the constructors `FromBytes`, `FromString`, `FromReader` and `FromFS`), with an explicit or detected encoding
   (grammar syntax or JSON). Its fields are unexported, which guarantees that it has exactly one supplier. A reader is
   read in full when the source is loaded, because a diagnostic needs the text of any line.
 - **Loading** a source gives the grammar AST. A program that builds an AST by hand can validate it. Formatting and
-  conversion between the two encodings are in the same package.
+  conversion between the two encodings are in `pkg/grammar` too.
 - Action expressions have one name in the AST, in the JSON form and in the syntax: the name that the specification
   gives Action Expressions.
 - A grammar source shares no type with the parse input of the runtime input package. The parse input is the abstraction

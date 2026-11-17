@@ -12,14 +12,14 @@ themselves are listed in [The Package Layout](architecture.md#the-package-layout
 
 - **The runtime side** holds `pkg/runtime` and everything under it (`input`, `value`, `value/impl`, `schema`, `query`,
   `instrument`, `vm`, `golib`), `pkg/bytecode` and the internal runtime packages.
-- **The compiler side** holds everything else: `pkg/compiler`, `pkg/grammar`, `pkg/lint`, `pkg/sample`, `pkg/editfuzz`,
-  the other packages of the internal tree, and the commands.
+- **The compiler side** holds everything else: `pkg/compiler`, `pkg/grammar`, `pkg/grammar/ast`, `pkg/lint`,
+  `pkg/sample`, `pkg/editfuzz`, the other packages of the internal tree, and the commands.
 
 ```mermaid
 flowchart TD
   subgraph C["Compiler side"]
     cmd["cmd/zp, cmd/playground"]
-    pub["pkg/compiler, pkg/lint, pkg/sample, pkg/editfuzz, internal/fixture"]
+    pub["pkg/compiler, pkg/grammar, pkg/lint, pkg/sample, pkg/editfuzz, internal/fixture"]
     lsp["internal/lsp/**"]
     driver["internal/driver"]
     analysis["internal/analysis/**"]
@@ -28,7 +28,7 @@ flowchart TD
     front["internal/frontend/**, internal/syntax/fmt"]
     ir["internal/ir/**"]
     pass["internal/pass"]
-    gram["pkg/grammar"]
+    gram["pkg/grammar/ast"]
     util["internal/diagnostic, cancel, cliflag"]
   end
   subgraph R["Runtime side"]
@@ -59,14 +59,16 @@ flowchart TD
 - **Rule 2 (layers).**
   - The pass infrastructure imports no package of the module.
   - The IR packages (the Core IR package, and the Code IR base with everything below it) import only IR packages, the
-    pass infrastructure, the cancellation package and `pkg/grammar`. Within them, the Code IR base imports no dialect.
-    The Flow dialect imports only the base and Core IR, to refer to immediates. The Action and Exec dialects import only
-    the base; the packages under the Exec dialect may also import the Exec and Action dialects.
+    pass infrastructure, the cancellation package and the grammar AST (`pkg/grammar/ast`). Within them, the Code IR base
+    imports no dialect. The Flow dialect imports only the base and Core IR, to refer to immediates. The Action and Exec
+    dialects import only the base; the packages under the Exec dialect may also import the Exec and Action dialects.
   - Only the lowerings of the middle end, and the checks that span dialects, import several dialects at once.
   - The front end imports no middle end, backend, analysis or language server. The middle end imports no backend,
     analysis or language server. A backend imports no analysis or language server.
-  - The utility packages (diagnostics, cancellation, command-line flags) may import `pkg/grammar`, because diagnostics
-    carry source positions. The fixture package is a tool that uses `pkg/compiler`, so it belongs to the layer of the
+  - The utility packages (diagnostics, cancellation, command-line flags) may import the grammar AST, because diagnostics
+    carry source positions. The grammar AST imports only the standard library. `pkg/grammar`, which loads, formats
+    and converts grammar sources over the parser of the front end and the formatter, is in the layer of the public tool
+    packages. The fixture package is a tool that uses `pkg/compiler`, so it belongs to the layer of the
     public tool packages.
   - Only the commands and the repository test support import the language server packages. Of the non-test packages,
     only those inside the repository test support import the test support.
