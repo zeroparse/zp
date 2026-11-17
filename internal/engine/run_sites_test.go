@@ -101,6 +101,13 @@ rule b = "w" { n := 3 }`, "xyzw!?#"},
 rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyz!?])* $$
 rule r = e*
 rule e = "x" { n < 3 } / "y"`, "xyz!?"},
+	{"walks of a value-free twin", `rule main = (y / "a")* $$ / w $$
+rule y = a "?" => 1
+rule w = "a" a "!"
+rule a = ("a" / "b")*`, "ab!?"},
+	{"lookahead walks before lists", `rule main = (&(a "!") w / !(a "?") a "," / [ab!?,])* $$
+rule w = a "!"
+rule a = ("a" / "b")*`, "ab!?,"},
 }
 
 // runValueInputs are inputs, besides random ones, that reach what a grammar of runValueGrammars is
@@ -110,6 +117,8 @@ var runValueInputs = map[string][]string{
 	"bindings that a record restores":     {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
 	"errors that a record replays":        {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
 	"a called rule that reads a variable": {"xxxx?", "xxxx!", "xyxx?", "xxxx?xxx!"},
+	"walks of a value-free twin":          {"aaaaaa!", "ababab!", "aaa?aaaa!"},
+	"lookahead walks before lists":        {"aaaaaa!", "ababab,", "aba?abab!", "ab,ab!"},
 }
 
 // hotSpans are the thresholds at which the differential tests of run sites run: the one of the
@@ -369,6 +378,7 @@ func TestRunSitesNegativeControls(t *testing.T) {
 	}{
 		{state.SkipIgnoreEnv, "two environments at one position"},
 		{state.SkipKeepEnv, "bindings that a record restores"},
+		{state.SkipAnyList, "walks of a value-free twin"},
 	} {
 		for _, g := range runValueGrammars {
 			if g.Name != tc.grammar {
