@@ -19,6 +19,9 @@ import (
 // evaluations of a memoized rule at a position outside every context of growths, only the first may
 // leave no result in the memo, so Parse, ParseValue and Recognize evaluate the rule of each case of
 // codegentest.StorePolicyCases as often as the policy allows.
+// A stream stores every first call (FirstCall returns at once for a stream), so its count is held between
+// the count when every first call stores and the count when it defers; a Document parse memoizes every
+// call, so its first parse evaluates the rule exactly as often as when every first call stores.
 func TestGeneratedStorePolicy(t *testing.T) {
 	t.Parallel()
 	codegentest.EachMode(t, func(t *testing.T) {
@@ -35,26 +38,39 @@ func TestGeneratedStorePolicyMutantsFail(t *testing.T) {
 	t.Parallel()
 	const dense = "\t\tfirst = t.markSeen(p.Pos, r.Seen)\n"
 	const sparse = "\t\tfirst = markSeenPage(page, pos)\n"
-	mutants := []struct{ name, old, new, failing string }{
-		{"a first call per lookahead state", dense,
-			"\t\tpp := p.Pos\n\t\tif p.Silent > 0 {\n\t\t\tpp += 1 << 12\n\t\t}\n\t\tfirst = t.markSeen(pp, r.Seen)\n", ""},
-		{"a second call deferred as well, dense", dense,
-			"\t\tfirst = t.markSeen(p.Pos, r.Seen) || t.markSeen(p.Pos+1<<12, r.Seen)\n", ""},
-		{"a second call deferred as well, sparse", sparse,
-			"\t\tfirst = markSeenPage(page, pos) || t.markSparseSeen(pos+1<<12, r.Seen)\n", ", sparse"},
+	const noStream = "\tif p.Stream != nil {\n\t\treturn false // streams memoize on the first call, as the engine does\n\t}\n"
+	const document = "\tv, ok := p.callMemo(r, min)\n\treturn v, ok\n}\n\n// callUnmemoized"
+	type edit struct{ old, new string }
+	mutants := []struct {
+		name    string
+		edits   []edit
+		failing string
+	}{
+		{"a first call per lookahead state", []edit{{dense,
+			"\t\tpp := p.Pos\n\t\tif p.Silent > 0 {\n\t\t\tpp += 1 << 12\n\t\t}\n\t\tfirst = t.markSeen(pp, r.Seen)\n"}}, ""},
+		{"a second call deferred as well, dense", []edit{{dense,
+			"\t\tfirst = t.markSeen(p.Pos, r.Seen) || t.markSeen(p.Pos+1<<12, r.Seen)\n"}}, "alternating"},
+		{"a second call deferred as well, sparse", []edit{{sparse,
+			"\t\tfirst = markSeenPage(page, pos) || t.markSparseSeen(pos+1<<12, r.Seen)\n"}}, ", sparse"},
+		{"a stream defers a first call and a second", []edit{{noStream, ""}, {dense,
+			"\t\tfirst = t.markSeen(p.Pos, r.Seen) || t.markSeen(p.Pos+1<<12, r.Seen)\n"}}, ", stream"},
+		{"a Document stores no result computed inside a lookahead", []edit{{document,
+			"\tif p.Silent > 0 {\n\t\tv, ok := p.callUnmemoized(r, min)\n\t\treturn v, ok\n\t}\n" + document}}, "alternating"},
 	}
 	for _, m := range mutants {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
 			codegentest.EachMode(t, func(t *testing.T) {
 				lib := codegentest.LibCopyWith(t, func(name, src string) string {
-					if name != "lib.go" {
-						return src
+					for _, e := range m.edits {
+						if n := strings.Count(src, e.old); name != "lib.go" && name != "call_exec.go" || n == 0 {
+							continue
+						} else if n != 1 {
+							t.Fatalf("%s has %d copies of %q, not one", name, n, e.old)
+						}
+						src = strings.Replace(src, e.old, e.new, 1)
 					}
-					if n := strings.Count(src, m.old); n != 1 {
-						t.Fatalf("lib.go has %d copies of %q, not one", n, m.old)
-					}
-					return strings.Replace(src, m.old, m.new, 1)
+					return src
 				}, nil)
 				bad := generatedStorePolicyMismatches(t, lib)
 				if len(bad) == 0 {
@@ -73,9 +89,9 @@ func TestGeneratedStorePolicyMutantsFail(t *testing.T) {
 	}
 }
 
-// generatedStorePolicyMismatches builds a package of lib's library for each case that is not a
-// stream (generated Go has no stream in these parsers: see the engine's test), runs it, and returns
-// a description of each count of evaluations that the policy does not allow.
+// generatedStorePolicyMismatches builds a parser of lib's library for each case (a stream parser for
+// the stream cases, a Document too for the others), runs it, and returns a description of each count
+// of evaluations that the policy does not allow.
 func generatedStorePolicyMismatches(t *testing.T, lib string) []string {
 	t.Helper()
 	if testing.Short() {
@@ -92,15 +108,22 @@ func generatedStorePolicyMismatches(t *testing.T, lib string) []string {
 	var cases []codegentest.StorePolicyCase
 	var imports, calls strings.Builder
 	for _, c := range codegentest.StorePolicyCases() {
-		if c.Stream {
-			continue
-		}
 		i := len(cases)
 		cases = append(cases, c)
 		pkg := fmt.Sprintf("c%d", i)
-		codegentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), codegen.GenOptions{Start: c.Start, Types: true, Recognize: true, Observability: true})
-		fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
 		in := strconv.Quote(c.Input)
+		if c.Stream {
+			// A stream: ParseStream of a stream parser.
+			codegentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), codegen.GenOptions{Start: c.Start, Stream: true, Observability: true})
+			fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
+			fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; _ = %[1]s.ParseStream(strings.NewReader(%[2]s), func(*%[1]s.Node) error { return nil }, zprt.WithProfile(&p)); fmt.Print(evals(p, %[3]q), \" \") }\n\tfmt.Println()\n", pkg, in, c.Rule)
+			continue
+		}
+		codegentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), codegen.GenOptions{Start: c.Start, Types: true, Recognize: true, Observability: true})
+		// The Document of the same grammar.
+		codegentest.GeneratePackage(t, dir, "d"+pkg, mustParse(c.Src), codegen.GenOptions{Start: c.Start, Document: true, Observability: true})
+		fmt.Fprintf(&imports, "\t%q\n\t%q\n", "codegentest/"+pkg, "codegentest/d"+pkg)
+		fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; d, _ := d%s.NewDocument(%s); _, _ = d.Parse(zprt.WithProfile(&p)); fmt.Print(evals(p, %q), \" \") }\n", pkg, in, c.Rule)
 		for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
 			fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; "+op+"; fmt.Print(evals(p, %q), \" \") }\n", pkg, in, c.Rule)
 		}
@@ -110,6 +133,7 @@ func generatedStorePolicyMismatches(t *testing.T, lib string) []string {
 
 import (
 	"fmt"
+	"strings"
 
 	zprt "zeroparse.dev/zp/codegen/go/lib"
 	zpcore "zeroparse.dev/zp/core"
@@ -143,12 +167,22 @@ func main() {
 	}
 	var bad []string
 	for i, c := range cases {
-		parse, _ := c.StorePolicyEvals(true)
+		parse, stored := c.StorePolicyEvals(true)
 		recognize, _ := c.StorePolicyEvals(false)
 		got := strings.Join(strings.Fields(lines[i]), " ")
-		want := fmt.Sprintf("%d %d %d", parse, parse, recognize)
+		if c.Stream {
+			// A stream stores every first call, which the policy allows: no evaluation beyond those
+			// that a stored result leaves, and none fewer.
+			if n, err := strconv.Atoi(got); err != nil || n < stored || n > parse {
+				bad = append(bad, fmt.Sprintf("%s: %s evaluated %s times in a stream, want %d to %d", c.Name, c.Rule, got, stored, parse))
+			}
+			continue
+		}
+		// A Document parse memoizes every call, so its first parse evaluates as often as a rule
+		// whose first call stores (see the engine's TestMemoStorePolicyDocument).
+		want := fmt.Sprintf("%d %d %d %d", stored, parse, parse, recognize)
 		if got != want {
-			bad = append(bad, fmt.Sprintf("%s: %s evaluated %s times (Parse, ParseValue, Recognize), want %s", c.Name, c.Rule, got, want))
+			bad = append(bad, fmt.Sprintf("%s: %s evaluated %s times (Document, Parse, ParseValue, Recognize), want %s", c.Name, c.Rule, got, want))
 		}
 	}
 	return bad

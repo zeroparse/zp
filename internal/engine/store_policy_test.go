@@ -61,3 +61,52 @@ func TestMemoStorePolicy(t *testing.T) {
 		}
 	}
 }
+
+// TestMemoStorePolicyDocument checks the store policy for the Documents of the engine. A Document
+// parse memoizes every call, the first call of a rule at a position as well (it never defers: FirstCall
+// does nothing without DeferMemo, which only the ordinary parses set), so of the evaluations of a
+// memoized rule at a position every one stores, which the policy allows, and the first parse of a
+// Document evaluates the rule as often as the policy allows when the first call stores. A parse after
+// an edit reuses the results that the edit leaves valid, so it evaluates the rule at most as often as
+// that first parse did: reuse only answers calls, it never makes a call that stored evaluate again.
+func TestMemoStorePolicyDocument(t *testing.T) {
+	t.Parallel()
+	for _, c := range codegentest.StorePolicyCases() {
+		if c.Stream {
+			continue
+		}
+		prog := mustCompile(t, c.Src)
+		_, stored := c.StorePolicyEvals(true)
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			var pr core.Profile
+			o := ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}}
+			d, err := prog.NewDocumentWith(c.Start, c.Input, o)
+			if err != nil {
+				t.Errorf("%s %v: %v", c.Name, b, err)
+				continue
+			}
+			if _, err := d.ParseWith(o); err != nil {
+				t.Errorf("%s %v: %v", c.Name, b, err)
+				continue
+			}
+			if got := profileEvals(&pr, c.Rule); got != stored {
+				t.Errorf("%s %v: Document evaluated %s %d times, want %d (every call stores)", c.Name, b, c.Rule, got, stored)
+			}
+			// Replace the last unit of the input by itself and parse again.
+			var pr2 core.Profile
+			o.Profiles = []*core.Profile{&pr2}
+			end := len([]rune(c.Input))
+			if err := d.Edit(end-1, end, string([]rune(c.Input)[end-1:])); err != nil {
+				t.Errorf("%s %v: %v", c.Name, b, err)
+				continue
+			}
+			if _, err := d.ParseWith(o); err != nil {
+				t.Errorf("%s %v after the edit: %v", c.Name, b, err)
+				continue
+			}
+			if got := profileEvals(&pr2, c.Rule); got > stored {
+				t.Errorf("%s %v: the parse after an edit evaluated %s %d times, more than the first parse (%d)", c.Name, b, c.Rule, got, stored)
+			}
+		}
+	}
+}
