@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
 	"zeroparse.dev/zp/spec/language/internal/classretry"
 )
@@ -114,6 +115,49 @@ func TestRecoveryScalesLinearly(t *testing.T) {
 			ratio, ok := scalesLinearly(t, 2000, func(n int) uint64 { return sourceCost(c.make(n)) })
 			if !ok {
 				t.Errorf("the cost grows %.1f times for %d times as many brackets (limit %d)", ratio, scaleFactor, scaleLimit)
+			}
+		})
+	}
+}
+
+// allocCost returns what building the result of parser.Parse on src takes in allocations: the number of
+// objects and of bytes. It is the load-independent measure of the whole source API, with the lexer, the
+// error messages and the builder of the grammar, which the compute counter of the generated parser does
+// not cover. The count of a run does not depend on its time, so another process on the machine does not
+// change it; the run is warmed up first so that one-time tables are not counted, and the test does not run
+// in parallel, so that the runtime counters hold this goroutine's work. It does not see a growth that
+// allocates nothing, such as a loop that rescans the tokens; the compute cost covers the parser.
+func allocCost(src string) (mallocs, bytes uint64) {
+	parser.Parse(src)
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	parser.Parse(src)
+	runtime.ReadMemStats(&after)
+	return after.Mallocs - before.Mallocs, after.TotalAlloc - before.TotalAlloc
+}
+
+// scaleAllocSources are the sources of scaleSources and valid grammars, which reach the builder of the
+// grammar, since the others end in errors.
+var scaleAllocSources = append([]struct {
+	name string
+	make func(n int) string
+}{
+	{"valid rules", func(n int) string { return strings.Repeat("rule a = x (y / z)* \"s\"\n", n/8) }},
+	{"valid rules with comments", func(n int) string { return strings.Repeat("// c\nrule a = x /* d */ y\n", n/8) }},
+}, scaleSources...)
+
+// TestSourceAPIAllocationsScaleLinearly checks that the lexer, the messages and the builder of the grammar
+// scale linearly with the whole source API: the objects and the bytes that parser.Parse allocates for 8
+// times as large a source grow at most scaleLimit times.
+func TestSourceAPIAllocationsScaleLinearly(t *testing.T) {
+	for _, c := range scaleAllocSources {
+		t.Run(c.name, func(t *testing.T) {
+			m1, b1 := allocCost(c.make(2000))
+			m2, b2 := allocCost(c.make(2000 * scaleFactor))
+			mr, br := float64(m2)/float64(max(m1, 1)), float64(b2)/float64(max(b1, 1))
+			t.Logf("objects %d -> %d (%.2f), bytes %d -> %d (%.2f)", m1, m2, mr, b1, b2, br)
+			if mr > scaleLimit || br > scaleLimit {
+				t.Errorf("allocations grow %.1f times in objects and %.1f times in bytes for %d times as large a source (limit %d)", mr, br, scaleFactor, scaleLimit)
 			}
 		})
 	}
