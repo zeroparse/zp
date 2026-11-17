@@ -164,3 +164,23 @@ func TestReaderSourceLoadsAgain(t *testing.T) {
 		}
 	}
 }
+
+func TestDecide(t *testing.T) {
+	data := jsonOf(t)
+	for _, c := range []struct {
+		s    grammar.Source
+		want grammar.Encoding
+	}{
+		{grammar.FromString("g.zp", src), grammar.EncodingZP},
+		{grammar.FromBytes("g", append([]byte("\t"), data...)), grammar.EncodingJSON},
+		{grammar.FromString("g", src), grammar.EncodingZP},
+		{grammar.FromBytes("g.zp", data).As(grammar.EncodingJSON), grammar.EncodingJSON},
+	} {
+		if got, err := c.s.Decide(); err != nil || got != c.want {
+			t.Errorf("%s: %v, %v; want %v", c.s.Name(), got, err, c.want)
+		}
+	}
+	if _, err := grammar.FromBytes("g", []byte("ZPC\x00")).Decide(); !errors.Is(err, grammar.ErrCompiled) {
+		t.Errorf("compiled grammar: %v", err)
+	}
+}
