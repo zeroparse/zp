@@ -8422,18 +8422,19 @@ lookahead state and a set of leaders of the cycle of its rule, a
 constant, and a growth of each has one step of each rank: the owners of
 this kind with one image are at most that constant.
 
-(ii) Let $G$ read the growing result of a growth $h$ open at its start,
-the innermost such growth, so that $G$ lies in a step $H$ of $h$. No
-call between $H$ and $G$ is a $y$ above, since it would contain $G$,
-which reads the growing result of $h$, open at its start. So the path to
-$G'$ passes the image $H'$ of $H$, $G'$ lies at the place of $G$ in
-$H'$, and an owner with image $G'$ lies at that place, which a step
-holds once, in a step with image $H'$: the owners of this kind with
-image $G'$ are at most the steps with image $H'$. When $G$ is itself a
-step of a growth of $x$, the growth of which it is a step is open at its
-start but is not taken as $h$: $h$ is a growth open at the start of the
-call $x$, and if none is, $G$ falls under (i) or (iii) as a step of a
-growth of $x$.
+(ii) Let the result of $x$ read the growing result of a growth $h$ open
+at the start of $x$, the innermost such growth, so that $x$, and with it
+$G$, lies in a step $H$ of $h$. For a step $G$ of a growth of $x$ the
+growth of which it is a step is not taken as $h$: $h$ is open at the start
+of the call $x$, and $G$ falls under (ii) when some step of the growth of
+$x$ reads $h$, whether or not $G$ does. No call between $H$ and $x$ is a
+$y$ above, since it would contain $x$, whose result reads the growing
+result of $h$, open at its start, and no call lies between $x$ and $G$.
+So the path to $G'$ passes the image $H'$ of $H$, the image of $x$ lies at
+the place of $x$ in $H'$, and $G'$ is its body evaluation or the step of
+the same rank of its growth; an owner with image $G'$ lies at that place,
+which a step holds once, in a step with image $H'$: the owners of this
+kind with image $G'$ are at most the steps with image $H'$.
 
 (iii) Otherwise the result of $x$ reads no growing result and the memo
 answers no call of its key where $x$ is made, which is then in a context
@@ -8445,7 +8446,7 @@ call on the path, which (i) applies to: the parse makes at most a
 constant number of evaluations of the key of $y$ that $\mathcal{P}$
 answers, and below each of them one owner at the place of $G$. Its
 $y_1$ is a call at $q$ that contains $G'$ in $\mathcal{P}$. The calls
-$y_1$ at $q$ that contain one another inside a step at $q$ form a chain
+$y_1$ at $q$ that contain one another form a chain
 of left calls at $q$, and a rule repeats on it only past a leader whose
 left call there grows it: a left call of a leader that grows at $q$
 already reads its growing result and evaluates no body. In $\mathcal{P}$
