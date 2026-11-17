@@ -213,7 +213,7 @@ var skipRunMutations = map[string][][2]string{
 	}},
 	"early store": {{
 		"	v.from, v.examined = p.docLow, p.docExamined\n",
-		"	v.from, v.examined = p.docLow, p.docExamined\n\tp.skipTable().put(v.pos, v.env, skipRecord{end: p.Pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded})\n",
+		"	v.from, v.examined = p.docLow, p.docExamined\n\tp.putSkip(p.skipTable(), v.pos, v.key, skipRecord{end: p.Pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded, bind: p.walkBind()})\n",
 	}, {
 		"	p.skipClose()\n\tvs := w.visits\n",
 		"	p.skipClose()\n\tw.visits = w.visits[:0]\n\tif true {\n\t\treturn\n\t}\n\tvs := w.visits\n",

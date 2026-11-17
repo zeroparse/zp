@@ -254,7 +254,9 @@ func init() {
 	zpGrammar.Starts = []string{"main"}
 	zpGrammar.DefaultStart = "main"
 	zpGrammar.SetVars([]string{"indent"}, []any{0})
+	zpGrammar.SetRunKey(1, []int{0}, nil)
 	zpRecGrammar.Share(zpGrammar)
+	zpRecGrammar.SetRunKey(1, []int{0}, nil)
 	trules = rt.NewTRules(rules)
 	defer tinit()
 	trules[0].Entry = u0

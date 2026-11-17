@@ -215,7 +215,8 @@ type StreamStart struct{}
 
 // SkipBegin begins a walk of the skip-run site Site (core.Repeat.Site) at the position: the
 // iterations of the repetition that follow are visits of the walk, until SkipEnd. With Run, Site is
-// a run site (core.Repeat.Run) whose records are keyed by the environment if KeyEnv; with Build,
+// a run site (core.Repeat.Run) whose records are keyed, if KeyEnv, by the values of the variables
+// of the site's run key (compile.Program.RunKey), which the printed parser holds; with Build,
 // the iterations have values (SkipValue), which SkipKids gathers in a list.
 type SkipBegin struct {
 	Site               int
