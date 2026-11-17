@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/analysis/complexity"
-	"zeroparse.dev/zp/lint"
+	"zeroparse.dev/zp/pkg/lint"
 )
 
 // lintOutput is the JSON document that zp lint -f json prints.
