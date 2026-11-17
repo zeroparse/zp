@@ -8580,23 +8580,8 @@ limit. It may keep records of sites; it may be a
 of runs are then stored and resumed as (N1) and (N2) of *Covered keys
 through resumed runs* read them; and it may answer calls in a context of
 growths, from the memo or from results and steps kept there, and take runs
-of steps at once. Let it store the result of an evaluation of a rule that
-is not cycle-free that read no growing result wherever its memo can answer
-a later call of its key in the lookahead state and with the growths open
-where it was made, except possibly the first evaluation of its variant at
-its position, each store keeping the join of the entry and the new result
-that [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
-describes; let whether its memo can answer a call depend only on the call's
-lookahead state and on the leaders whose growths form its context; and let
-it answer every call that its memo can answer and that the entry of its key
-answers. The engine's parse is such a parse: its memo can answer every
-call, a call in a context from an entry that records every leader of the
-context, and the first call of a variant at a position is the only one
-whose result it may leave out of the memo, in a context or not, as
-[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) allows.
-The engine leaves it out only in a parse of the whole input; a Document
-parse stores on the first call as well, and the hypothesis holds of both.
-Let $\mathcal{P}$ be the parse of the same
+of steps at once; the claim asks nothing of what it stores or answers in a
+context of growths beyond the Setting. Let $\mathcal{P}$ be the parse of the same
 grammar and input, of the same kind, with the same entries from earlier
 parses, that memoizes the rules that the parse memoizes, keeps no record of
 any site, resumes no run, answers nothing in contexts (*Reuse in a
@@ -8662,9 +8647,9 @@ entry of the parse with the earlier entry alone, not with the entry of
 $\mathcal{P}$: the parse stores in contexts where $\mathcal{P}$ does not,
 and $\mathcal{P}$ can store outside them where the parse answers, so
 neither entry need answer what the other answers. Were the entry of
-$\mathcal{P}$ the earlier entry alone, the parse, which answers every call
-outside every context that its entry answers, would answer $y$, which it
-evaluates. So $\mathcal{P}$ has stored under the key the result of an
+$\mathcal{P}$ the earlier entry alone, the parse, which evaluates a call
+only when no entry answers it ([Setting](#setting), as in the proof of
+*Answered calls*), would answer $y$, which it evaluates. So $\mathcal{P}$ has stored under the key the result of an
 evaluation $y_1$ of a call with the key of $y$, or of a growth of it,
 whose counterpart starts before that of $y$. The join can keep the value
 of the earlier entry, $y_1$ adding to it only its leaders or its
@@ -8737,23 +8722,22 @@ contains no evaluation that reads the growing result of a growth open at
 its start. Let $G$ be the body evaluation of a call $x$ or a step of a
 growth of $x$.
 
-(i) Let the result of $x$ read no growing result, and let the memo be
-able to answer a call of its key where $x$ is made. The parse evaluates
-$x$ only when the entry of its key does not answer it, and then stores its
-result, unless $x$ is the first evaluation of its variant at its position,
-in the lookahead state of $x$ and with the leaders that grow in its
-context. The store keeps the join, which answers the call of $x$, which
-the entry did not, and every call that the entry answered. An entry
-answers the calls in the states at least its own and with sets of growing
-leaders contained in the set it records, so the entries that the key has
-in turn answer strictly growing sets of calls, ordered as the pairs of a
-lookahead state and a set of leaders of the cycle of its rule. A chain of
-such pairs has at most two more members than the cycle has leaders, so the
-parse makes at most three more such evaluations of the key than the cycle
-has leaders, a constant of the grammar, and a growth of each has one step
-of each rank: the owners of this kind with one image are at most that
-constant. This counts the evaluations that the parse makes, by its own
-entries, and uses nothing of $\mathcal{P}$.
+(i) Let the result of $x$ read no growing result, and let $x$ be
+outside every context of growths. $G$, which has the position and the
+open growths of $x$, is then in no context either, so it is a step of a
+growth of $x$, and $x$ is a call of a leader, which the parse memoizes.
+The parse evaluates $x$ only when no
+entry answers it, and the [Setting](#setting) has it store the result of
+$x$ unless $x$ is the first evaluation of its variant at its position;
+by *Answered calls* in Lemma 4, once it has stored a result of the key
+outside every context, it answers every later call of the key outside
+every context in that lookahead state or a greater one. So, as in the
+proof of Lemma 3, the parse makes at most three such evaluations of the
+key: the first of its variant at its position, which may store nothing,
+and at most one that stores in each of the two lookahead states. A
+growth of each has one step of each rank, so the owners of this kind
+with one image are at most three. This counts the evaluations that the
+parse makes, by its own entries, and uses nothing of $\mathcal{P}$.
 
 (ii) Let the result of $x$ read the growing result of a growth $h$ open
 at the start of $x$, the innermost such growth, so that $x$, and with it
@@ -8769,21 +8753,26 @@ the same rank of its growth; an owner with image $G'$ lies at that place,
 which a step holds once, in a step with image $H'$: the owners of this
 kind with image $G'$ are at most the steps with image $H'$.
 
-(iii) Otherwise the result of $x$ reads no growing result and the memo
-of the parse can answer no call of its key where $x$ is made, which is then
-in a context of a growth $h$ open at its position $q$, the innermost, since
-the memo can answer every call outside every context, and lies in a step
-$H$ of $h$. No $y$ lies between $H$ and $G$: the calls between them start
-at $q$, so they are left calls of rules of the cycle made in the context of
-$h$ (*Calls in a context of growths*), while every $y$ is outside every
-context. So $G'$ lies at the place of $G$ in the image $H'$ of $H$, and the
-owners so are at most the steps with image $H'$, as in (ii).
+(iii) Otherwise the result of $x$ reads no growing result and $x$ is in
+a context of a growth $h$ open at its position $q$, the innermost, and
+lies in a step $H$ of $h$. Whatever the parse answers there, no $y$ lies
+between $H$ and $G$: the calls between them start at $q$, so they are left
+calls of rules of the cycle made in the context of $h$ (*Calls in a context
+of growths*), and in $\mathcal{P}$ in the context of the image of $h$,
+while every $y$ is outside every context. So $G'$ lies at the place of $G$
+in the image $H'$ of $H$, and the owners so are at most the steps with
+image $H'$, as in (ii).
 
-In (ii) and (iii) the steps with image $H'$ are steps of growths at $q$
-of one leader, whose calls fall under (i), (ii) or (iii) in turn, and
-the growths open at $q$ in one context are of distinct leaders of one
-cycle, so (i) ends the descent after a constant number of levels, and
-the owners with one image are at most a constant.
+A call $x$ outside every context falls under (i): a growth whose growing
+result $x$ reads is open at the position of $x$, since every call inside
+$x$ starts at or after it; $x$ then lies in a step of that growth at its
+position and calls its leader there through left calls, so its rule is
+of the cycle of that leader and $x$ is in its context. In (ii) and
+(iii) the steps with image $H'$ are steps of growths at $q$ of one leader,
+whose calls fall under (i), (ii) or (iii) in turn, and the growths open at
+$q$ in one context are of distinct leaders of one cycle, so (i) ends the
+descent after a constant number of levels, and the owners with one image
+are at most a constant.
 
 So each activation of $\mathcal{P}$ is the image of at most a constant
 number of activations of the parse. $\square$
@@ -11988,11 +11977,9 @@ theorem covers such a parse.
    growth steps and evaluations in a context of growths own in such a
    parse, those left out above included, by a constant times those of the
    parse $\mathcal{P}$ of that claim, which keeps no record, resumes no
-   run and answers nothing in contexts, given that the parse stores the
-   results that read no growing result wherever its memo can answer them
-   and answers what its entries answer (a hypothesis of the claim, which
-   the engine meets), subject to the open parts of the count of Lemma 5 in that
-   parse. Its constant is a function of the grammar: a later call can
+   run and answers nothing in contexts, whatever the parse stores or
+   answers in contexts, subject to the open parts of the count of Lemma 5
+   in that parse. Its constant is a function of the grammar: a later call can
    evaluate what that parse answers from an entry stored inside an
    iteration that a resumed walk reuses, at most a constant number of
    times for each key.
