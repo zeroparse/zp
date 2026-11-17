@@ -100,6 +100,18 @@ rule b = "w" { n := 3 }`, "xyzw!?#"},
 rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyz!?])* $$
 rule r = e*
 rule e = "x" { n < 3 } / "y"`, "xyz!?"},
+	{"a binding that the element does not read", `var k int
+rule main = ({ k := 1 } r "!" / { k := 2 } r "?" / [xyzwv!?])* $$
+rule r = ("x" { k := 7 } / "y")* ({ k == 7 } "z" / { k == 2 } "w" / { k == 1 } "v")`, "xyzwv!?"},
+	{"a binding and a called rule that reads", `var n int
+var m int
+rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyz!?])* $$
+rule r = (e { m := 1 })* { m == 1 }
+rule e = "x" { n < 3 } / "y"`, "xyz!?"},
+	{"bindings in a called rule", `var x int = 0
+rule main = (r "!" / [ab!])* $$
+rule r = (c { x == 0 })*
+rule c = { x := 1 } "a" { x == 1 } / { x := 2 } "b" { x == 2 }`, "ab!"},
 	{"walks of a value-free twin", `rule main = (y / "a")* $$ / w $$
 rule y = a "?" => 1
 rule w = "a" a "!"
@@ -119,12 +131,15 @@ rule e = #operators {
 // RunValueInputs are inputs, besides random ones, that reach what a grammar of RunValueGrammars is
 // about: here a walk that a record of another environment would answer wrongly.
 var RunValueInputs = map[string][]string{
-	"two environments at one position":    {"xxxq!", "xxxq?", "xxxq?xxxq!", "xxxxxq?!"},
-	"bindings that a record restores":     {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
-	"errors that a record replays":        {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
-	"a called rule that reads a variable": {"xxxx?", "xxxx!", "xyxx?", "xxxx?xxx!"},
-	"walks of a value-free twin":          {"aaaaaa!", "ababab!", "aaa?aaaa!"},
-	"lookahead walks before lists":        {"aaaaaa!", "ababab,", "aba?abab!", "ab,ab!"},
+	"two environments at one position":         {"xxxq!", "xxxq?", "xxxq?xxxq!", "xxxxxq?!"},
+	"bindings that a record restores":          {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
+	"errors that a record replays":             {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
+	"a called rule that reads a variable":      {"xxxx?", "xxxx!", "xyxx?", "xxxx?xxx!"},
+	"a binding that the element does not read": {"yyxyv!", "yyyxyw?", "yyyxyyv!yyxyw?", "yyyv!", "yyxyz?"},
+	"a binding and a called rule that reads":   {"xxxx?", "xxxx!", "yxxx?", "xxxx?xxx!", "yyyy!"},
+	"bindings in a called rule":                {"ab!", "abab!", "aab!ba!b", "ababab"},
+	"walks of a value-free twin":               {"aaaaaa!", "ababab!", "aaa?aaaa!"},
+	"lookahead walks before lists":             {"aaaaaa!", "ababab,", "aba?abab!", "ab,ab!"},
 }
 
 // RunSiteInputs returns the inputs a grammar of run sites is parsed with when its sites must turn

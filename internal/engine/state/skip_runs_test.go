@@ -205,14 +205,28 @@ func TestRunSiteTurnsHotOnRestart(t *testing.T) {
 // TestSkipSlotsKeepListRecords checks that a record without values, which a walk of a value-free
 // twin stores, does not replace one with values at the same key, while one with values replaces
 // one without: a key holds a record without values only until a walk with values records it, and
-// a walk that builds values that follows the twin's still finds the record it can take.
+// a walk that builds values that follows the twin's still finds the record it can take. Keys that
+// share a hash but not their values keep records apart, under the same rule.
 func TestSkipSlotsKeepListRecords(t *testing.T) {
 	var s skipSlots
-	env := &Env{}
-	s.put(5, env, skipRecord{state: skipRecorded, end: 9, list: true})
-	s.put(5, env, skipRecord{state: skipRecorded, end: 9})
-	if r := s.get(5, env); !r.list {
+	p := &Parser{}
+	k := walkKey{vals: []any{1}, h: 7}
+	other := walkKey{vals: []any{2}, h: 7} // the hash of k, other values
+	p.putSkip(&s, 5, k, skipRecord{state: skipRecorded, end: 9, list: true})
+	p.putSkip(&s, 5, k, skipRecord{state: skipRecorded, end: 9})
+	if r := p.getSkip(&s, 5, k); !r.list {
 		t.Errorf("a record without values replaced one with values: %+v", r)
+	}
+	if r := p.getSkip(&s, 5, other); r.state == skipRecorded {
+		t.Errorf("a record found under other values of the same hash: %+v", r)
+	}
+	p.putSkip(&s, 5, other, skipRecord{state: skipRecorded, end: 8, list: true})
+	p.putSkip(&s, 5, other, skipRecord{state: skipRecorded, end: 8})
+	if r := p.getSkip(&s, 5, other); !r.list || r.end != 8 {
+		t.Errorf("the record of other values of the same hash: %+v", r)
+	}
+	if r := p.getSkip(&s, 5, k); r.end != 9 {
+		t.Errorf("a record of other values of the same hash replaced the first: %+v", r)
 	}
 	s.put(6, nil, skipRecord{state: skipRecorded, end: 9})
 	s.put(6, nil, skipRecord{state: skipRecorded, end: 9, list: true})
@@ -220,6 +234,6 @@ func TestSkipSlotsKeepListRecords(t *testing.T) {
 		t.Errorf("a record with values did not replace one without: %+v", r)
 	}
 	if r := s.get(5, nil); r.state == skipRecorded {
-		t.Errorf("a record found under another environment: %+v", r)
+		t.Errorf("a record found under another key: %+v", r)
 	}
 }

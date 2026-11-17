@@ -92,9 +92,10 @@ func TestSkipRunsLinearMemory(t *testing.T) {
 // alternatingWalks are grammars whose repetition w is walked, at each position, from two or three
 // positions whose walks do not overlap the walk before them (the binding of m decides where each
 // walk ends). A site that compared a walk only with the one before it would stay cold; the site
-// must turn hot. The cost is still quadratic: the binding of m is a new environment at each
-// position, and records are keyed by the identity of the environment, so a walk never finds the
-// walk of the position before. The test records both.
+// must turn hot. The binding of m is a new environment at each position, but one with the values of
+// the environment before, and records are keyed by the values of the variables, so a walk finds the
+// walk of the position before and the cost is linear. Keyed by the environment as an object, the
+// records would leave it quadratic (state.SkipKeyEnvObject).
 var alternatingWalks = []struct {
 	Name, Source string
 	Input        func(n int) string
@@ -111,9 +112,10 @@ var alternatingWalks = []struct {
 	},
 }
 
-// TestAlternatingWalksTurnHot checks that the site of alternating walks turns hot on every backend,
-// and that the cost stays quadratic through the environment keys (a negative control: it moves to
-// the linear controls when equal environments share one identity).
+// TestAlternatingWalksTurnHot checks that the site of alternating walks turns hot on every backend
+// and that the cost is linear, and quadratic when records are keyed by the environment as an object
+// (a negative control of (R2) of the linear-cost proof for sites that are not free of the
+// environment).
 func TestAlternatingWalksTurnHot(t *testing.T) {
 	skipWithoutBudget(t)
 	for _, c := range alternatingWalks {
@@ -130,8 +132,17 @@ func TestAlternatingWalksTurnHot(t *testing.T) {
 			if state.RunHotTurns.Load() == turns {
 				t.Errorf("%s, %s: no run site turned hot", c.Name, BackendName(b))
 			}
+			if got := Classify(s); got != Linear {
+				t.Errorf("%s, %s: %v (slopes %.2f) classified %v, want %v", c.Name, BackendName(b), s.Costs, s.Slopes(), got, Linear)
+			}
+			state.SkipRecordMutation = state.SkipKeyEnvObject
+			s, err = Measure(p, c.Input, double(100), b, Cap)
+			state.SkipRecordMutation = 0
+			if err != nil {
+				t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
+			}
 			if got := Classify(s); got != Poly(2) {
-				t.Errorf("%s, %s: %v (slopes %.2f) classified %v, want %v", c.Name, BackendName(b), s.Costs, s.Slopes(), got, Poly(2))
+				t.Errorf("%s, %s, keys by object: %v (slopes %.2f) classified %v, want %v", c.Name, BackendName(b), s.Costs, s.Slopes(), got, Poly(2))
 			}
 		}
 	}

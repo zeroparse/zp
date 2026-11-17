@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 
@@ -212,6 +213,12 @@ func (c *compiler) compile() {
 			ri.NodeType = int(c.str(r.OpNodeType)) // that of the operator nodes of an Operators Rule
 		}
 		c.m.Rules = append(c.m.Rules, ri)
+	}
+	keys := c.prog.RunKeys()
+	sites := slices.Sorted(maps.Keys(keys))
+	for _, site := range sites {
+		k := keys[site]
+		c.m.RunKeys = append(c.m.RunKeys, bytecode.RunKeyInfo{Site: site, Vars: c.strList(k.Vars), Bind: c.strList(k.Bind)})
 	}
 	for i, r := range c.prog.RuleList {
 		if slices.Contains(c.prog.StartRules, r.Name) {

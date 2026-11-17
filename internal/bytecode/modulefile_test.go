@@ -35,19 +35,20 @@ func TestTermCodeEncoding(t *testing.T) {
 	if !reflect.DeepEqual(got.Terms[0].Code, code) {
 		t.Fatalf("code read back as %v, want %v", got.Terms[0].Code, code)
 	}
-	// The last instruction is written last: opcode 7, mask 1 (D only) and D = 5 (zigzag 10).
-	if !bytes.HasSuffix(data, []byte{7, 1, 10}) {
-		t.Fatalf("the module does not end with the last instruction: % x", data[len(data)-3:])
+	// The last instruction is written last, before the empty run key table: opcode 7, mask 1 (D
+	// only) and D = 5 (zigzag 10).
+	if !bytes.HasSuffix(data, []byte{7, 1, 10, 0}) {
+		t.Fatalf("the module does not end with the last instruction: % x", data[len(data)-4:])
 	}
 	for _, c := range []struct {
 		name string
 		tail []byte
 		want string
 	}{
-		{"mask beyond the operands", []byte{7, 0x11, 10}, "invalid term operand mask"},
-		{"marked zero operand", []byte{7, 1, 0}, "term operand marked but zero"},
+		{"mask beyond the operands", []byte{7, 0x11, 10, 0}, "invalid term operand mask"},
+		{"marked zero operand", []byte{7, 1, 0, 0}, "term operand marked but zero"},
 	} {
-		bad := append(bytes.Clone(data[:len(data)-3]), c.tail...)
+		bad := append(bytes.Clone(data[:len(data)-4]), c.tail...)
 		r := &bytecode.Decoder{Data: bad}
 		r.ReadModule()
 		if r.Err == nil || !strings.Contains(r.Err.Error(), c.want) {
@@ -82,19 +83,20 @@ func TestTermPoolEncoding(t *testing.T) {
 	if !reflect.DeepEqual(got.Terms, m.Terms) {
 		t.Fatalf("terms read back as %+v, want %+v", got.Terms, m.Terms)
 	}
-	// The last term is written last: its pool mask 0, one instruction, RET with no operands.
-	if !bytes.HasSuffix(data, []byte{0, 1, 46, 0}) {
-		t.Fatalf("the module does not end with the last term: % x", data[len(data)-4:])
+	// The last term is written last, before the empty run key table: its pool mask 0, one
+	// instruction, RET with no operands.
+	if !bytes.HasSuffix(data, []byte{0, 1, 46, 0, 0}) {
+		t.Fatalf("the module does not end with the last term: % x", data[len(data)-5:])
 	}
 	for _, c := range []struct {
 		name string
 		tail []byte
 		want string
 	}{
-		{"mask beyond the pools", []byte{0x40, 1, 46, 0}, "invalid term pool mask"},
-		{"marked empty pool", []byte{0x01, 0, 1, 46, 0}, "term pool marked but empty"},
+		{"mask beyond the pools", []byte{0x40, 1, 46, 0, 0}, "invalid term pool mask"},
+		{"marked empty pool", []byte{0x01, 0, 1, 46, 0, 0}, "term pool marked but empty"},
 	} {
-		bad := append(bytes.Clone(data[:len(data)-4]), c.tail...)
+		bad := append(bytes.Clone(data[:len(data)-5]), c.tail...)
 		r := &bytecode.Decoder{Data: bad}
 		r.ReadModule()
 		if r.Err == nil || !strings.Contains(r.Err.Error(), c.want) {

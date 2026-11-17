@@ -232,6 +232,18 @@ func LoadProgram(data []byte) (*Program, string, error) {
 	return prog, start, nil
 }
 
+// moduleNames returns the strings of the string table indices xs of a validated module.
+func moduleNames(m *bytecode.Module, xs []int) []string {
+	if len(xs) == 0 {
+		return nil
+	}
+	out := make([]string, len(xs))
+	for i, x := range xs {
+		out[i] = m.Strings[x]
+	}
+	return out
+}
+
 // moduleStarts returns the names of the start rules of a validated module.
 func moduleStarts(m *bytecode.Module) []string {
 	names := make([]string, len(m.Starts))
@@ -267,6 +279,9 @@ func moduleProgram(m *bytecode.Module) *Program {
 		prog.Types[m.Strings[t.Name]] = &grammar.TypeDef{Name: m.Strings[t.Name], Type: st}
 	}
 	prog.Vars = compile.ModuleVarTable(m)
+	for _, k := range m.RunKeys {
+		prog.SetRunKey(k.Site, compile.RunKey{Vars: moduleNames(m, k.Vars), Bind: moduleNames(m, k.Bind)})
+	}
 	prog.StartRules, prog.DefaultStartRule = moduleStarts(m), moduleDefaultStart(m)
 	prog.BytecodeOnce.Do(func() { prog.Bytecode = m })
 	return newProgram(prog, nil, nil)

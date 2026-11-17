@@ -106,6 +106,9 @@ func (m *Module) Disassemble() string {
 		fmt.Fprintf(&b, "  term %d regs=%v\n", i, t.Regs)
 		m.disassembleTerm(&b, &t, str)
 	}
+	for _, k := range m.RunKeys {
+		fmt.Fprintf(&b, "runKey site=%d vars=%s bind=%s\n", k.Site, names(k.Vars), names(k.Bind))
+	}
 	return b.String()
 }
 

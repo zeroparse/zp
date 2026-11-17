@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"slices"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 )
@@ -125,6 +126,13 @@ func (prog *Program) markRunSites(control *cancel.Control, defs []*grammar.RuleD
 		prog.runSites[rep] = site
 		if envFree(rep, readsVars) {
 			prog.markEnvFree(site)
+		} else {
+			prog.setRunKey(site, runKey(rep, func(n string) []string {
+				if r := prog.ByName[n]; r != nil {
+					return r.Vars
+				}
+				return nil
+			}))
 		}
 	}
 	prog.markScanSites(control, calls)
@@ -211,6 +219,84 @@ func (prog *Program) markEnvFree(site int) {
 	}
 	prog.envFree[site] = true
 }
+
+// RunKey holds the variables that key the records of a run site that is not free of the
+// environment. Vars are the variables that its element reads, directly or in the rules it calls,
+// and those that the element binds itself, Bind: a walk from a position is a function of the
+// position, the input and the values of Vars, and changes no variable but those of Bind, since a
+// binding made in a called rule ends when the rule returns. A walk that takes a record sets the
+// variables of Bind to the values that the walk of the record ended with. Keying by the bound
+// variables as well makes a binding that leaves a value as it was the same as no binding, which a
+// walk cannot tell apart. Both lists are sorted.
+type RunKey struct {
+	Vars, Bind []string
+}
+
+// RunKey returns the variables that key the records of the run site (RunKey); a site free of the
+// environment, or no run site, has none.
+func (prog *Program) RunKey(site int) RunKey { return prog.runKeys[site] }
+
+// RunKeys returns the keys of the run sites that are not free of the environment, by site.
+func (prog *Program) RunKeys() map[int]RunKey { return prog.runKeys }
+
+// SetRunKey sets the key of the run site: a program built from a compiled grammar has the keys of
+// its module.
+func (prog *Program) SetRunKey(site int, k RunKey) { prog.setRunKey(site, k) }
+
+func (prog *Program) setRunKey(site int, k RunKey) {
+	if prog.runKeys == nil {
+		prog.runKeys = map[int]RunKey{}
+	}
+	prog.runKeys[site] = k
+}
+
+// runKey returns the RunKey of the run site e; ruleVars gives the variables a rule reads, directly
+// or in the rules it calls (Rule.Vars).
+func runKey(e *grammar.Repeat, ruleVars func(rule string) []string) RunKey {
+	vars, bind := map[string]bool{}, map[string]bool{}
+	WalkExpr(e.Expr, func(x grammar.Expr) {
+		switch x := x.(type) {
+		case *grammar.Predicate:
+			WalkTerm(x.Term, func(t grammar.Term) {
+				switch t := t.(type) {
+				case *grammar.VarRef:
+					vars[t.Name] = true
+				case *grammar.Bind:
+					vars[t.Name], bind[t.Name] = true, true
+				}
+			})
+		case *grammar.Ref:
+			if RunKeyMutation == RunKeyNoCallees {
+				return
+			}
+			for _, v := range ruleVars(x.Name) {
+				vars[v] = true
+			}
+		}
+	})
+	return RunKey{Vars: sortedNames(vars), Bind: sortedNames(bind)}
+}
+
+func sortedNames(set map[string]bool) []string {
+	if len(set) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(set))
+	for n := range set {
+		out = append(out, n)
+	}
+	slices.Sort(out)
+	return out
+}
+
+// RunKeyMutation, when not zero, leaves a part out of the keys of run sites (runKey), for the
+// mutation tests of the differential tests of run sites; nothing else sets it.
+var RunKeyMutation int
+
+// The parts that RunKeyMutation leaves out.
+const (
+	RunKeyNoCallees = 1 + iota // the variables that the called rules read
+)
 
 // EnvFreeMutation, when not zero, leaves a part out of envFree, for the mutation tests of the
 // differential tests of run sites; nothing else sets it.

@@ -3,11 +3,13 @@ package engine
 import (
 	"errors"
 	"math/rand"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -270,6 +272,7 @@ func TestRunSitesNegativeControls(t *testing.T) {
 	}{
 		{state.SkipIgnoreEnv, "two environments at one position"},
 		{state.SkipKeepEnv, "bindings that a record restores"},
+		{state.SkipKeepEnv, "a binding that the element does not read"},
 		{state.SkipAnyList, "walks of a value-free twin"},
 		{state.SkipAnyList, "lookahead walks before lists"},
 	} {
@@ -314,6 +317,23 @@ func TestRunSitesNegativeControls(t *testing.T) {
 			}
 			compile.EnvFreeMutation = 0
 		}
+	}
+	// The variables that the called rules read key the records of a site whose own predicates keep
+	// it from being free: a program that leaves them out of the key gives other results.
+	defer func() { compile.RunKeyMutation = 0 }()
+	for _, g := range codegentest.RunValueGrammars {
+		if g.Name != "a binding and a called rule that reads" {
+			continue
+		}
+		compile.RunKeyMutation = compile.RunKeyNoCallees
+		prog := mustCompile(t, g.Src)
+		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(116))), codegentest.RunValueInputs[g.Name]...)
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) == 0 {
+				t.Errorf("run key mutation, %s: no difference on the inputs of %s", b, g.Name)
+			}
+		}
+		compile.RunKeyMutation = 0
 	}
 }
 
@@ -405,5 +425,123 @@ func TestRunSitesDepthLimit(t *testing.T) {
 	}
 	if state.RunHotTurns.Load() == turns {
 		t.Error("no run site turned hot")
+	}
+}
+
+// TestRunSitesKeyedByValues checks the bounds that the linear-cost proof asks of the records of run
+// sites that are not free of the environment ((R2) and (R3) in its Setting), on every backend and
+// in loaded programs: the walks of such a site evaluate its element a number of times linear in the
+// input for each combination of the values of its key at a position, and look a key up in constant
+// steps. Each case fits a budget linear in the input, and a mutation that breaks the bound makes it
+// exceed the budget:
+//   - walks in environments that hold equal values but were built apart share records; keyed by the
+//     environment as an object (SkipKeyEnvObject), or without records, they do not;
+//   - walks in environments that differ in a variable that the element binds and does not read
+//     share the records of the positions after the binding, so a key that holds that variable stays
+//     linear (the walks are value-free: a walk that builds values and joins the records of another
+//     key part way copies the elements of the rest of the walk, which the bound leaves out);
+//   - a parse that makes a new key at every position looks each up in constant steps; looked up by
+//     stepping through every record of the site (SkipScanKeys), the lookups cost the square.
+func TestRunSitesKeyedByValues(t *testing.T) {
+	if !state.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
+	defer func(n int) {
+		state.RunHotSpan, state.SkipRecordMutation, state.SkipRecordsOff = n, 0, false
+	}(state.RunHotSpan)
+	type mutant struct {
+		mutation int
+		off      bool // records off
+	}
+	cases := []struct {
+		name, src, input string
+		span             int
+		mutants          []mutant
+	}{
+		{"equal environments built apart", `var m int
+rule main = (a / [xy!?])* $$
+rule a = { m := 1 } { m := 0 } w "!" / { m := 1 } { m := 0 } w "?"
+rule w = ("x" { m == 0 } / "yy")*`, strings.Repeat("x", 1000), state.RunHotSpan, []mutant{{state.SkipKeyEnvObject, false}, {0, true}}},
+		{"a call that binds again the value of the last", "var n int = 0\nrule main = (x / [ab])* $$\nrule x = { n := 1 } r \"!\" { n := 0 }\nrule r = e*\nrule e = \"a\" { n == 1 } / \"b\"",
+			strings.Repeat("ab", 500), state.RunHotSpan, []mutant{{state.SkipKeyEnvObject, false}, {0, true}}},
+		{"another value of a variable that the element only binds", `var k int
+rule main = ({ k := k + 1 } !a "x")* $$
+rule a = ("x" { k := 0 } / "yy")* "!"`, strings.Repeat("x", 1000), state.RunHotSpan, []mutant{{state.SkipKeyEnvObject, false}, {0, true}}},
+		{"a new key at every position", `var k int
+rule main = ({ k := k + 1 } (a / [xy]))* $$
+rule a = w "!" / w "?"
+rule w = ("x" { k > 0 })*`, strings.Repeat("xy", 1000), 1, []mutant{{state.SkipScanKeys, false}}},
+	}
+	for _, c := range cases {
+		state.RunHotSpan = c.span
+		prog := mustCompile(t, c.src)
+		if site := prog.NumSkipSites + prog.NumRunSites; prog.EnvFree(site) {
+			t.Fatalf("%s: the run site is free of the environment", c.name)
+		}
+		data, err := prog.Marshal("", CompiledParse)
+		if err != nil {
+			t.Fatal(err)
+		}
+		loaded, _, err := LoadProgram(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		o := func(b Backend) ParseOptions {
+			return ParseOptions{Backend: b, Limits: core.Limits{Compute: 150 * uint64(len(c.input))}}
+		}
+		for _, m := range append([]mutant{{}}, c.mutants...) {
+			mutated := m != mutant{}
+			state.SkipRecordMutation, state.SkipRecordsOff = m.mutation, m.off
+			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				for _, p := range []*Program{prog, loaded} {
+					if p == loaded && b == Closure {
+						continue
+					}
+					_, err := p.ParseWith("main", c.input, o(b))
+					if over := errors.Is(err, core.ErrLimit); over != mutated {
+						t.Errorf("%s, %s, loaded %v, mutant %+v: over the linear budget %v (%v)", c.name, b, p == loaded, m, over, err)
+					}
+				}
+			}
+			state.SkipRecordMutation, state.SkipRecordsOff = 0, false
+		}
+	}
+}
+
+// TestRunKeysValidated checks that a module holds the key of each run site that its instructions
+// key by the variables, and that a key names declared variables, by increasing site, and binds
+// only variables it holds: a module that breaks one is rejected on load, not run.
+func TestRunKeysValidated(t *testing.T) {
+	var src string
+	for _, g := range codegentest.RunValueGrammars {
+		if g.Name == "bindings that a record restores" {
+			src = g.Src
+		}
+	}
+	prog := mustCompile(t, src)
+	m := *prog.Module()
+	if len(m.RunKeys) == 0 {
+		t.Fatal("no run key")
+	}
+	if err := compile.ValidateModule(&m); err != nil {
+		t.Fatal(err)
+	}
+	k := m.RunKeys[0]
+	undeclared := slices.Index(m.Strings, "main")
+	for _, c := range []struct {
+		name string
+		keys []bytecode.RunKeyInfo
+		want string
+	}{
+		{"no key", nil, "has no run key"},
+		{"site 0", []bytecode.RunKeyInfo{{Site: 0, Vars: k.Vars, Bind: k.Bind}, k}, "invalid run key site"},
+		{"sites out of order", []bytecode.RunKeyInfo{k, k}, "invalid run key site"},
+		{"an undeclared variable", []bytecode.RunKeyInfo{{Site: k.Site, Vars: append(slices.Clone(k.Vars), undeclared), Bind: k.Bind}}, "is not declared"},
+		{"a binding it does not hold", []bytecode.RunKeyInfo{{Site: k.Site, Bind: k.Vars}}, "does not hold"},
+	} {
+		m.RunKeys = c.keys
+		if err := compile.ValidateModule(&m); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %v", c.name, err)
+		}
 	}
 }
