@@ -20,7 +20,9 @@ import (
 //   - its element has no Operators Rule, #stream, #missing, #error or #diagnostic (#recover, captures,
 //     actions and predicates are allowed: a capture lives in the iteration, and a predicate reads
 //     the variables, which are in the key);
-//   - every unbounded repetition in its element is a run site, or repeats a single character;
+//   - every unbounded repetition in its element, or in a rule its element calls, directly or
+//     indirectly, is a run site, a skip-run site, or repeats a single character, skip expressions
+//     included (dropUnrecordedReach);
 //   - it does not repeat a single character itself (a scan walks it);
 //   - every rule its element calls, directly or indirectly, is called without a level, is not
 //     left-recursive (a leader or member of a cycle), and contains no #stream, #missing, #error or
@@ -100,22 +102,99 @@ func (prog *Program) markRunSites(control *cancel.Control, defs []*grammar.RuleD
 		memo[e] = ok
 		return ok
 	}
+	var candidates []*grammar.Repeat
+	candidate := map[*grammar.Repeat]bool{}
 	for _, r := range prog.RuleList {
 		control.Poll()
 		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
 			rep, ok := x.(*grammar.Repeat)
-			if !ok || prog.skipSites[rep] != 0 || prog.runSites[rep] != 0 || !restart[rep] || !eligible(rep) || IsScan(rep) {
+			if !ok || prog.skipSites[rep] != 0 || candidate[rep] || !restart[rep] || !eligible(rep) || IsScan(rep) {
 				return
 			}
-			prog.NumRunSites++
-			site := prog.NumSkipSites + prog.NumRunSites
-			prog.runSites[rep] = site
-			if envFree(rep, readsVars) {
-				prog.markEnvFree(site)
-			}
+			candidate[rep] = true
+			candidates = append(candidates, rep)
 		}, control)
 	}
+	prog.dropUnrecordedReach(control, candidates, candidate, calls)
+	for _, rep := range candidates {
+		if !candidate[rep] {
+			continue
+		}
+		prog.NumRunSites++
+		site := prog.NumSkipSites + prog.NumRunSites
+		prog.runSites[rep] = site
+		if envFree(rep, readsVars) {
+			prog.markEnvFree(site)
+		}
+	}
 	prog.markScanSites(control, calls)
+}
+
+// NoRecordedReach, when set, leaves out the condition of dropUnrecordedReach, for the negative
+// control of its tests; nothing else sets it.
+var NoRecordedReach = false
+
+// dropUnrecordedReach removes from candidate the repetitions whose element, or a rule that the
+// element calls, directly or indirectly, holds a repetition without an upper bound that is neither a
+// candidate, a skip-run site nor a repetition of a single character: a walk of such a site would
+// repeat work that no record bounds each time it evaluates the element. Skip expressions count, so
+// a #recover whose skip repeats without a record is such work too. The removal repeats until no
+// candidate holds one, so the candidates that stay are the greatest set closed under the
+// condition: a site may reach another that reaches it back through calls that consume input.
+func (prog *Program) dropUnrecordedReach(control *cancel.Control, candidates []*grammar.Repeat, candidate map[*grammar.Repeat]bool, calls map[string][]string) {
+	if NoRecordedReach {
+		return
+	}
+	// holds lists the repetitions without an upper bound in an expression that need a record.
+	holds := func(e grammar.Expr) []*grammar.Repeat {
+		var out []*grammar.Repeat
+		walkExprControlled(e, func(x grammar.Expr) {
+			if r, ok := x.(*grammar.Repeat); ok && r.Max < 0 && prog.skipSites[r] == 0 && !IsScan(r) {
+				out = append(out, r)
+			}
+		}, control)
+		return out
+	}
+	ruleHolds := map[string][]*grammar.Repeat{}
+	for _, r := range prog.RuleList {
+		ruleHolds[r.Name] = holds(r.Def.Expr)
+	}
+	reach := make(map[*grammar.Repeat][]*grammar.Repeat, len(candidates))
+	for _, rep := range candidates {
+		var inner []*grammar.Repeat
+		for _, r := range holds(rep.Expr) {
+			if r != rep {
+				inner = append(inner, r)
+			}
+		}
+		seen := map[string]bool{}
+		stack := AllCallsControlled(rep.Expr, nil, control)
+		for len(stack) > 0 {
+			n := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if seen[n] {
+				continue
+			}
+			seen[n] = true
+			inner = append(inner, ruleHolds[n]...)
+			stack = append(stack, calls[n]...)
+		}
+		reach[rep] = inner
+	}
+	for changed := true; changed; {
+		changed = false
+		for _, rep := range candidates {
+			if !candidate[rep] {
+				continue
+			}
+			for _, r := range reach[rep] {
+				if !candidate[r] {
+					candidate[rep], changed = false, true
+					break
+				}
+			}
+		}
+	}
 }
 
 // EnvFree reports whether the skip-run or run site is free of the environment: its records are
