@@ -20,7 +20,7 @@ type Driver struct {
 	// Opt holds the optimizations that are on.
 	Opt Settings
 	// PrintAfter lists the names (PrintNames) after which a unit is written to PrintTo; "all"
-	// selects every step and pass, "build" the Core IR before the first Core pass, "flow" each
+	// selects every step and pass, "core" the Core IR before the first Core pass, "flow" each
 	// Flow function before the first Flow pass and "exec" each Exec function before the first Exec
 	// pass.
 	PrintAfter []string
@@ -85,9 +85,6 @@ func (d *Driver) RunFlow(table string, f *flow.Func, observe bool) error {
 	var dump func(pass string, f *flow.Func)
 	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
 		dump = func(pass string, f *flow.Func) {
-			if pass == PrintBuild {
-				pass = PrintFlow
-			}
 			if d.prints(pass) {
 				fmt.Fprintf(d.PrintTo, "-- Flow IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, flow.String(f))
 			}
@@ -116,9 +113,6 @@ func (d *Driver) RunExec(table string, m *code.Module, observe bool) error {
 	var dump func(pass string, m *code.Module)
 	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
 		dump = func(pass string, m *code.Module) {
-			if pass == PrintBuild {
-				pass = PrintExec
-			}
 			if !d.prints(pass) {
 				return
 			}

@@ -312,7 +312,7 @@ func TestCoreScansFrozen(t *testing.T) {
 // with the frozen ones, and checks that a scope with a slot too many is caught.
 func TestCoreScopesFrozen(t *testing.T) {
 	checkCoreAspect(t, "scope", []coreBreak{
-		{"element slot added", "build", []string{"scope"}, func(c *coreGenCase, m *core.Module) bool {
+		{"element slot added", "core", []string{"scope"}, func(c *coreGenCase, m *core.Module) bool {
 			n, _ := firstNode(m, func(n core.Node) bool { r, ok := n.(*core.Repeat); return ok && r.Scope != nil })
 			if n == nil {
 				return false
@@ -321,7 +321,7 @@ func TestCoreScopesFrozen(t *testing.T) {
 			r.Scope = append(r.Scope, core.Slot{Name: "extra", Type: "extra"})
 			return true
 		}},
-		{"line slot added", "build", []string{"scope"}, func(c *coreGenCase, m *core.Module) bool {
+		{"line slot added", "core", []string{"scope"}, func(c *coreGenCase, m *core.Module) bool {
 			n, _ := firstNode(m, func(n core.Node) bool { _, ok := n.(*core.OperatorsRule); return ok })
 			if n == nil {
 				return false

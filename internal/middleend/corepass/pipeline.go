@@ -14,6 +14,10 @@ import (
 // A pass that adds or replaces nodes makes it stale.
 const AttributesAnalysis pass.Analysis = "attributes"
 
+// Stage is the name of the Core IR module as the front end built it, before the first Core pass:
+// the dumps and -print-after name it so.
+const Stage = "core"
+
 // Names of the passes. A name is also the name of the flag that turns the pass off.
 const (
 	PassTerminals = "terminals"
@@ -128,7 +132,7 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 type RunOptions struct {
 	// VerifyEach verifies the module after every pass.
 	VerifyEach bool
-	// Dump, if not nil, is called with "build" before the first pass and with the name of each pass
+	// Dump, if not nil, is called with "core" before the first pass and with the name of each pass
 	// that ran, after it.
 	Dump func(pass string, m *core.Module)
 }
@@ -136,5 +140,5 @@ type RunOptions struct {
 // Run runs the enabled passes of Pipeline that apply to e.Mode on m, and verifies the module. It
 // returns the names of the passes that ran.
 func Run(m *core.Module, e *Env, o RunOptions) ([]string, error) {
-	return Pipeline.Run(m, e, pass.Options[*core.Module]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump})
+	return Pipeline.Run(m, e, pass.Options[*core.Module]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, Stage: Stage})
 }

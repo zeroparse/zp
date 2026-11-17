@@ -45,7 +45,7 @@ func TestGenOptimize(t *testing.T) {
 		{[]string{"-optimize", "nosuch"}, `-optimize: unknown optimization profile "nosuch" (valid: speed, memory, size)`},
 		{[]string{"-no-opt", "nosuch"}, `-no-opt: unknown optimization "nosuch" (valid: terminals, text-dispatch,`},
 		{[]string{"-no-opt", "guards,nosuch"}, `unknown optimization "nosuch"`},
-		{[]string{"-print-after", "nosuch"}, `-print-after: unknown pass "nosuch" to print after (valid: build, terminals,`},
+		{[]string{"-print-after", "nosuch"}, `-print-after: unknown pass "nosuch" to print after (valid: core, terminals,`},
 	} {
 		_, err := runGenGo(t, append([]string{"-g", g}, c.args...)...)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -78,7 +78,7 @@ func TestGenPrintAfter(t *testing.T) {
 		return out.String()
 	}
 	all := run("all")
-	for _, want := range []string{"table after build --", "table after guards --", "table after scans --", "table after class-runs --"} {
+	for _, want := range []string{"table after core --", "table after guards --", "table after scans --", "table after class-runs --"} {
 		if !strings.Contains(all, want) {
 			t.Errorf("-print-after all lacks %q", want)
 		}
@@ -96,8 +96,8 @@ func TestGenPrintAfter(t *testing.T) {
 	if strings.Count(guards, "-- Core IR of the") != strings.Count(all, "after guards --") || !strings.Contains(guards, "after guards --") || strings.Contains(guards, "after scans --") {
 		t.Errorf("-print-after guards prints %d sections:\n%.300s", strings.Count(guards, "-- Core IR"), guards)
 	}
-	if got := run("build,scans"); !strings.Contains(got, "after build --") || !strings.Contains(got, "after scans --") || strings.Contains(got, "after guards --") || strings.Contains(got, "-- Flow IR") {
-		t.Errorf("-print-after build,scans prints the wrong sections")
+	if got := run("core,scans"); !strings.Contains(got, "after core --") || !strings.Contains(got, "after scans --") || strings.Contains(got, "after guards --") || strings.Contains(got, "-- Flow IR") {
+		t.Errorf("-print-after core,scans prints the wrong sections")
 	}
 	// flow prints each function that the parser is printed from, as the lowering made it, and no Core IR.
 	flowIR := run("flow")

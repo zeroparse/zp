@@ -203,7 +203,7 @@ zp gen -lib only -o <directory> [-lang go|ts]
 | `-optimize` | `speed` | The optimization profile (see [Optimizations](#optimizations)). `speed`, `memory` or `size`; any other name is an error that lists the valid ones |
 | `-opt` | none | Optimizations to give a value after the profile is applied and before `-no-opt`, separated by commas, as `name` or `name=count`: a name alone turns on an optimization that the profile leaves off (`-opt ts-literal-sharing`), a count sets an integer one (`-opt class-tables=3`), and `0` turns one off. An unknown name, a count that is not a number, or a value that the optimization does not take is an error |
 | `-no-opt` | none | Optimizations to turn off after the profile is applied, separated by commas (names in [Optimizations](#optimizations)). A name that is unknown is an error; a known name that does not apply to the parser being generated does nothing |
-| `-print-after` | none | Write the intermediate representation that the generator builds to standard error, as text, after the named steps and passes, separated by commas: `build`, a Core pass name, `flow`, a Flow pass name, `exec`, an Exec pass name, or `all` (see [Optimizations](#optimizations)); a pass that does not apply to the parser prints nothing |
+| `-print-after` | none | Write the intermediate representation that the generator builds to standard error, as text, after the named steps and passes, separated by commas: `core`, a Core pass name, `flow`, a Flow pass name, `exec`, an Exec pass name, or `all` (see [Optimizations](#optimizations)); a pass that does not apply to the parser prints nothing |
 
 Details:
 

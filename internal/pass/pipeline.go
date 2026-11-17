@@ -61,9 +61,12 @@ type Options[M any] struct {
 	// VerifyEach verifies the unit after every pass that ran, so that the error names the first pass
 	// that broke an invariant.
 	VerifyEach bool
-	// Dump, if not nil, is called with "build" before the first pass and with the name of each pass
+	// Dump, if not nil, is called with Stage before the first pass and with the name of each pass
 	// after it ran, before it is verified.
 	Dump func(pass string, m M)
+	// Stage names the unit as it reaches the first pass: the stage of the pipeline that made it,
+	// such as "core", "flow" or "exec".
+	Stage string
 	// BuiltVerified reports that the builder of the unit has verified it, so that a run in which no
 	// pass ran does not verify it again.
 	BuiltVerified bool
@@ -140,7 +143,7 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 		return nil
 	}
 	if o.Dump != nil {
-		o.Dump("build", m)
+		o.Dump(o.Stage, m)
 	}
 	var ran []string
 	for _, ps := range p.Passes {

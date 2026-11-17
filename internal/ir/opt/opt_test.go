@@ -130,15 +130,15 @@ func TestParsePrintAfter(t *testing.T) {
 	if got, err := ParsePrintAfter(""); err != nil || got != nil {
 		t.Errorf("empty: %v, %v", got, err)
 	}
-	if got, err := ParsePrintAfter("build, guards,all"); err != nil || !slices.Equal(got, []string{"build", "guards", "all"}) {
+	if got, err := ParsePrintAfter("core, guards,all"); err != nil || !slices.Equal(got, []string{"core", "guards", "all"}) {
 		t.Errorf("list: %v, %v", got, err)
 	}
 	if _, err := ParsePrintAfter("guards,nonsense"); err == nil || !strings.Contains(err.Error(), "unknown pass") {
 		t.Errorf("unknown: %v", err)
 	}
-	// The names follow the order the steps run in: the Core build and passes, then the Flow lowering
+	// The names follow the order the steps run in: the Core IR as built and the Core passes, then the Flow lowering
 	// and passes, then the Exec lowering and passes.
-	want := append([]string{"build"}, corepass.Pipeline.Names()...)
+	want := append([]string{"core"}, corepass.Pipeline.Names()...)
 	want = append(append(want, "flow"), flow.Pipeline.Names()...)
 	want = append(append(want, "exec"), code.Pipeline.Names()...)
 	want = append(want, "all")

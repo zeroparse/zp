@@ -77,18 +77,19 @@ func TestDisabledAndInapplicablePassesDoNotRun(t *testing.T) {
 	}
 }
 
-// Dump sees the build, then each pass that ran, in order, before the pass is verified.
+// Dump sees the stage, then each pass that ran, in order, before the pass is verified.
 func TestDumpCallsEachPassInOrder(t *testing.T) {
 	p := fakePipeline(logging("a", nil, nil), logging("b", nil, nil), logging("c", nil, nil))
 	var seen []string
 	_, err := p.Run(&unit{}, mode{}, Options[*unit]{
 		Enabled: func(name string) bool { return name != "b" },
 		Dump:    func(pass string, u *unit) { seen = append(seen, pass+":"+strings.Join(u.log, ",")) },
+		Stage:   "built",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"build:", "a:a", "c:a,c"}
+	want := []string{"built:", "a:a", "c:a,c"}
 	if !slices.Equal(seen, want) {
 		t.Fatalf("dump %v, want %v", seen, want)
 	}

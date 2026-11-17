@@ -24,7 +24,7 @@ func TestDriverRunCore(t *testing.T) {
 	var dump strings.Builder
 	var hooked []string
 	var verifyEach bool
-	d := &Driver{Opt: off, PrintAfter: []string{"build", corepass.PassGuards}, PrintTo: &dump, VerifyEach: true,
+	d := &Driver{Opt: off, PrintAfter: []string{"core", corepass.PassGuards}, PrintTo: &dump, VerifyEach: true,
 		CoreHook: func(pass string, _ *core.Module) { hooked = append(hooked, pass) }}
 	var ran []string
 	d.CoreRun = func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error) {
@@ -41,14 +41,14 @@ func TestDriverRunCore(t *testing.T) {
 	if !slices.Equal(ran, want) {
 		t.Errorf("ran %v, want %v", ran, want)
 	}
-	if !slices.Equal(hooked, append([]string{"build"}, want...)) {
+	if !slices.Equal(hooked, append([]string{"core"}, want...)) {
 		t.Errorf("hook saw %v", hooked)
 	}
 	if !verifyEach {
 		t.Error("VerifyEach did not reach the pipeline")
 	}
 	got := dump.String()
-	for _, label := range []string{"-- Core IR of the typed table after build --", "-- Core IR of the typed table after guards --"} {
+	for _, label := range []string{"-- Core IR of the typed table after core --", "-- Core IR of the typed table after guards --"} {
 		if !strings.Contains(got, label) {
 			t.Errorf("dump lacks %q:\n%s", label, got)
 		}
@@ -68,7 +68,7 @@ func TestDriverRunCore(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n := strings.Count(dump.String(), "-- Core IR of the rules table after "); n != 3 {
-		t.Errorf("all printed %d sections, want build, guards and scans:\n%s", n, dump.String())
+		t.Errorf("all printed %d sections, want core, guards and scans:\n%s", n, dump.String())
 	}
 }
 

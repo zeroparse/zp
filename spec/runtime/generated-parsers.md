@@ -116,7 +116,7 @@ count.
   take, a count that is not a decimal number, an empty item and a name given twice in `-opt` are errors, and generation fails before it writes a file.
 - **Languages.** The options apply to Go and TypeScript. An optimization that concerns only one language,
   such as the slabs of typed Go values, has no effect on the other, and naming it is not an error.
-- **`-print-after`** takes `build` (the Core IR of each rule table as built), the name of a Core pass,
+- **`-print-after`** takes `core` (the Core IR of each rule table as built), the name of a Core pass,
   `flow` (each function printed from Flow IR, as lowered from Core IR), the name of a Flow pass, `exec`
   (each function printed from Exec IR, as lowered from Flow IR), the name of an Exec pass, or `all`.
   A pass that does not apply to the parser prints nothing. An unknown name is an error that lists the

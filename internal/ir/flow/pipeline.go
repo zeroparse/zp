@@ -8,6 +8,10 @@ import "zeroparse.dev/zp/internal/pass"
 // name selects one pass in the flags and in the dumps. The unit is one function: a rule, a framed
 // body, a line of an Operators Rule or an outlined node, as the lowering made it.
 
+// Stage is the name of a Flow function as the lowering from Core IR made it, before the first Flow
+// pass: the dumps and -print-after name it so.
+const Stage = "flow"
+
 // Env is the context of a run of the Flow pipeline. The function records the rest of how it was
 // lowered (Func.Budget, Node, Document, Frame).
 type Env struct {
@@ -33,7 +37,7 @@ var Pipeline = &pass.Pipeline[*Func, *Env]{
 type RunOptions struct {
 	// VerifyEach verifies the function after every pass.
 	VerifyEach bool
-	// Dump, if not nil, is called with "build" before the first pass and with the name of each pass
+	// Dump, if not nil, is called with "flow" before the first pass and with the name of each pass
 	// that ran, after it.
 	Dump func(pass string, f *Func)
 }
@@ -47,5 +51,5 @@ func Run(f *Func, e *Env, o RunOptions) ([]string, error) {
 // Options returns the options of the generic pipeline for a run under e, for a caller that runs a
 // pipeline of its own (tests).
 func (o RunOptions) Options(e *Env) pass.Options[*Func] {
-	return pass.Options[*Func]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, BuiltVerified: true}
+	return pass.Options[*Func]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, Stage: Stage, BuiltVerified: true}
 }

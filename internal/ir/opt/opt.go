@@ -109,7 +109,7 @@ func check(flags []Flag) error {
 			return fmt.Errorf("flag %s is on or off but its speed value is %d", f.Name, f.Default)
 		case f.ChangesOutput && f.Default != 0:
 			return fmt.Errorf("flag %s changes the output but is on in the speed profile: it must be an opt-in", f.Name)
-		case f.Name == PrintBuild || f.Name == PrintFlow || f.Name == PrintExec || f.Name == PrintAll:
+		case f.Name == PrintCore || f.Name == PrintFlow || f.Name == PrintExec || f.Name == PrintAll:
 			return fmt.Errorf("flag %s has the name of a step that -print-after selects", f.Name)
 		}
 		seen[f.Name] = true
@@ -355,20 +355,20 @@ func ProfileValues(name string) map[string]int {
 
 // The names of the steps that build a unit of the IR, which select its dump as built.
 const (
-	// PrintBuild is the Core IR as the builder made it.
-	PrintBuild = "build"
+	// PrintCore is the Core IR as the front end built it.
+	PrintCore = corepass.Stage
 	// PrintFlow is a function of Flow IR as the lowering made it.
-	PrintFlow = "flow"
+	PrintFlow = flow.Stage
 	// PrintExec is a function of Exec IR as the lowering from Flow IR made it.
-	PrintExec = "exec"
+	PrintExec = code.Stage
 	// PrintAll selects every step and every pass.
 	PrintAll = "all"
 )
 
-// PrintNames returns the names that select what to print after, in the order the steps run: "build",
+// PrintNames returns the names that select what to print after, in the order the steps run: "core",
 // the Core passes, "flow", the Flow passes, "exec", the Exec passes, and "all".
 func PrintNames() []string {
-	out := []string{PrintBuild}
+	out := []string{PrintCore}
 	out = append(out, corepass.Pipeline.Names()...)
 	out = append(out, PrintFlow)
 	out = append(out, flow.Pipeline.Names()...)
