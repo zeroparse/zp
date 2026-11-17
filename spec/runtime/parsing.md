@@ -536,7 +536,8 @@ exceptions are these.
   number of steps is at most two more than the length of the input it
   consumes. A leader that grows at a position where another growth of its
   cycle is in progress grows again in each context in which it is called
-  there, unless the memo answers the call as the item above describes. A step of such a growth reuses the step that an earlier growth of the
+  there, unless the call reuses a memoized result or a result kept in a
+  context of the same growths, as the item above describes. A step of such a growth reuses the step that an earlier growth of the
   leader took from the same growing result under the same condition, and a run
   of steps that read no other growing result is taken at once when every
   lookahead that those steps observed has the same outcome now and that
@@ -1048,7 +1049,8 @@ The conditions below use these terms.
   leader at that position reads the seed that the growth has reached. A call
   of another rule of the cycle evaluates its body, unless it reuses a memoized
   result, which a call inside a growth at its position does only from an
-  entry that records every leader whose growth is in its context (see
+  entry that records every leader whose growth is in its context, or a
+  result kept in a context of the same growths (see
   [Evaluations of Rules](#evaluations-of-rules)), and its left calls reach a
   leader, which grows there. A call that is not a left call is outside every
   growth of its cycle at its position: such a growth would be evaluating the
@@ -1395,8 +1397,8 @@ The conditions below use these terms.
   reads the seed of its growth at the position is not shared with what
   follows the lookahead: it is compared as a call that is not shared. The
   call has the same result in both: the memo answers it the second
-  time, or, for a leader in a context of growths, it grows again or the memo
-  answers it, or the rule
+  time, or, for a leader in a context of growths, it grows again or reuses
+  a memoized result or one kept in its context, or the rule
   repeats only its own scan, so the continuation pays for it at most what the
   unit paid. In the same way the two share a literal
   that is not empty when every path of both that examines the input begins
