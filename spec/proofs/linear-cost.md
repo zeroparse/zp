@@ -6690,10 +6690,11 @@ parse that resumes runs*. Call an activation **outside** when it is no
 iteration of the kind and no resumable iteration and lies inside none
 (*Heads in a parse that keeps records*, *Heads in a parse that resumes
 runs*). Say that an abandoned unit $v$ and a continuation $\kappa$ of it
-**meet the hypothesis** for an activation that $v$ holds when no call that
-$v$ shares with $\kappa$ and makes on its way to that activation lies, in
-$v$ or on the way of $\kappa$ that the claim follows, in an iteration that a
-record answers or that a resumed walk reuses; for $w_i$, $\kappa_i$ and
+**meet the hypothesis** for an activation that $v$ holds when no call on
+the way of $\mathcal{R}(v)$ down to the counterpart of that activation
+that $v$ shares with $\kappa$ lies, in $v$ or on the way of $\kappa$ that
+the claim follows, in an iteration that a record answers or that a resumed
+walk reuses; for $w_i$, $\kappa_i$ and
 $\alpha_{i-1}$ this is the hypothesis on a link of those two claims. Then the
 claims from *Memoized breaks* to *Consecutive activations in one own region*
 hold as stated, and the remarks after them with them, a remark that counts
