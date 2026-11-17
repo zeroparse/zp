@@ -3,7 +3,6 @@ package vm
 import (
 	"fmt"
 	"slices"
-	"strconv"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -508,7 +507,7 @@ func (c *compiler) leaf(n ir.Node, build bool) {
 // cannot fail, records none in Core IR; its operand is the quoted empty text.
 func (c *compiler) litDesc(n *ir.Lit) int32 {
 	if n.Text == "" {
-		return c.str(strconv.Quote(""))
+		return c.str(grammar.LiteralText("", false))
 	}
 	return c.exp(n.Exp)
 }
