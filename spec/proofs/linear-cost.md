@@ -5360,6 +5360,69 @@ stated for such a call. The claims that follow, from *Memoized breaks*
 to *Consecutive activations in one own region*, rest on 1 to 4 and have
 not been read again for a parse that keeps records.
 
+**Iterations at one scan in a parse that resumes runs.** In a
+[Document](../runtime/documents.md) parse whose records of sites, if it
+keeps any, are exact, (R1) of the [Setting](#setting), that resumes runs,
+let the iterations of $T$ be those that the parse makes, those that a
+resumed walk reuses included. Then *Iterations at one scan in a parse that
+keeps records* holds as stated, with a link that **meets the hypothesis**
+when no shared call of the unit $w_i$ up to the call of $e_i$ lies, in
+$w_i$ or on the way of $\kappa_i$ from its last start to $e'_i$, in an
+iteration that a record answers or that a resumed walk reuses. In a parse
+that keeps no record of any site, only the reused iterations enter the
+hypothesis.
+
+*Proof.* A reused iteration contains no activation other than itself, so a
+reaching iteration is an evaluated iteration of $T$ or a reused iteration
+that is itself one of $\alpha_1, \alpha_2, \ldots$, an activation that
+the parse makes. When $T$ is a walk that resumes a run, the iterations
+that it reuses and those that it evaluates are those that its counterpart
+in $\mathcal{R}$ visits, in the same order, each starting where the one
+before ended, with starts that increase, and each of them but the last
+consumed input and succeeded (the paragraph before 1 and 7 of *Restarts in
+a parse that resumes runs*), so they follow one another in time and in the
+input as the iterations of a repetition that reuses none do; when $T$
+takes a record of a site, the proof of *Iterations at one scan in a parse
+that keeps records* treats it. The facts 1 to 4 of that proof then hold
+of the parse as follows.
+
+1. The order in which the parser starts the activations and the
+   iterations of $T$, the reused ones included, is that order; $T$ makes
+   an iteration after $it_k$ only when $it_k$ succeeded, a reused
+   iteration being one that succeeded; and *Restarts* and *Repeats* hold
+   (*Restarts in a parse that resumes runs*).
+2. The first statement of 2 uses only that $e'_i$ starts after $w_i$ ends
+   and inside $T$, that it contains $\alpha_i$ and that an evaluation of a
+   call is no iteration of $T$, and so holds for every link; the rest of
+   what 3 uses holds by 1 above and by the order and the ends of the
+   iterations of $T$ given above.
+3. For the rest of 2: after an iteration of $T$ ends, the parser starts
+   no evaluation before its end until $\alpha_i$, since a resumed walk
+   adds no return (1 of *Restarts in a parse that resumes runs*). Under
+   the hypothesis each of the calls $c_1, \ldots, c_{j-1}$ is evaluated,
+   or answered by the memo, in $w_i$ and on the way of $\kappa_i$, at the
+   positions and with the ends that the proof names. A resumed walk on
+   that way, outside the evaluations of those calls, moves the parser
+   over the input that the counterparts of the iterations that it reuses
+   consume (3 of that claim), and those would consume it through shared
+   calls, since that way examines no other input; by the hypothesis no
+   shared call lies in them, so they cover no input, and the parser moves
+   from $\tau_0$ to $t_i$ through the evaluations of the shared calls
+   alone.
+4. For 4: the order of the evaluations that are kept before another, as
+   in 3, 2 of the claim under the hypothesis, and that the evaluations of
+   the shared calls of $w_{i_{a+1}}$ before $e_{i_{a+1}}$ and those that
+   $\kappa_{i_a}$ keeps on its way to $e'_{i_a}$ are evaluations of calls
+   that the parse makes, which the hypothesis gives for both links.
+
+The proof uses nothing else of the parse. $\square$
+
+Without the hypothesis, a shared call of $w_i$ can lie in a reused
+iteration as in an iteration that a record answers, and the claims from
+*Memoized breaks* to *Consecutive activations in one own region*, which
+rest on 1 to 4, have not been read again for a parse that resumes runs
+either.
+
 **Memoized breaks.** Under the hypotheses of *Iterations at one scan*, let
 $i$ be linked, let an evaluation from $it_{k'}$ down to $e'_i$ be abandoned,
 let the condition of the second case of 3 hold, and let $e_{i+1}$ strictly
@@ -11156,13 +11219,18 @@ theorem covers such a parse.
    records of sites. *Leaf links in a parse that resumes runs* shows the
    claims on leaf links that *Leaf links in a parse that keeps records*
    and *Later leaf links in a parse that keeps records* show, with case
-   (e) beside case (d), with records of sites or without. Not read again
-   are the claims on the scans in a parse that keeps records; *Activations held by heads*
-   is stated for a Document parse, but its reading there rests on them.
-   The same holds of a parse that resumes a run and keeps no record of
-   any site, for *Iterations at one scan* and the claims from *Memoized breaks* to *Consecutive activations in one own
-   region*, which are stated for a parse in which
-   every walk evaluates its iterations. Nor are the claims of Lemma 5 from *Covered growths* to *First
+   (e) beside case (d), with records of sites or without, and
+   *Iterations at one scan in a parse that resumes runs* shows what
+   *Iterations at one scan in a parse that keeps records* shows, under the
+   hypothesis that no shared call of a link lies in a reused iteration
+   either. Not shown, in a parse that keeps records or resumes runs, and
+   so also in one that resumes runs and keeps no record of any site, are
+   the rest of 2 of *Iterations at one scan* for a link that does not meet
+   that hypothesis, 4 for a run that holds such a link, and the claims
+   from *Memoized breaks* to *Consecutive activations in one own region*,
+   which rest on 1 to 4 and are stated for a parse in which every walk
+   evaluates its iterations; *Activations held by heads* is stated for a
+   Document parse, but its reading there rests on them. Nor are the claims of Lemma 5 from *Covered growths* to *First
    activations of heads* shown of a parse that resumes a run, even one
    that keeps no record of any site: a head can resume a run whose walk a
    later growth of its key evaluates, and the second growth of
