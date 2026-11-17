@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/complexitytest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
@@ -20,7 +21,8 @@ const copyScaleHead = "@start\nrule main = E \"c\" L \"z\"\nrule E = \"(\" W / [
 // under which the parse ends, which is deterministic. On (^n bc (^n bq the first alternative of
 // W goes on at each of the n levels of the nesting and copies the text of L, about n characters,
 // so the cost grows as n^2. Without the stop at the copy (the mutant) each grammar is classified
-// linear, and the test fails.
+// linear, and the test fails. The reference build has no compute limit, so it checks the classes
+// alone.
 func TestCopyStopsScale(t *testing.T) {
 	defer complexity.SetCopyStops(true)()
 	input := func(n int) string { return strings.Repeat("(", n) + "bc" + strings.Repeat("(", n) + "bq" }
@@ -38,7 +40,11 @@ func TestCopyStopsScale(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
-		for _, b := range complexitytest.Backends {
+		backends := complexitytest.Backends
+		if !state.BudgetControlsEnabled {
+			backends = nil
+		}
+		for _, b := range backends {
 			s := complexitytest.Series{Sizes: []int{125, 250, 500}}
 			for _, n := range s.Sizes {
 				cost, err := complexitytest.StepsLenient(p, input(n), b, complexitytest.Cap)
