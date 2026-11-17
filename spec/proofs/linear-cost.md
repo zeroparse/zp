@@ -3,36 +3,42 @@
 Arata Furukawa · Last revised 2026-11-17
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
-bound the [cost](../runtime/parsing.md#cost) of every parse that keeps the
-records of its [Setting](#setting), so that the
+bound the [cost](../runtime/parsing.md#cost) of every parse whose records
+are exact in the sense of its [Setting](#setting), so that the
 classes Linear and Linear Given an Environment Bound of
 [Classification](../runtime/parsing.md#classification) hold their promise. It
 splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-The proof assumes that the parse keeps records of the walks of its
-repetitions, the records condition of the [Setting](#setting). Given that
-condition, Lemma 17 bounds the iterations of every walk that the records
-cover by the number of the walks, with no use of condition 2. The count of
+A parse can keep records of the walks of its repetitions, and the proof
+assumes that a record gives what the iterations that it answers would give,
+(R1) of the [Setting](#setting). A repetition is a recorded site of a parse
+when its records in that parse also bound the iterations that its walks
+evaluate, (R2) and (R3) there. Lemma 17 bounds the iterations of the walks
+of the recorded sites by the number of the walks, with no use of
+condition 2. The count of
 Lemma 4, with its links between the activations at one position, is then
 needed only for the scanning sources without records, which Lemma 17 lists,
+among them every repetition that is no recorded site of the parse,
 and what this introduction says below of that count and of its open parts
-concerns those sources alone. Lemma 17 is proved given the records condition
+concerns those sources alone. Lemma 17 is proved from (R2) and (R3)
 and, for the places inside an Operators Rule, step 3 of
 [Open Steps](#open-steps); its bound is in terms of the body evaluations of
 the memoized rules, which it reads from Lemmas 3 and 5, and of the
 successful activations of the sources without records.
 
-The theorem covers the parses that meet the records condition and no other.
-As the [Setting](#setting) states under *Parses that meet the condition*,
-the condition is shown for the parses of the three backends of the engine in
-which every repetition that the condition speaks of is a run site free of
-the environment. It is not shown for a parse of a generated Go or TypeScript
-parser that walks a run site, for a parse that walks a run site that is not
-free of the environment, or for a parse that walks a repetition of a single
+The theorem covers every parse whose records are exact, whatever its
+recorded sites are; which repetitions are recorded sites decides only which
+lemma counts them. As the [Setting](#setting) states under *Sites that meet
+the conditions*, (R2) and (R3) are shown for the run sites free of the
+environment in the parses of the three backends of the engine. They are not
+shown for a run site in a generated Go or TypeScript parser, for a run site
+that is not free of the environment, or for a repetition of a single
 character outside the reused skips and the `#stream` repetitions, in any
-backend.
+backend. A parse that walks one of these is covered with that repetition
+among the sources without records, and so with the open parts of the count
+of Lemma 4 for it.
 
 Lemmas 1, 3, 7, 8, 9, 11 and 14 are proved, Lemma 16 given the theorems of
 the [Memoization](memoization.md) and [Documents](documents.md) proofs, and
@@ -211,80 +217,109 @@ one body evaluation, one call, or the walk cost.
 
 **Records of walks.** A **walk** is an evaluation of a repetition without an
 upper bound, and the iterations that it evaluates are its activations. A
-**recorded site** is a repetition without an upper bound, outside the reused
+**candidate site** is a repetition without an upper bound, outside the reused
 skips, whose walks Lemma 9 counts, that is a
 [run site](../runtime/parsing.md#run-sites), or that repeats a single
 character, which a run site does not, and is no `#stream` repetition, in
-whatever rule it stands.
-
-A walk of a recorded site is a **recorded walk** unless a
-[Document](../runtime/documents.md) resumes a run at it: a repetition that is
-resumed neither looks up nor makes a record
-([Scope](run-sites.md#scope) of the Run Sites proof,
-[Scan Sites](../runtime/parsing.md#scan-sites)). The **element** of a site is
-the expression that it repeats. A recorded site is **free of the environment**
+whatever rule it stands. The **element** of a site is
+the expression that it repeats. A candidate site is **free of the environment**
 as [Run Sites](../runtime/parsing.md#run-sites) defines it; a repetition of a
 single character is, since its element reads no variable.
 
-The proof assumes of the parse the **records condition**: the parse keeps
-records of the recorded walks of every recorded site $\sigma$ such that, for a
-constant $c_R \ge 1$,
+An implementation can keep **records** of the walks of a candidate site, and
+a walk can take a record in place of the iterations that it would evaluate
+from a position on. A candidate site **keeps records** in a parse when one
+of its walks in that parse takes a record. A walk of a candidate site is
+**unresumed** unless a
+[Document](../runtime/documents.md) resumes a run at it: a repetition that is
+resumed neither looks up nor makes a record
+([Scope](run-sites.md#scope) of the Run Sites proof,
+[Scan Sites](../runtime/parsing.md#scan-sites)).
+
+The proof assumes of every parse that its records are **exact**:
 
 - (R1) a walk that takes a record leaves what the walk that evaluated its
   remaining iterations would leave: the same end, outcome, examined range,
   values, recovered errors and environment, so that the parse gives what it
-  gives without records;
-- (R2) the recorded walks of $\sigma$ evaluate the element of $\sigma$, in
+  gives without records.
+
+(R1) is shown of every record that an implementation keeps. The three
+backends of the engine keep records of run sites, free of the environment
+or not, in the parses of the [Scope](run-sites.md#scope) of the Run Sites
+proof, every kind of parse that they run, of a loaded program, of a stream
+or of a Document, and [Lemma 1](run-sites.md#lemma-1-exactness) of that
+proof shows (R1) of them. The engine and the generated Go and TypeScript
+parsers keep records of [scan sites](../runtime/parsing.md#scan-sites), the
+repetitions of a single character in a rule that calls no rule, and
+[Lemma 4](run-sites.md#lemma-4-exactness-of-scan-records) of that proof
+shows (R1) of them. A parse with missing-token insertion keeps no records
+and is outside this proof as it is outside the classes.
+
+Fix a constant $c_R \ge 1$ that depends only on the grammar and the backend.
+A candidate site $\sigma$ is a **recorded site** of a parse when its
+unresumed walks in that parse meet the two conditions below, and the
+unresumed walks of a recorded site are its **recorded walks**:
+
+- (R2) the unresumed walks of $\sigma$ evaluate the element of $\sigma$, in
   the whole parse and in both variants of its rule, at most
   $c_R (K_\sigma \hat{n} + W_\sigma)$ times, where $W_\sigma$ is the number of
-  recorded walks of $\sigma$, $K_\sigma = 1$ when $\sigma$ is free of the
+  unresumed walks of $\sigma$, $K_\sigma = 1$ when $\sigma$ is free of the
   environment, and otherwise $K_\sigma$ is the largest number of distinct
   combinations of the values of the variables that the element of $\sigma$
   reads, in its predicates and actions and in those of the rules that it
-  calls, directly or indirectly, among the visits that the recorded walks of
+  calls, directly or indirectly, among the visits that the unresumed walks of
   $\sigma$ make to one position;
-- (R3) outside the iterations that it evaluates, a recorded walk makes at
+- (R3) outside the iterations that it evaluates, an unresumed walk of
+  $\sigma$ makes at
   most $c_R$ steps, and at most $c_R$ more for each iteration that it
   evaluates, apart from its **suffix copies**, the elements of a record that
   a walk whose iterations build values copies behind its own when it takes
   the record, and apart from the recovered errors that it takes over with a
   record, whose work $C$ does not count (Lemma 14).
 
-The condition is a requirement on the implementation, as the store of the
-memo is: (R2) asks, for a site that is not free of the environment, for
+So the recorded sites are a property of the parse, and the proof covers a
+parse whatever they are. A candidate site that is no recorded site of the
+parse is, in that parse, one of the *Sources without records* of Lemma 17,
+whether it keeps records or not: Lemma 17 does not count its iterations, and
+the count of Lemma 4 is needed for them. A greater $c_R$ makes more sites
+recorded and enters the constants of Lemma 17.
+
+(R2) and (R3) are a requirement on the implementation, as the store of the
+memo is, for the sites that Lemma 17 is to count: (R2) asks, for a site that
+is not free of the environment, for
 records under the values that its element reads, and, for a repetition of a
-single character, for records that answer a walk from every position that a
-recorded walk passed, in whatever rule the repetition stands. Let $K_R$ be
-the largest $K_\sigma$ of the recorded sites, and 1 when there is none. When
+single character, for records that answer a walk from every position that an
+earlier walk passed, in whatever rule the repetition stands. Let $K_R$ be
+the largest $K_\sigma$ of the recorded sites of the parse, and 1 when there
+is none. When
 every variable that the element of a recorded site reads has finite values,
 $K_R$ is at most the product of the sizes of their value sets, the constant
 of Lemma 8.
 
-**Parses that meet the condition.** This proof covers the parses that meet
-the records condition and no other. Whether a parse meets it depends on the
-records that its implementation keeps and on the recorded sites that the
-parse walks:
+**Sites that meet the conditions.** Whether a candidate site is a recorded
+site of a parse depends on the records that the implementation keeps:
 
-- *Run sites free of the environment, in the engine.* The three backends of
-  the engine keep records of run sites in the parses of the
-  [Scope](run-sites.md#scope) of the Run Sites proof, every kind of parse
-  that they run, of a loaded program, of a stream or of a Document, when the
-  parse inserts no missing token. For a run site free of the environment, that proof shows (R1) in
-  [Lemma 1](run-sites.md#lemma-1-exactness), and (R2) and the lookups and
-  stores of (R3) in [Lemmas 2 and 3](run-sites.md#lemma-2-cost-once-hot). So
-  the condition is shown for these sites in these parses.
+- *Run sites free of the environment, in the engine.* In a parse of the
+  [Scope](run-sites.md#scope) of the Run Sites proof that inserts no missing
+  token, the engine keeps the records of a run site free of the environment
+  by position alone; in a parse of a loaded program it does so only when the
+  instruction of the site marks it free. For such a site that proof shows
+  (R2) and the lookups and stores of (R3) in
+  [Lemmas 2 and 3](run-sites.md#lemma-2-cost-once-hot). So, with $c_R$ at
+  least the constants of those lemmas, such a site is a recorded site of
+  every such parse.
 - *Run sites that are not free, in the engine.* The engine keeps their
-  records under the environment as an object. That gives (R1), by the same
-  Lemma 1, and no bound $K_\sigma$: two environments that are equal and
+  records under the environment as an object, and so it keeps those of a
+  site that the instruction of a loaded program does not mark free. That
+  gives no bound $K_\sigma$: two environments that are equal and
   distinct give distinct keys
   ([Lemma 2](run-sites.md#lemma-2-cost-once-hot) of that proof). (R2) is not
   shown for them.
 - *Repetitions of a single character.* In a rule that calls no rule, such a
   repetition is a [scan site](../runtime/parsing.md#scan-sites), and the
   engine and the generated Go and TypeScript parsers keep one record for a
-  walk of it, at the start of the walk. That gives (R1)
-  ([Lemma 4](run-sites.md#lemma-4-exactness-of-scan-records) of the Run
-  Sites proof) and not (R2): a walk that starts at another position of the
+  walk of it, at the start of the walk. That does not give (R2): a walk that
+  starts at another position of the
   same run finds no record and evaluates its own length
   ([Scan Sites](../runtime/parsing.md#scan-sites)). In a rule that calls a
   rule, a repetition of a single character keeps no record in any
@@ -295,16 +330,21 @@ parse walks:
   ([Scope](run-sites.md#scope) of the Run Sites proof). (R2) is not shown
   for a run site in them.
 
-So the condition is shown for a parse exactly when the parse is one of a
-backend of the engine in that Scope, inserts no missing token, and every
-recorded site that it walks is a run site free of the environment. For
-every other parse it is not shown, and the theorem says nothing of that
-parse: a parse of a generated Go or TypeScript parser that walks a run site,
-a parse that walks a run site that is not free of the environment, and a
-parse, of the engine or of a generated parser, that walks a repetition of a
-single character without an upper bound outside the reused skips and the
-`#stream` repetitions. A parse with missing-token insertion keeps no records
-and is outside this proof as it is outside the classes.
+So a candidate site is shown to be a recorded site of a parse only when it
+is a run site free of the environment, which the instruction marks free
+where the program is loaded, and the parse is one of a backend of the engine
+in that Scope that inserts no missing token. No other candidate site is
+shown to be a recorded site of any parse: a run site in a generated Go or
+TypeScript parser, a run site that is not free of the environment or that a
+loaded program does not mark free, and a repetition of a single character
+without an upper bound outside the reused skips and the `#stream`
+repetitions, in the engine or in a generated parser. A parse that walks
+such a site is covered, with the site among the sources without records:
+its successful iterations are in $A_u$ of Lemma 17, and their bound rests on
+the count of Lemma 4 and on the parts of it that step 1 of
+[Open Steps](#open-steps) leaves open. Where such a site keeps records, as a
+run site that is not free does in the engine and a scan site in every
+implementation, the bound rests on the seventh part of step 8 as well.
 
 ## Lemma 1 (Local Cost)
 
@@ -436,7 +476,8 @@ gives the three evaluations.
 
 ## Lemma 17 (Recorded Walks)
 
-Let the parse satisfy the records condition of the [Setting](#setting). Let
+Let the recorded sites of the parse and their recorded walks be those of the
+[Setting](#setting). Let
 $A_r$ be the number of activations that are iterations of recorded walks,
 $A_u$ the number of the other iterations of repetitions without an upper
 bound, of the operators that Operators Rules apply and of the evaluations of
@@ -453,7 +494,10 @@ $\Phi = K_R \hat{n} + B + A_u + O + 1$. Then, for a constant $c_{17}$:
 2. the steps that the recorded walks make outside the iterations that they
    evaluate, apart from their suffix copies, number at most $c_{17} \Phi$.
 
-The lemma uses none of conditions 1 to 5. $A_u$ leaves out the growths and
+The lemma uses none of conditions 1 to 5, and of the records it uses (R2)
+and (R3) for the recorded sites alone. $A_u$ counts the successful
+iterations of every candidate site that is no recorded site of the parse,
+whether the site keeps records or not. $A_u$ leaves out the growths and
 the copying operations, as *Activations that do not succeed* in Lemma 4
 does: they enclose no place in the sense below.
 
@@ -555,7 +599,8 @@ $K_\sigma \le K_R$. This gives $c_\sigma$.
 The constants depend only on the grammar and the backend: the heights are at
 most $|\text{rules}|$, the number of scanning sources that enclose a place is
 at most the size of its body, and the parse enters the constants only through
-which rules are evaluated and memoized, of which there are finitely many
+which rules are evaluated and memoized and which candidate sites are
+recorded, of which there are finitely many
 cases. Summing the bound for the sites over the recorded sites gives the bound
 on $A_r$, and summing $W_\sigma \le N(\sigma)$ gives the bound on the walks,
 which is 1. By (R3) the steps of 2 are at most $c_R$ for each recorded walk
@@ -662,14 +707,14 @@ except the growth activations; where they are iterations of recorded walks,
 this lemma counts them again, from $B$.
 
 **Growths lie outside the recorded walks.** No call of a rule of a
-left-recursion cycle is made inside an iteration of a walk of a recorded
-site, at any depth of calls, in the parse or in the reference parse
+left-recursion cycle is made inside an iteration of a walk of a candidate
+site, recorded or not, at any depth of calls, in the parse or in the reference parse
 $\mathcal{R}$ of the [memoization proof](memoization.md#setting). So no
 growth step, no evaluation in a context of growths, no call that starts a
 growth and no growth activation lies inside such an iteration, and neither
 does an evaluation that contains one of these.
 
-*Proof.* A recorded site is a run site or repeats a single character. The
+*Proof.* A candidate site is a run site or repeats a single character. The
 element of a run site calls, directly or indirectly, only rules that are in
 no left-recursion cycle ([Run Sites](../runtime/parsing.md#run-sites)), and
 a single character calls no rule. An evaluation inside an iteration, at any
@@ -686,18 +731,23 @@ bound on $B$ counts beyond those of Lemma 3, and each evaluation that the
 claims of Lemma 4 that count nothing take for a growth activation, the body
 evaluation in which it is direct, the evaluations that hold or own it and
 the evaluations of the shared call of a link that contain it, lies outside
-the iterations of the walks of recorded sites. The records reach those
+the iterations of the walks of candidate sites. The records reach those
 claims only through what a walk leaves, which (R1) fixes; *Counterparts in
 the reference parse*, *Replays* and *Replayed activations* in Lemma 4 are
-stated for a parse that keeps records on that ground. The other claims
-that count nothing have not been read again for such a parse (step 8 of
-[Open Steps](#open-steps)).
+stated for a parse that keeps records on that ground, and *Restarts in a
+parse that keeps records* there shows *Restarts*, *Direct activations*,
+*Memoized links* and, outside dropped steps, *Repeats* of such a parse. The
+other claims that count nothing have not been read again for such a parse
+(step 8 of [Open Steps](#open-steps)).
 
 **Sources without records.** $A_u$ counts the successful activations of the
 following, and the count of Lemma 4 is needed for them and for the growths
 alone:
 
-- a repetition without an upper bound that is no recorded site: a `#stream`
+- a candidate site that is no recorded site of the parse; *Sites that meet
+  the conditions* in the [Setting](#setting) names those that are not shown
+  to be recorded in any parse;
+- a repetition without an upper bound that is no candidate site: a `#stream`
   repetition of a single character, or a repetition of more than a single
   character that fails a condition of
   [Run Sites](../runtime/parsing.md#run-sites). Such a repetition has a
@@ -708,7 +758,7 @@ alone:
   indirectly, a rule that is called with a level, that is in a
   left-recursion cycle or that holds one of those constructs; or it is not
   restartable, which the claim below treats in part;
-- the walks of a recorded site at which a Document resumes a run: such a walk
+- the walks of a candidate site at which a Document resumes a run: such a walk
   pays one unit for each iteration that it reuses and evaluates the
   iterations after them as a repetition without records does
   ([Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse));
@@ -720,20 +770,25 @@ of the cycles at the calls that are scanning sources, which Lemma 5 counts,
 and the units of the copying operations that are scanning sources, which
 Lemma 6 counts.
 
-A source of this list can stand inside the element of a recorded site, or
+A source of this list can stand inside the element of a candidate site that
+keeps records, or
 in a rule that the element calls: a `#recover` whose skip is not reused,
 which the element of a run site may hold, and a walk that a Document
-resumes. For its activations inside the iterations of the walks of the
-recorded site, the count of Lemma 4 is not shown in a parse that keeps
-records. That count compares the own regions of the evaluations of one
+resumes. For its activations inside the iterations of the walks of that
+site, the count of Lemma 4 is not shown. That count compares the own regions
+of the evaluations of one
 class (*Replays* in Lemma 4). The slots of a site are kept separately inside
 and outside lookaheads ([Skip Runs](../runtime/parsing.md#skip-runs)), so
 of two such evaluations in different lookahead states the earlier can take a
 record where the later evaluates the iterations that the record answers,
 and the later then holds activations to which nothing in the earlier
-corresponds. Step 8 of [Open Steps](#open-steps) lists it.
+corresponds. The same holds of the iterations themselves of a candidate site
+that keeps records and is no recorded site of the parse, which are
+activations of a source of this list: the count of Lemma 4 is not shown for
+them either. Step 8 of [Open Steps](#open-steps) lists both, as its sixth
+and seventh parts.
 
-Beside these, the suffix copies of the recorded walks whose iterations build
+Beside these, the suffix copies of the walks that take records and whose iterations build
 values are in no activation, and (R3) leaves them out. A walk that takes a
 record copies at most as many elements as the remaining iterations matched,
 which by (R1) are the iterations that the walk would evaluate without the
@@ -804,8 +859,11 @@ it is a source without records in the list above.
 body evaluations, other than the iterations of the recorded walks, which
 Lemma 17 counts, and the bounded scans that Lemma 13 counts, number at
 most a constant times $K\hat{n}$, and the scanned cost of all body evaluations,
-apart from the copying operations, which Lemma 6 bounds, and from the suffix
-copies of the recorded walks, is at most a constant times the number of
+apart from the copying operations, which Lemma 6 bounds, from the suffix
+copies of the walks that take records, and from the steps that the walks of
+a candidate site that keeps records and is no recorded site of the parse
+make outside their iterations (step 8 of [Open Steps](#open-steps)), is at
+most a constant times the number of
 activations, those of recorded walks and of bounded scans included, plus the
 number of recorded walks.
 
@@ -1249,11 +1307,14 @@ expression of a lookahead is abandoned whether it matches or not, so it is
 checked as a unit in every case.
 
 The claims below turn these cases into bounds at one position. None of them
-uses the records of the [Setting](#setting): a recorded site counts here as
-any other scanning source. In a parse that keeps the records, *Counterparts
+uses the records of the [Setting](#setting): a candidate site counts here as
+any other scanning source. In a parse that keeps records, *Counterparts
 in the reference parse*, *Replays* and *Replayed activations* say what
 holds, and they leave out what lies inside the iterations of the walks of
-recorded sites; that the other claims hold of such a parse is left to be
+the sites that keep records; *Restarts in a parse that keeps records*
+shows the restarts, *Direct activations*, *Memoized links* and, outside
+dropped steps, *Repeats* of such a parse, and that the other claims hold of
+it is left to be
 argued (step 8 of [Open Steps](#open-steps)). For the iterations of recorded
 walks Lemma 17 makes the claims unnecessary.
 
@@ -1378,6 +1439,64 @@ $i < k$ had $e'_k = e'_i$, then $\alpha_{k-1}$, which starts no earlier than
 $\alpha_i$, would lie in $e_k$, which ended before $e'_k$ started, and so before
 $\alpha_i$ started. So the links that use one rule, position and level have
 distinct $e'_i$, none of which is the earliest of the evaluations. $\square$
+
+**Restarts in a parse that keeps records.** In a parse whose records are
+exact, (R1) of the [Setting](#setting), *Restarts*, *Direct activations* and
+*Memoized links* hold as stated, and *Repeats* holds where its unit $w$ is
+the abandoned evaluation of the restarts and no dropped step. They hold of
+all the successful activations of the parse, inside the iterations of the
+walks of the sites that keep records as outside them.
+
+*Proof.* The claims speak of activations, which the parse evaluates; an
+iteration that a record answers is none. Their proofs use four kinds of
+facts about the parse.
+
+1. *Where the parser goes back.* The proof of *Restarts* uses that the
+   parser returns to an earlier position only at the start of an abandoned
+   evaluation or, in a growth, at its position for a later step, and that an
+   evaluation that is not abandoned ends at or after the end of each child
+   that is not abandoned. A walk that takes a record moves the parser
+   forward, from the position where it takes the record to the end of the
+   record, and starts no evaluation between the two
+   ([Skip Runs](../runtime/parsing.md#skip-runs),
+   [Run Sites](../runtime/parsing.md#run-sites),
+   [Scan Sites](../runtime/parsing.md#scan-sites)). So it adds no return,
+   and such a walk ends at or after the end of every iteration that it
+   evaluated.
+2. *What evaluations give.* The proofs use the success and the end of the
+   children of $N$, of the evaluations on the path from $N$ down to $\alpha$
+   and of the calls that $w$ and $\kappa$ share. By (R1) a walk that takes a
+   record has the success and the end of the walk that evaluated its
+   remaining iterations, so every evaluation of the parse has the success
+   and the end of its counterpart in $\mathcal{R}$ (*Counterparts in the
+   reference parse* below, which uses none of these four claims). A shared
+   call therefore has the same result in $w$ and in $\kappa$, as case 2
+   states, whether or not a walk inside one of its two evaluations took a
+   record.
+3. *What a unit can consume.* The first characters of $w$ and of $\kappa$
+   after their shared calls, the word of case 4 and the scanning sources of
+   a unit are properties of the grammar, and the proofs apply them to the
+   input that the evaluations consume and examine. Where a walk takes a
+   record, the input between the position of the record and its end is the
+   input that the remaining iterations would consume, by (R1), so the
+   character at $t$ is a first character of $w$, and of $\kappa$, after
+   their shared calls when a record covers it as when an evaluation
+   consumes it, and a path of $\kappa$ reaches $q$ through a record only
+   where the iterations that the record answers would reach it.
+4. *The memo.* *Memoized links* uses the store and the answers of the memo
+   outside contexts of growths and that an evaluation which contains an
+   activation is evaluated. The records change neither.
+
+The proofs use nothing else of the parse. $\square$
+
+The claim does not cover *Dropped steps*, on which *Repeats* rests for a
+dropped step, nor the claims on leaf links, covered keys, reference links
+and heads that follow; they have not been read again for a parse that keeps
+records (step 8 of [Open Steps](#open-steps)). And it counts nothing: of the
+activations inside the iterations of the walks of the sites that keep
+records it gives the sequence $\alpha_1, \alpha_2, \ldots$ and its links, not
+the bound of *Activations held by heads*, which rests on *Replayed
+activations*.
 
 **Growths around a leaf link.** Let the rule $r$ of the $l$-th link call no
 rule, let $e_l$ and $e'_l$ start at $p$, and let $w_l$ start at $p$, at the end
@@ -2573,7 +2692,7 @@ no iteration, no operator of an Operators Rule, no skip of a `#recover` and no
 step of a growth or copying operation, at any depth of calls. Hence an
 evaluation in $\mathcal{R}$ that holds an activation at any depth, such as a
 call whose body evaluation holds one, lies in no alternative that the parse
-skips. In a parse that keeps the records of the [Setting](#setting), a walk
+skips. In a parse that keeps records ([Setting](#setting)), a walk
 that takes a record also evaluates none of the iterations that the record
 answers. By (R1) it leaves what the walk that evaluated them would leave,
 with the same end, outcome, values, recovered errors and environment, and
@@ -2605,7 +2724,7 @@ the own region of $M$ correspond one to one, in order, to those in the own
 region of $M_0$, apart from those inside an alternative that the parse skips by
 the next character in one of the two and evaluates in the other, which holds no
 activation, and, in a parse that keeps records, apart from those inside an
-iteration of a walk of a recorded site: each is an evaluation of the same expression at the same
+iteration of a walk of a site that keeps records: each is an evaluation of the same expression at the same
 position, with the same success and end, and a call of a rule that the parse
 memoizes, which either evaluates or the memo answers, corresponds to a call
 with a key of the same class inside the same lookaheads of the body.
@@ -2636,10 +2755,10 @@ position, and its evaluation in $\mathcal{R}$ holds no activation
 (*Counterparts*). In a parse that keeps records, the two own regions are
 those parts outside the iterations that a record answers as well
 (*Counterparts*). An evaluation in the part of $\mathcal{R}(M)$ that lies
-in no iteration of a walk of a recorded site corresponds, in the same steps,
+in no iteration of a walk of a site that keeps records corresponds, in the same steps,
 to one of $\mathcal{R}(M_0)$ that lies in none, since it is reached through
 the same expressions, so a record answers neither, and the correspondence
-above holds of the two. A walk of a recorded site that lies in no such iteration is one of
+above holds of the two. A walk of such a site that lies in no such iteration is one of
 these evaluations, with the same success and end whether or not it takes a
 record, by (R1). Inside the iterations the correspondence can fail: one of
 the two walks can take a record where the other evaluates. $\square$
@@ -2649,7 +2768,7 @@ corresponds to an activation of the same source at the same position, which
 succeeds when it does, held by the head $H$ of the class of $M$, and distinct
 activations held by $M$ correspond to distinct ones. In a parse that keeps
 records, this holds of the activations that are not iterations of a walk of
-a recorded site and lie inside none; by the claim *Growths lie outside the
+a site that keeps records and lie inside none; by the claim *Growths lie outside the
 recorded walks*, which follows Lemma 17, every growth activation is one of
 these.
 
@@ -2658,8 +2777,8 @@ that the parse skips in it or in the own region of $H$: the alternatives around
 it hold an activation in $\mathcal{R}(M)$, and so in $\mathcal{R}(H)$, which
 takes the same steps (*Counterparts*). The replays then give the activation at
 the same place in the own region of $H$; in a parse that keeps records they
-give it for an activation outside the iterations of the walks of recorded
-sites, which is an evaluation that the replays do not leave out. $\square$
+give it for an activation outside the iterations of the walks of the sites
+that keep records, which is an evaluation that the replays do not leave out. $\square$
 
 This claim counts nothing. *Activations held by heads* below sums it over the
 at most six memoized evaluations of a class, whether the head is a memoized
@@ -3131,8 +3250,10 @@ them in state $1$, through those that the leader of the link makes again there, 
 through the growths open at the start of both evaluations of the link.
 In a parse that keeps records, the factor six is that of *Replayed
 activations*, so the bound is of the activations of $\sigma$ at $q$ that
-are not iterations of a walk of a recorded site and lie inside none; those
-of a source without records inside such an iteration are not bounded here
+are not iterations of a walk of a site that keeps records and lie inside
+none; those of a source without records inside such an iteration, and the
+iterations themselves of a site that keeps records and is no recorded site
+of the parse, are not bounded here
 (step 8 of [Open Steps](#open-steps)).
 
 This gives the case that the comparison misses without the classes: in
@@ -4494,7 +4615,7 @@ The three claims, and with them the leaf links, the runs, the $q$-frames and
 the count of the heads of step 1, concern only a source in a rule $R$ that
 calls no rule, which the parse does not memoize. They are needed because a
 call of $R$ is evaluated again wherever it is made again. For a recorded
-site in $R$ the records condition takes their place: Lemma 17 counts the
+site in $R$ conditions (R2) and (R3) take their place: Lemma 17 counts the
 iterations of its recorded walks, and the hypothesis on the records in case
 (ii) marks where a record enters, since the evaluation $P^\circ$ may then
 hold no activation at $q$. The claims remain needed for the sources without
@@ -7393,8 +7514,9 @@ units around it.
 ## Theorem (Linear Cost)
 
 When every rule that the start rule reaches satisfies conditions 1 to 5, every
-parse from the start rule that satisfies the records condition has a cost,
-apart from the suffix copies of its recorded walks, of at most
+parse from the start rule whose records are exact, (R1) of the
+[Setting](#setting), has a cost,
+apart from the suffix copies of the walks that take records, of at most
 $c \cdot K \cdot (L + 1) \cdot (n + 1)$
 for a constant $c$, where $K$ is here the greater of the $K$ of
 [Classification](../runtime/parsing.md#classification) and $K_R$ of the
@@ -7402,19 +7524,23 @@ for a constant $c$, where $K$ is here the greater of the $K$ of
 literal or a variable with finite values, $K$ is a constant by Lemma 8 and
 $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
-The theorem covers the parses that satisfy the records condition and says
-nothing of any other parse. By *Parses that meet the condition* in the
-[Setting](#setting), the condition is shown for a parse of a backend of the
-engine, in the [Scope](run-sites.md#scope) of the Run Sites proof and
-without missing-token insertion, in which every recorded site that the parse
-walks is a run site free of the environment. It is not shown, and the
-theorem gives no bound, for a parse of a generated Go or TypeScript parser
-that walks a run site, for a parse that walks a run site that is not free
-of the environment, or for a parse of any implementation that walks a
-repetition of a single character without an upper bound outside the reused
-skips and the `#stream` repetitions. The promises of the classes Linear and
-Linear Given an Environment Bound are promises for the parses that the
-theorem covers.
+The theorem covers every parse whose records are exact, which the
+[Setting](#setting) shows of the records of every implementation. Its
+recorded sites decide which lemma counts a repetition: Lemma 17 counts the
+iterations of the recorded sites of the parse, and the count of Lemma 4 the
+successful iterations of every other repetition. By *Sites that meet the
+conditions* in the [Setting](#setting), a candidate site is shown to be
+recorded only when it is a run site free of the environment, marked free
+where the program is loaded, in a parse of a backend of the engine, in the
+[Scope](run-sites.md#scope) of the Run Sites proof and without missing-token
+insertion. A run site in a generated Go or TypeScript parser, a run site
+that is not free of the environment and a repetition of a single character
+without an upper bound outside the reused skips and the `#stream`
+repetitions, in any implementation, are not shown to be recorded, so for a
+parse that walks one of them the bound rests on the count of Lemma 4 for
+that repetition, with the parts that step 1 of [Open Steps](#open-steps)
+leaves open, and on the seventh part of step 8 where the repetition keeps
+records.
 
 The theorem rests on Lemmas 4 and 5, which are outlines, on Lemma 6,
 which is proved given step 1 of [Open Steps](#open-steps), on step 3, since
@@ -8063,7 +8189,8 @@ names a term or condition of the specification and the lemmas that use it.
 - Scanning sources, units and what contains a source: Lemmas 1, 2 and 4.
 - [Run sites](../runtime/parsing.md#run-sites), their conditions, the sites
   free of the environment and the repetitions of a single character: the
-  recorded sites of the [Setting](#setting) and Lemma 17, with the
+  candidate sites and the recorded sites of the [Setting](#setting) and
+  Lemma 17, with the
   [Run Sites](run-sites.md) proof for the records that an implementation
   keeps.
 - Bounded scans, with their alphabets, run bound, region bound and second
@@ -8139,15 +8266,16 @@ A new condition enters the proof in one of two ways.
 The outlines leave steps 1 and 3 to 6 to be made precise, step 2 lists what
 Lemma 5 proves of the continuations of growing units, step 7 is the part of the
 condition of the cost view that the [Cost View](cost-view.md) proof leaves open,
-and step 8 lists what the records condition leaves.
+and step 8 lists what the records leave.
 
-Step 1 concerns only the *Sources without records* of Lemma 17: for the
-iterations of a recorded walk, Lemma 17 gives the count from the records
-condition, and none of the links, runs, frames and heads of step 1 is
+Step 1 concerns only the *Sources without records* of Lemma 17, among them
+the candidate sites that are no recorded sites of the parse: for the
+iterations of a recorded walk, Lemma 17 gives the count from (R2), and none
+of the links, runs, frames and heads of step 1 is
 needed. Where step 1 speaks of a source, of a scan or of a rule that calls
 no rule, it means a source without records and its rule; where it leaves out
-a parse without records of scan sites, the records condition excludes that
-parse.
+a parse without records of scan sites, that case stays open, since the
+theorem covers such a parse.
 
 1. **Counting the activations of the sources without records in Lemma 4.** The claims of Lemma 4 reduce the scanned
    cost to the activations, show that the successful activations of a source
@@ -8602,24 +8730,26 @@ parse.
    errors of those actions, stay within a constant factor of what the
    classifier bounds on the view (or make the view keep the shape of every
    value that an action reads).
-8. **What the records condition leaves.** The theorem assumes the records
-   condition of the [Setting](#setting) and excludes the suffix copies.
-   Six parts are open. First, the condition is shown only for the parses
-   that *Parses that meet the condition* in the [Setting](#setting) names,
-   those of the backends of the engine in which every recorded site walked
-   is a run site free of the environment: for a site that is
+8. **What the records leave.** The theorem assumes that the records are
+   exact, (R1) of the [Setting](#setting), and excludes the suffix copies.
+   Seven parts are open. First, (R2) and (R3) are shown only for the sites
+   that *Sites that meet the conditions* in the [Setting](#setting) names,
+   the run sites free of the environment in the parses of the backends of
+   the engine, marked free where the program is loaded: for a site that is
    not free, (R2) asks for records under the values that its element reads,
    and for a repetition of a single character, for records that answer a
-   walk from every position that a recorded walk passed, in every rule, and
+   walk from every position that an earlier walk passed, in every rule, and
    neither is shown of an implementation here, nor is (R2) for a run site in
-   a generated Go or TypeScript parser, which keeps no record of it; for a
+   a generated Go or TypeScript parser, which keeps no record of it. Each of
+   these is a source without records in the parses that walk it, under
+   step 1 and the seventh part below. For a
    site that is not free,
    $K_R$ is not the $K$ of
    [Classification](../runtime/parsing.md#classification), which counts
    the combinations among the calls at one position and not among the visits
    of walks, so the theorem states its bound with the greater of the two.
-   Second, the suffix copies of the recorded walks whose iterations build
-   values: they are at most the iterations that the walks which take the
+   Second, the suffix copies of the walks that take records and whose
+   iterations build values: they are at most the iterations that the walks which take the
    records would evaluate in their place, and no claim counts those. The
    parse that keeps no record of the site is not shown to make the same
    walks, since a call inside an iteration that a record answers stores
@@ -8639,14 +8769,41 @@ parse.
    the claims of Lemma 4 that count nothing in a parse that keeps records:
    *Counterparts in the reference parse*, *Replays* and *Replayed
    activations* are stated and proved for such a parse, outside the
-   iterations of the walks of recorded sites, which by *Growths lie outside
-   the recorded walks* covers every growth activation; the restarts,
-   *Direct activations*, *Repeats* and the claims on links, covered keys and
+   iterations of the walks of the sites that keep records, which by *Growths lie outside
+   the recorded walks* covers every growth activation; *Restarts in a parse
+   that keeps records* shows *Restarts*, *Direct activations*, *Memoized
+   links* and, outside dropped steps, *Repeats* of such a parse; *Dropped
+   steps*, *Operators Rules* and the claims on leaf links, covered keys,
+   reference links and
    heads have not been read again for a parse that keeps records, for the
    sources without records or for the growths. Sixth, a source without
-   records inside the element of a recorded site, or in a rule that the
+   records inside the element of a candidate site that keeps records, or in
+   a rule that the
    element calls, which is a `#recover` whose skip is not reused or a walk
    that a Document resumes: *Replayed activations* does not hold of its
-   activations inside the iterations of the recorded walks, where one
+   activations inside the iterations of the walks of that site, where one
    evaluation of a class can take a record and another evaluate, so
    *Activations held by heads* does not bound them, and no other claim does.
+   (R2) does not bound them either. It counts the iterations that the walks
+   of a recorded site evaluate, and not the input that a source inside
+   those iterations examines. An activation of the source at a position $q$
+   lies in an evaluated iteration of the site that starts at some
+   $p \le q$, and two numbers are bounded for the parse and not for $q$.
+   One is the number of the positions $p$ at which an evaluated iteration
+   starts whose source has an activation at $q$: a record answers a walk
+   only at a position where an iteration of an earlier walk started. The
+   other is the number of the walks that evaluate the iteration at one $p$
+   whatever its slot holds: a walk evaluates its first iterations up to the
+   minimum of the repetition, a walk that ends plain its last iteration,
+   and a walk made before the site keeps records all of its iterations
+   ([Skip Runs](../runtime/parsing.md#skip-runs),
+   [Run Sites](../runtime/parsing.md#run-sites)). So neither the records
+   nor what is proved of Lemma 4 gives a count at one position. Seventh, a
+   candidate site that keeps records and is no recorded site of the parse,
+   as a run site that is not free of the environment in the engine and a
+   scan site in every implementation: its iterations are iterations of a
+   walk of a site that keeps records, which *Replayed activations*, and so
+   *Activations held by heads*, leaves out as it leaves out the activations
+   of the sixth part, and the steps that its walks make outside their
+   iterations, the lookups, the stores and the suffix copies, which (R3)
+   would bound, are counted by no claim.
