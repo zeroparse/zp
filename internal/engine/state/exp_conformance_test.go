@@ -8,9 +8,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The engine's expectation record under conformance: every operation of the record runs through its
@@ -71,7 +71,7 @@ func (m *expMachine) keptHandle(k []ExpID) keptID {
 	return id
 }
 
-func (m *expMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *expMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupt()
 	p := m.p
 	switch o.Name {
@@ -243,7 +243,7 @@ type brokenExp struct {
 	call func(m *expMachine, args []any) []any
 }
 
-func (b brokenExp) Call(o *exec.Op, args []any) []any {
+func (b brokenExp) Call(o *code.Op, args []any) []any {
 	if o.Name == b.op {
 		return b.call(b.expMachine, args)
 	}
@@ -256,7 +256,7 @@ type brokenExpCharge struct {
 	op string
 }
 
-func (b brokenExpCharge) Call(o *exec.Op, args []any) []any {
+func (b brokenExpCharge) Call(o *code.Op, args []any) []any {
 	res := b.meteredExp.Call(o, args)
 	if o.Name == b.op {
 		b.p.Control.Charge(1)

@@ -7,7 +7,7 @@ import "zeroparse.dev/zp/internal/engine/state"
 // predicate applies the term of a predicate to the context that term.ctx makes. It fails on the boolean
 // false and on a term that fails, and holds on every other value. The value of a term is never a function.
 //
-// Printed from Exec IR function predicate of internal/ir/exec/core.
+// Printed from Exec IR function predicate of internal/ir/code/exec/compose.
 func (vm *Program) predicate(p *state.Parser, t int) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
@@ -30,7 +30,7 @@ func (vm *Program) predicate(p *state.Parser, t int) bool {
 // binding and binds nothing. The compiler has checked that the value fits the variable. The value of a term is never a
 // function.
 //
-// Printed from Exec IR function bind of internal/ir/exec/core.
+// Printed from Exec IR function bind of internal/ir/code/exec/compose.
 func (vm *Program) bind(p *state.Parser, slot int, t int) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)

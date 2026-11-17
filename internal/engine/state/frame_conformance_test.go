@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The engine's capture frames under conformance: every frame operation runs through its binding in
@@ -55,9 +55,9 @@ func (m *frameMachine) Handle(name string) any {
 	panic("engine binding: no handle " + name)
 }
 
-func (m *frameMachine) Call(o *exec.Op, args []any) []any {
+func (m *frameMachine) Call(o *code.Op, args []any) []any {
 	p := m.p
-	if pos, ok := m.regs[ops.Pos].(int64); ok {
+	if pos, ok := m.regs[exec.Pos].(int64); ok {
 		p.Pos = int(pos)
 	}
 	switch o.Name {
@@ -150,7 +150,7 @@ type brokenFrame struct {
 	edit func(call func(op string, args ...any) []any, args []any) []any
 }
 
-func (b brokenFrame) Call(o *exec.Op, args []any) []any {
+func (b brokenFrame) Call(o *code.Op, args []any) []any {
 	if o.Name != b.op {
 		return b.frameMachine.Call(o, args)
 	}

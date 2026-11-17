@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The engine implements the memo table and deferred memoization of the parser VM (design 065)
@@ -146,13 +146,13 @@ func interrupt() {
 		}
 		var le *core.LimitError
 		if errors.As(f.Err, &le) && le.Kind == core.LimitDepth {
-			panic(exec.Interrupt{Reason: "nesting"})
+			panic(code.Interrupt{Reason: "nesting"})
 		}
-		panic(exec.Interrupt{Reason: "limit"})
+		panic(code.Interrupt{Reason: "limit"})
 	}
 }
 
-func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *engineMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupt()
 	p := m.p
 	switch o.Name {
@@ -515,7 +515,7 @@ type brokenEngine struct {
 	call func(m *engineMachine, args []any) []any
 }
 
-func (b brokenEngine) Call(o *exec.Op, args []any) []any {
+func (b brokenEngine) Call(o *code.Op, args []any) []any {
 	if o.Name == b.op {
 		defer interrupt()
 		return b.call(b.engineMachine, args)

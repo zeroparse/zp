@@ -7,7 +7,7 @@ import (
 )
 
 // ruleFacts are the rule facts that the classifier reads, by rule name. They are the facts of the
-// untyped Core IR module of the rules (internal/ir/core/facts), as a parse without token insertion
+// untyped Core IR module of the rules (internal/middleend/corepass), as a parse without token insertion
 // has them, except nullable, which counts an insertion.
 type ruleFacts struct {
 	// an holds the nullable and always-succeeding rules, the left-recursion cycles and their

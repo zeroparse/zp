@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // builder computes the view of a source module. It rewrites a rule body bottom up, again and again
@@ -415,7 +415,7 @@ func (b *builder) choice(ch *core.Choice) core.Node {
 	switch {
 	case len(alts) == 0:
 		return b.built(&core.FailNode{}, ch)
-	case len(alts) == 1 && facts.LooseCut(alts[0]):
+	case len(alts) == 1 && corepass.LooseCut(alts[0]):
 		// A loose cut that dropCuts keeps, in the skip of a recovery, would commit the construct
 		// around the choice in place of the choice: the choice is left as it is, with none of the
 		// rewrites of its parts.
@@ -433,12 +433,12 @@ func (b *builder) choice(ch *core.Choice) core.Node {
 	return b.built(c, ch)
 }
 
-func looseCutAlt(a *core.Alt) bool { return facts.LooseCut(a.Body) }
+func looseCutAlt(a *core.Alt) bool { return corepass.LooseCut(a.Body) }
 
 // unroll applies R7 to X* (Y X*)*, giving (X / Y)*, and the absorption X* (X / Y)* to (X / Y)*.
 func (b *builder) unroll(rx, ry *core.Repeat) core.Node {
 	x := rx.Body
-	if b.src.Facts.Nullable(x) || facts.LooseCut(x) {
+	if b.src.Facts.Nullable(x) || corepass.LooseCut(x) {
 		return nil
 	}
 	if ch, ok := ry.Body.(*core.Choice); ok && len(ch.Alts) > 1 && b.same(ch.Alts[0].Body, x) && b.idempotent(x) {
@@ -461,7 +461,7 @@ func (b *builder) unroll(rx, ry *core.Repeat) core.Node {
 		y = b.built(&core.Seq{Items: slices.Clone(s.Items[:len(s.Items)-1])}, s)
 		b.place(y, s)
 	}
-	if facts.LooseCut(y) || bindsOutsideCalls(y) || !b.idempotent(x) {
+	if corepass.LooseCut(y) || bindsOutsideCalls(y) || !b.idempotent(x) {
 		return nil
 	}
 	// R7: both evaluate X first at each position and Y after X fails, in the same states. When Y
@@ -556,7 +556,7 @@ func (b *builder) inline(c *core.Call) core.Node {
 	if body, ok := b.inlined[id]; ok {
 		return body
 	}
-	ok := !facts.LooseCut(r.Body)
+	ok := !corepass.LooseCut(r.Body)
 	core.Walk(r.Body, func(n core.Node) {
 		switch n := n.(type) {
 		case *core.Capture, *core.BindNode, *core.OperatorsRule, *core.Stream, *core.Recover, *core.Missing, *core.Nest:
@@ -591,7 +591,7 @@ func (b *builder) inline(c *core.Call) core.Node {
 // evaluation cost. A node that is evaluated again cheaply makes no binding, so the last condition
 // implies the second.
 func (b *builder) idempotent(x core.Node) bool {
-	return !facts.LooseCut(x) && b.evaluatedAgainCheaply(x)
+	return !corepass.LooseCut(x) && b.evaluatedAgainCheaply(x)
 }
 
 // bindsOutsideCalls reports whether n makes a binding that lasts after it: a binding outside the
@@ -784,8 +784,8 @@ func (b *builder) factor(alts []core.Node) ([]core.Node, bool) {
 	for i := 0; i < len(alts); {
 		first := items(alts[i])
 		j, n := i+1, len(first)
-		if len(first) > 1 && !facts.LooseCut(alts[i]) {
-			for j < len(alts) && !facts.LooseCut(alts[j]) {
+		if len(first) > 1 && !corepass.LooseCut(alts[i]) {
+			for j < len(alts) && !corepass.LooseCut(alts[j]) {
 				next := items(alts[j])
 				if len(next) < 2 || !b.same(first[0], next[0]) {
 					break
@@ -938,7 +938,7 @@ func (b *builder) seqOf(s *core.Seq, items []core.Node, tuple bool) core.Node {
 	return b.built(&core.Seq{Items: slices.Clone(items)}, s)
 }
 
-// looseCutsDropped returns n without the cuts that are loose in it (facts.LooseCut), or n itself
+// looseCutsDropped returns n without the cuts that are loose in it (corepass.LooseCut), or n itself
 // when it has none outside the skips of recoveries, which it keeps. A cut that is an item of a
 // sequence is removed, and a cut that is the whole of an expression becomes a top. Every node that
 // it rebuilds stands for the text of the one it replaces. With tuple, a sequence that keeps fewer

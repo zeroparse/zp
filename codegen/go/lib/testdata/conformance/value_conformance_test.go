@@ -7,10 +7,10 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The compositions of the operators of terms in the generated Go libraries (TermBinary, TermUnary and
@@ -79,7 +79,7 @@ func text(e any) any {
 	return e.(evalError).msg
 }
 
-func (g goValues) Call(o *exec.Op, args []any) (res []any) {
+func (g goValues) Call(o *code.Op, args []any) (res []any) {
 	code := int(args[0].(int64))
 	switch o.Name {
 	case "binary":
@@ -123,39 +123,39 @@ func TestValueConformance(t *testing.T) {
 // brokenValues runs mutate on the result of a call.
 type brokenValues struct {
 	goValues
-	mutate func(o *exec.Op, args []any, res []any) []any
+	mutate func(o *code.Op, args []any, res []any) []any
 }
 
-func (b brokenValues) Call(o *exec.Op, args []any) []any {
+func (b brokenValues) Call(o *code.Op, args []any) []any {
 	return b.mutate(o, args, b.goValues.Call(o, args))
 }
 
 // TestValueConformanceDetectsBrokenLib is the negative control: library functions that are wrong
 // in one way fail the conformance run.
 func TestValueConformanceDetectsBrokenLib(t *testing.T) {
-	binary := func(o *exec.Op, args []any) (string, int, int, bool) {
+	binary := func(o *code.Op, args []any) (string, int, int, bool) {
 		if o.Name != "binary" {
 			return "", 0, 0, false
 		}
 		l, lok := args[1].(int)
 		r, rok := args[2].(int)
-		return ops.BinaryOps[args[0].(int64)], l, r, lok && rok
+		return exec.BinaryOps[args[0].(int64)], l, r, lok && rok
 	}
-	mutants := map[string]func(o *exec.Op, args []any, res []any) []any{
-		"an addition saturates": func(o *exec.Op, args []any, res []any) []any {
+	mutants := map[string]func(o *code.Op, args []any, res []any) []any{
+		"an addition saturates": func(o *code.Op, args []any, res []any) []any {
 			if op, l, r, ok := binary(o, args); ok && op == "+" && l > 0 && r > 0 && res[0].(int) < 0 {
 				return []any{math.MaxInt, nil}
 			}
 			return res
 		},
-		"a division floors": func(o *exec.Op, args []any, res []any) []any {
+		"a division floors": func(o *code.Op, args []any, res []any) []any {
 			if op, l, r, ok := binary(o, args); ok && op == "/" && r != 0 && l%r != 0 && (l < 0) != (r < 0) {
 				return []any{res[0].(int) - 1, nil}
 			}
 			return res
 		},
-		"an int equals a string": func(o *exec.Op, args []any, res []any) []any {
-			if o.Name == "binary" && ops.BinaryOps[args[0].(int64)] == "==" {
+		"an int equals a string": func(o *code.Op, args []any, res []any) []any {
+			if o.Name == "binary" && exec.BinaryOps[args[0].(int64)] == "==" {
 				if _, ok := args[1].(int); ok {
 					if _, ok := args[2].(string); ok {
 						return []any{false, nil}
@@ -164,8 +164,8 @@ func TestValueConformanceDetectsBrokenLib(t *testing.T) {
 			}
 			return res
 		},
-		"a string comparison compares bytes of the UTF-16 form": func(o *exec.Op, args []any, res []any) []any {
-			if o.Name == "binary" && ops.BinaryOps[args[0].(int64)] == "<" {
+		"a string comparison compares bytes of the UTF-16 form": func(o *code.Op, args []any, res []any) []any {
+			if o.Name == "binary" && exec.BinaryOps[args[0].(int64)] == "<" {
 				if l, ok := args[1].(string); ok {
 					if r, ok := args[2].(string); ok && len(l) > 0 && len(r) > 0 && (l[0] >= 0xF0) != (r[0] >= 0xF0) {
 						return []any{!res[0].(bool), nil}
@@ -174,7 +174,7 @@ func TestValueConformanceDetectsBrokenLib(t *testing.T) {
 			}
 			return res
 		},
-		"the error of a unary minus names no operand": func(o *exec.Op, args []any, res []any) []any {
+		"the error of a unary minus names no operand": func(o *code.Op, args []any, res []any) []any {
 			if o.Name == "unary" && res[1] != nil {
 				return []any{res[0], "invalid operand for unary -"}
 			}

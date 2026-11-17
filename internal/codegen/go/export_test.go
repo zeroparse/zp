@@ -2,7 +2,7 @@ package gogen
 
 import (
 	"zeroparse.dev/zp/internal/ir/exec/lower"
-	"zeroparse.dev/zp/internal/ir/exec/pass"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 )
 
 // The tests of package gogen_test compile grammars with the engine, which imports packages that
@@ -23,7 +23,7 @@ const LibImportPath = libImportPath
 // whose text is text and whose locals dead are not declared.
 func ExecVarsError(text string, dead ...string) error {
 	g := &Generator{}
-	res := &BodyResult{Text: text, Stores: &pass.Stores{Dead: map[string]bool{}}}
+	res := &BodyResult{Text: text, Stores: &codepass.Stores{Dead: map[string]bool{}}}
 	for _, v := range dead {
 		res.Stores.Dead[v] = true
 	}

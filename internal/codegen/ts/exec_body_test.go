@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	ir "zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/pass"
+	ir "zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 )
 
 // bodyFunc returns a module with the operations of the body tests and the function f of the locals
@@ -49,7 +49,7 @@ func bodyTarget(named *[]string) *BodyTarget {
 // printBody prints the body of f with the stores of the int locals cand.
 func printBody(m *ir.Module, f *ir.Func, cand []string, named *[]string) BodyResult {
 	t := bodyTarget(named)
-	st := pass.DeadStores(f, cand, func(x ir.Expr) bool { return Pure(x, t.Pure) })
+	st := codepass.DeadStores(f, cand, func(x ir.Expr) bool { return Pure(x, t.Pure) })
 	return Body(m, f, t, st)
 }
 

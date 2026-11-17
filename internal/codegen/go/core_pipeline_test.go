@@ -10,13 +10,14 @@ import (
 	"zeroparse.dev/zp/internal/codegen/go"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // typedEnv returns the environment in which Generator.TypedCore runs the pipeline for g.
-func typedEnv(g *gogen.Generator) *core.Env {
-	return &core.Env{
-		Mode:  core.Mode{Lean: g.Ordinary, Ordinary: g.Ordinary, Observe: g.Observability},
+func typedEnv(g *gogen.Generator) *corepass.Env {
+	return &corepass.Env{
+		Mode:  corepass.Mode{Lean: g.Ordinary, Ordinary: g.Ordinary, Observe: g.Observability},
 		Flag:  g.Opt.On,
 		Local: gogen.CoreLocalRule,
 	}
@@ -28,7 +29,7 @@ func pipelinedTypedCore(g *gogen.Generator, verifyEach bool) (*core.Module, erro
 	if err != nil {
 		return nil, err
 	}
-	_, err = core.Run(m, typedEnv(g), core.RunOptions{VerifyEach: verifyEach})
+	_, err = corepass.Run(m, typedEnv(g), corepass.RunOptions{VerifyEach: verifyEach})
 	return m, err
 }
 

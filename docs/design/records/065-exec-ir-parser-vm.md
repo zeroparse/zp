@@ -16,7 +16,7 @@ the generated Go runtime (the node `Parser` in `codegen/go/lib/lib.go` and the t
 in the TypeScript runtime (`codegen/ts/lib/lib.ts`). A fix to one of these mechanisms is a fix to up to four
 copies, and the copies already differ in algorithm where they should only differ in host.
 
-This design specifies the **parser VM** once. **Exec IR** (`internal/ir/exec`) is that specification: it declares the
+This design specifies the **parser VM** once. **Exec IR** (`internal/ir/code`) is that specification: it declares the
 operations a parser VM provides — memo lookup and store, seeding a left-recursion growth, entering and leaving a
 lookahead, merging expected sets, recovery bookkeeping, binding variables, charging the budget, committing a stream,
 validating a reused Document result — each with a behavior contract over an abstract parser state, and it composes
@@ -153,7 +153,7 @@ already exists in each copy; it is not written down.
 
 The names say what each level holds. Core IR is the core language of a grammar: what remains of its meaning once the
 surface syntax is gone. Flow IR is the control flow of a parse. Exec IR is the executable form: the operations of a
-parser VM and the program that drives them. Its package is `internal/ir/exec`, beside `internal/ir/core` and
+parser VM and the program that drives them. Its package is `internal/ir/code`, beside `internal/ir/core` and
 `internal/ir/flow`.
 
 [Record 062](062-backend-independent-optimization-ir.md) keeps runtime algorithms out of Core IR and Flow IR: Flow IR
@@ -532,7 +532,7 @@ bound could exceed the limit.
 ### Authoring
 
 Compositions, operation declarations and conformance cases are written with Go builder functions in
-`internal/ir/exec`. A builder returns Exec IR that the verifier checks against the
+`internal/ir/code`. A builder returns Exec IR that the verifier checks against the
 [invariants](../../../spec/exec-ir/invariants.md). The IR has a text form for tests, golden files and error
 messages ([Text Form](../../../spec/exec-ir/text-form.md)), which nothing parses, and an interpreter that runs a
 function against a machine of operations, which is how Go runs conformance cases until a backend prints them. A
@@ -1062,7 +1062,7 @@ and the alternatives.
 These are settled.
 
 1. **Three levels**: Core IR, the core language of a grammar; Flow IR, the control flow of a parse; Exec IR, the
-   parser VM, in `internal/ir/exec`.
+   parser VM, in `internal/ir/code`.
 2. **Exec IR specifies operations, not code.** Each operation has a behavior contract; each target implements and
    optimizes it for its language. Shared: the contracts, the compositions, the passes on Exec IR and the conformance
    suite, which every implementation must pass.

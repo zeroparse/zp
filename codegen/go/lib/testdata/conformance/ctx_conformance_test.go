@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The dependency memo of left recursion of the node library under conformance: every ctx operation runs
@@ -79,12 +79,12 @@ func (m *ctxMachine) Handle(name string) any {
 	panic("library binding: no handle " + name)
 }
 
-func (m *ctxMachine) Call(o *exec.Op, args []any) []any {
+func (m *ctxMachine) Call(o *code.Op, args []any) []any {
 	p := m.p
-	if pos, ok := m.regs[ops.Pos].(int64); ok {
+	if pos, ok := m.regs[exec.Pos].(int64); ok {
 		p.Pos = int(pos)
 	}
-	if silent, ok := m.regs[ops.Silent].(int64); ok {
+	if silent, ok := m.regs[exec.Silent].(int64); ok {
 		p.Silent = int(silent)
 	}
 	if strings.HasPrefix(o.Name, "test.") && o.Name != conform.OprNodeOp && slices.Contains(conform.CtxTestOps, o.Name) {
@@ -103,17 +103,17 @@ func (m *ctxMachine) Call(o *exec.Op, args []any) []any {
 	k := len(o.Results)
 	for i, prm := range o.Params {
 		switch prm.Type {
-		case exec.THandle(ops.Ctx):
+		case code.THandle(exec.Ctx):
 			args[i].(*ctxBox).c = res[k].(*ctxBox).c
 			k++
-		case exec.THandle(ops.Grow):
+		case code.THandle(exec.Grow):
 			args[i].(*growBox).g = res[k].(*growBox).g
 			k++
 		}
 	}
-	if slices.Contains(o.Writes, ops.Pos) {
+	if slices.Contains(o.Writes, exec.Pos) {
 		// The run compares the position that the operation wrote with the model's.
-		m.regs[ops.Pos] = int64(p.Pos)
+		m.regs[exec.Pos] = int64(p.Pos)
 	}
 	switch o.Name {
 	case "ctx.pop", "ctx.storeMemo", "ctx.storeCtx":
@@ -257,7 +257,7 @@ type brokenCtx struct {
 	edit func(call func(op string, args ...any) []any, args []any) []any
 }
 
-func (b brokenCtx) Call(o *exec.Op, args []any) []any {
+func (b brokenCtx) Call(o *code.Op, args []any) []any {
 	if o.Name != b.op {
 		return b.ctxMachine.Call(o, args)
 	}
@@ -289,7 +289,7 @@ type chargedCtx struct {
 	more bool
 }
 
-func (c chargedCtx) Call(o *exec.Op, args []any) []any {
+func (c chargedCtx) Call(o *code.Op, args []any) []any {
 	if o.Name != c.op {
 		return c.meteredCtx.Call(o, args)
 	}

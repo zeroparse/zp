@@ -9,9 +9,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The engine's Operators Rule descriptors, matches of operators and records of the split forms of the
@@ -93,7 +93,7 @@ func (m *oprMachine) Handle(name string) any {
 	panic("engine binding: no handle " + name)
 }
 
-func (m *oprMachine) Call(o *exec.Op, args []any) []any {
+func (m *oprMachine) Call(o *code.Op, args []any) []any {
 	if strings.HasPrefix(o.Name, "opr") {
 		if pos, ok := m.regs["pos"].(int64); ok {
 			m.p.Pos = int(pos)
@@ -198,7 +198,7 @@ type brokenOpr struct {
 	edit func(call func(op string, args ...any) []any, args []any) []any
 }
 
-func (b brokenOpr) Call(o *exec.Op, args []any) []any {
+func (b brokenOpr) Call(o *code.Op, args []any) []any {
 	if o.Name != b.op {
 		return b.oprMachine.Call(o, args)
 	}

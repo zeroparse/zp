@@ -20,7 +20,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -687,7 +687,7 @@ func referenceTerm(t *testing.T, c codegentest.TermCase) grammar.Term {
 }
 
 // TestTermReferenceEvaluator checks the engine's closure backend against the reference evaluator of
-// terms (internal/ir/exec/ref), which states the semantics of a term on naive tagged values: the same
+// terms (internal/ir/code/exec/ref), which states the semantics of a term on naive tagged values: the same
 // value or the same error for every generated term, in both position units. A predicate case compares
 // whether the predicate held, by whether the input "ab" parses.
 func TestTermReferenceEvaluator(t *testing.T) {

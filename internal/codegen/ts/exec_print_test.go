@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	ir "zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/printtest"
+	ir "zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/testing/exectest"
 )
 
 var testTarget = &Target{
@@ -26,7 +26,7 @@ var testTarget = &Target{
 }
 
 // program returns the TypeScript test program: a class with the operations and the printed
-// methods, and code that runs each entry and prints its results as printtest.Want does.
+// methods, and code that runs each entry and prints its results as exectest.Want does.
 func program(t *testing.T, m *ir.Module) string {
 	var b strings.Builder
 	b.WriteString(`declare const process: { stdout: { write(s: string): void } };
@@ -65,7 +65,7 @@ class P {
 		b.WriteString(src + "\n")
 	}
 	b.WriteString("}\n\n")
-	for _, f := range printtest.Entries(m) {
+	for _, f := range exectest.Entries(m) {
 		fmt.Fprintf(&b, "{\n  const r = new P().%s();\n  out.push(%q + ", f.Name, f.Name)
 		if len(f.Results) == 1 {
 			b.WriteString(`" " + String(r)`)
@@ -89,7 +89,7 @@ func TestPrintedFunctionsRun(t *testing.T) {
 	if err != nil {
 		t.Fatal("Node is required for the TypeScript printer tests")
 	}
-	m := printtest.Build()
+	m := exectest.Build()
 	src := program(t, m)
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "main.ts"), []byte(src), 0o644); err != nil {
@@ -115,7 +115,7 @@ func TestPrintedFunctionsRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("node: %v\n%s", err, numbered(src))
 	}
-	if want := printtest.Want(m); string(got) != want {
+	if want := exectest.Want(m); string(got) != want {
 		t.Errorf("printed functions print\n%s\nthe interpreter\n%s\n%s", got, want, numbered(src))
 	}
 }
@@ -130,7 +130,7 @@ func numbered(src string) string {
 
 // TestPrintedForms checks forms of printed statements that the program does not show.
 func TestPrintedForms(t *testing.T) {
-	m := printtest.Build()
+	m := exectest.Build()
 	checks := map[string][]string{
 		"exits":           {"  out: {\n", "      in_: {\n", "break in_;\n", "    outer:\n    for (;;) {\n", "continue outer;\n", "break outer;\n", "twin_2: {\n"},
 		"find":            {"find(x: number): Box | null | undefined {\n", "return undefined;\n", "return this.newBox(x);\n"},
@@ -156,7 +156,7 @@ func TestPrintedForms(t *testing.T) {
 
 // TestOpStatements checks operations printed as statements of their own and as nothing.
 func TestOpStatements(t *testing.T) {
-	m := printtest.Build()
+	m := exectest.Build()
 	tg := *testTarget
 	tg.Op = func(c *ir.Call, args []string) string {
 		if c.Callee == "log.note" {

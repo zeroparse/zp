@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec/core"
-	"zeroparse.dev/zp/internal/ir/exec/spectest"
+	"zeroparse.dev/zp/internal/ir/code/exec/compose"
+	"zeroparse.dev/zp/internal/ir/code/exec/spectest"
 )
 
 // execSpecDir is the directory of the Exec IR specification, relative to this package.
@@ -14,7 +14,7 @@ const execSpecDir = "../../../spec/exec-ir"
 // execSpecializations returns what the TypeScript library prints: for each composition, the feature
 // sets of its specializations, under the TypeScript column of the table of specializations.
 func execSpecializations() map[string]map[string][]string {
-	features := core.Build().Features
+	features := compose.Build().Features
 	out := map[string]map[string][]string{}
 	for _, s := range tsSpecs {
 		spectest.AddSpecialization(out, features, "TypeScript", s.fn, s.on)

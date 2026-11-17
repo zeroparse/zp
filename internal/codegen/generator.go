@@ -10,13 +10,14 @@ import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/flow"
-	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 	"zeroparse.dev/zp/internal/ir/opt"
 	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
 
 // Generator is the state that the Go and TypeScript generators share: the program and rule being
@@ -266,7 +267,7 @@ func keepsLowered(l *lower.Lowered) error {
 		return fmt.Errorf("internal error: an Exec pass replaced or removed the function %s", l.Func.Name)
 	}
 	for _, v := range l.Vars {
-		if !slices.ContainsFunc(l.Func.Locals, func(p exec.Param) bool { return p.Name == v }) {
+		if !slices.ContainsFunc(l.Func.Locals, func(p code.Param) bool { return p.Name == v }) {
 			return fmt.Errorf("internal error: an Exec pass removed the local %s of the function %s", v, l.Func.Name)
 		}
 	}
@@ -333,7 +334,7 @@ func (g *Generator) StartRecFlow(rec *compile.Program) error {
 			}
 		}
 	}
-	if err := g.RunCore(g.IRTable(), m, core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, nil, prepare); err != nil {
+	if err := g.RunCore(g.IRTable(), m, corepass.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, nil, prepare); err != nil {
 		return err
 	}
 	// Classes are inline tests, as the Node library's generated code writes them.
@@ -347,7 +348,7 @@ func (g *Generator) StartRecFlow(rec *compile.Program) error {
 // the guard read: the parser prints bodies in their ordinary form, and the guards and their guarded
 // classes are on.
 func (g *Generator) GuardedClasses() bool {
-	return g.Ordinary && g.Opt.On(core.PassGuards) && g.Opt.On(core.FlagGuardedClasses)
+	return g.Ordinary && g.Opt.On(corepass.PassGuards) && g.Opt.On(corepass.FlagGuardedClasses)
 }
 
 // CstJoin reports whether the join has members that stay *Node. The members are read as

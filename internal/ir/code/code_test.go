@@ -1,0 +1,297 @@
+package code
+
+import (
+	"strings"
+	"testing"
+)
+
+// testModule declares a small parser VM: a counter component with two operations.
+func testModule() *Module {
+	m := NewModule("test", "budget")
+	m.AddComponent("counter", "A counter.")
+	m.AddRegister("pos", TInt, "The position.")
+	tok := m.AddHandle("Token", "counter", "A token of the counter.")
+	m.AddOp(&Op{Name: "counter.next", Component: "counter", Results: []Type{TInt, tok},
+		Reads: []string{"counter"}, Writes: []string{"counter"},
+		Contract: "Returns the count before the call and a token, and adds one.",
+		Cost:     Cost{Const: 1}})
+	m.AddOp(&Op{Name: "counter.charge", Component: "counter", Params: []Param{P("n", TU64)},
+		Features: []string{"budget"}, NoReturn: true, Contract: "Charges n.",
+		Cost: Cost{Terms: []CostTerm{{Coef: 1, Quantity: "n"}}}})
+	return m
+}
+
+func TestBuildVerifyAndPrint(t *testing.T) {
+	m := testModule()
+	m.AddFunc("count", []Param{P("limit", TInt)}, []Type{TInt}, []string{"budget"}, func(b *Builder) {
+		b.Let("sum", Int(0))
+		b.Loop("each", func(b *Builder) {
+			r := b.LetN([]string{"n", "tok"}, C("counter.next"))
+			b.If(Bin(">=", r[0], L("limit")), func(b *Builder) { b.Break("each") })
+			b.Set("sum", Add(L("sum"), r[0]))
+			b.Do("counter.charge", U64(1))
+			b.SetReg("pos", Add(R("pos"), Int(1)))
+		})
+		b.Return(L("sum"))
+	})
+	if err := Verify(m); err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyExtension(m, 2, 0); err != nil {
+		t.Fatal(err)
+	}
+	got := String(m)
+	for _, want := range []string{
+		"op counter.next() (int, Token)\n  component counter\n  reads counter\n  writes counter\n  cost <= 1\n",
+		"  noreturn\n  cost <= 0 + 1*n\n",
+		"func count(limit int) int [budget] {\n  let sum = 0\n  loop each {\n    let n, tok = counter.next()\n" +
+			"    if (n >= limit) {\n      break each\n    }\n    sum = (sum + n)\n    counter.charge(u64(1))\n" +
+			"    $pos = ($pos + 1)\n  }\n  return sum\n}\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("listing lacks\n%s\nin\n%s", want, got)
+		}
+	}
+}
+
+func TestVerifyRejects(t *testing.T) {
+	cases := []struct {
+		name string
+		edit func(m *Module)
+		want string
+	}{
+		{"foreign write", func(m *Module) {
+			m.AddComponent("other", "")
+			m.AddOp(&Op{Name: "other.x", Component: "other", Writes: []string{"counter"}, Contract: "x"})
+		}, "writes component counter, which is not its own"},
+		{"callee declared twice", func(m *Module) {
+			m.AddFunc("counter.next", nil, nil, nil, func(b *Builder) {})
+		}, "callee counter.next declared twice"},
+		{"no contract", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.y", Component: "counter"})
+		}, "no contract"},
+		{"application of a handle that is not callable", func(m *Module) {
+			m.AddFunc("f", []Param{P("t", THandle("Token"))}, nil, nil, func(b *Builder) { b.Do("counter.charge", U64(1)); b.Let("x", Ap(L("t"), Int(1))) })
+		}, "application of a value of type Token, which is not a callable handle"},
+		{"application of an int", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Let("x", Ap(Int(1))) })
+		}, "application of a value of type int, which is not a callable handle"},
+		{"application arity", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) { b.Let("x", Ap(L("t"))) })
+		}, "application of Code with 0 arguments, want 1"},
+		{"application argument type", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) { b.Let("x", Ap(L("t"), BoolC(true))) })
+		}, "application of Code argument 1: bool, want int"},
+		{"application result count", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt, TBool})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) { b.Let("x", Ap(L("t"), Int(1))) })
+		}, "application has 2 results where one value is needed"},
+		{"application with a callee", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) {
+				b.Let("x", &Call{Callee: "counter.next", Fn: L("t"), Args: []Expr{Int(1)}})
+			})
+		}, "application with a callee"},
+		{"application in a cleanup", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Let("x", Ap(L("t"), Int(1))) })
+			})
+		}, "a cleanup calls application, which is not an operation"},
+		{"host and transitional", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.h", Component: "counter", Contract: "h", Host: true, Transitional: true})
+		}, "both host and transitional"},
+		{"undeclared handle", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.z", Component: "counter", Results: []Type{THandle("Nope")}, Contract: "z"})
+		}, "undeclared handle type Nope"},
+		{"feature missing", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Do("counter.charge", U64(1)) })
+		}, "needs feature budget"},
+		{"exit without block", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Exit("out") })
+		}, `exit "out" names no enclosing block`},
+		{"break of a block", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Block("out", func(b *Builder) { b.Break("out") }) })
+		}, `break "out" names no enclosing loop`},
+		{"read before let", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Assert(Lt(L("x"), Int(1)), "") })
+		}, "read of undeclared local x"},
+		{"local out of scope", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Block("", func(b *Builder) { b.Let("x", Int(1)) })
+				b.Set("x", Int(2))
+			})
+		}, "set of undeclared local x"},
+		{"type mismatch", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Let("x", Add(Int(1), U64(2))) })
+		}, "operator + on int and u64"},
+		{"arity", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Let("x", C("counter.next")) })
+		}, "counter.next has 2 results where one value is needed"},
+		{"return type", func(m *Module) {
+			m.AddFunc("f", nil, []Type{TBool}, nil, func(b *Builder) { b.Return(Int(1)) })
+		}, "return: int, want bool"},
+		{"bit operator on int", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Let("x", Bin("&", Int(1), Int(2))) })
+		}, "operator & on int"},
+		{"missing immediate", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.lit", Component: "counter", Imm: "literal", Contract: "lit"})
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Do("counter.lit") })
+		}, `immediate operand <nil>, want "literal"`},
+		{"unexpected immediate", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.add(&Do{Call: CI("counter.next", "x")}) })
+		}, `immediate operand x, want ""`},
+		{"set arity", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Var("x", TInt)
+				b.SetN([]Place{{Name: "x"}, {}, {}}, C("counter.next"))
+			})
+		}, "set of 3 places: counter.next has 2 results"},
+		{"set type", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Var("x", TInt)
+				b.Var("y", TInt)
+				b.SetN([]Place{{Name: "x"}, {Name: "y"}}, C("counter.next"))
+			})
+		}, "set y: Token, want int"},
+		{"null of a scalar", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Let("x", &Const{Type: TInt}) })
+		}, "int constant holds <nil>"},
+		{"let shadows a declared local", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Var("x", TInt)
+				b.Let("x", Int(1))
+			})
+		}, "local x shadows an enclosing local"},
+		{"end reachable", func(m *Module) {
+			m.AddFunc("f", nil, []Type{TInt}, nil, func(b *Builder) {
+				b.Block("out", func(b *Builder) {
+					b.If(BoolC(true), func(b *Builder) { b.Exit("out") })
+					b.Return(Int(1))
+				})
+			})
+		}, "the end of a function with results is reachable"},
+		{"loop left", func(m *Module) {
+			m.AddFunc("f", nil, []Type{TInt}, nil, func(b *Builder) {
+				b.Loop("l", func(b *Builder) {
+					b.Loop("m", func(b *Builder) { b.Break("l") })
+				})
+			})
+		}, "the end of a function with results is reachable"},
+		{"protect not last", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) {})
+				b.Comment("after")
+			})
+		}, "a protect that is not the last statement of the function body"},
+		{"nested protect", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {
+					b.Protect(func(b *Builder) {}, func(b *Builder) {})
+				}, func(b *Builder) {})
+			})
+		}, "a protect that is not the last statement of the function body"},
+		{"return in a cleanup", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Return() })
+			})
+		}, "a cleanup with a *code.Return"},
+		{"exit from a cleanup", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Block("out", func(b *Builder) {
+					b.Protect(func(b *Builder) {}, func(b *Builder) { b.Exit("out") })
+				})
+			})
+		}, "a cleanup with a *code.Exit"},
+		{"loop in a cleanup", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) {
+					b.Loop("l", func(b *Builder) { b.Break("l") })
+				})
+			})
+		}, "a cleanup with a *code.Loop"},
+		{"cleanup assigns an outer local", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Let("x", Int(1))
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Set("x", Int(2)) })
+			})
+		}, "a cleanup assigns x, which it does not declare"},
+		{"cleanup assigns a register", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.SetReg("pos", Int(2)) })
+			})
+		}, "a cleanup assigns register pos"},
+		{"cleanup reads a register", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Let("x", R("pos")) })
+			})
+		}, "a cleanup reads register pos"},
+		{"cleanup reads a local of the body", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) { b.Let("x", Int(1)) }, func(b *Builder) { b.Let("y", L("x")) })
+			})
+		}, "read of undeclared local x"},
+		{"cleanup may end the parse", func(m *Module) {
+			m.AddFunc("f", nil, nil, []string{"budget"}, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Do("counter.charge", U64(1)) })
+			})
+		}, "a cleanup calls counter.charge, which may end the parse"},
+		{"cleanup moves a register", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.skip", Component: "counter", Writes: []string{"pos"}, Contract: "skip"})
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Do("counter.skip") })
+			})
+		}, "a cleanup calls counter.skip, which writes register pos"},
+		{"cleanup reads a register through an operation", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.peek", Component: "counter", Reads: []string{"pos"}, Contract: "peek"})
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Do("counter.peek") })
+			})
+		}, "a cleanup calls counter.peek, which reads register pos"},
+		{"cleanup calls a function", func(m *Module) {
+			m.AddFunc("g", nil, nil, nil, func(b *Builder) {})
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Do("g") })
+			})
+		}, "a cleanup calls g, which is not an operation"},
+		{"protected end reachable", func(m *Module) {
+			m.AddFunc("f", nil, []Type{TInt}, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) {})
+			})
+		}, "the end of a function with results is reachable"},
+		{"shadowing", func(m *Module) {
+			m.AddFunc("f", []Param{P("x", TInt)}, nil, nil, func(b *Builder) {
+				b.Block("", func(b *Builder) { b.Let("x", Int(1)) })
+			})
+		}, "local x shadows an enclosing local"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := testModule()
+			c.edit(m)
+			err := Verify(m)
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("Verify = %v, want an error containing %q", err, c.want)
+			}
+			// Each case extends a valid module, so checking only the extension finds the same error.
+			m = testModule()
+			ops, funcs := len(m.Ops), len(m.Funcs)
+			c.edit(m)
+			if err := VerifyExtension(m, ops, funcs); err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("VerifyExtension = %v, want an error containing %q", err, c.want)
+			}
+		})
+	}
+}
+
+func TestVerifyRejectsCallableSignatureOfUndeclaredType(t *testing.T) {
+	m := testModule()
+	m.AddCallable("Code", "counter", "Code.", []Type{THandle("Nope")}, []Type{THandle("Gone")})
+	err := Verify(m)
+	if err == nil || !strings.Contains(err.Error(), "handle type Code parameter: undeclared handle type Nope") ||
+		!strings.Contains(err.Error(), "handle type Code result: undeclared handle type Gone") {
+		t.Fatalf("Verify = %v", err)
+	}
+}

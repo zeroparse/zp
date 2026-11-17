@@ -6,37 +6,38 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
-	"zeroparse.dev/zp/internal/ir/pipeline"
+	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // The driver runs the Core passes that the settings leave on, dumps the module after the selected
 // names under the label of its table, calls the hook after every pass, and asks for the
 // verification after each pass when VerifyEach is set.
 func TestDriverRunCore(t *testing.T) {
-	off, err := Settings{}.Without(core.PassTerminals)
+	off, err := Settings{}.Without(corepass.PassTerminals)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var dump strings.Builder
 	var hooked []string
 	var verifyEach bool
-	d := &Driver{Opt: off, PrintAfter: []string{"build", core.PassGuards}, PrintTo: &dump, VerifyEach: true,
+	d := &Driver{Opt: off, PrintAfter: []string{"build", corepass.PassGuards}, PrintTo: &dump, VerifyEach: true,
 		CoreHook: func(pass string, _ *core.Module) { hooked = append(hooked, pass) }}
 	var ran []string
-	d.CoreRun = func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error) {
+	d.CoreRun = func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error) {
 		verifyEach = o.VerifyEach
 		var err error
-		ran, err = core.Run(m, env, o)
+		ran, err = corepass.Run(m, env, o)
 		return ran, err
 	}
-	lean := core.Mode{Lean: true, Ordinary: true}
+	lean := corepass.Mode{Lean: true, Ordinary: true}
 	if err := d.RunCore("typed", &core.Module{}, lean, func(*core.Rule) bool { return true }, nil); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{core.PassGuards, core.PassScans, core.PassClassRuns}
+	want := []string{corepass.PassGuards, corepass.PassScans, corepass.PassClassRuns}
 	if !slices.Equal(ran, want) {
 		t.Errorf("ran %v, want %v", ran, want)
 	}
@@ -59,11 +60,11 @@ func TestDriverRunCore(t *testing.T) {
 	// Without a writer nothing is printed; "all" selects every pass that ran.
 	dump.Reset()
 	d = &Driver{PrintAfter: []string{"all"}}
-	if err := d.RunCore("rules", &core.Module{}, core.Mode{}, nil, nil); err != nil {
+	if err := d.RunCore("rules", &core.Module{}, corepass.Mode{}, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	d.PrintTo = &dump
-	if err := d.RunCore("rules", &core.Module{}, core.Mode{}, nil, nil); err != nil {
+	if err := d.RunCore("rules", &core.Module{}, corepass.Mode{}, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	if n := strings.Count(dump.String(), "-- Core IR of the rules table after "); n != 3 {
@@ -74,8 +75,8 @@ func TestDriverRunCore(t *testing.T) {
 // A failing pass is reported as an internal error that keeps the cause.
 func TestDriverRunCoreError(t *testing.T) {
 	cause := errors.New("broken")
-	d := &Driver{CoreRun: func(*core.Module, *core.Env, core.RunOptions) ([]string, error) { return nil, cause }}
-	err := d.RunCore("typed", &core.Module{}, core.Mode{}, nil, nil)
+	d := &Driver{CoreRun: func(*core.Module, *corepass.Env, corepass.RunOptions) ([]string, error) { return nil, cause }}
+	err := d.RunCore("typed", &core.Module{}, corepass.Mode{}, nil, nil)
 	if !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "internal error: ") {
 		t.Fatalf("error %v", err)
 	}
@@ -92,7 +93,7 @@ func withTestFlowPass(t *testing.T) func(string, *flow.Func, *flow.Env, flow.Run
 	profileDefs = append(slices.Clone(profileDefs), profileDef{Name: "no-comment", Doc: "x", Values: map[string]int{testFlowPass: 0}})
 	t.Cleanup(func() { Flags, profileDefs = flags, defs })
 	p := *flow.Pipeline
-	p.Passes = append(slices.Clone(p.Passes), pipeline.Pass[*flow.Func, *flow.Env]{
+	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*flow.Func, *flow.Env]{
 		Name: testFlowPass, Obligation: "a comment changes nothing",
 		Run: func(f *flow.Func, _ *flow.Env) error {
 			f.Body = append(f.Body, &flow.Comment{Text: "tested"})
@@ -158,9 +159,9 @@ func TestDriverRunFlow(t *testing.T) {
 // the module valid.
 const testExecPass = "test-exec-doc"
 
-func execModule() *exec.Module {
-	m := exec.NewModule("m")
-	m.AddFunc("r", nil, nil, nil, func(*exec.Builder) {})
+func execModule() *code.Module {
+	m := code.NewModule("m")
+	m.AddFunc("r", nil, nil, nil, func(*code.Builder) {})
 	return m
 }
 
@@ -171,21 +172,21 @@ func TestDriverRunExec(t *testing.T) {
 	flags := Flags
 	Flags = append(slices.Clone(Flags), Flag{Name: testExecPass, Kind: ExecPass, Default: 1, Doc: "documents"}, Flag{Name: "test-exec-break", Kind: ExecPass, Doc: "breaks"})
 	t.Cleanup(func() { Flags = flags })
-	p := *exec.Pipeline
+	p := *code.Pipeline
 	p.Passes = append(slices.Clone(p.Passes),
-		pipeline.Pass[*exec.Module, *exec.Env]{Name: testExecPass, Obligation: "a comment changes nothing",
-			Run: func(m *exec.Module, _ *exec.Env) error {
+		pass.Pass[*code.Module, *code.Env]{Name: testExecPass, Obligation: "a comment changes nothing",
+			Run: func(m *code.Module, _ *code.Env) error {
 				for _, f := range m.Funcs {
 					f.Doc = "tested"
 				}
 				return nil
 			}},
-		pipeline.Pass[*exec.Module, *exec.Env]{Name: "test-exec-break", Obligation: "none: it breaks the module",
-			Run: func(m *exec.Module, _ *exec.Env) error {
+		pass.Pass[*code.Module, *code.Env]{Name: "test-exec-break", Obligation: "none: it breaks the module",
+			Run: func(m *code.Module, _ *code.Env) error {
 				m.Funcs = append(m.Funcs, m.Funcs[0])
 				return nil
 			}})
-	run := func(_ string, m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error) {
+	run := func(_ string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error) {
 		return p.Run(m, env, o.Options(env))
 	}
 	var dump strings.Builder
@@ -222,7 +223,7 @@ func TestDriverRunExec(t *testing.T) {
 	if err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).RunExec("typed", execModule(), true); err != nil {
 		t.Fatal(err)
 	}
-	if n := strings.Count(dump.String(), "-- Exec IR of r in the typed table after "); n != 1+len(exec.Pipeline.Passes) {
+	if n := strings.Count(dump.String(), "-- Exec IR of r in the typed table after "); n != 1+len(code.Pipeline.Passes) {
 		t.Errorf("all printed %d sections:\n%s", n, dump.String())
 	}
 }

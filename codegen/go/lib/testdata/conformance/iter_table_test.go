@@ -3,7 +3,7 @@ package libgo
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 )
 
 // The iteration table (conform.IterCases) on the compositions itemAt and filterKeep of the node and the typed

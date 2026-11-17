@@ -12,7 +12,7 @@ import (
 // error of the diagnostic callback ends the parse before the element is delivered. Elements are final
 // once emitted: a caller error ends the parse unchanged.
 //
-// Printed from Exec IR function streamEmit of internal/ir/exec/core, specialized for stream.
+// Printed from Exec IR function streamEmit of internal/ir/code/exec/compose, specialized for stream.
 func (p *Parser) EmitStream(v *core.Node, end int) {
 	if BudgetControlsEnabled {
 		p.Control.Check()
@@ -40,7 +40,7 @@ func (p *Parser) EmitStream(v *core.Node, end int) {
 // held is released, and the memo and the records before pos are pruned once at least a window of
 // input was committed since the last pruning.
 //
-// Printed from Exec IR function streamCommit of internal/ir/exec/core, specialized for stream.
+// Printed from Exec IR function streamCommit of internal/ir/code/exec/compose, specialized for stream.
 func (p *Parser) Commit(pos int) {
 	p.Discard(pos - 1)
 	p.streamRelease()
@@ -57,7 +57,7 @@ func (p *Parser) Commit(pos int) {
 // elements, the rule is its start rule, and the rule runs at the top (a recursive rule counts its entries,
 // so its outermost entry is the first; any other rule is entered once). It is not a stable API.
 //
-// Printed from Exec IR function streamsIn of internal/ir/exec/core, specialized for stream.
+// Printed from Exec IR function streamsIn of internal/ir/code/exec/compose, specialized for stream.
 func (p *Parser) StreamsIn(id int, rec bool) bool {
 	return (p.Emit != nil) && p.StreamID == id && (!rec || p.Depth == 1)
 }

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	ir "zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/printtest"
+	ir "zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/testing/exectest"
 )
 
 // testTarget implements the operations of printtest on the type P of the test program.
@@ -50,7 +50,7 @@ func (p *P) get(b *box) int     { return b.x }
 `
 
 // program returns the Go test program: the printed functions and a main that runs each entry and
-// prints its results as printtest.Want does.
+// prints its results as exectest.Want does.
 func program(t *testing.T, m *ir.Module) string {
 	var b strings.Builder
 	b.WriteString(testPrelude)
@@ -62,7 +62,7 @@ func program(t *testing.T, m *ir.Module) string {
 		b.WriteString(src + "\n")
 	}
 	b.WriteString("func main() {\n\tvar out strings.Builder\n")
-	for _, f := range printtest.Entries(m) {
+	for _, f := range exectest.Entries(m) {
 		rs := make([]string, len(f.Results))
 		for i := range rs {
 			rs[i] = fmt.Sprintf("r%d", i)
@@ -83,7 +83,7 @@ func TestPrintedFunctionsRun(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a Go program")
 	}
-	m := printtest.Build()
+	m := exectest.Build()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "main.go")
 	if err := os.WriteFile(path, []byte(program(t, m)), 0o644); err != nil {
@@ -105,7 +105,7 @@ func TestPrintedFunctionsRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("go run: %v\n%s", err, out)
 	}
-	if want := printtest.Want(m); string(out) != want {
+	if want := exectest.Want(m); string(out) != want {
 		t.Errorf("printed functions print\n%s\nthe interpreter\n%s", out, want)
 	}
 }
@@ -122,7 +122,7 @@ func numbered(src string) string {
 // after braced blocks, labeled loops only when a jump needs the label, increments, and the comment
 // naming the source and the specialization.
 func TestPrintedForms(t *testing.T) {
-	m := printtest.Build()
+	m := exectest.Build()
 	src := func(name string) string {
 		s, err := Func(m, m.Func(name), testTarget)
 		if err != nil {
@@ -152,7 +152,7 @@ func TestPrintedForms(t *testing.T) {
 // TestOpStatements checks operations printed as statements of their own and as nothing, and an
 // operation printed as an operator expression inside another expression.
 func TestOpStatements(t *testing.T) {
-	m := printtest.Build()
+	m := exectest.Build()
 	tg := *testTarget
 	tg.Op = func(c *ir.Call, args []string) string {
 		switch c.Callee {

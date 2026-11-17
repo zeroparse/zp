@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	xexec "zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	xexec "zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

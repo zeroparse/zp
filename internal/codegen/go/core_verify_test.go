@@ -7,19 +7,20 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/pipeline"
+	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // brokenGuards is a pass that runs after guards and leaves the first literal guard it finds out of
 // step with its alternative, which core.Verify rejects.
-var brokenGuards = pipeline.Pass[*core.Module, *core.Env]{
+var brokenGuards = pass.Pass[*core.Module, *corepass.Env]{
 	Name:       "break-guard",
-	After:      []string{core.PassGuards},
+	After:      []string{corepass.PassGuards},
 	Obligation: "none: it breaks the module on purpose",
-	Run: func(m *core.Module, _ *core.Env) error {
+	Run: func(m *core.Module, _ *corepass.Env) error {
 		for _, r := range m.Rules {
 			if r == nil {
 				continue
@@ -50,19 +51,19 @@ var brokenGuards = pipeline.Pass[*core.Module, *core.Env]{
 
 // withBrokenGuards returns a Hooks.CoreRun that runs the pipeline of Core passes with brokenGuards
 // added after the pass guards.
-func withBrokenGuards() func(*core.Module, *core.Env, core.RunOptions) ([]string, error) {
-	p := *core.Pipeline
+func withBrokenGuards() func(*core.Module, *corepass.Env, corepass.RunOptions) ([]string, error) {
+	p := *corepass.Pipeline
 	p.Passes = nil
-	for _, ps := range core.Pipeline.Passes {
+	for _, ps := range corepass.Pipeline.Passes {
 		p.Passes = append(p.Passes, ps)
-		if ps.Name == core.PassGuards {
+		if ps.Name == corepass.PassGuards {
 			p.Passes = append(p.Passes, brokenGuards)
 		}
 	}
-	return func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error) {
+	return func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error) {
 		// The mutant is not a registered optimization, which the settings of the generator would refuse.
 		enabled := func(name string) bool { return name == brokenGuards.Name || env.On(name) }
-		return p.Run(m, env, pipeline.Options[*core.Module]{Enabled: enabled, VerifyEach: o.VerifyEach, Dump: o.Dump})
+		return p.Run(m, env, pass.Options[*core.Module]{Enabled: enabled, VerifyEach: o.VerifyEach, Dump: o.Dump})
 	}
 }
 
@@ -89,7 +90,7 @@ rule num = [0-9]+
 	if err == nil || !strings.Contains(err.Error(), "after pass break-guard:") {
 		t.Fatalf("with VerifyEachPass: %v", err)
 	}
-	if !slices.Contains(core.Pipeline.Names(), core.PassGuards) {
+	if !slices.Contains(corepass.Pipeline.Names(), corepass.PassGuards) {
 		t.Fatal("no guards pass")
 	}
 }
@@ -195,21 +196,21 @@ rule num = [0-9]+
 	}
 	for _, c := range []struct {
 		name, want string
-		run        func(m *exec.Module)
+		run        func(m *code.Module)
 	}{
-		{"replace", "replaced or removed the function", func(m *exec.Module) {
+		{"replace", "replaced or removed the function", func(m *code.Module) {
 			f := *m.Funcs[0]
 			m.Funcs[0] = &f
 		}},
-		{"drop local", "removed the local", func(m *exec.Module) {
+		{"drop local", "removed the local", func(m *code.Module) {
 			for _, f := range m.Funcs {
 				f.Locals = nil
 			}
 		}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			hooks := &gogen.Hooks{ExecRun: func(_ string, m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error) {
-				ran, err := exec.RunPasses(m, env, o)
+			hooks := &gogen.Hooks{ExecRun: func(_ string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error) {
+				ran, err := code.RunPasses(m, env, o)
 				c.run(m)
 				return ran, err
 			}}

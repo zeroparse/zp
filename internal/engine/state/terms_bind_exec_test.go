@@ -5,19 +5,19 @@ package state
 import "zeroparse.dev/zp/core"
 
 // confActPush runs act.push for the conformance suite.
-// Printed from Exec IR function confActPush of internal/ir/exec/core.
+// Printed from Exec IR function confActPush of internal/ir/code/exec/compose.
 func (p *Parser) confActPush(c *EvalCtx, e *core.Node) {
 	p.KidStack = append(p.KidStack, e)
 }
 
 // confActPushAll runs act.pushAll for the conformance suite.
-// Printed from Exec IR function confActPushAll of internal/ir/exec/core.
+// Printed from Exec IR function confActPushAll of internal/ir/code/exec/compose.
 func (p *Parser) confActPushAll(c *EvalCtx, items []*core.Node) {
 	p.KidStack = AppendSpend(p, p.KidStack, items)
 }
 
 // confTermKids runs term.kids for the conformance suite.
-// Printed from Exec IR function confTermKids of internal/ir/exec/core.
+// Printed from Exec IR function confTermKids of internal/ir/code/exec/compose.
 func (p *Parser) confTermKids() int {
 	var r int
 	r = len(p.KidStack)
@@ -25,13 +25,13 @@ func (p *Parser) confTermKids() int {
 }
 
 // confTermDropKids runs term.dropKids for the conformance suite.
-// Printed from Exec IR function confTermDropKids of internal/ir/exec/core.
+// Printed from Exec IR function confTermDropKids of internal/ir/code/exec/compose.
 func (p *Parser) confTermDropKids(mark int) {
 	p.DropKids(mark)
 }
 
 // confTermElemsAbove runs term.elemsAbove for the conformance suite.
-// Printed from Exec IR function confTermElemsAbove of internal/ir/exec/core.
+// Printed from Exec IR function confTermElemsAbove of internal/ir/code/exec/compose.
 func (p *Parser) confTermElemsAbove(mark int) []*core.Node {
 	var r []*core.Node
 	r = p.Kids(mark)
@@ -39,19 +39,19 @@ func (p *Parser) confTermElemsAbove(mark int) []*core.Node {
 }
 
 // confTermKeep runs term.keep for the conformance suite.
-// Printed from Exec IR function confTermKeep of internal/ir/exec/core.
+// Printed from Exec IR function confTermKeep of internal/ir/code/exec/compose.
 func (p *Parser) confTermKeep(items []*core.Node, i int) {
 	p.KidStack = append(p.KidStack, items[i])
 }
 
 // confActMade runs act.made for the conformance suite.
-// Printed from Exec IR function confActMade of internal/ir/exec/core.
+// Printed from Exec IR function confActMade of internal/ir/code/exec/compose.
 func (p *Parser) confActMade(c *EvalCtx, n *core.Node) {
 	c.made(n)
 }
 
 // confTermCreated runs term.created for the conformance suite.
-// Printed from Exec IR function confTermCreated of internal/ir/exec/core.
+// Printed from Exec IR function confTermCreated of internal/ir/code/exec/compose.
 func (p *Parser) confTermCreated() int {
 	var r int
 	r = len(p.Created)
@@ -59,7 +59,7 @@ func (p *Parser) confTermCreated() int {
 }
 
 // confTermDropCreated runs term.dropCreated for the conformance suite.
-// Printed from Exec IR function confTermDropCreated of internal/ir/exec/core.
+// Printed from Exec IR function confTermDropCreated of internal/ir/code/exec/compose.
 func (p *Parser) confTermDropCreated(mark int) {
 	if len(p.Created) > mark {
 		p.DropCreated(mark)

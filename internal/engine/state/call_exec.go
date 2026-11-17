@@ -9,7 +9,7 @@ import "zeroparse.dev/zp/core"
 // growing the seed of a left-recursion leader. A parse that reads a Document makes the call of
 // engineCallDoc instead, which is decided by one test of a field that the parse sets once.
 //
-// Printed from Exec IR function engineCall of internal/ir/exec/core, specialized for document, missing, budget.
+// Printed from Exec IR function engineCall of internal/ir/code/exec/compose, specialized for document, missing, budget.
 func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 	var v *core.Node
 	var ok bool
@@ -67,7 +67,7 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 // variable environments do work that the memo does not share. A parse that memoizes on the first call, a
 // rule without a seen index and an eager rule are memoized at once.
 //
-// Printed from Exec IR function firstCall of internal/ir/exec/core.
+// Printed from Exec IR function firstCall of internal/ir/code/exec/compose.
 func (p *Parser) FirstCall(r *Rule) bool {
 	s := r.Seen
 	if !(p.DeferMemo && s >= 0) {
@@ -81,7 +81,7 @@ func (p *Parser) FirstCall(r *Rule) bool {
 // the call protocol for a plain rule, and the memo protocol (its deferral, the begin and the end of
 // the call) of a rule that a parse from scratch does not memoize.
 //
-// Printed from Exec IR function engineCallDoc of internal/ir/exec/core, specialized for document, missing, budget.
+// Printed from Exec IR function engineCallDoc of internal/ir/code/exec/compose, specialized for document, missing, budget.
 func (p *Parser) callDoc(r *Rule, min int) (*core.Node, bool) {
 	var v *core.Node
 	var ok bool
@@ -139,7 +139,7 @@ func (p *Parser) callDoc(r *Rule, min int) (*core.Node, bool) {
 // bookkeeping of the input each call examines: it returns hit set with a result that the call reuses,
 // and otherwise saves in st what the end of the call needs.
 //
-// Printed from Exec IR function callBegin of internal/ir/exec/core, specialized for document, missing, budget.
+// Printed from Exec IR function callBegin of internal/ir/code/exec/compose, specialized for document, missing, budget.
 func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*core.Node, bool, bool) {
 	start := p.Pos
 	env := KeyVals{Missing: p.Missing != nil && r.Missing && p.Silent > 0}
@@ -231,7 +231,7 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*core.Node, bool, b
 // and success ok of its body, or of the growth of a leader: it records the result where its
 // dependencies send it, and restores the state from before the call.
 //
-// Printed from Exec IR function callEnd of internal/ir/exec/core, specialized for document, missing, budget.
+// Printed from Exec IR function callEnd of internal/ir/code/exec/compose, specialized for document, missing, budget.
 func (p *Parser) CallEnd(r *Rule, st *CallState, v *core.Node, ok bool) (*core.Node, bool) {
 	start := st.start
 	min := st.min
@@ -296,7 +296,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *core.Node, ok bool) (*core.N
 // through the context, which may give them without evaluating the body. Outside a context, the form
 // specialized for missing also drops the tokens that each adopted step inserted.
 //
-// Printed from Exec IR function grow of internal/ir/exec/core, specialized for missing.
+// Printed from Exec IR function grow of internal/ir/code/exec/compose, specialized for missing.
 func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 	g := p.GrowBegin(p.GrowKey(r, min), r)
 	if g.ctx {
@@ -333,7 +333,7 @@ func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 // examined input: the read that failed at pos recorded what it examined. It is for parser code and not a
 // stable API.
 //
-// Printed from Exec IR function expect of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function expect of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) Expect(pos int, id ExpID) {
 	var i int
 	if p.Silent > 0 || pos < p.Farthest {
@@ -367,7 +367,7 @@ func (p *Parser) Expect(pos int, id ExpID) {
 // record. s may alias the stack above the current record: writes only happen below the read position. It
 // is for parser code and not a stable API.
 //
-// Printed from Exec IR function mergeExpected of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function mergeExpected of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) MergeExpected(far int, s []ExpID) {
 	var i int
 	if p.Expectations {
@@ -397,7 +397,7 @@ func (p *Parser) MergeExpected(far int, s []ExpID) {
 // entries in the same order, and otherwise a copy, which becomes the set kept last. It is for parser
 // code and not a stable API.
 //
-// Printed from Exec IR function keep of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function keep of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) Keep(s []ExpID) []ExpID {
 	var i int
 	n := len(s)

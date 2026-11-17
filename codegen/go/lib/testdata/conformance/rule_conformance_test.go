@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The operations of the rules of the node library under conformance: every operation runs through its
@@ -127,19 +127,19 @@ func (m *ruleMachine) spec(index int64) ref.RuleSpec {
 func (m *ruleMachine) UseRegisters(regs map[string]any) { m.regs = regs }
 
 func (m *ruleMachine) Observe(component string) []string {
-	if component != ops.Rules {
+	if component != exec.Rules {
 		return nil
 	}
 	return append([]string{}, m.log...)
 }
 
-func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *ruleMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupted()
 	p := m.p
 	rule := func() *Rule { return args[0].(*Rule) }
 	invoke := func(f func(r *Rule, min int) (*core.Node, bool)) []any {
-		p.Pos = int(m.regs[ops.Pos].(int64))
-		defer func() { m.regs[ops.Pos] = int64(p.Pos) }()
+		p.Pos = int(m.regs[exec.Pos].(int64))
+		defer func() { m.regs[exec.Pos] = int64(p.Pos) }()
 		v, ok := f(rule(), int(args[1].(int64)))
 		return []any{v, ok}
 	}
@@ -258,20 +258,20 @@ func TestExecConformanceRuleDetectsBrokenLib(t *testing.T) {
 		"seen.defers ignores streams":      func(m *ruleMachine, args []any) []any { return []any{m.p.Document == nil} },
 		"rule.invoke runs the body without its own frame": func(m *ruleMachine, args []any) []any {
 			p := m.p
-			p.Pos = int(m.regs[ops.Pos].(int64))
+			p.Pos = int(m.regs[exec.Pos].(int64))
 			v, ok := p.invokePlainBody(args[0].(*Rule), int(args[1].(int64)))
-			m.regs[ops.Pos] = int64(p.Pos)
+			m.regs[exec.Pos] = int64(p.Pos)
 			return []any{v, ok}
 		},
 		"rule.invokePlain keeps the errors of a failure": func(m *ruleMachine, args []any) []any {
 			p := m.p
-			start := int(m.regs[ops.Pos].(int64))
+			start := int(m.regs[exec.Pos].(int64))
 			p.Pos = start
 			v, ok := p.invoke(args[0].(*Rule), int(args[1].(int64)))
 			if !ok {
 				p.Pos = start
 			}
-			m.regs[ops.Pos] = int64(p.Pos)
+			m.regs[exec.Pos] = int64(p.Pos)
 			return []any{v, ok}
 		},
 	}
@@ -331,7 +331,7 @@ type brokenRule struct {
 	call func(m *ruleMachine, args []any) []any
 }
 
-func (b brokenRule) Call(o *exec.Op, args []any) (res []any) {
+func (b brokenRule) Call(o *code.Op, args []any) (res []any) {
 	if o.Name == b.op {
 		defer interrupted()
 		return b.call(b.ruleMachine, args)

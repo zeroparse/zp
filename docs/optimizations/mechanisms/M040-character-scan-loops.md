@@ -41,8 +41,8 @@ Evidence records:
 
 Source owners: [`closure.Builder.ScanRepeat`](../../../internal/engine/closure/builder.go),
 the SCAN emission of the bytecode compiler,
-[`Scans pass`](../../../internal/ir/core/passes.go),
-[`Flow scan lowering`](../../../internal/ir/flow/lower/lower.go), which lowers the
+[`Scans pass`](../../../internal/middleend/corepass/passes.go),
+[`Flow scan lowering`](../../../internal/middleend/flowlower/lower.go), which lowers the
 scans of generated Go and TypeScript.
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

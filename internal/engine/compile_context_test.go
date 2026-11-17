@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	corebuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -146,15 +147,15 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				case "core-analysis":
 					ir.Analyze(m)
 				case "core-passes":
-					_, _ = ir.Run(m, &ir.Env{}, ir.RunOptions{})
+					_, _ = corepass.Run(m, &corepass.Env{}, corepass.RunOptions{})
 				case "core-pass-terminals":
-					ir.Terminals(m, func(*ir.Rule) bool { return true })
+					corepass.Terminals(m, func(*ir.Rule) bool { return true })
 				case "core-pass-guards":
-					ir.Guards(m, true)
+					corepass.Guards(m, true)
 				case "core-pass-scans":
-					ir.Scans(m)
+					corepass.Scans(m)
 				case "core-pass-class-runs":
-					ir.ClassRuns(m)
+					corepass.ClassRuns(m)
 				case "core-verify":
 					_ = ir.Verify(m)
 				}

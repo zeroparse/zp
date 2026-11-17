@@ -3,7 +3,7 @@ package state
 import "zeroparse.dev/zp/core"
 
 // The engine's implementations of the operations of the call protocol that its printed
-// compositions call (call_exec.go, printed from internal/ir/exec/core): the call state, the context
+// compositions call (call_exec.go, printed from internal/ir/code/exec/compose): the call state, the context
 // state of a memoized call, the bit of an expectation in the filter of the current record (expBit) and
 // the results that a context holds.
 

@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/core"
 )
 
-// The hand-written forms of the expectation record that the compositions of internal/ir/exec/core
+// The hand-written forms of the expectation record that the compositions of internal/ir/code/exec/compose
 // replaced, kept as the reference model of TestExpectRecordMatchesReference.
 
 // refExpect records no examined input, in a Document parse too: the read that failed at pos did.

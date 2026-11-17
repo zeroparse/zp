@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The doc operations of the node library under conformance: every operation runs through its binding in
@@ -40,7 +40,7 @@ func (m *docMachine) DocStat(i int64) int64 {
 	return int64(m.p.Document.stats.Evaluated)
 }
 
-func (m *docMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *docMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupted()
 	p := m.p
 	switch o.Name {
@@ -183,7 +183,7 @@ type brokenDoc struct {
 	call func(m *docMachine, args []any) []any
 }
 
-func (b brokenDoc) Call(o *exec.Op, args []any) []any {
+func (b brokenDoc) Call(o *code.Op, args []any) []any {
 	if o.Name == b.op {
 		return b.call(b.docMachine, args)
 	}

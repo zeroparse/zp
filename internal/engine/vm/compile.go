@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // Compile compiles the program prog to a bytecode module: it builds the program's Core IR, runs
@@ -26,7 +27,7 @@ func Compile(prog *compile.Program) (*bytecode.Module, error) {
 	if err != nil {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}
-	if _, err := ir.Run(m, &ir.Env{}, ir.RunOptions{}); err != nil {
+	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
 	return CompileCore(prog, m)

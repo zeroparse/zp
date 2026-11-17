@@ -727,7 +727,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 	})
 	// The model of a lazy memo and the declared cost of memo.lookup and memo.store, which TestMemoChargesMatchTheModel
 	// holds to what the engine charges.
-	runPrintedMutants(t, "../ir/exec/ref/ref.go", []printedMutant{
+	runPrintedMutants(t, "../ir/code/exec/ref/ref.go", []printedMutant{
 		{"ref pending inflated", []printedEdit{{"return m.edits - e.applied\n", "return m.edits - e.applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
 		{"ref held pending inflated", []printedEdit{{"return m.edits - applied\n", "return m.edits - applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
 		{"ref hold start inclusive", []printedEdit{{"case k.pos < start:", "case k.pos <= start:"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},

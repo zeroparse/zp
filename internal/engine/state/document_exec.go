@@ -12,7 +12,7 @@ package state
 // first test, of memo.seed, is a guard that no production path reaches: the seed of a growth lives within one parse,
 // when no edit is pending, and a lookup applies edits only to an entry of an earlier parse.
 //
-// Printed from Exec IR function memoAdvance of internal/ir/exec/core, specialized for document, budget.
+// Printed from Exec IR function memoAdvance of internal/ir/code/exec/compose, specialized for document, budget.
 func (p *Parser) AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
 	var fm uint64
 	var i int
@@ -63,7 +63,7 @@ func (p *Parser) AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
 // first test, of memo.seed, is a guard that no production path reaches: the seed of a growth lives within one parse,
 // when no edit is pending, and a lookup applies edits only to an entry of an earlier parse.
 //
-// Printed from Exec IR function memoAdvance of internal/ir/exec/core, specialized for document.
+// Printed from Exec IR function memoAdvance of internal/ir/code/exec/compose, specialized for document.
 func AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
 	var fm uint64
 	_ = fm

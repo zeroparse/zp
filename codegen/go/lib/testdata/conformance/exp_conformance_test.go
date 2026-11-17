@@ -8,9 +8,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The expectation record of the node library under conformance: every operation of the record runs
@@ -76,7 +76,7 @@ func (ks keptSets) handle(k []ExpID) keptID {
 	return id
 }
 
-func (m *expMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *expMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupted()
 	if res, ok := m.kept.callRecord(m.p, o, args); ok {
 		return res
@@ -96,7 +96,7 @@ func (m *expMachine) Call(o *exec.Op, args []any) (res []any) {
 
 // callRecord runs an operation of the expectation record of p, which the node and the typed library
 // share, and reports false for any other.
-func (ks keptSets) callRecord(p *Parser, o *exec.Op, args []any) ([]any, bool) {
+func (ks keptSets) callRecord(p *Parser, o *code.Op, args []any) ([]any, bool) {
 	res := func(r ...any) ([]any, bool) { return r, true }
 	switch o.Name {
 	case "exp.isolate":
@@ -196,7 +196,7 @@ func (m *texpMachine) Exp(id int64) any { return ExpID(id) }
 
 func (m *texpMachine) Placeholder() any { return ExpFar }
 
-func (m *texpMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *texpMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupted()
 	if res, ok := m.kept.callRecord(m.p.Parser, o, args); ok {
 		return res
@@ -342,7 +342,7 @@ type brokenTExp struct {
 	call func(m *texpMachine, args []any) []any
 }
 
-func (b brokenTExp) Call(o *exec.Op, args []any) []any {
+func (b brokenTExp) Call(o *code.Op, args []any) []any {
 	if o.Name == b.op {
 		return b.call(b.texpMachine, args)
 	}
@@ -356,7 +356,7 @@ type brokenExp struct {
 	call func(m *expMachine, args []any) []any
 }
 
-func (b brokenExp) Call(o *exec.Op, args []any) []any {
+func (b brokenExp) Call(o *code.Op, args []any) []any {
 	if o.Name == b.op {
 		return b.call(b.expMachine, args)
 	}
@@ -370,7 +370,7 @@ type brokenExpCharge struct {
 	op string
 }
 
-func (b brokenExpCharge) Call(o *exec.Op, args []any) []any {
+func (b brokenExpCharge) Call(o *code.Op, args []any) []any {
 	res := b.meteredExp.Call(o, args)
 	if o.Name == b.op {
 		b.p.Control.Charge(1)
@@ -383,7 +383,7 @@ type brokenTExpCharge struct {
 	op string
 }
 
-func (b brokenTExpCharge) Call(o *exec.Op, args []any) []any {
+func (b brokenTExpCharge) Call(o *code.Op, args []any) []any {
 	res := b.meteredTExp.Call(o, args)
 	if o.Name == b.op {
 		b.p.Control.Charge(1)

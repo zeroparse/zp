@@ -81,7 +81,7 @@ func memberKind(name string) (int, string) {
 	return MemberField, name
 }
 
-// termError returns the failure of a term with the message ops.TermErrors[code]; it is an error that the
+// termError returns the failure of a term with the message exec.TermErrors[code]; it is an error that the
 // caller returns.
 func (p *Parser) termError(code int, a, b any, op, n int) error {
 	switch code {
@@ -127,7 +127,7 @@ func (p *Parser) termError(code int, a, b any, op, n int) error {
 // which equals only nil, a box counting as the value it holds. It returns false for ok when the pair has no
 // equality, which is every other pair.
 //
-// Printed from Exec IR function equal of internal/ir/exec/core.
+// Printed from Exec IR function equal of internal/ir/code/exec/compose.
 func (p *Parser) termEqual(l any, r any) (bool, bool) {
 	a := unboxed(l)
 	b := unboxed(r)
@@ -154,7 +154,7 @@ func (p *Parser) termEqual(l any, r any) (bool, bool) {
 // termIndex returns element r of l, a list or a tuple (nil has no elements), with a box opened. It fails if l is
 // another value, if r is not an int, and if r is not an index of l.
 //
-// Printed from Exec IR function index of internal/ir/exec/core.
+// Printed from Exec IR function index of internal/ir/code/exec/compose.
 func (p *Parser) termIndex(l any, r any) (any, error) {
 	items, ok := valItems(l)
 	if !ok {
@@ -171,12 +171,12 @@ func (p *Parser) termIndex(l any, r any) (any, error) {
 	return value.UnboxNode(items[i]), nil
 }
 
-// termBinary applies the binary operator that op indexes in ops.BinaryOps to l and r. Ints combine with + - *
+// termBinary applies the binary operator that op indexes in exec.BinaryOps to l and r. Ints combine with + - *
 // / % and compare with < <= > >=, with 64-bit wraparound; / and % truncate toward zero, and a division by zero fails.
 // Strings concatenate with + and compare with < <= > >= by code point. == and != apply equal and fail where it has
 // no equality. [] is index. Any other operands fail.
 //
-// Printed from Exec IR function binary of internal/ir/exec/core.
+// Printed from Exec IR function binary of internal/ir/code/exec/compose.
 func (p *Parser) termBinary(op int, l any, r any) (any, error) {
 	if op == 11 {
 		v, e := p.termIndex(l, r)
@@ -245,10 +245,10 @@ func (p *Parser) termBinary(op int, l any, r any) (any, error) {
 	return nil, p.termError(1, l, r, op, 0)
 }
 
-// termUnary applies the unary operator that op indexes in ops.UnaryOps to x: - negates an int, with
+// termUnary applies the unary operator that op indexes in exec.UnaryOps to x: - negates an int, with
 // wraparound, and ! negates a bool. Any other operand fails.
 //
-// Printed from Exec IR function unary of internal/ir/exec/core.
+// Printed from Exec IR function unary of internal/ir/code/exec/compose.
 func (p *Parser) termUnary(op int, x any) (any, error) {
 	if op == 0 && valKind(x) == 1 {
 		return any(-x.(int)), nil
@@ -259,11 +259,11 @@ func (p *Parser) termUnary(op int, x any) (any, error) {
 	return nil, p.termError(3, x, nil, op, 0)
 }
 
-// termLogic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
+// termLogic checks the operand x of the logical operator that op indexes in exec.LogicalOps, and returns it. An
 // operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 // true and of || only if it is false, and checks each operand it evaluates.
 //
-// Printed from Exec IR function logic of internal/ir/exec/core.
+// Printed from Exec IR function logic of internal/ir/code/exec/compose.
 func (p *Parser) termLogic(op int, x any) (bool, error) {
 	if valKind(x) != 3 {
 		return false, p.termError(4, x, nil, op, 0)
@@ -271,13 +271,13 @@ func (p *Parser) termLogic(op int, x any) (bool, error) {
 	return x.(bool), nil
 }
 
-// termMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+// termMember reads the member name of x, whose kind is kind (exec.MemberKinds) and which reads the field or
 // capture field. Start, End and Value of a node read its range and value; a recovered value has a range and a nil
 // value. A capture of a node reads it with a box opened, nil if it did not match; a field reads what the value holds,
 // and of a struct the zero value of the declared type of a field that is not set. A value that has no members, a
 // capture of a struct and a field that a struct does not declare fail.
 //
-// Printed from Exec IR function member of internal/ir/exec/core.
+// Printed from Exec IR function member of internal/ir/code/exec/compose.
 func (p *Parser) termMember(c *EvalCtx, kind int, x any, name string, field string) (any, error) {
 	n, ok := nodeOf(x)
 	if !ok {
@@ -323,7 +323,7 @@ func (p *Parser) termMember(c *EvalCtx, kind int, x any, name string, field stri
 // nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other
 // value, such as a function, fails and pushes nothing.
 //
-// Printed from Exec IR function push of internal/ir/exec/core.
+// Printed from Exec IR function push of internal/ir/code/exec/compose.
 func (p *Parser) termPush(c *EvalCtx, fn string, v any) error {
 	k := valKind(v)
 	if k == 0 {
@@ -346,7 +346,7 @@ func (p *Parser) termPush(c *EvalCtx, fn string, v any) error {
 // next elements of the list that fn makes in c: none for nil, and those of a list or a tuple as they are. Any other value
 // fails and pushes nothing.
 //
-// Printed from Exec IR function pushItems of internal/ir/exec/core.
+// Printed from Exec IR function pushItems of internal/ir/code/exec/compose.
 func (p *Parser) termPushItems(c *EvalCtx, fn string, v any) error {
 	items, ok := valItems(v)
 	if ok {
@@ -359,7 +359,7 @@ func (p *Parser) termPushItems(c *EvalCtx, fn string, v any) error {
 // termItems returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
 // and those of a list or a tuple. Any other value fails.
 //
-// Printed from Exec IR function items of internal/ir/exec/core.
+// Printed from Exec IR function items of internal/ir/code/exec/compose.
 func (p *Parser) termItems(fn string, v any) ([]*core.Node, error) {
 	items, ok := valItems(v)
 	if ok {
@@ -372,7 +372,7 @@ func (p *Parser) termItems(fn string, v any) ([]*core.Node, error) {
 // its function at step i, with a box opened: element i, or element i from the end if right (foldr). It charges
 // nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.
 //
-// Printed from Exec IR function itemAt of internal/ir/exec/core.
+// Printed from Exec IR function itemAt of internal/ir/code/exec/compose.
 func (p *Parser) termItemAt(items []*core.Node, i int, right bool) any {
 	if right {
 		return value.UnboxNode(items[len(items)-1-i])
@@ -381,7 +381,7 @@ func (p *Parser) termItemAt(items []*core.Node, i int, right bool) any {
 }
 
 // termFilterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.
-// Printed from Exec IR function filterKeep of internal/ir/exec/core.
+// Printed from Exec IR function filterKeep of internal/ir/code/exec/compose.
 func (p *Parser) termFilterKeep(v any) (bool, error) {
 	if valKind(v) != 3 {
 		return false, p.termError(16, v, nil, 0, 0)
@@ -393,7 +393,7 @@ func (p *Parser) termFilterKeep(v any) (bool, error) {
 // node, and the number of elements of a list, a tuple or another node; nil and a recovered value have length 0. Any
 // other value fails.
 //
-// Printed from Exec IR function length of internal/ir/exec/core.
+// Printed from Exec IR function length of internal/ir/code/exec/compose.
 func (p *Parser) termLength(x any) (any, error) {
 	k := valKind(x)
 	if k == 2 {
@@ -418,7 +418,7 @@ func (p *Parser) termLength(x any) (any, error) {
 // termText is the built-in function text: a string itself, the text that a string node holds, the input of the range
 // of any other node, a recovered value among them, and the empty string for nil. Any other value fails.
 //
-// Printed from Exec IR function text of internal/ir/exec/core.
+// Printed from Exec IR function text of internal/ir/code/exec/compose.
 func (p *Parser) termText(x any) (string, error) {
 	k := valKind(x)
 	if k == 0 {
@@ -441,7 +441,7 @@ func (p *Parser) termText(x any) (string, error) {
 // termConvert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
 // type or not, becomes a node of t. Any other value fails.
 //
-// Printed from Exec IR function convert of internal/ir/exec/core.
+// Printed from Exec IR function convert of internal/ir/code/exec/compose.
 func (p *Parser) termConvert(t *value.NodeTypeKinds, x any) (any, error) {
 	n, ok := nodeOf(x)
 	if ok {
@@ -456,7 +456,7 @@ func (p *Parser) termConvert(t *value.NodeTypeKinds, x any) (any, error) {
 // v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is
 // whether it had none before, and the first node gives n its range.
 //
-// Printed from Exec IR function cover of internal/ir/exec/core.
+// Printed from Exec IR function cover of internal/ir/code/exec/compose.
 func (p *Parser) termCover(n *core.Node, v any, first bool) bool {
 	k, ok := nodeOf(v)
 	if !ok {
@@ -479,7 +479,7 @@ func (p *Parser) termCover(n *core.Node, v any, first bool) bool {
 // termMade finishes the struct n that c made of field values that cover has gone over: n takes the range of the
 // rule if no field value is a node, and c records n.
 //
-// Printed from Exec IR function made of internal/ir/exec/core.
+// Printed from Exec IR function made of internal/ir/code/exec/compose.
 func (p *Parser) termMade(c *EvalCtx, n *core.Node, first bool) {
 	if first {
 		rs, re := c.Start, c.End
@@ -493,7 +493,7 @@ func (p *Parser) termMade(c *EvalCtx, n *core.Node, first bool) {
 // of the rule if none adds one. It charges a step for each element. The value model does not show the range of a list or a tuple, but a
 // struct that holds one covers it.
 //
-// Printed from Exec IR function hull of internal/ir/exec/core.
+// Printed from Exec IR function hull of internal/ir/code/exec/compose.
 func (p *Parser) termHull(c *EvalCtx, tuple bool, kids []*core.Node) *core.Node {
 	var j int
 	n := p.NewNode(value.Data{Kind: seqKind(tuple), Children: kids})
@@ -524,7 +524,7 @@ func (p *Parser) termHull(c *EvalCtx, tuple bool, kids []*core.Node) *core.Node 
 // (node[_] any node with a value), and error an error value; a list or tuple type takes a list value or a tuple value,
 // not the node of a repetition or a sequence.
 //
-// Printed from Exec IR function conforms of internal/ir/exec/core.
+// Printed from Exec IR function conforms of internal/ir/code/exec/compose.
 func (p *Parser) termConforms(t *compile.FieldType, v any) bool {
 	var i int
 	kt := int(t.Kind)
@@ -607,7 +607,7 @@ func (p *Parser) termConforms(t *compile.FieldType, v any) bool {
 // termValueConforms returns whether the value of the node n, whose shape is shape, is of the type t: a string
 // node has a string, and a tuple node or a list node its elements as value.
 //
-// Printed from Exec IR function valueConforms of internal/ir/exec/core.
+// Printed from Exec IR function valueConforms of internal/ir/code/exec/compose.
 func (p *Parser) termValueConforms(t *compile.FieldType, n *core.Node, shape int) bool {
 	var i int
 	kt := int(t.Kind)
@@ -648,7 +648,7 @@ func (p *Parser) termValueConforms(t *compile.FieldType, n *core.Node, shape int
 // termElemsConform returns whether every element of items, the elements of a list, is of the element type t
 // of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.
 //
-// Printed from Exec IR function elemsConform of internal/ir/exec/core.
+// Printed from Exec IR function elemsConform of internal/ir/code/exec/compose.
 func (p *Parser) termElemsConform(t *compile.FieldType, items []*core.Node) bool {
 	var j int
 	if int(t.Kind) == 95 {
@@ -667,7 +667,7 @@ func (p *Parser) termElemsConform(t *compile.FieldType, items []*core.Node) bool
 // termTupleConform returns whether the elements items of a tuple are of the element types of the tuple type t:
 // as many, and each of its own type, charging a step for each element it examines.
 //
-// Printed from Exec IR function tupleConform of internal/ir/exec/core.
+// Printed from Exec IR function tupleConform of internal/ir/code/exec/compose.
 func (p *Parser) termTupleConform(t *compile.FieldType, items []*core.Node) bool {
 	var j int
 	count := len(items)

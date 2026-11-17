@@ -21,17 +21,19 @@ var allowlist = []string{
 	"rule 1: internal/engine/state -> grammar",
 	"rule 1: internal/engine/state -> internal/compile",
 	"rule 1: internal/engine/state -> internal/ir/core",
-	"rule 1: internal/engine/state -> internal/ir/exec",
+	"rule 1: internal/engine/state -> internal/ir/code",
 	"rule 1: internal/engine/state -> internal/ir/exec/lower",
-	"rule 1: internal/engine/state -> internal/ir/exec/ops",
+	"rule 1: internal/engine/state -> internal/ir/code/exec",
 	"rule 1: internal/engine/vm -> grammar",
 	"rule 1: internal/engine/vm -> internal/compile",
 	"rule 1: internal/engine/vm -> internal/ir/core",
 	"rule 1: internal/engine/vm -> internal/frontend/elaborate",
+	"rule 1: internal/engine/vm -> internal/middleend/corepass",
 
-	// The front end computes the rule facts of the Core IR. The IR regroup (S3) moves the facts
-	// to corepass analyses, and the driver asks for them.
-	"rule 2: internal/frontend -> internal/ir/core/facts",
+	// The front end computes the rule facts of the Core IR, which now live in corepass, and
+	// reports the structural errors from them. The edge goes when the facts are corepass analyses
+	// that the driver asks for, and the front end no longer computes them.
+	"rule 2: internal/frontend -> internal/middleend/corepass",
 	// The generators read the optimization registry and profiles, which the IR regroup (S3)
 	// splits into registrations beside each pass (internal/pass) and the driver.
 	"rule 2: internal/codegen -> internal/ir/opt",

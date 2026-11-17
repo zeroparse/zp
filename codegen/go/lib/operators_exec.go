@@ -8,7 +8,7 @@ import "zeroparse.dev/zp/core"
 // min. Each level of its recursion (the operand of a prefix operator, the right operand of an infix
 // operator) counts against the nesting limit, like the entry of a recursive rule.
 //
-// Printed from Exec IR function operatorsParse of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function operatorsParse of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*core.Node, bool) {
 	p.Depth++
 	if p.Depth > p.MaxDepth {
@@ -26,7 +26,7 @@ func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*core.Node, bool) {
 // An operator that binds tighter than the last one applied, or than the prefix operator of the start,
 // ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.
 //
-// Printed from Exec IR function operatorsExpr of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function operatorsExpr of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
 	guard := -1
 	if p.afterEmpty {
@@ -114,7 +114,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
 // longest prefix operator to its operand, or else the first operand line that matches. A failure after
 // a cut fails the expression.
 //
-// Printed from Exec IR function operatorsNud of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function operatorsNud of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) operatorsRuleNud(r *Rule) (*core.Node, bool) {
 	var i int
 	p.skipTrivia(r)
@@ -168,7 +168,7 @@ func (p *Parser) operatorsRuleNud(r *Rule) (*core.Node, bool) {
 // parser's cutFailed field (p.cutFailed in Go, this.cutFailed in TypeScript). The parse is left at the
 // position, with the captures of each candidate in its frame.
 //
-// Printed from Exec IR function longest of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function longest of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) longest(l []*OperatorsRuleOp) operatorsRuleAttempt {
 	var best operatorsRuleAttempt
 	var cutFailed bool
@@ -210,7 +210,7 @@ func (p *Parser) longest(l []*OperatorsRuleOp) operatorsRuleAttempt {
 // leaves the parse as it was, and one that matches discards the errors recovered in it, as a
 // lookahead does.
 //
-// Printed from Exec IR function skipTrivia of internal/ir/exec/core.
+// Printed from Exec IR function skipTrivia of internal/ir/code/exec/compose.
 func (p *Parser) skipTrivia(r *Rule) {
 	if r.OperatorsRule.Skip == nil {
 		return
@@ -229,7 +229,7 @@ func (p *Parser) skipTrivia(r *Rule) {
 // Reset returns to the backtracking point m: the position, the variable environment, the recovered
 // errors and the captures (undoing the trail) become what they were when m was taken.
 //
-// Printed from Exec IR function reset of internal/ir/exec/core.
+// Printed from Exec IR function reset of internal/ir/code/exec/compose.
 func (p *Parser) Reset(m Mark) {
 	p.Pos = m.Pos
 	p.Env = m.env
@@ -242,7 +242,7 @@ func (p *Parser) Reset(m Mark) {
 // min. Each level of its recursion (the operand of a prefix operator, the right operand of an infix
 // operator) counts against the nesting limit, like the entry of a recursive rule.
 //
-// Printed from Exec IR function operatorsParseTyped of internal/ir/exec/core, specialized for budget, typed.
+// Printed from Exec IR function operatorsParseTyped of internal/ir/code/exec/compose, specialized for budget, typed.
 func (p *TParser) OperatorsRuleParse(r *TRule, min int) (any, bool) {
 	p.Depth++
 	if p.Depth > p.MaxDepth {
@@ -260,7 +260,7 @@ func (p *TParser) OperatorsRuleParse(r *TRule, min int) (any, bool) {
 // An operator that binds tighter than the last one applied, or than the prefix operator of the start,
 // ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.
 //
-// Printed from Exec IR function operatorsExprTyped of internal/ir/exec/core, specialized for budget, typed.
+// Printed from Exec IR function operatorsExprTyped of internal/ir/code/exec/compose, specialized for budget, typed.
 func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 	guard := -1
 	if p.afterEmpty {
@@ -349,7 +349,7 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 // a cut fails the expression. Besides its value it returns where the value starts: a value that is not a node has no
 // span of its own.
 //
-// Printed from Exec IR function operatorsNudTyped of internal/ir/exec/core, specialized for budget, typed.
+// Printed from Exec IR function operatorsNudTyped of internal/ir/code/exec/compose, specialized for budget, typed.
 func (p *TParser) operatorsRuleNud(r *TRule) (any, int, bool) {
 	var i int
 	p.skipTrivia(r)
@@ -404,7 +404,7 @@ func (p *TParser) operatorsRuleNud(r *TRule) (any, int, bool) {
 // parser's cutFailed field (p.cutFailed in Go, this.cutFailed in TypeScript). The parse is left at the
 // position, with the captures of each candidate in its frame.
 //
-// Printed from Exec IR function longest of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function longest of internal/ir/code/exec/compose, specialized for budget.
 func (p *TParser) longest(l []*TOperatorsRuleOp) toperatorsRuleAttempt {
 	var best toperatorsRuleAttempt
 	var cutFailed bool
@@ -446,7 +446,7 @@ func (p *TParser) longest(l []*TOperatorsRuleOp) toperatorsRuleAttempt {
 // leaves the parse as it was, and one that matches discards the errors recovered in it, as a
 // lookahead does.
 //
-// Printed from Exec IR function skipTrivia of internal/ir/exec/core.
+// Printed from Exec IR function skipTrivia of internal/ir/code/exec/compose.
 func (p *TParser) skipTrivia(r *TRule) {
 	if r.OperatorsRule.Skip == nil {
 		return
@@ -465,7 +465,7 @@ func (p *TParser) skipTrivia(r *TRule) {
 // Reset returns to the backtracking point m: the position, the variable environment, the recovered
 // errors and the captures (undoing the trail) become what they were when m was taken.
 //
-// Printed from Exec IR function reset of internal/ir/exec/core.
+// Printed from Exec IR function reset of internal/ir/code/exec/compose.
 func (p *TParser) Reset(m Mark) {
 	p.Pos = m.Pos
 	p.Env = m.env

@@ -34,7 +34,7 @@ TypeScript benefits.
 Evidence records: [076](../076-inline-value-free-plain-generated-go-rules.md),
 [077](../077-inline-node-expressions-in-generated-go-parsers.md).
 
-Source owners: the Flow eligibility of package `internal/ir/flow/lower`, [`leanRuleBody`](../../../internal/codegen/go/flowrule.go),
+Source owners: the Flow eligibility of package `internal/middleend/flowlower`, [`leanRuleBody`](../../../internal/codegen/go/flowrule.go),
 [`Generator.flowNodeFrameBody`](../../../internal/codegen/go/flow.go),
 [`Node route selection`](../../../internal/codegen/go/generator.go).
 

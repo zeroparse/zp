@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec/core"
-	"zeroparse.dev/zp/internal/ir/exec/spectest"
+	"zeroparse.dev/zp/internal/ir/code/exec/compose"
+	"zeroparse.dev/zp/internal/ir/code/exec/spectest"
 )
 
 // specDir is the directory of the Exec IR specification, relative to this package.
@@ -14,7 +14,7 @@ const specDir = "../../../../spec/exec-ir"
 // specializations returns what the Go library and the engine print: for each of the two in
 // the table of specializations, and each composition, the feature sets of its specializations.
 func specializations() map[string]map[string][]string {
-	features := core.Build().Features
+	features := compose.Build().Features
 	out := map[string]map[string][]string{}
 	const nodes, typed, engine = "Generated Go, nodes", "Generated Go, typed values", "The engine"
 	for _, list := range [][]goSpec{goSpecs, goStreamSpecs, goOperatorSpecs, goTermSpecs} {

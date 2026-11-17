@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // CostSource is what the cost view of a grammar is built from: the rules that the complexity
@@ -22,7 +22,7 @@ type CostSource struct {
 	Rules  []*grammar.RuleDef
 	Module *core.Module
 	Origin map[core.Node]grammar.Expr
-	Facts  *facts.Facts
+	Facts  *corepass.Facts
 }
 
 // NewCostSource returns the cost source of g, which must compile.
@@ -106,5 +106,5 @@ func costSource(g *grammar.Grammar, rules []*grammar.RuleDef, control *cancel.Co
 	if err != nil {
 		return nil, err
 	}
-	return &Source{Module: m, Origin: origin, Facts: facts.Compute(m, control)}, nil
+	return &Source{Module: m, Origin: origin, Facts: corepass.Compute(m, control)}, nil
 }

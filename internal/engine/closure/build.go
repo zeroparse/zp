@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -24,7 +25,7 @@ func Core(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
 	if err != nil {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}
-	if _, err := ir.Run(m, &ir.Env{}, ir.RunOptions{}); err != nil {
+	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
 	m.Control = nil

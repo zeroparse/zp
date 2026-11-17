@@ -17,8 +17,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/ir/opt"
 )
@@ -52,9 +52,9 @@ type Hooks struct {
 	// FlowRun runs the Flow passes in place of flow.Run (opt.Driver.FlowRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks a function added.
 	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
-	// ExecRun runs the Exec passes in place of exec.RunPasses (opt.Driver.ExecRun), as FlowRun does
+	// ExecRun runs the Exec passes in place of code.RunPasses (opt.Driver.ExecRun), as FlowRun does
 	// for the Flow passes.
-	ExecRun func(table string, m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error)
+	ExecRun func(table string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error)
 }
 
 // GenerateParser generates the files of Generate with the hooks h, which may be nil.

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
-	"zeroparse.dev/zp/internal/ir/exec/pass"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/compose"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 )
 
 // tsMethod is a printed method of the TypeScript library's Parser class.
@@ -28,21 +28,21 @@ var tsSpecs = []struct {
 	name string
 	doc  bool
 }{
-	{fn: "call", on: []string{ops.Observe, ops.Budget}, name: "callBody"},
+	{fn: "call", on: []string{exec.Observe, exec.Budget}, name: "callBody"},
 	{fn: "firstCall", name: "firstCall"},
-	{fn: "document", on: []string{ops.Document}, name: "callDocument", doc: true},
+	{fn: "document", on: []string{exec.Document}, name: "callDocument", doc: true},
 	{fn: "unmemoized", name: "callUnmemoized", doc: true},
-	{fn: "memoized", on: []string{ops.Document, ops.Observe}, name: "callMemo", doc: true},
+	{fn: "memoized", on: []string{exec.Document, exec.Observe}, name: "callMemo", doc: true},
 	{fn: "grow", name: "grow"},
-	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
-	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
-	{fn: "mergeExpected", on: []string{ops.Budget}, name: "mergeExpected"},
-	{fn: "keep", on: []string{ops.Budget}, name: "keep"},
+	{fn: "expect", on: []string{exec.Budget}, name: "expect"},
+	{fn: "mergeKept", on: []string{exec.Budget}, name: "mergeKept"},
+	{fn: "mergeExpected", on: []string{exec.Budget}, name: "mergeExpected"},
+	{fn: "keep", on: []string{exec.Budget}, name: "keep"},
 	// The Operators Rule loop and backtracking.
-	{fn: "operatorsParse", on: []string{ops.Budget}, name: "operatorsRuleParse"},
-	{fn: "operatorsExpr", on: []string{ops.Budget}, name: "operatorsRuleExpr"},
-	{fn: "operatorsNud", on: []string{ops.Budget}, name: "operatorsRuleNud"},
-	{fn: "longest", on: []string{ops.Budget}, name: "longest"},
+	{fn: "operatorsParse", on: []string{exec.Budget}, name: "operatorsRuleParse"},
+	{fn: "operatorsExpr", on: []string{exec.Budget}, name: "operatorsRuleExpr"},
+	{fn: "operatorsNud", on: []string{exec.Budget}, name: "operatorsRuleNud"},
+	{fn: "longest", on: []string{exec.Budget}, name: "longest"},
 	{fn: "skipTrivia", name: "skipTrivia"},
 	{fn: "reset", name: "reset"},
 	// Predicates and bindings.
@@ -74,10 +74,10 @@ var tsSpecs = []struct {
 
 // tsMethods returns the printed methods of the TypeScript library.
 func tsMethods() ([]tsMethod, error) {
-	m := core.Build()
+	m := compose.Build()
 	var out []tsMethod
 	for _, s := range tsSpecs {
-		f, err := pass.Specialize(m, m.Func(s.fn), s.fn, s.on)
+		f, err := codepass.Specialize(m, m.Func(s.fn), s.fn, s.on)
 		if err != nil {
 			return nil, err
 		}
@@ -107,12 +107,12 @@ func tsMethods() ([]tsMethod, error) {
 
 // tsOpTable returns the TypeScript array of the names of the operators that the failure code indexes.
 func tsOpTable(code int) string {
-	list := ops.BinaryOps
+	list := exec.BinaryOps
 	switch code {
-	case ops.ErrUnary:
-		list = ops.UnaryOps
-	case ops.ErrLogical:
-		list = ops.LogicalOps
+	case exec.ErrUnary:
+		list = exec.UnaryOps
+	case exec.ErrLogical:
+		list = exec.LogicalOps
 	}
 	q := make([]string, len(list))
 	for i, o := range list {
@@ -121,29 +121,29 @@ func tsOpTable(code int) string {
 	return "[" + strings.Join(q, ", ") + "]"
 }
 
-// tsMemberKind returns the methods that classify a member name by ops.MemberKinds: memberKind returns
+// tsMemberKind returns the methods that classify a member name by exec.MemberKinds: memberKind returns
 // its kind, and memberName the name of the field or capture that a member of that kind reads.
 func tsMemberKind() (kind, name string) {
 	var b strings.Builder
-	b.WriteString("  // memberKind returns the kind of the member read name (ops.MemberKinds).\n  memberKind(name: string): number {\n    switch (name) {\n")
-	for code, k := range ops.MemberKinds {
-		if code != ops.MemberCapture && k.Spelling != "" {
+	b.WriteString("  // memberKind returns the kind of the member read name (exec.MemberKinds).\n  memberKind(name: string): number {\n    switch (name) {\n")
+	for code, k := range exec.MemberKinds {
+		if code != exec.MemberCapture && k.Spelling != "" {
 			fmt.Fprintf(&b, "      case %q:\n        return %d; // %s\n", k.Spelling, code, k.Name)
 		}
 	}
 	b.WriteString("    }\n")
-	k := ops.MemberKinds[ops.MemberCapture]
-	fmt.Fprintf(&b, "    if (name.startsWith(%q)) {\n      return %d; // %s\n    }\n", k.Spelling, ops.MemberCapture, k.Name)
-	fmt.Fprintf(&b, "    return %d; // %s\n  }", ops.MemberField, ops.MemberKinds[ops.MemberField].Name)
+	k := exec.MemberKinds[exec.MemberCapture]
+	fmt.Fprintf(&b, "    if (name.startsWith(%q)) {\n      return %d; // %s\n    }\n", k.Spelling, exec.MemberCapture, k.Name)
+	fmt.Fprintf(&b, "    return %d; // %s\n  }", exec.MemberField, exec.MemberKinds[exec.MemberField].Name)
 	return b.String(), fmt.Sprintf("  // memberName returns the name of the field or capture that the member read name of the kind reads.\n  memberName(kind: number, name: string): string {\n    return kind === %d ? name.slice(%d) : name;\n  }",
-		ops.MemberCapture, len(k.Spelling))
+		exec.MemberCapture, len(k.Spelling))
 }
 
-// tsTermError returns the method that makes the text of a failure of a term from ops.TermErrors.
+// tsTermError returns the method that makes the text of a failure of a term from exec.TermErrors.
 func tsTermError() string {
 	var b strings.Builder
 	b.WriteString("  termError(code: number, a: Value, b: Value, op: number, n: number): string {\n    switch (code) {\n")
-	for code, e := range ops.TermErrors {
+	for code, e := range exec.TermErrors {
 		var t strings.Builder
 		for _, seg := range e.Segments() {
 			switch seg.Hole {
@@ -170,26 +170,26 @@ func tsTermError() string {
 
 // tsTarget is the TypeScript implementation of the operations in the library's Parser class.
 var tsTarget = &Target{
-	Source: "internal/ir/exec/core",
-	Packed: ops.Value,
+	Source: "internal/ir/code/exec/compose",
+	Packed: exec.Value,
 	Parts: map[string][]Part{
 		// The set of an isolation is the range of the stack of the record that it ended.
-		ops.Set: {{Suffix: "From", Type: "number"}, {Suffix: "To", Type: "number"}},
+		exec.Set: {{Suffix: "From", Type: "number"}, {Suffix: "To", Type: "number"}},
 		// A backtracking point is the position, the environment, the length of the trail and the
 		// number of recovered errors.
-		ops.Backtrack: {{Suffix: "Pos", Type: "number"}, {Suffix: "Env", Type: "Env | null"}, {Suffix: "Trail", Type: "number"},
+		exec.Backtrack: {{Suffix: "Pos", Type: "number"}, {Suffix: "Env", Type: "Env | null"}, {Suffix: "Trail", Type: "number"},
 			{Suffix: "Rec", Type: "number"}},
 	},
 	Handle: func(name string) string {
 		return map[string]string{
-			ops.Rule: "Rule", ops.Value: "R", ops.Entry: "MemoEntry | null", ops.Values: "Value[] | null",
-			ops.Errs: "Errs", ops.Kept: "number[]", ops.ExpID: "number",
-			ops.Ctx: "CtxCall", ops.Res: "CtxResult | null", ops.Grow: "GrowState",
-			ops.Frame: "Frame", ops.Scope: "Env | null", ops.Operators: "OperatorsRuleOp[]", ops.Operator: "OperatorsRuleOp",
-			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
-			ops.Term: "Action", ops.Datum: "Value", ops.Seq: "readonly (Node | null)[]",
-			ops.Obj: "Node", ops.Name: "string", ops.Str: "string", ops.Act: "Actx", ops.Fail: "Value", ops.Elem: "Node | null",
-			ops.NodeType: "string", ops.FType: "FieldType",
+			exec.Rule: "Rule", exec.Value: "R", exec.Entry: "MemoEntry | null", exec.Values: "Value[] | null",
+			exec.Errs: "Errs", exec.Kept: "number[]", exec.ExpID: "number",
+			exec.Ctx: "CtxCall", exec.Res: "CtxResult | null", exec.Grow: "GrowState",
+			exec.Frame: "Frame", exec.Scope: "Env | null", exec.Operators: "OperatorsRuleOp[]", exec.Operator: "OperatorsRuleOp",
+			exec.Line: "OperatorsRuleLine", exec.Attempt: "OperatorsRuleAttempt | null",
+			exec.Term: "Action", exec.Datum: "Value", exec.Seq: "readonly (Node | null)[]",
+			exec.Obj: "Node", exec.Name: "string", exec.Str: "string", exec.Act: "Actx", exec.Fail: "Value", exec.Elem: "Node | null",
+			exec.NodeType: "string", exec.FType: "FieldType",
 		}[name]
 	},
 	FuncName: func(name string) string {
@@ -201,9 +201,9 @@ var tsTarget = &Target{
 		return ""
 	},
 	Reg: func(name string) string {
-		return map[string]string{ops.Pos: "this.pos", ops.Silent: "this.silent", ops.Cut: "this.cut"}[name]
+		return map[string]string{exec.Pos: "this.pos", exec.Silent: "this.silent", exec.Cut: "this.cut"}[name]
 	},
-	Negate: func(c *exec.Call, a []string) (string, bool) {
+	Negate: func(c *code.Call, a []string) (string, bool) {
 		switch c.Callee {
 		case "opr.found":
 			return a[0] + " === null", true
@@ -216,7 +216,7 @@ var tsTarget = &Target{
 		}
 		return "", false
 	},
-	Op: func(c *exec.Call, a []string) string {
+	Op: func(c *code.Call, a []string) string {
 		switch c.Callee {
 		case "val.kind":
 			return "valKind(" + a[0] + ")"
@@ -384,7 +384,7 @@ var tsTarget = &Target{
 		case "opr.afterEmpty":
 			return "this.afterEmpty"
 		case "budget.charge":
-			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
+			if k, ok := c.Args[0].(*code.Const); ok && k.Value == uint64(1) {
 				return "this.spend()"
 			}
 			return "this.spendUnits(Number(" + a[0] + "))"
@@ -498,7 +498,7 @@ var tsTarget = &Target{
 		}
 		panic("core: no TypeScript implementation of " + c.Callee)
 	},
-	Stmt: func(c *exec.Call, a []string, dst []string, decl string) (string, bool) {
+	Stmt: func(c *code.Call, a []string, dst []string, decl string) (string, bool) {
 		lhs := func(name string) string {
 			if decl != "" {
 				return decl + " " + name
@@ -605,7 +605,7 @@ var tsTarget = &Target{
 // bookkeeping of the parser and of the rules.
 var tsDocTarget = func() *Target {
 	t := *tsTarget
-	t.Op = func(c *exec.Call, a []string) string {
+	t.Op = func(c *code.Call, a []string) string {
 		switch c.Callee {
 		case "doc.active":
 			return "true"
@@ -640,7 +640,7 @@ var tsDocTarget = func() *Target {
 		}
 		return tsTarget.Op(c, a)
 	}
-	t.Stmt = func(c *exec.Call, a []string, dst []string, decl string) (string, bool) {
+	t.Stmt = func(c *code.Call, a []string, dst []string, decl string) (string, bool) {
 		switch c.Callee {
 		case "doc.enter":
 			return fmt.Sprintf("%[1]s %[2]s = this.docExamined;\n%[1]s %[3]s = this.docLow;\nthis.docExamined = %[4]s;\nthis.docLow = %[4]s;", decl, dst[0], dst[1], a[0]), true

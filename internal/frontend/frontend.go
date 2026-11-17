@@ -15,7 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // A fact error of the untyped module that the compiler does not report is added to its errors
@@ -30,7 +30,7 @@ type Result struct {
 	// Origin maps the nodes of Module to the expressions they were built from.
 	Origin map[core.Node]grammar.Expr
 	// Facts are the grammar facts of Module.
-	Facts *facts.Facts
+	Facts *corepass.Facts
 }
 
 // Run checks g with the compiler's options opts. A non-nil control polls for cancellation. The
@@ -55,5 +55,5 @@ func FromProgram(prog *compile.Program, control *cancel.Control) (*Result, error
 	if err != nil {
 		return nil, err
 	}
-	return &Result{Program: prog, Module: m, Origin: origin, Facts: facts.Compute(m, control)}, nil
+	return &Result{Program: prog, Module: m, Origin: origin, Facts: corepass.Compute(m, control)}, nil
 }

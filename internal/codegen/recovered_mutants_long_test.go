@@ -16,7 +16,7 @@ import (
 // recoveredMutants each give a recovered value a wrong field or a wrong range in a struct: the engine's fields
 // of a missing token, in MissingLiteral or MissingErrorScope of internal/engine/state/missing_token.go and in
 // the literal that the closure builder passes to it, and the ranges of the reference model, in
-// internal/ir/exec/ref/term.go.
+// internal/ir/code/exec/ref/term.go.
 var recoveredMutants = []struct{ name, file, fn, old, new string }{
 	{"expected holds the message", "internal/engine/state/missing_token.go", "MissingLiteral", `{Name: "expected", Value: expected}`, `{Name: "expected", Value: p.RecoveryErrorText(e)}`},
 	{"expected is quoted", "internal/engine/state/missing_token.go", "MissingLiteral", `{Name: "expected", Value: expected}`, `{Name: "expected", Value: "\"" + expected + "\""}`},
@@ -25,9 +25,9 @@ var recoveredMutants = []struct{ name, file, fn, old, new string }{
 	{"message holds the literal", "internal/engine/state/missing_token.go", "MissingLiteral", `{Name: "message", Value: p.RecoveryErrorText(e)}`, `{Name: "message", Value: expected}`},
 	{"message has no position", "internal/engine/state/missing_token.go", "MissingLiteral", `{Name: "message", Value: p.RecoveryErrorText(e)}`, `{Name: "message", Value: e.Message()}`},
 	{"message ignores @error", "internal/engine/state/missing_token.go", "MissingErrorScope", "if p.Expectations && p.Missing != nil && p.Missing.label == 0 {", "if false {"},
-	{"a recovered field does not cover", "internal/ir/exec/ref/term.go", "structRange", " && x.Kind != KError {", " {"},
-	{"a recovered element has the range of the rule", "internal/ir/exec/ref/term.go", "nodeRange", "case KNode, KError:", "case KNode:"},
-	{"a recovered value encodes no message", "internal/ir/exec/ref/term.go", "plain", `"error": v.Fields["message"].S}`, `"error": ""}`},
+	{"a recovered field does not cover", "internal/ir/code/exec/ref/term.go", "structRange", " && x.Kind != KError {", " {"},
+	{"a recovered element has the range of the rule", "internal/ir/code/exec/ref/term.go", "nodeRange", "case KNode, KError:", "case KNode:"},
+	{"a recovered value encodes no message", "internal/ir/code/exec/ref/term.go", "plain", `"error": v.Fields["message"].S}`, `"error": ""}`},
 }
 
 // TestRecoveredValueMutants is the proof that TestTermFixedReference holds the fields expected and message of a

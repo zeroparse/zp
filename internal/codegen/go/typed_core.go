@@ -4,6 +4,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // TypedCore builds the Core IR of the typed Go rules and runs the pipeline of Core passes on it:
@@ -17,7 +18,7 @@ func (g *Generator) TypedCore(origin map[core.Node]grammar.Expr) (*core.Module, 
 	if err != nil {
 		return nil, err
 	}
-	mode := core.Mode{Lean: g.Ordinary, Ordinary: g.Ordinary, Observe: g.Observability}
+	mode := corepass.Mode{Lean: g.Ordinary, Ordinary: g.Ordinary, Observe: g.Observability}
 	if err := g.RunCore(g.IRTable(), m, mode, CoreLocalRule, nil); err != nil {
 		return nil, err
 	}

@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/compose"
 )
 
 // The conformance bindings of the operations that a target prints inline: for each, a function that
 // calls only the operation, printed by the target's own printer, so that the conformance suite
-// (internal/ir/exec/conform) runs the code that the target's compositions run, not a copy of it.
+// (internal/ir/code/exec/conform) runs the code that the target's compositions run, not a copy of it.
 
 // engineExpBindingsFile is the file of the engine's conformance bindings of the expectation record,
 // relative to the directory of this package. It is a test file of package state of the engine.
@@ -56,8 +56,8 @@ var oprBindingDescriptorOps = []string{
 // oprBindingEngineOps returns the operations of the Operators Rule family that the engine binds.
 func oprBindingEngineOps() []string {
 	names := slices.Clone(oprBindingDescriptorOps)
-	for _, o := range core.Build().Ops {
-		if o.Component == ops.Suspended && strings.HasPrefix(o.Name, "opr") {
+	for _, o := range compose.Build().Ops {
+		if o.Component == exec.Suspended && strings.HasPrefix(o.Name, "opr") {
 			names = append(names, o.Name)
 		}
 	}
@@ -67,8 +67,8 @@ func oprBindingEngineOps() []string {
 // expBindingOps returns the operations of the expectation record and of expBindingMemoOps.
 func expBindingOps() []string {
 	var names []string
-	for _, o := range core.Build().Ops {
-		if o.Component == ops.Exp {
+	for _, o := range compose.Build().Ops {
+		if o.Component == exec.Exp {
 			names = append(names, o.Name)
 		}
 	}
@@ -76,26 +76,26 @@ func expBindingOps() []string {
 }
 
 // bindings returns the module of the compositions with a binding function for each operation of
-// names, and the bindings in that order. A context state (ops.Ctx) and a growth (ops.Grow) are values
+// names, and the bindings in that order. A context state (exec.Ctx) and a growth (exec.Grow) are values
 // that the operations change in place, so a binding returns each one it takes after its results, for
 // the harness to keep.
-func bindings(names []string) (*exec.Module, []*exec.Func) {
-	m := core.Build()
-	var fs []*exec.Func
+func bindings(names []string) (*code.Module, []*code.Func) {
+	m := compose.Build()
+	var fs []*code.Func
 	for _, name := range names {
 		o := m.Op(name)
-		var states []exec.Expr
+		var states []code.Expr
 		results := slices.Clone(o.Results)
 		for _, p := range o.Params {
 			if isState(p.Type) {
-				states = append(states, exec.L(p.Name))
+				states = append(states, code.L(p.Name))
 				results = append(results, p.Type)
 			}
 		}
-		f := m.AddFunc(expBindingName(name), o.Params, results, o.Features, func(b *exec.Builder) {
-			args := make([]exec.Expr, len(o.Params))
+		f := m.AddFunc(expBindingName(name), o.Params, results, o.Features, func(b *code.Builder) {
+			args := make([]code.Expr, len(o.Params))
 			for i, p := range o.Params {
-				args[i] = exec.L(p.Name)
+				args[i] = code.L(p.Name)
 			}
 			switch len(o.Results) {
 			case 0:
@@ -107,18 +107,18 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 				// A declared result, since a nil result has no type of its own.
 				// A result that a parameter does not name.
 				res := "r"
-				if slices.ContainsFunc(o.Params, func(p exec.Param) bool { return p.Name == res }) {
+				if slices.ContainsFunc(o.Params, func(p code.Param) bool { return p.Name == res }) {
 					res = "res"
 				}
 				b.Var(res, o.Results[0])
-				b.Set(res, exec.C(name, args...))
-				b.Return(append([]exec.Expr{exec.L(res)}, states...)...)
+				b.Set(res, code.C(name, args...))
+				b.Return(append([]code.Expr{code.L(res)}, states...)...)
 			default:
 				rs := make([]string, len(o.Results))
 				for i := range rs {
 					rs[i] = "r" + string(rune('0'+i))
 				}
-				b.Return(append(b.LetN(rs, exec.C(name, args...)), states...)...)
+				b.Return(append(b.LetN(rs, code.C(name, args...)), states...)...)
 			}
 		})
 		f.Doc = expBindingName(name) + " runs " + name + " for the conformance suite."
@@ -129,7 +129,7 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 
 // isState reports whether t is a handle that the targets hold by value and the operations change in
 // place: a context state or a growth.
-func isState(t exec.Type) bool { return t == exec.THandle(ops.Ctx) || t == exec.THandle(ops.Grow) }
+func isState(t code.Type) bool { return t == code.THandle(exec.Ctx) || t == code.THandle(exec.Grow) }
 
 // bindingFile prints the bindings with the target t into a Go file of package pkg. A file of the
 // engine's package state or of the library imports the packages that it names.

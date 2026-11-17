@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
@@ -81,7 +81,7 @@ func dumpTerms(t *testing.T, m *core.Module) string {
 		if err != nil {
 			t.Fatalf("%s %s: %v", rule, what, err)
 		}
-		b.WriteString(exec.FuncString(l.Func))
+		b.WriteString(code.FuncString(l.Func))
 		b.WriteString("\n")
 	}
 	for _, r := range m.Rules {

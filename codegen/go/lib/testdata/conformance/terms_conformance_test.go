@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The elements gathered and the values made of the node and the typed library under conformance: every
@@ -140,7 +140,7 @@ func (m *termStateMachine) Datum(id int64) any { return m.Impl.(conform.Environm
 
 func (m *termStateMachine) Rule(index int64) any { return m.Impl.(conform.Environment).Rule(index) }
 
-func (m *termStateMachine) Call(o *exec.Op, args []any) []any {
+func (m *termStateMachine) Call(o *code.Op, args []any) []any {
 	if !slices.Contains(conform.GatheredOps, o.Name) && !slices.Contains(conform.MadeOps, o.Name) {
 		return m.Impl.Call(o, args)
 	}
@@ -251,7 +251,7 @@ type brokenTermState struct {
 	edit func(call func(op string, args ...any) []any, args []any) []any
 }
 
-func (b brokenTermState) Call(o *exec.Op, args []any) []any {
+func (b brokenTermState) Call(o *code.Op, args []any) []any {
 	if o.Name != b.op {
 		return b.termStateMachine.Call(o, args)
 	}
@@ -268,7 +268,7 @@ type brokenTermStateCharge struct {
 	copy bool
 }
 
-func (b brokenTermStateCharge) Call(o *exec.Op, args []any) []any {
+func (b brokenTermStateCharge) Call(o *code.Op, args []any) []any {
 	if o.Name != b.op {
 		return b.meteredTermState.Call(o, args)
 	}

@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/pass"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 )
 
 // Grammar code lowered from Flow IR prints with Body, by the conventions of the TypeScript printer
@@ -32,20 +32,20 @@ type BodyTarget struct {
 	// prints and where a jump to it prints.
 	Label func(name string) string
 	// Op returns the TypeScript expression of a call of an operation.
-	Op func(c *exec.Call, dead bool) string
+	Op func(c *code.Call, dead bool) string
 	// Do returns the statements of a call of an operation that a Do makes, each ending with a
 	// newline. args returns the printed arguments.
-	Do func(c *exec.Call, args func() []string, dead bool) string
+	Do func(c *code.Call, args func() []string, dead bool) string
 	// Set, if not nil, returns the statements of an assignment of one call of an operation, each
 	// ending with a newline, or reports false to print the assignment as Body does. init reports
 	// the Init of an If, which is formed at an unreachable point too.
-	Set func(s *exec.Set, init, dead bool) (string, bool)
+	Set func(s *code.Set, init, dead bool) (string, bool)
 	// Test, if not nil, returns the condition of an If with an Init, which then is not printed
 	// apart, or reports false to print the Init before the If.
-	Test func(s *exec.If, dead bool) (string, bool)
+	Test func(s *code.If, dead bool) (string, bool)
 	// Pure reports whether evaluating a call of an operation has no effect, for leaving out unread
 	// assignments.
-	Pure func(c *exec.Call) bool
+	Pure func(c *code.Call) bool
 }
 
 // BodyResult is the printed body of a function (Body).
@@ -62,14 +62,14 @@ type BodyResult struct {
 // Body prints the statements of the body of the function f of the module m, as the grammar code of
 // a TypeScript function whose declaration, locals and returns the caller prints. A body with a
 // label prints without it, and the caller prints the labeled block around the statements if the
-// body is exited (BodyResult.Exited). st is what pass.DeadStores found about the locals of f, with
+// body is exited (BodyResult.Exited). st is what codepass.DeadStores found about the locals of f, with
 // the purity of Pure: assignments it removes are left out, and the places of locals that no
 // statement that stays reads are left out of the assignments that stay, with their values
 // printed alone unless pure.
 //
 // The values of a function's Return are a value and a constant bool: true returns the value, and
 // false returns undefined.
-func Body(m *exec.Module, f *exec.Func, t *BodyTarget, st *pass.Stores) BodyResult {
+func Body(m *code.Module, f *code.Func, t *BodyTarget, st *codepass.Stores) BodyResult {
 	p := &bodyPrinter{m: m, t: t, st: st, used: map[string]bool{}}
 	p.stmts(f.Body.Stmts)
 	return BodyResult{Text: p.b.String(), End: !p.dead, Exited: f.Body.Label != "" && p.used[f.Body.Label]}
@@ -78,27 +78,27 @@ func Body(m *exec.Module, f *exec.Func, t *BodyTarget, st *pass.Stores) BodyResu
 // Pure reports whether evaluating x in TypeScript has no effect: locals, constants, registers, the
 // operator ! and the binary operators other than division and shifts on operands that are pure, and
 // the calls of operations that call reports pure.
-func Pure(x exec.Expr, call func(*exec.Call) bool) bool {
+func Pure(x code.Expr, call func(*code.Call) bool) bool {
 	switch x := x.(type) {
-	case *exec.Local, *exec.Const, *exec.Reg:
+	case *code.Local, *code.Const, *code.Reg:
 		return true
-	case *exec.Unary:
+	case *code.Unary:
 		return x.Op == "!" && Pure(x.X, call)
-	case *exec.Binary:
+	case *code.Binary:
 		switch x.Op {
 		case "+", "-", "&&", "||", "==", "!=", "<", ">", "<=", ">=":
 			return Pure(x.X, call) && Pure(x.Y, call)
 		}
-	case *exec.Call:
+	case *code.Call:
 		return x.Fn == nil && call != nil && call(x)
 	}
 	return false
 }
 
 type bodyPrinter struct {
-	m  *exec.Module
+	m  *code.Module
 	t  *BodyTarget
-	st *pass.Stores
+	st *codepass.Stores
 	b  strings.Builder
 	// dead reports that the current point is unreachable; used holds the labels that printed jumps
 	// name.
@@ -124,15 +124,15 @@ func (p *bodyPrinter) scoped(body func()) string {
 	return out
 }
 
-func (p *bodyPrinter) stmts(ss []exec.Stmt) {
+func (p *bodyPrinter) stmts(ss []code.Stmt) {
 	for _, s := range ss {
 		p.stmt(s)
 	}
 }
 
-func (p *bodyPrinter) stmt(s exec.Stmt) {
+func (p *bodyPrinter) stmt(s code.Stmt) {
 	switch s := s.(type) {
-	case *exec.Block:
+	case *code.Block:
 		enter := p.dead
 		body := p.scoped(func() { p.stmts(s.Stmts) })
 		end := p.dead
@@ -144,20 +144,20 @@ func (p *bodyPrinter) stmt(s exec.Stmt) {
 			p.write(body)
 			p.dead = end
 		}
-	case *exec.Loop:
+	case *code.Loop:
 		p.loop(s)
-	case *exec.If:
+	case *code.If:
 		p.ifStmt(s)
-	case *exec.Exit:
+	case *code.Exit:
 		p.jump("break", s.Label)
-	case *exec.Break:
+	case *code.Break:
 		p.jump("break", s.Label)
-	case *exec.Continue:
+	case *code.Continue:
 		// The label is named even at an unreachable point.
 		p.used[s.Label] = true
 		p.write("continue " + p.t.Label(s.Label) + ";\n")
 		p.dead = true
-	case *exec.Set:
+	case *code.Set:
 		if p.dead || p.st.Removed[s] {
 			return
 		}
@@ -168,18 +168,18 @@ func (p *bodyPrinter) stmt(s exec.Stmt) {
 			}
 		}
 		p.write(p.setText(s))
-	case *exec.Do:
+	case *code.Do:
 		dead := p.dead
 		p.write(p.t.Do(s.Call, func() []string { return p.args(s.Call) }, dead))
-	case *exec.Return:
+	case *code.Return:
 		if p.dead {
 			return
 		}
 		if len(s.Values) != 2 {
 			panic(fmt.Sprintf("tsgen: a return of %d values in grammar code", len(s.Values)))
 		}
-		c, ok := s.Values[1].(*exec.Const)
-		if !ok || c.Type != exec.TBool {
+		c, ok := s.Values[1].(*code.Const)
+		if !ok || c.Type != code.TBool {
 			panic("tsgen: a return whose bool is not a constant in grammar code")
 		}
 		if c.Value.(bool) {
@@ -188,7 +188,7 @@ func (p *bodyPrinter) stmt(s exec.Stmt) {
 			p.write("return undefined;\n")
 		}
 		p.dead = true
-	case *exec.Comment:
+	case *code.Comment:
 		p.write("// " + s.Text + "\n")
 	default:
 		panic(fmt.Sprintf("tsgen: statement %T in grammar code", s))
@@ -205,7 +205,7 @@ func (p *bodyPrinter) jump(kw, label string) {
 	p.dead = true
 }
 
-func (p *bodyPrinter) loop(s *exec.Loop) {
+func (p *bodyPrinter) loop(s *code.Loop) {
 	var head string
 	switch {
 	case s.Init != nil || s.Post != nil:
@@ -237,7 +237,7 @@ func (p *bodyPrinter) loop(s *exec.Loop) {
 	p.dead = enter || (s.Cond == nil && s.Init == nil && s.Post == nil && !p.used[s.Label])
 }
 
-func (p *bodyPrinter) ifStmt(s *exec.If) {
+func (p *bodyPrinter) ifStmt(s *code.If) {
 	dead := p.dead
 	var init, cond string
 	tested := false
@@ -285,7 +285,7 @@ func (p *bodyPrinter) read(name string) bool { return p.st.Read[name] }
 
 // setText returns the statements of the assignment s, one for each place, or "" if none stays: a
 // place of a local that nothing reads is left out, with its value printed alone unless pure.
-func (p *bodyPrinter) setText(s *exec.Set) string {
+func (p *bodyPrinter) setText(s *code.Set) string {
 	if len(s.Dst) != len(s.Values) {
 		panic("tsgen: an assignment of a call with several results in grammar code")
 	}
@@ -296,7 +296,7 @@ func (p *bodyPrinter) setText(s *exec.Set) string {
 		case d.Reg:
 			parts = append(parts, p.t.Reg(d.Name)+" = "+p.expr(x))
 		case d.Name != "" && p.read(d.Name):
-			parts = append(parts, p.assignment(&exec.Set{Dst: []exec.Place{d}, Values: []exec.Expr{x}}))
+			parts = append(parts, p.assignment(&code.Set{Dst: []code.Place{d}, Values: []code.Expr{x}}))
 		case !Pure(x, p.t.Pure):
 			parts = append(parts, p.expr(x))
 		}
@@ -309,14 +309,14 @@ func (p *bodyPrinter) setText(s *exec.Set) string {
 
 // assignment returns the expression of the assignment s of one value: an increment of a local by
 // one prints as ++.
-func (p *bodyPrinter) assignment(s *exec.Set) string {
+func (p *bodyPrinter) assignment(s *code.Set) string {
 	d, x := s.Dst[0], s.Values[0]
 	dst := d.Name
 	if d.Reg {
 		dst = p.t.Reg(d.Name)
-	} else if b, ok := x.(*exec.Binary); ok && b.Op == "+" {
-		if l, ok := b.X.(*exec.Local); ok && l.Name == d.Name {
-			if c, ok := b.Y.(*exec.Const); ok && c.Type == exec.TInt && c.Value == int64(1) {
+	} else if b, ok := x.(*code.Binary); ok && b.Op == "+" {
+		if l, ok := b.X.(*code.Local); ok && l.Name == d.Name {
+			if c, ok := b.Y.(*code.Const); ok && c.Type == code.TInt && c.Value == int64(1) {
 				return dst + "++"
 			}
 		}
@@ -324,7 +324,7 @@ func (p *bodyPrinter) assignment(s *exec.Set) string {
 	return dst + " = " + p.expr(x)
 }
 
-func (p *bodyPrinter) args(c *exec.Call) []string {
+func (p *bodyPrinter) args(c *code.Call) []string {
 	args := make([]string, len(c.Args))
 	for i, a := range c.Args {
 		args[i] = p.expr(a)
@@ -334,30 +334,30 @@ func (p *bodyPrinter) args(c *exec.Call) []string {
 
 // expr returns the TypeScript expression of x: a disjunction in parentheses, a comparison without,
 // and a negation of anything but a local with its operand in parentheses.
-func (p *bodyPrinter) expr(x exec.Expr) string {
+func (p *bodyPrinter) expr(x code.Expr) string {
 	switch x := x.(type) {
-	case *exec.Local:
+	case *code.Local:
 		return x.Name
-	case *exec.Reg:
+	case *code.Reg:
 		return p.t.Reg(x.Name)
-	case *exec.Const:
+	case *code.Const:
 		switch x.Type.Kind {
-		case exec.KBool:
+		case code.KBool:
 			return strconv.FormatBool(x.Value.(bool))
-		case exec.KHandle:
+		case code.KHandle:
 			return "null"
-		case exec.KInt:
+		case code.KInt:
 			return fmt.Sprint(x.Value)
 		}
-	case *exec.Unary:
+	case *code.Unary:
 		if x.Op == "!" {
 			inner := p.expr(x.X)
-			if _, ok := x.X.(*exec.Local); ok {
+			if _, ok := x.X.(*code.Local); ok {
 				return "!" + inner
 			}
 			return "!" + wrapTS(inner)
 		}
-	case *exec.Binary:
+	case *code.Binary:
 		op := x.Op
 		switch op {
 		case "||":
@@ -368,7 +368,7 @@ func (p *bodyPrinter) expr(x exec.Expr) string {
 			op = "!=="
 		}
 		return p.expr(x.X) + " " + op + " " + p.expr(x.Y)
-	case *exec.Call:
+	case *code.Call:
 		if p.m.Op(x.Callee) == nil {
 			panic("tsgen: a call of function " + x.Callee + " in grammar code")
 		}

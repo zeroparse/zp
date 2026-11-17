@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
@@ -70,7 +70,7 @@ func structuralInputFacts(t *testing.T, path string) int {
 		if len(untyped.Rules) != n {
 			t.Fatalf("%s: %d untyped rules, want %d", name, len(untyped.Rules), n)
 		}
-		tf, uf := facts.Compute(typed, nil), facts.Compute(untyped, nil)
+		tf, uf := corepass.Compute(typed, nil), corepass.Compute(untyped, nil)
 		want, got := slices.Clone(tf.Rules[:n]), slices.Clone(uf.Rules[:n])
 		for i := range got {
 			if got[i].Cyclic() {

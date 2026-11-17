@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The operations of the rules of the typed library under conformance: every operation runs through its
@@ -137,20 +137,20 @@ func (m *typedRuleMachine) evaluate(index int64, p *TParser, level int) (any, bo
 }
 
 func (m *typedRuleMachine) Observe(component string) []string {
-	if component != ops.Rules {
+	if component != exec.Rules {
 		return nil
 	}
 	return append([]string{}, m.log...)
 }
 
-func (m *typedRuleMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *typedRuleMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupted()
 	p := m.tp
 	rule := func() *TRule { return args[0].(*TRule) }
 	// at runs f at the position of the registers and moves them to where it leaves the parser.
 	at := func(f func() (any, bool)) []any {
-		p.Pos = int(m.regs[ops.Pos].(int64))
-		defer func() { m.regs[ops.Pos] = int64(p.Pos) }()
+		p.Pos = int(m.regs[exec.Pos].(int64))
+		defer func() { m.regs[exec.Pos] = int64(p.Pos) }()
 		v, ok := f()
 		return []any{v, ok}
 	}
@@ -237,9 +237,9 @@ func TestExecConformanceTypedRuleDetectsBrokenLib(t *testing.T) {
 	inv := func(args []any) func(*TParser) (any, bool) { return args[0].(*typedInvocation).run }
 	run := func(m *typedRuleMachine, f func() (any, bool)) []any {
 		p := m.tp
-		p.Pos = int(m.regs[ops.Pos].(int64))
+		p.Pos = int(m.regs[exec.Pos].(int64))
 		v, ok := f()
-		m.regs[ops.Pos] = int64(p.Pos)
+		m.regs[exec.Pos] = int64(p.Pos)
 		return []any{v, ok}
 	}
 	variants := map[string]func(m *typedRuleMachine, args []any) []any{
@@ -262,7 +262,7 @@ func TestExecConformanceTypedRuleDetectsBrokenLib(t *testing.T) {
 		},
 		"rule.invokePlain keeps the errors of a failure": func(m *typedRuleMachine, args []any) []any {
 			p := m.tp
-			start := int(m.regs[ops.Pos].(int64))
+			start := int(m.regs[exec.Pos].(int64))
 			return run(m, func() (any, bool) {
 				v, ok := p.invoke(args[0].(*TRule), int(args[1].(int64)))
 				if !ok {
@@ -316,10 +316,10 @@ func TestExecConformanceTypedRuleDetectsCharges(t *testing.T) {
 		},
 		"rule.run charges a unit": func(m *typedRuleMachine, args []any) []any {
 			p := m.tp
-			p.Pos = int(m.regs[ops.Pos].(int64))
+			p.Pos = int(m.regs[exec.Pos].(int64))
 			p.Spend()
 			v, ok := p.confRuleRun(args[0].(*typedInvocation).run)
-			m.regs[ops.Pos] = int64(p.Pos)
+			m.regs[exec.Pos] = int64(p.Pos)
 			return []any{v, ok}
 		},
 	}
@@ -353,7 +353,7 @@ type brokenTypedRule struct {
 	call func(m *typedRuleMachine, args []any) []any
 }
 
-func (b brokenTypedRule) Call(o *exec.Op, args []any) (res []any) {
+func (b brokenTypedRule) Call(o *code.Op, args []any) (res []any) {
 	if o.Name == b.op {
 		defer interrupted()
 		return b.call(b.typedRuleMachine, args)

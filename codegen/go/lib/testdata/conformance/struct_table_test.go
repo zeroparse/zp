@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 )
 
 // The struct table (conform.StructCases) on the compositions cover and made of the node and the typed

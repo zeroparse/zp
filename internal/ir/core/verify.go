@@ -33,11 +33,11 @@ func Verify(m *Module) error {
 	v := &verifier{m: m, classes: map[*Class]bool{}}
 	for _, c := range m.Classes {
 		if v.classes[c] {
-			return fmt.Errorf("class %s interned twice", classString(c))
+			return fmt.Errorf("class %s interned twice", ClassString(c))
 		}
 		v.classes[c] = true
 		if err := v.exp(c.Exp); err != nil {
-			return fmt.Errorf("class %s: %w", classString(c), err)
+			return fmt.Errorf("class %s: %w", ClassString(c), err)
 		}
 	}
 	for i, r := range m.Rules {
@@ -115,7 +115,7 @@ func (v *verifier) exp(id ExpID) error {
 
 func (v *verifier) class(c *Class) error {
 	if !v.classes[c] {
-		return fmt.Errorf("class %s is not the module's", classString(c))
+		return fmt.Errorf("class %s is not the module's", ClassString(c))
 	}
 	return nil
 }
@@ -403,7 +403,7 @@ func (v *verifier) guard(a *Alt) error {
 		return nil
 	}
 	if f := a.Body.Attrs().First; f == nil || *f != *a.Guard {
-		return fmt.Errorf("guard %s is not the first terminal of the alternative", v.firstString(a.Guard))
+		return fmt.Errorf("guard %s is not the first terminal of the alternative", v.FirstString(a.Guard))
 	}
 	if !a.Guard.Lit {
 		if err := v.class(a.Guard.Class); err != nil {
@@ -419,13 +419,13 @@ func (v *verifier) guard(a *Alt) error {
 			c, ok = s.Items[0].(*ClassNode)
 		}
 		if !ok || a.Guard.Depth != 0 || a.Guard.Lit || c.Class != a.Guard.Class {
-			return fmt.Errorf("guarded class: alternative does not begin with class %s", v.firstString(a.Guard))
+			return fmt.Errorf("guarded class: alternative does not begin with class %s", v.FirstString(a.Guard))
 		}
 	}
 	return nil
 }
 
-func (v *verifier) firstString(f *First) string { return firstString(v.m, f) }
+func (v *verifier) FirstString(f *First) string { return FirstString(v.m, f) }
 
 // noCapture reports an error if n writes a capture of its enclosing scope.
 func noCapture(n Node, where string) error {

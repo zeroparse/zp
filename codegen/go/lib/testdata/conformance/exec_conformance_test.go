@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The generated Go library is the first implementation of the parser VM's operations under
@@ -57,7 +57,7 @@ func (e *rtEnv) setUp(p *Parser, cfg ref.Config) {
 }
 
 // call runs an operation of the environment, and reports false for any other.
-func (e *rtEnv) call(p *Parser, vals map[int64][]any, o *exec.Op, args []any) ([]any, bool) {
+func (e *rtEnv) call(p *Parser, vals map[int64][]any, o *code.Op, args []any) ([]any, bool) {
 	switch o.Name {
 	case "env.lookup":
 		return []any{p.variable(int(args[0].(int64)))}, true
@@ -139,7 +139,7 @@ func recoveredIDs(p *Parser) []int64 {
 }
 
 // recovery runs an operation of the recovered errors, and reports false for any other.
-func recovery(p *Parser, lists recHandles, o *exec.Op, args []any) ([]any, bool) {
+func recovery(p *Parser, lists recHandles, o *code.Op, args []any) ([]any, bool) {
 	switch o.Name {
 	case "rec.mark":
 		return []any{int64(len(p.Recovered))}, true
@@ -221,13 +221,13 @@ func interrupted() {
 		}
 		// The nesting limit is a LimitError too, of its own kind.
 		if le, limit := f.err.(*core.LimitError); limit && le.Kind != core.LimitDepth {
-			panic(exec.Interrupt{Reason: "limit"})
+			panic(code.Interrupt{Reason: "limit"})
 		}
-		panic(exec.Interrupt{Reason: "nesting"})
+		panic(code.Interrupt{Reason: "nesting"})
 	}
 }
 
-func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *rtMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupted()
 	p := m.p
 	if res, ok := m.env.call(p, m.vals, o, args); ok {
@@ -442,7 +442,7 @@ func (m *typedMachine) Values(id int64) any {
 	return id
 }
 
-func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *typedMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupted()
 	p := m.p
 	if res, ok := m.env.call(p.Parser, m.vals, o, args); ok {
@@ -832,7 +832,7 @@ type brokenRT struct {
 	call func(m *rtMachine, args []any) []any
 }
 
-func (b brokenRT) Call(o *exec.Op, args []any) []any {
+func (b brokenRT) Call(o *code.Op, args []any) []any {
 	defer interrupted()
 	if o.Name == b.op {
 		return b.call(b.rtMachine, args)
@@ -882,7 +882,7 @@ type brokenTyped struct {
 	prepare func(m *typedMachine)
 }
 
-func (b brokenTyped) Call(o *exec.Op, args []any) []any {
+func (b brokenTyped) Call(o *code.Op, args []any) []any {
 	if o.Name == "memo.splice" {
 		b.doc.slots = b.p.memoSlots
 		b.prepare(b.typedMachine)

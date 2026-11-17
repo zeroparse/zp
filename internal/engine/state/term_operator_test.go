@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec/ops"
+	"zeroparse.dev/zp/internal/ir/code/exec"
 )
 
 // TestOperatorCodes holds the lookups of the codes of operators to the tables of operators, whose
@@ -14,7 +14,7 @@ func TestOperatorCodes(t *testing.T) {
 		name string
 		list []string
 		code func(string) (int, bool)
-	}{{"binary", ops.BinaryOps, binaryCode}, {"unary", ops.UnaryOps, unaryCode}, {"logical", ops.LogicalOps, logicalCode}} {
+	}{{"binary", exec.BinaryOps, binaryCode}, {"unary", exec.UnaryOps, unaryCode}, {"logical", exec.LogicalOps, logicalCode}} {
 		for i, op := range c.list {
 			if got, ok := c.code(op); !ok || got != i {
 				t.Errorf("%s operator %q: code %d, %v; want %d", c.name, op, got, ok, i)

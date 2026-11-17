@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
@@ -221,7 +222,7 @@ rule inner = [a-z]* #stream
 	}
 	core.Analyze(m)
 	repeats := elaborate.FollowRepeats(m, origin)
-	core.Scans(m)
+	corepass.Scans(m)
 	for _, f := range repeats {
 		f()
 	}

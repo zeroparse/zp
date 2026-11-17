@@ -15,9 +15,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/compose"
 )
 
 // chargeRoots are the methods of the budget control that reserve compute units.
@@ -113,7 +113,7 @@ var goCallee = regexp.MustCompile(`(?:\bp((?:\.[A-Za-z_]\w*)+)|(?:^|[^.\w])([A-Z
 
 // opCallees returns the functions of the library that the Go form of the operation op calls, in the
 // node or the typed library, or ok false when the target has no form of op.
-func opCallees(t *testing.T, pkg *types.Package, op *exec.Op, typed bool) (form string, fns []*types.Func, ok bool) {
+func opCallees(t *testing.T, pkg *types.Package, op *code.Op, typed bool) (form string, fns []*types.Func, ok bool) {
 	t.Helper()
 	tg := goTarget(goSpec{typed: typed})
 	args := make([]string, len(op.Params))
@@ -124,7 +124,7 @@ func opCallees(t *testing.T, pkg *types.Package, op *exec.Op, typed bool) (form 
 	for i := range dst {
 		dst[i] = fmt.Sprintf("r%d", i)
 	}
-	c := &exec.Call{Callee: op.Name}
+	c := &code.Call{Callee: op.Name}
 	func() {
 		defer func() {
 			if recover() != nil {
@@ -230,65 +230,65 @@ func siteName(f *types.Func) string {
 var siteCost = map[string][]string{
 	formSite: nil, // any declared cost
 	// Deferred memoization (seen.first).
-	"Parser.controlledFirstCallPrepare": {"", ops.QPageIndex, ops.QPages, ops.QSeenIndex},
-	"Parser.chargeValues":               {ops.QPageIndex, ops.QPages, ops.QSeenIndex},
+	"Parser.controlledFirstCallPrepare": {"", exec.QPageIndex, exec.QPages, exec.QSeenIndex},
+	"Parser.chargeValues":               {exec.QPageIndex, exec.QPages, exec.QSeenIndex},
 	// The variable environment.
-	"Parser.controlledEnvValues": {ops.QVars},
-	"Parser.variable":            {ops.QEnvReads},
+	"Parser.controlledEnvValues": {exec.QVars},
+	"Parser.variable":            {exec.QEnvReads},
 	// Recovered errors and expectations.
-	"Parser.recSince":      {ops.QSegs},
-	"Parser.recSinceSlow":  {ops.QSegs},
-	"Parser.Expect":        {ops.QMerge},
-	"Parser.MergeExpected": {ops.QMerge},
-	"Parser.Keep":          {ops.QMerge},
+	"Parser.recSince":      {exec.QSegs},
+	"Parser.recSinceSlow":  {exec.QSegs},
+	"Parser.Expect":        {exec.QMerge},
+	"Parser.MergeExpected": {exec.QMerge},
+	"Parser.Keep":          {exec.QMerge},
 	// Left-recursion contexts and growths.
-	"Parser.addDep":                {ops.QDeps, ""}, // "": ctx.enter adds one, the seed it reads
-	"Parser.stored":                {ops.QDeps},
-	"Parser.ctxFindSet":            {ops.QTable},
-	"Parser.ctxStore":              {ops.QTable},
-	"Parser.findJump":              {ops.QTable},
-	"Parser.memoKeyEqual":          {ops.QTable},
-	"Parser.compareTextControlled": {ops.QTable, ops.QValueBytes},
-	"Parser.recordJumps":           {ops.QRun},
-	"Parser.jumpShadowed":          {ops.QRun},
-	"Parser.unionExpected":         {ops.QRun},
+	"Parser.addDep":                {exec.QDeps, ""}, // "": ctx.enter adds one, the seed it reads
+	"Parser.stored":                {exec.QDeps},
+	"Parser.ctxFindSet":            {exec.QTable},
+	"Parser.ctxStore":              {exec.QTable},
+	"Parser.findJump":              {exec.QTable},
+	"Parser.memoKeyEqual":          {exec.QTable},
+	"Parser.compareTextControlled": {exec.QTable, exec.QValueBytes},
+	"Parser.recordJumps":           {exec.QRun},
+	"Parser.jumpShadowed":          {exec.QRun},
+	"Parser.unionExpected":         {exec.QRun},
 	"Parser.growBegin":             {""},
-	"Parser.presentWide":           {ops.QPresent},
-	"Parser.intern":                {ops.QPresent},
+	"Parser.presentWide":           {exec.QPresent},
+	"Parser.intern":                {exec.QPresent},
 	"Parser.growStep":              {""},
 	"Parser.growAdopt":             {""},
 	"Parser.canonicalSeed":         {""},
 	"Parser.nodesEqual":            {""},
 	"Parser.valuesEqual":           {""},
-	"Parser.advance":               {ops.QSteps, ""},
+	"Parser.advance":               {exec.QSteps, ""},
 	// The moves of the values of memo entries after Document edits, and the box that val.box makes:
 	// one unit for each node made.
-	"Parser.NewNode":    {ops.QMoved, ""},
-	"Parser.movable":    {ops.QMoved},
-	"Parser.moveNode":   {ops.QMoved},
-	"Parser.moveShared": {ops.QMoved},
+	"Parser.NewNode":    {exec.QMoved, ""},
+	"Parser.movable":    {exec.QMoved},
+	"Parser.moveNode":   {exec.QMoved},
+	"Parser.moveShared": {exec.QMoved},
 	// The stream window.
-	"Parser.streamDiscard": {ops.QStreamScan},
-	"Parser.streamLineCol": {ops.QStreamScan},
+	"Parser.streamDiscard": {exec.QStreamScan},
+	"Parser.streamLineCol": {exec.QStreamScan},
 
 	// The values of terms: the bytes of a string operation, and the fragments of the text of a failure.
-	"Parser.strAdd":  {ops.QValueBytes},
-	"Parser.unitLen": {ops.QValueBytes},
+	"Parser.strAdd":  {exec.QValueBytes},
+	"Parser.unitLen": {exec.QValueBytes},
 	// The text of a range of a stream, which node.text reads.
-	"Parser.streamText":          {ops.QValueBytes},
-	"Parser.streamCopy":          {ops.QValueBytes},
-	"Parser.detachedText":        {ops.QValueBytes},
-	"Parser.decodeSource":        {ops.QValueBytes},
-	"Parser.actionErrorText":     {ops.QErrParts},
-	"Parser.writeDiagnosticText": {ops.QErrParts},
+	"Parser.streamText":          {exec.QValueBytes},
+	"Parser.streamCopy":          {exec.QValueBytes},
+	"Parser.detachedText":        {exec.QValueBytes},
+	"Parser.decodeSource":        {exec.QValueBytes},
+	"Parser.actionErrorText":     {exec.QErrParts},
+	"Parser.writeDiagnosticText": {exec.QErrParts},
 
 	// The reads of fields.
-	"Parser.valueFieldControlled":  {ops.QFieldsRead},
-	"TParser.valueFieldControlled": {ops.QFieldsRead},
+	"Parser.valueFieldControlled":  {exec.QFieldsRead},
+	"TParser.valueFieldControlled": {exec.QFieldsRead},
 
 	// The capture frames.
-	"Parser.undoCaptures":  {ops.QTrail},
-	"TParser.undoCaptures": {ops.QTrail},
+	"Parser.undoCaptures":  {exec.QTrail},
+	"TParser.undoCaptures": {exec.QTrail},
 }
 
 // chargedElsewhere are the operations whose declared cost comes from the charges of a target other
@@ -317,7 +317,7 @@ func TestEngineEditFormsCallNothing(t *testing.T) {
 		if strings.HasPrefix(name, "run.") {
 			continue
 		}
-		op := core.Build().Op(name)
+		op := compose.Build().Op(name)
 		if op.Cost.Const != 0 || len(op.Cost.Terms) != 0 {
 			t.Errorf("%s declares cost %s", name, op.Cost)
 		}
@@ -325,7 +325,7 @@ func TestEngineEditFormsCallNothing(t *testing.T) {
 		for i := range args {
 			args[i] = fmt.Sprintf("a%d", i)
 		}
-		form := tg.Op(&exec.Call{Callee: name}, args)
+		form := tg.Op(&code.Call{Callee: name}, args)
 		for _, m := range goCallee.FindAllStringSubmatch(form, -1) {
 			if m[1] != "" || m[2] != "int" && m[2] != "int32" && m[2] != "uint32" && m[2] != "len" {
 				t.Errorf("%s calls %s: %s", name, m[0], form)
@@ -356,7 +356,7 @@ var makesValues = map[string]bool{"node.zero": true}
 // transitional or host operation has no reference model to compute its quantities.
 func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 	pkg, callees, charges := libCalls(t)
-	for _, op := range core.Build().Ops {
+	for _, op := range compose.Build().Ops {
 		if !op.Transitional && !op.Host || runsGrammar[op.Name] || makesValues[op.Name] {
 			continue
 		}

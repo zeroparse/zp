@@ -9,8 +9,8 @@ import (
 	goast "go/ast"
 
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/ir/code"
 	irc "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
@@ -86,51 +86,51 @@ func (p *flowPrinter) execCount() {
 
 // otherReads returns the locals that the statements of b other than assignments read, whatever
 // their reachability: the reads that Hooks.FlowVarsMutantUses keeps.
-func otherReads(b *exec.Block) map[string]bool {
+func otherReads(b *code.Block) map[string]bool {
 	out := map[string]bool{}
-	read := func(x exec.Expr) {
+	read := func(x code.Expr) {
 		if x == nil {
 			return
 		}
-		exec.Walk(&exec.Block{Stmts: []exec.Stmt{&exec.Assert{Cond: x}}}, nil, func(e exec.Expr) {
-			if l, ok := e.(*exec.Local); ok {
+		code.Walk(&code.Block{Stmts: []code.Stmt{&code.Assert{Cond: x}}}, nil, func(e code.Expr) {
+			if l, ok := e.(*code.Local); ok {
 				out[l.Name] = true
 			}
 		})
 	}
-	header := func(s *exec.Set) {
+	header := func(s *code.Set) {
 		if s != nil {
 			for _, x := range s.Values {
 				read(x)
 			}
 		}
 	}
-	var block func(*exec.Block)
-	block = func(b *exec.Block) {
+	var block func(*code.Block)
+	block = func(b *code.Block) {
 		if b == nil {
 			return
 		}
 		for _, st := range b.Stmts {
 			switch st := st.(type) {
-			case *exec.Block:
+			case *code.Block:
 				block(st)
-			case *exec.Loop:
+			case *code.Loop:
 				header(st.Init)
 				read(st.Cond)
 				header(st.Post)
 				block(st.Body)
-			case *exec.If:
+			case *code.If:
 				header(st.Init)
 				read(st.Cond)
 				block(st.Then)
 				block(st.Else)
-			case *exec.Let:
+			case *code.Let:
 				read(st.Value)
-			case *exec.Do:
+			case *code.Do:
 				read(st.Call)
-			case *exec.Assert:
+			case *code.Assert:
 				read(st.Cond)
-			case *exec.Return:
+			case *code.Return:
 				for _, x := range st.Values {
 					read(x)
 				}
@@ -149,7 +149,7 @@ func (p *flowPrinter) execTarget() *Target {
 			return map[string]string{lower.Pos: "p.Pos", lower.Cut: "p.Cut"}[name]
 		},
 		Handle: func(name string) string { return name },
-		Op: func(c *exec.Call, args []string) string {
+		Op: func(c *code.Call, args []string) string {
 			switch x := c.Imm.(type) {
 			case flow.Reg:
 				return p.expr(&flow.Read{R: x}) + " = " + args[0]
@@ -160,7 +160,7 @@ func (p *flowPrinter) execTarget() *Target {
 			}
 			panic(fmt.Sprintf("gogen: operation %s without a Flow IR primitive", c.Callee))
 		},
-		Stmt: func(c *exec.Call, _ []string, dst []string, _ bool) (string, bool) {
+		Stmt: func(c *code.Call, _ []string, dst []string, _ bool) (string, bool) {
 			switch x := c.Imm.(type) {
 			case *flow.Peek:
 				return strings.TrimSuffix(p.peekText(dst[0], dst[1], dst[2]), "\n"), true
@@ -178,14 +178,14 @@ func (p *flowPrinter) execTarget() *Target {
 			}
 			return "", false
 		},
-		Negate: func(c *exec.Call, _ []string) (string, bool) {
+		Negate: func(c *code.Call, _ []string) (string, bool) {
 			if x, ok := c.Imm.(flow.Expr); ok {
 				return p.not(x), true
 			}
 			return "", false
 		},
 		Prec: goPrec,
-		Pure: func(c *exec.Call) bool {
+		Pure: func(c *code.Call) bool {
 			switch c.Imm.(type) {
 			case *flow.Str, *flow.MarkPos, *flow.Read:
 				return true

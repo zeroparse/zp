@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/pass"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 )
 
 // Target is how printed code reaches the parser state and the operations of one Go implementation.
@@ -38,12 +38,12 @@ type Target struct {
 	// Op returns the Go expression of a call of an operation, given the call (with its immediate
 	// operand) and its printed arguments. A call of an operation without results is printed as a
 	// statement, which may be any simple statement, or nothing when Op returns "".
-	Op func(c *exec.Call, args []string) string
+	Op func(c *code.Call, args []string) string
 	// Stmt, if not nil, prints a call of an operation as statements of its own, given the call, its
 	// printed arguments and the places it sets: the names of a Let (define is true) or the places of
 	// a Set, with "_" for a discarded result, or none for a call without results. It reports false
 	// to print the call with Op.
-	Stmt func(c *exec.Call, args []string, dst []string, define bool) (string, bool)
+	Stmt func(c *code.Call, args []string, dst []string, define bool) (string, bool)
 	// Reg returns the Go expression of the register name, which must be assignable.
 	Reg func(name string) string
 	// Handle returns the Go type of the handle type name.
@@ -55,16 +55,16 @@ type Target struct {
 	Source string
 	// Negate, if not nil, returns the Go negation of a call of an operation that the operator !
 	// applies to, given its printed arguments, or reports false to print the operator.
-	Negate func(c *exec.Call, args []string) (string, bool)
+	Negate func(c *code.Call, args []string) (string, bool)
 	// Prec, if not nil, returns the precedence of the Go text of a call of an operation: that of its
 	// loosest binary operator outside parentheses, or 6 for an operand. Without it, the text of an
 	// operation is parenthesized wherever it is an operand, unless it is atomic.
 	Prec func(text string) int
 	// Pure, if not nil, reports whether evaluating a call of an operation has no effect and cannot
 	// panic, for leaving out unread assignments (Body).
-	Pure func(c *exec.Call) bool
+	Pure func(c *code.Call) bool
 	// Apply, if not nil, returns the Go expression that applies the callable handle fn, printed, to the
-	// printed arguments (an application, exec.Call.Fn). Without it a handle is a Go function and the
+	// printed arguments (an application, code.Call.Fn). Without it a handle is a Go function and the
 	// application is the call fn(args): a target whose handle is not callable in Go (the engine's term
 	// program) says how it is run, once, for every application.
 	Apply func(fn string, args []string) string
@@ -74,7 +74,7 @@ type Target struct {
 }
 
 // Func returns the Go declaration of the function f of the verified module m, formatted.
-func Func(m *exec.Module, f *exec.Func, t *Target) (string, error) {
+func Func(m *code.Module, f *code.Func, t *Target) (string, error) {
 	p := &execPrinter{m: m, t: t, f: f, labels: map[string]int{}}
 	src := p.fn()
 	out, err := format.Source([]byte(src))
@@ -88,8 +88,8 @@ func Func(m *exec.Module, f *exec.Func, t *Target) (string, error) {
 type BodyResult struct {
 	// Text is the statements, unformatted.
 	Text string
-	// Stores is what pass.DeadStores found about the function's locals.
-	Stores *pass.Stores
+	// Stores is what codepass.DeadStores found about the function's locals.
+	Stores *codepass.Stores
 	// End reports that the end of the body's statements is reachable, before its label.
 	End bool
 	// Exited reports that a reachable jump exits the body's labeled block, whose label the caller
@@ -100,15 +100,15 @@ type BodyResult struct {
 // Body prints the statements of the body of the function f of the verified module m without the
 // function's declaration, its locals or the label of its body, which the caller prints around them,
 // as the function of a rule that the generator wraps. Assignments to the locals cand of f that
-// nothing reads are left out, and dead places print as the blank identifier (pass.DeadStores, with
+// nothing reads are left out, and dead places print as the blank identifier (codepass.DeadStores, with
 // the purity of Target.Pure).
-func Body(m *exec.Module, f *exec.Func, t *Target, cand []string) BodyResult {
-	st := pass.DeadStores(f, cand, func(x exec.Expr) bool { return Pure(x, t.Pure) })
+func Body(m *code.Module, f *code.Func, t *Target, cand []string) BodyResult {
+	st := codepass.DeadStores(f, cand, func(x code.Expr) bool { return Pure(x, t.Pure) })
 	p := &execPrinter{m: m, t: t, f: f, labels: map[string]int{}, stores: st, outer: f.Body.Label}
 	fr := &frame{label: f.Body.Label, goName: f.Body.Label}
 	p.scope = append(p.scope, fr)
 	for i, s := range f.Body.Stmts {
-		if l, ok := s.(*exec.Let); ok {
+		if l, ok := s.(*code.Let); ok {
 			p.let(l, f.Body.Stmts[i+1:])
 		} else {
 			p.stmt(s)
@@ -121,18 +121,18 @@ func Body(m *exec.Module, f *exec.Func, t *Target, cand []string) BodyResult {
 // registers, negations and the binary operators that cannot panic on operands that are pure, and the
 // calls of operations that call reports pure. Comparing for equality can panic on interfaces, and
 // dividing and shifting can panic.
-func Pure(x exec.Expr, call func(*exec.Call) bool) bool {
+func Pure(x code.Expr, call func(*code.Call) bool) bool {
 	switch x := x.(type) {
-	case *exec.Local, *exec.Const, *exec.Reg:
+	case *code.Local, *code.Const, *code.Reg:
 		return true
-	case *exec.Unary:
+	case *code.Unary:
 		return (x.Op == "!" || x.Op == "-" || x.Op == "^") && Pure(x.X, call)
-	case *exec.Binary:
+	case *code.Binary:
 		switch x.Op {
 		case "+", "-", "*", "&", "|", "^", "&^", "&&", "||", "<", ">", "<=", ">=":
 			return Pure(x.X, call) && Pure(x.Y, call)
 		}
-	case *exec.Call:
+	case *code.Call:
 		return x.Fn == nil && call != nil && call(x)
 	}
 	return false
@@ -178,9 +178,9 @@ func VarLines(vs []Var, dead, quiet map[string]bool) string {
 }
 
 type execPrinter struct {
-	m      *exec.Module
+	m      *code.Module
 	t      *Target
-	f      *exec.Func
+	f      *code.Func
 	b      strings.Builder
 	labels map[string]int // the uses of each label name in the function so far
 	// scope is the stack of the enclosing blocks and loops, innermost last.
@@ -188,7 +188,7 @@ type execPrinter struct {
 	// dead reports that the current point is unreachable.
 	dead bool
 	// stores, if not nil, holds the dead locals and the assignments left out (Body).
-	stores *pass.Stores
+	stores *codepass.Stores
 	// outer is the label of the function's body whose label the caller prints (Body), if any.
 	outer string
 }
@@ -219,19 +219,19 @@ func (p *execPrinter) name(n string) string {
 	return n
 }
 
-func (p *execPrinter) typ(t exec.Type) string {
+func (p *execPrinter) typ(t code.Type) string {
 	switch t.Kind {
-	case exec.KBool:
+	case code.KBool:
 		return "bool"
-	case exec.KInt:
+	case code.KInt:
 		return "int"
-	case exec.KI32:
+	case code.KI32:
 		return "int32"
-	case exec.KU32:
+	case code.KU32:
 		return "uint32"
-	case exec.KU64:
+	case code.KU64:
 		return "uint64"
-	case exec.KHandle:
+	case code.KHandle:
 		return p.t.Handle(t.Handle)
 	}
 	panic("gogen: invalid type")
@@ -303,10 +303,10 @@ func (p *execPrinter) fn() string {
 }
 
 // reads reports whether the statements read the local name.
-func reads(ss []exec.Stmt, name string) bool {
+func reads(ss []code.Stmt, name string) bool {
 	found := false
-	exec.Walk(&exec.Block{Stmts: ss}, nil, func(x exec.Expr) {
-		if l, ok := x.(*exec.Local); ok && l.Name == name {
+	code.Walk(&code.Block{Stmts: ss}, nil, func(x code.Expr) {
+		if l, ok := x.(*code.Local); ok && l.Name == name {
 			found = true
 		}
 	})
@@ -315,14 +315,14 @@ func reads(ss []exec.Stmt, name string) bool {
 
 // stmts prints the statements of the block b in place, with b's label after them if a jump
 // named it.
-func (p *execPrinter) stmts(b *exec.Block) {
+func (p *execPrinter) stmts(b *code.Block) {
 	fr := &frame{label: b.Label}
 	if b.Label != "" {
 		fr.goName = p.label(b.Label)
 	}
 	p.scope = append(p.scope, fr)
 	for i, st := range b.Stmts {
-		if l, ok := st.(*exec.Let); ok {
+		if l, ok := st.(*code.Let); ok {
 			p.let(l, b.Stmts[i+1:])
 		} else {
 			p.stmt(st)
@@ -358,9 +358,9 @@ func (p *execPrinter) label(l string) string {
 	return name
 }
 
-func declares(b *exec.Block) bool {
+func declares(b *code.Block) bool {
 	for _, st := range b.Stmts {
-		if _, ok := st.(*exec.Let); ok {
+		if _, ok := st.(*code.Let); ok {
 			return true
 		}
 	}
@@ -368,10 +368,10 @@ func declares(b *exec.Block) bool {
 }
 
 // block prints a nested block: in braces if it declares locals.
-func (p *execPrinter) block(b *exec.Block) {
+func (p *execPrinter) block(b *code.Block) {
 	if declares(b) {
 		// The label of a braced block follows its braces.
-		inner := &exec.Block{Stmts: b.Stmts}
+		inner := &code.Block{Stmts: b.Stmts}
 		fr := &frame{label: b.Label}
 		if b.Label != "" {
 			fr.goName = p.label(b.Label)
@@ -391,7 +391,7 @@ func (p *execPrinter) block(b *exec.Block) {
 
 // body prints a block that is the body of a statement with braces of its own, a loop or a
 // branch: those braces scope its locals.
-func (p *execPrinter) body(b *exec.Block) {
+func (p *execPrinter) body(b *code.Block) {
 	if b.Label != "" {
 		p.block(b)
 		return
@@ -401,7 +401,7 @@ func (p *execPrinter) body(b *exec.Block) {
 
 // let prints the declaration l, which the statements rest follow in its block: a name that
 // nothing reads prints as the blank identifier, as Go requires.
-func (p *execPrinter) let(l *exec.Let, rest []exec.Stmt) {
+func (p *execPrinter) let(l *code.Let, rest []code.Stmt) {
 	names := make([]string, len(l.Names))
 	declared := false
 	var unread []string
@@ -422,7 +422,7 @@ func (p *execPrinter) let(l *exec.Let, rest []exec.Stmt) {
 		}
 		op = " = "
 	}
-	if c, ok := l.Value.(*exec.Call); ok && p.opStmt(c, names, declared) {
+	if c, ok := l.Value.(*code.Call); ok && p.opStmt(c, names, declared) {
 		return
 	}
 	p.w("%s%s%s\n", strings.Join(names, ", "), op, p.expr(l.Value, 0))
@@ -432,10 +432,10 @@ func (p *execPrinter) let(l *exec.Let, rest []exec.Stmt) {
 }
 
 // hasCall reports whether x calls an operation or a function.
-func hasCall(x exec.Expr) bool {
+func hasCall(x code.Expr) bool {
 	found := false
-	exec.Walk(&exec.Block{Stmts: []exec.Stmt{&exec.Assert{Cond: x}}}, nil, func(e exec.Expr) {
-		if _, ok := e.(*exec.Call); ok {
+	code.Walk(&code.Block{Stmts: []code.Stmt{&code.Assert{Cond: x}}}, nil, func(e code.Expr) {
+		if _, ok := e.(*code.Call); ok {
 			found = true
 		}
 	})
@@ -443,10 +443,10 @@ func hasCall(x exec.Expr) bool {
 }
 
 // assigns reports whether the statements assign the local name.
-func assigns(ss []exec.Stmt, name string) bool {
+func assigns(ss []code.Stmt, name string) bool {
 	found := false
-	exec.Walk(&exec.Block{Stmts: ss}, func(st exec.Stmt) {
-		if s, ok := st.(*exec.Set); ok {
+	code.Walk(&code.Block{Stmts: ss}, func(st code.Stmt) {
+		if s, ok := st.(*code.Set); ok {
 			for _, d := range s.Dst {
 				if !d.Reg && d.Name == name {
 					found = true
@@ -457,58 +457,58 @@ func assigns(ss []exec.Stmt, name string) bool {
 	return found
 }
 
-func (p *execPrinter) stmt(st exec.Stmt) {
+func (p *execPrinter) stmt(st code.Stmt) {
 	switch s := st.(type) {
-	case *exec.Block:
+	case *code.Block:
 		p.block(s)
-	case *exec.Loop:
+	case *code.Loop:
 		p.loop(s)
-	case *exec.If:
+	case *code.If:
 		p.ifStmt(s, "if ")
-	case *exec.Protect:
+	case *code.Protect:
 		// The Protect ends the function body, so a deferred call runs its cleanup when the body ends.
 		p.w("defer func() {\n")
 		p.stmts(s.Finally)
 		p.w("}()\n")
 		p.body(s.Body)
-	case *exec.Set:
+	case *code.Set:
 		dead := p.dead
 		if p.stores != nil && p.stores.Removed[s] {
 			// The assignment is left out; its values are still formed.
 			p.dead = true
 		}
-		if c, ok := s.Values[0].(*exec.Call); ok && len(s.Values) == 1 && p.opStmt(c, p.places(s), false) {
+		if c, ok := s.Values[0].(*code.Call); ok && len(s.Values) == 1 && p.opStmt(c, p.places(s), false) {
 			p.dead = dead
 			return
 		}
 		p.w("%s\n", p.set(s))
 		p.dead = dead
-	case *exec.Do:
+	case *code.Do:
 		if p.opStmt(s.Call, nil, false) {
 			return
 		}
 		if x := p.expr(s.Call, 0); x != "" {
 			p.w("%s\n", x)
 		}
-	case *exec.Exit:
+	case *code.Exit:
 		p.jump(s.Label, "")
 		p.dead = true
-	case *exec.Break:
+	case *code.Break:
 		p.jump(s.Label, "break")
 		p.dead = true
-	case *exec.Continue:
+	case *code.Continue:
 		p.jump(s.Label, "continue")
 		p.dead = true
-	case *exec.Return:
+	case *code.Return:
 		vals := make([]string, len(s.Values))
 		for i, x := range s.Values {
 			vals[i] = p.expr(x, 0)
 		}
 		p.w("return %s\n", strings.Join(vals, ", "))
 		p.dead = true
-	case *exec.Assert:
+	case *code.Assert:
 		p.w("if !(%s) {\npanic(%q)\n}\n", p.expr(s.Cond, 0), "assertion failed: "+s.Msg)
-	case *exec.Comment:
+	case *code.Comment:
 		p.w("// %s\n", s.Text)
 	default:
 		panic(fmt.Sprintf("gogen: statement %T", st))
@@ -548,7 +548,7 @@ func (p *execPrinter) jump(l, kw string) {
 	panic("gogen: jump to " + l + " outside it")
 }
 
-func (p *execPrinter) loop(s *exec.Loop) {
+func (p *execPrinter) loop(s *code.Loop) {
 	fr := &frame{label: s.Label, goName: p.label(s.Label), loop: true}
 	p.scope = append(p.scope, fr)
 	mark := p.b.Len()
@@ -587,7 +587,7 @@ func (p *execPrinter) loop(s *exec.Loop) {
 	}
 }
 
-func (p *execPrinter) ifStmt(s *exec.If, kw string) {
+func (p *execPrinter) ifStmt(s *code.If, kw string) {
 	head := ""
 	if s.Init != nil {
 		head = p.set(s.Init) + "; "
@@ -597,7 +597,7 @@ func (p *execPrinter) ifStmt(s *exec.If, kw string) {
 	p.body(s.Then)
 	p.dead = dead
 	if s.Else != nil && len(s.Else.Stmts) == 1 && s.Else.Label == "" {
-		if e, ok := s.Else.Stmts[0].(*exec.If); ok {
+		if e, ok := s.Else.Stmts[0].(*code.If); ok {
 			p.ifStmt(e, "} else if ")
 			return
 		}
@@ -612,7 +612,7 @@ func (p *execPrinter) ifStmt(s *exec.If, kw string) {
 
 // opStmt prints the call c of an operation with Target.Stmt, if it takes the call, and reports
 // whether it did.
-func (p *execPrinter) opStmt(c *exec.Call, dst []string, define bool) bool {
+func (p *execPrinter) opStmt(c *code.Call, dst []string, define bool) bool {
 	if p.t.Stmt == nil || p.m.Op(c.Callee) == nil {
 		return false
 	}
@@ -624,7 +624,7 @@ func (p *execPrinter) opStmt(c *exec.Call, dst []string, define bool) bool {
 }
 
 // places returns the printed places of the Set s.
-func (p *execPrinter) places(s *exec.Set) []string {
+func (p *execPrinter) places(s *code.Set) []string {
 	dst := make([]string, len(s.Dst))
 	for i, d := range s.Dst {
 		switch {
@@ -641,17 +641,17 @@ func (p *execPrinter) places(s *exec.Set) []string {
 	return dst
 }
 
-func (p *execPrinter) set(s *exec.Set) string {
+func (p *execPrinter) set(s *code.Set) string {
 	dst := p.places(s)
 	vals := make([]string, len(s.Values))
 	for i, x := range s.Values {
 		vals[i] = p.expr(x, 0)
 	}
 	if len(dst) == 1 && len(vals) == 1 {
-		if b, ok := s.Values[0].(*exec.Binary); ok {
+		if b, ok := s.Values[0].(*code.Binary); ok {
 			// x = x + 1 prints as x++, x = x - 1 as x--.
-			if l, ok := b.X.(*exec.Local); ok && !s.Dst[0].Reg && l.Name == s.Dst[0].Name {
-				if c, ok := b.Y.(*exec.Const); ok && fmt.Sprint(c.Value) == "1" && (b.Op == "+" || b.Op == "-") {
+			if l, ok := b.X.(*code.Local); ok && !s.Dst[0].Reg && l.Name == s.Dst[0].Name {
+				if c, ok := b.Y.(*code.Const); ok && fmt.Sprint(c.Value) == "1" && (b.Op == "+" || b.Op == "-") {
 					return dst[0] + b.Op + b.Op
 				}
 			}
@@ -671,21 +671,21 @@ var prec = map[string]int{
 // expr returns the Go expression of x where an operator of precedence outer encloses it. An
 // operator or a conversion of constants prints as its value: Go evaluates constant expressions
 // exactly and rejects one that overflows, where Exec IR wraps.
-func (p *execPrinter) expr(x exec.Expr, outer int) string {
-	if c, ok := exec.Fold(x); ok {
+func (p *execPrinter) expr(x code.Expr, outer int) string {
+	if c, ok := code.Fold(x); ok {
 		x = c
 	}
 	switch x := x.(type) {
-	case *exec.Const:
+	case *code.Const:
 		return constant(x)
-	case *exec.Local:
+	case *code.Local:
 		return x.Name
-	case *exec.Reg:
+	case *code.Reg:
 		return p.t.Reg(x.Name)
-	case *exec.Feature:
+	case *code.Feature:
 		panic("gogen: feature " + x.Name + " in a printed function; specialize it first")
-	case *exec.Unary:
-		if c, ok := x.X.(*exec.Call); ok && x.Op == "!" && p.t.Negate != nil && p.m.Op(c.Callee) != nil {
+	case *code.Unary:
+		if c, ok := x.X.(*code.Call); ok && x.Op == "!" && p.t.Negate != nil && p.m.Op(c.Callee) != nil {
 			if s, ok := p.t.Negate(c, p.args(c)); ok {
 				return p.paren(s, outer)
 			}
@@ -695,10 +695,10 @@ func (p *execPrinter) expr(x exec.Expr, outer int) string {
 			s = "(" + s + ")"
 		}
 		return x.Op + s
-	case *exec.Binary:
+	case *code.Binary:
 		n := prec[x.Op]
 		right := n + 1
-		if y, ok := x.Y.(*exec.Binary); ok && y.Op == x.Op && (x.Op == "||" || x.Op == "&&") {
+		if y, ok := x.Y.(*code.Binary); ok && y.Op == x.Op && (x.Op == "||" || x.Op == "&&") {
 			right = n // || and && are associative
 		}
 		s := p.expr(x.X, n) + " " + x.Op + " " + p.expr(x.Y, right)
@@ -706,9 +706,9 @@ func (p *execPrinter) expr(x exec.Expr, outer int) string {
 			return "(" + s + ")"
 		}
 		return s
-	case *exec.Convert:
+	case *code.Convert:
 		return p.typ(x.To) + "(" + p.expr(x.X, 0) + ")"
-	case *exec.Call:
+	case *code.Call:
 		args := p.args(x)
 		if x.Fn != nil {
 			fn := p.expr(x.Fn, 6)
@@ -722,7 +722,7 @@ func (p *execPrinter) expr(x exec.Expr, outer int) string {
 		}
 		if p.t.Name != nil {
 			for i, a := range x.Args {
-				if c, ok := a.(*exec.Const); ok && c.Type.Kind == exec.KInt {
+				if c, ok := a.(*code.Const); ok && c.Type.Kind == code.KInt {
 					if n, ok := p.t.Name(x.Callee, i, c.Value.(int64)); ok {
 						args[i] = n
 					}
@@ -750,13 +750,13 @@ func (p *execPrinter) paren(s string, outer int) string {
 		}
 		return s
 	}
-	if !exec.Atomic(s) {
+	if !code.Atomic(s) {
 		return "(" + s + ")"
 	}
 	return s
 }
 
-func (p *execPrinter) args(c *exec.Call) []string {
+func (p *execPrinter) args(c *code.Call) []string {
 	args := make([]string, len(c.Args))
 	for i, a := range c.Args {
 		args[i] = p.expr(a, 0)
@@ -764,19 +764,19 @@ func (p *execPrinter) args(c *exec.Call) []string {
 	return args
 }
 
-func constant(c *exec.Const) string {
+func constant(c *code.Const) string {
 	switch c.Type.Kind {
-	case exec.KBool:
+	case code.KBool:
 		return strconv.FormatBool(c.Value.(bool))
-	case exec.KInt:
+	case code.KInt:
 		return strconv.FormatInt(c.Value.(int64), 10)
-	case exec.KI32:
+	case code.KI32:
 		return fmt.Sprintf("int32(%d)", c.Value)
-	case exec.KU32:
+	case code.KU32:
 		return fmt.Sprintf("uint32(%d)", c.Value)
-	case exec.KU64:
+	case code.KU64:
 		return fmt.Sprintf("uint64(%d)", c.Value)
-	case exec.KHandle:
+	case code.KHandle:
 		return "nil"
 	}
 	panic("gogen: constant of an invalid type")

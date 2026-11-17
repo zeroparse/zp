@@ -143,7 +143,7 @@ rule item = "ab" #recover(skip=[^a]+)`)
 }
 
 // TestStreamCommitChargesItsDeclaredWork measures the operations whose work depends on more than the
-// size of their argument, at the bounds that they declare in internal/ir/exec/ops.
+// size of their argument, at the bounds that they declare in internal/ir/code/exec.
 func TestStreamCommitChargesItsDeclaredWork(t *testing.T) {
 	t.Parallel()
 	budget := func() *state.BudgetControl { return state.NewBudgetControl(nil, core.Limits{Compute: 1 << 20}) }

@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 )
 
 // The member table (conform.MemberCases) on the composition member of the node and the typed library

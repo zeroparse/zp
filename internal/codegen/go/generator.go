@@ -17,11 +17,12 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
-	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 	"zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
 
 // defaultPackageName returns the package name of the generated code for a module path: its last
@@ -86,15 +87,15 @@ type Hooks struct {
 	// functions printed from Exec IR (execRoute) it leaves undeclared the locals that no statement
 	// other than an assignment reads.
 	FlowVarsMutantUses bool
-	// CoreRun runs the Core passes in place of core.Run (opt.Driver.CoreRun), so that a test
+	// CoreRun runs the Core passes in place of corepass.Run (opt.Driver.CoreRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks the module added.
-	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
+	CoreRun func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error)
 	// FlowRun runs the Flow passes in place of flow.Run (opt.Driver.FlowRun), as CoreRun does for the
 	// Core passes.
 	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
-	// ExecRun runs the Exec passes in place of exec.RunPasses (opt.Driver.ExecRun), as CoreRun does
+	// ExecRun runs the Exec passes in place of code.RunPasses (opt.Driver.ExecRun), as CoreRun does
 	// for the Core passes.
-	ExecRun func(table string, m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error)
+	ExecRun func(table string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error)
 }
 
 // GenerateParser generates the files of Generate (other than for LibOnly). It generates twice: the

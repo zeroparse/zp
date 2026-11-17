@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // Law names a normalization rule of the cost view.
@@ -47,7 +47,7 @@ type Options struct {
 type Source struct {
 	Module *core.Module
 	Origin map[core.Node]grammar.Expr
-	Facts  *facts.Facts
+	Facts  *corepass.Facts
 }
 
 // View is the cost view of a module. Its rules are those of the module, in the same order and

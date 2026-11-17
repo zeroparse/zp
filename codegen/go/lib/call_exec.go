@@ -5,7 +5,7 @@ package libgo
 import "zeroparse.dev/zp/core"
 
 // pendingEditLimit is the number of edits after which a Document drops its memo until the next parse
-// (ops.PendingEditLimit): the engine treats a memo entry that lags behind by more edits as absent, and
+// (exec.PendingEditLimit): the engine treats a memo entry that lags behind by more edits as absent, and
 // a generated parser applies each edit to the memo when it is made, which a memo that many edits old
 // no longer pays for.
 const pendingEditLimit = 128
@@ -16,7 +16,7 @@ const pendingEditLimit = 128
 // parses first hands a Document parse to its tracked path (typedDocument for typed values), and for
 // nodes an observed parse too (tracked).
 //
-// Printed from Exec IR function call of internal/ir/exec/core, specialized for document, observe, budget.
+// Printed from Exec IR function call of internal/ir/code/exec/compose, specialized for document, observe, budget.
 func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 	var v *core.Node
 	var ok bool
@@ -116,7 +116,7 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 // variable environments do work that the memo does not share. A parse that memoizes on the first call, a
 // rule without a seen index and an eager rule are memoized at once.
 //
-// Printed from Exec IR function firstCall of internal/ir/exec/core.
+// Printed from Exec IR function firstCall of internal/ir/code/exec/compose.
 func (p *Parser) FirstCall(r *Rule) bool {
 	s := r.Seen
 	if !(p.deferMemo && s >= 0) {
@@ -134,7 +134,7 @@ func (p *Parser) FirstCall(r *Rule) bool {
 // variable environments do work that the memo does not share. A parse that memoizes on the first call, a
 // rule without a seen index and an eager rule are memoized at once.
 //
-// Printed from Exec IR function firstCall of internal/ir/exec/core.
+// Printed from Exec IR function firstCall of internal/ir/code/exec/compose.
 func (p *TParser) firstCall(r *TRule) bool {
 	s := r.Seen
 	if !(p.deferMemo && s >= 0) {
@@ -148,7 +148,7 @@ func (p *TParser) firstCall(r *TRule) bool {
 // through the context, which may give them without evaluating the body. Outside a context, the form
 // specialized for missing also drops the tokens that each adopted step inserted.
 //
-// Printed from Exec IR function grow of internal/ir/exec/core.
+// Printed from Exec IR function grow of internal/ir/code/exec/compose.
 func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 	g := p.growBegin(r, min)
 	if g.ctx {
@@ -181,7 +181,7 @@ func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 // examined input: the read that failed at pos recorded what it examined. It is for parser code and not a
 // stable API.
 //
-// Printed from Exec IR function expect of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function expect of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) Expect(pos int, id ExpID) {
 	var i int
 	if p.Silent > 0 || pos < p.farthest {
@@ -215,7 +215,7 @@ func (p *Parser) Expect(pos int, id ExpID) {
 // helpers, which leave out the budget charges and the Document's record of the examined input. It is for generated
 // parsers and not a stable API.
 //
-// Printed from Exec IR function expectOrdinary of internal/ir/exec/core.
+// Printed from Exec IR function expectOrdinary of internal/ir/code/exec/compose.
 func (p *Parser) ExpectOrdinary(pos int, id ExpID) {
 	if p.Silent > 0 || pos < p.farthest {
 		return
@@ -226,7 +226,7 @@ func (p *Parser) ExpectOrdinary(pos int, id ExpID) {
 // expectOrdinarySlow records the expectation of expectOrdinary at or beyond the farthest position. It is
 // separate so that the guard of expectOrdinary inlines into the generated code.
 //
-// Printed from Exec IR function expectSlow of internal/ir/exec/core.
+// Printed from Exec IR function expectSlow of internal/ir/code/exec/compose.
 //
 //go:noinline
 func (p *Parser) expectOrdinarySlow(pos int, id ExpID) {
@@ -258,7 +258,7 @@ func (p *Parser) expectOrdinarySlow(pos int, id ExpID) {
 // record. s may alias the stack above the current record: writes only happen below the read position. It
 // is for parser code and not a stable API.
 //
-// Printed from Exec IR function mergeExpected of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function mergeExpected of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) MergeExpected(far int, s []ExpID) {
 	var i int
 	if p.Expectations {
@@ -288,7 +288,7 @@ func (p *Parser) MergeExpected(far int, s []ExpID) {
 // entries in the same order, and otherwise a copy, which becomes the set kept last. It is for parser
 // code and not a stable API.
 //
-// Printed from Exec IR function keep of internal/ir/exec/core, specialized for budget.
+// Printed from Exec IR function keep of internal/ir/code/exec/compose, specialized for budget.
 func (p *Parser) Keep(s []ExpID) []ExpID {
 	var i int
 	n := len(s)
@@ -325,7 +325,7 @@ copy:
 // parses first hands a Document parse to its tracked path (typedDocument for typed values), and for
 // nodes an observed parse too (tracked).
 //
-// Printed from Exec IR function call of internal/ir/exec/core, specialized for document, observe, typed, budget.
+// Printed from Exec IR function call of internal/ir/code/exec/compose, specialized for document, observe, typed, budget.
 func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	var v any
 	var ok bool
@@ -434,7 +434,7 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 // CallMemo is the memoized part of a rule call, for the rule r at binding level 0 invoked by inv:
 // the rule is called at the position again, or its memoization is no longer deferred.
 //
-// Printed from Exec IR function callMemo of internal/ir/exec/core, specialized for document, observe, typed.
+// Printed from Exec IR function callMemo of internal/ir/code/exec/compose, specialized for document, observe, typed.
 func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool) {
 	var v any
 	var ok bool
@@ -531,7 +531,7 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 // through the context, which may give them without evaluating the body. Outside a context, the form
 // specialized for missing also drops the tokens that each adopted step inserted.
 //
-// Printed from Exec IR function grow of internal/ir/exec/core, specialized for typed.
+// Printed from Exec IR function grow of internal/ir/code/exec/compose, specialized for typed.
 func (p *TParser) grow(r *TRule, min int) (any, bool) {
 	g := p.growBegin(r.Rule, min)
 	if g.ctx {
@@ -563,7 +563,7 @@ func (p *TParser) grow(r *TRule, min int) (any, bool) {
 // far it examined the input, around the call without observation: the typed call, which observes nothing
 // itself, or the node call of the tracked path without observation.
 //
-// Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe.
+// Printed from Exec IR function observed of internal/ir/code/exec/compose, specialized for document, observe.
 func (p *Parser) callObserved(r *Rule, min int) (*core.Node, bool) {
 	var v *core.Node
 	var ok bool
@@ -578,7 +578,7 @@ func (p *Parser) callObserved(r *Rule, min int) (*core.Node, bool) {
 // invokePlainObserved is the plain invocation of rule r at binding level min in an observed parse: it
 // reports the invocation to the observation as observed reports a call.
 //
-// Printed from Exec IR function observedPlain of internal/ir/exec/core, specialized for document, observe.
+// Printed from Exec IR function observedPlain of internal/ir/code/exec/compose, specialized for document, observe.
 func (p *Parser) invokePlainObserved(r *Rule, min int) (*core.Node, bool) {
 	var v *core.Node
 	var ok bool
@@ -594,7 +594,7 @@ func (p *Parser) invokePlainObserved(r *Rule, min int) (*core.Node, bool) {
 // far it examined the input, around the call without observation: the typed call, which observes nothing
 // itself, or the node call of the tracked path without observation.
 //
-// Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe, typed.
+// Printed from Exec IR function observed of internal/ir/code/exec/compose, specialized for document, observe, typed.
 func (p *TParser) callObserved(r *TRule, min int) (any, bool) {
 	var v any
 	var ok bool
@@ -609,7 +609,7 @@ func (p *TParser) callObserved(r *TRule, min int) (any, bool) {
 // invokePlainObserved is the plain invocation of rule r at binding level min in an observed parse: it
 // reports the invocation to the observation as observed reports a call.
 //
-// Printed from Exec IR function observedPlain of internal/ir/exec/core, specialized for document, observe.
+// Printed from Exec IR function observedPlain of internal/ir/code/exec/compose, specialized for document, observe.
 func (p *TParser) invokePlainObserved(r *TRule, min int) (any, bool) {
 	var v any
 	var ok bool
@@ -626,7 +626,7 @@ func (p *TParser) invokePlainObserved(r *TRule, min int) (any, bool) {
 // the call ends, an interruption included, so that a parse after it starts from the state it would
 // start from otherwise.
 //
-// Printed from Exec IR function document of internal/ir/exec/core, specialized for document, budget.
+// Printed from Exec IR function document of internal/ir/code/exec/compose, specialized for document, budget.
 func (p *Parser) callDocument(r *Rule, min int) (*core.Node, bool) {
 	oldExamined, oldLow := p.docExamined, p.docLow
 	p.docExamined, p.docLow = p.Pos, p.Pos
@@ -648,7 +648,7 @@ func (p *Parser) callDocument(r *Rule, min int) (*core.Node, bool) {
 // rule's memoization is deferred: its expectations need no isolation, and a failure restores the
 // position and the recovered errors.
 //
-// Printed from Exec IR function unmemoized of internal/ir/exec/core.
+// Printed from Exec IR function unmemoized of internal/ir/code/exec/compose.
 func (p *Parser) callUnmemoized(r *Rule, min int) (*core.Node, bool) {
 	var v *core.Node
 	var ok bool
@@ -670,7 +670,7 @@ func (p *Parser) callUnmemoized(r *Rule, min int) (*core.Node, bool) {
 // memoization is no longer deferred, with the observation of a reuse and, in a Document parse, the
 // bookkeeping of how far each call examined the input.
 //
-// Printed from Exec IR function memoized of internal/ir/exec/core, specialized for document, observe, budget.
+// Printed from Exec IR function memoized of internal/ir/code/exec/compose, specialized for document, observe, budget.
 func (p *Parser) callMemo(r *Rule, min int) (*core.Node, bool) {
 	var v *core.Node
 	var ok bool
@@ -820,7 +820,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*core.Node, bool) {
 // parse, and otherwise the unmemoized call while the rule's memoization is deferred and the memoized
 // call after.
 //
-// Printed from Exec IR function body of internal/ir/exec/core, specialized for document, budget.
+// Printed from Exec IR function body of internal/ir/code/exec/compose, specialized for document, budget.
 func (p *Parser) callBody(r *Rule, min int) (*core.Node, bool) {
 	p.Spend()
 	if p.Document != nil {
@@ -838,7 +838,7 @@ func (p *Parser) callBody(r *Rule, min int) (*core.Node, bool) {
 // callTracked is a rule call in an observed or Document parse: the observed call in an observed parse,
 // and otherwise the call without observation.
 //
-// Printed from Exec IR function tracked of internal/ir/exec/core, specialized for document, observe.
+// Printed from Exec IR function tracked of internal/ir/code/exec/compose, specialized for document, observe.
 func (p *Parser) callTracked(r *Rule, min int) (*core.Node, bool) {
 	if p.Observation != nil {
 		v, ok := p.callObserved(r, min)
@@ -853,7 +853,7 @@ func (p *Parser) callTracked(r *Rule, min int) (*core.Node, bool) {
 // memoize, and otherwise through the memo, with the Document record of each entry kept beside it. As
 // in document, the enclosing call's examined input is restored however the call ends.
 //
-// Printed from Exec IR function typedDocument of internal/ir/exec/core, specialized for document, observe, typed, budget.
+// Printed from Exec IR function typedDocument of internal/ir/code/exec/compose, specialized for document, observe, typed, budget.
 func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)) (any, bool) {
 	var v any
 	var ok bool
@@ -1012,7 +1012,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 // Predicate applies the term of a predicate to the context that term.ctx makes. It fails on the boolean
 // false and on a term that fails, and holds on every other value. The value of a term is never a function.
 //
-// Printed from Exec IR function predicate of internal/ir/exec/core.
+// Printed from Exec IR function predicate of internal/ir/code/exec/compose.
 func (p *Parser) Predicate(t func(*ActCtx) (any, any)) bool {
 	created := len(p.created)
 	kids := len(p.KidStack)
@@ -1034,7 +1034,7 @@ func (p *Parser) Predicate(t func(*ActCtx) (any, any)) bool {
 // binding and binds nothing. The compiler has checked that the value fits the variable. The value of a term is never a
 // function.
 //
-// Printed from Exec IR function bind of internal/ir/exec/core.
+// Printed from Exec IR function bind of internal/ir/code/exec/compose.
 func (p *Parser) Bind(slot int, t func(*ActCtx) (any, any)) bool {
 	created := len(p.created)
 	kids := len(p.KidStack)
@@ -1056,7 +1056,7 @@ func (p *Parser) Bind(slot int, t func(*ActCtx) (any, any)) bool {
 // Predicate applies the term of a predicate to the context that term.ctx makes. It fails on the boolean
 // false and on a term that fails, and holds on every other value. The value of a term is never a function.
 //
-// Printed from Exec IR function predicate of internal/ir/exec/core.
+// Printed from Exec IR function predicate of internal/ir/code/exec/compose.
 func (p *TParser) Predicate(t func(*TActCtx) (any, any)) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
@@ -1078,7 +1078,7 @@ func (p *TParser) Predicate(t func(*TActCtx) (any, any)) bool {
 // binding and binds nothing. The compiler has checked that the value fits the variable. The value of a term is never a
 // function.
 //
-// Printed from Exec IR function bind of internal/ir/exec/core.
+// Printed from Exec IR function bind of internal/ir/code/exec/compose.
 func (p *TParser) Bind(slot int, t func(*TActCtx) (any, any)) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)

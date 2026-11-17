@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 // TestLoweredTermHasTheSignatureOfTerm holds the definition of a lowered term to the callable type Term, which
@@ -24,20 +24,20 @@ func TestLoweredTermHasTheSignatureOfTerm(t *testing.T) {
 	if len(l.Func.Params) != 1 || l.Func.Params[0].Name != CtxParam {
 		t.Fatalf("params = %v, want the context %s", l.Func.Params, CtxParam)
 	}
-	act, datum, fail := exec.THandle(ops.Act), exec.THandle(ops.Datum), exec.THandle(ops.Fail)
+	act, datum, fail := code.THandle(exec.Act), code.THandle(exec.Datum), code.THandle(exec.Fail)
 	for _, c := range []struct {
 		name    string
-		params  []exec.Param
-		results []exec.Type
+		params  []code.Param
+		results []code.Type
 	}{
-		{"no context", nil, []exec.Type{datum, fail}},
-		{"a second parameter", []exec.Param{exec.P("c", act), exec.P("x", datum)}, []exec.Type{datum, fail}},
-		{"a parameter of another type", []exec.Param{exec.P("c", datum)}, []exec.Type{datum, fail}},
-		{"no failure", []exec.Param{exec.P("c", act)}, []exec.Type{datum}},
-		{"a third result", []exec.Param{exec.P("c", act)}, []exec.Type{datum, fail, fail}},
-		{"results in the other order", []exec.Param{exec.P("c", act)}, []exec.Type{fail, datum}},
+		{"no context", nil, []code.Type{datum, fail}},
+		{"a second parameter", []code.Param{code.P("c", act), code.P("x", datum)}, []code.Type{datum, fail}},
+		{"a parameter of another type", []code.Param{code.P("c", datum)}, []code.Type{datum, fail}},
+		{"no failure", []code.Param{code.P("c", act)}, []code.Type{datum}},
+		{"a third result", []code.Param{code.P("c", act)}, []code.Type{datum, fail, fail}},
+		{"results in the other order", []code.Param{code.P("c", act)}, []code.Type{fail, datum}},
 	} {
-		f := &exec.Func{Name: "term", Params: c.params, Results: c.results}
+		f := &code.Func{Name: "term", Params: c.params, Results: c.results}
 		err := checkTermSignature(l.Module, f)
 		if err == nil || !strings.Contains(err.Error(), "signature of Term") {
 			t.Errorf("%s: err = %v, want the signature of Term to be reported", c.name, err)
@@ -53,16 +53,16 @@ func TestTermChecksItsSignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := m.HandleType(ops.Term)
+	h := m.HandleType(exec.Term)
 	saved := h.Callable
 	defer func() { h.Callable = saved }()
 	for _, c := range []struct {
 		name string
-		sig  exec.Signature
+		sig  code.Signature
 	}{
-		{"a second parameter", exec.Signature{Params: append(slices.Clone(saved.Params), saved.Params[0]), Results: saved.Results}},
-		{"one result", exec.Signature{Params: saved.Params, Results: saved.Results[:1]}},
-		{"no parameter", exec.Signature{Results: saved.Results}},
+		{"a second parameter", code.Signature{Params: append(slices.Clone(saved.Params), saved.Params[0]), Results: saved.Results}},
+		{"one result", code.Signature{Params: saved.Params, Results: saved.Results[:1]}},
+		{"no parameter", code.Signature{Results: saved.Results}},
 	} {
 		h.Callable = &c.sig
 		_, err := Term(&core.Const{Value: 1}, TermOptions{})

@@ -5,7 +5,7 @@ package state
 import "zeroparse.dev/zp/core"
 
 // confRuleMemo runs rule.memo for the conformance suite.
-// Printed from Exec IR function confRuleMemo of internal/ir/exec/core.
+// Printed from Exec IR function confRuleMemo of internal/ir/code/exec/compose.
 func (p *Parser) confRuleMemo(r *Rule) bool {
 	var res bool
 	res = p.memoized(r)
@@ -13,7 +13,7 @@ func (p *Parser) confRuleMemo(r *Rule) bool {
 }
 
 // confRuleLeader runs rule.leader for the conformance suite.
-// Printed from Exec IR function confRuleLeader of internal/ir/exec/core.
+// Printed from Exec IR function confRuleLeader of internal/ir/code/exec/compose.
 func (p *Parser) confRuleLeader(r *Rule) bool {
 	var res bool
 	res = r.Leader
@@ -21,7 +21,7 @@ func (p *Parser) confRuleLeader(r *Rule) bool {
 }
 
 // confRulePlain runs rule.plain for the conformance suite.
-// Printed from Exec IR function confRulePlain of internal/ir/exec/core.
+// Printed from Exec IR function confRulePlain of internal/ir/code/exec/compose.
 func (p *Parser) confRulePlain(r *Rule) bool {
 	var res bool
 	res = len(r.Scope.Names) == 0
@@ -29,7 +29,7 @@ func (p *Parser) confRulePlain(r *Rule) bool {
 }
 
 // confRuleDocOnlyMemo runs rule.docOnlyMemo for the conformance suite.
-// Printed from Exec IR function confRuleDocOnlyMemo of internal/ir/exec/core.
+// Printed from Exec IR function confRuleDocOnlyMemo of internal/ir/code/exec/compose.
 func (p *Parser) confRuleDocOnlyMemo(r *Rule) bool {
 	var res bool
 	res = p.docOnlyMemo(r)
@@ -37,7 +37,7 @@ func (p *Parser) confRuleDocOnlyMemo(r *Rule) bool {
 }
 
 // confRuleDocPlain runs rule.docPlain for the conformance suite.
-// Printed from Exec IR function confRuleDocPlain of internal/ir/exec/core.
+// Printed from Exec IR function confRuleDocPlain of internal/ir/code/exec/compose.
 func (p *Parser) confRuleDocPlain(r *Rule) bool {
 	var res bool
 	res = r.Plain
@@ -45,7 +45,7 @@ func (p *Parser) confRuleDocPlain(r *Rule) bool {
 }
 
 // confRulePositional runs rule.positional for the conformance suite.
-// Printed from Exec IR function confRulePositional of internal/ir/exec/core.
+// Printed from Exec IR function confRulePositional of internal/ir/code/exec/compose.
 func (p *Parser) confRulePositional(r *Rule) bool {
 	var res bool
 	res = r.Positional
@@ -53,7 +53,7 @@ func (p *Parser) confRulePositional(r *Rule) bool {
 }
 
 // confRuleId runs rule.id for the conformance suite.
-// Printed from Exec IR function confRuleId of internal/ir/exec/core.
+// Printed from Exec IR function confRuleId of internal/ir/code/exec/compose.
 func (p *Parser) confRuleId(r *Rule) int {
 	var res int
 	res = r.ID
@@ -61,7 +61,7 @@ func (p *Parser) confRuleId(r *Rule) int {
 }
 
 // confRuleSeen runs rule.seen for the conformance suite.
-// Printed from Exec IR function confRuleSeen of internal/ir/exec/core.
+// Printed from Exec IR function confRuleSeen of internal/ir/code/exec/compose.
 func (p *Parser) confRuleSeen(r *Rule) int {
 	var res int
 	res = r.Seen
@@ -69,21 +69,21 @@ func (p *Parser) confRuleSeen(r *Rule) int {
 }
 
 // confRuleInvoke runs rule.invoke for the conformance suite.
-// Printed from Exec IR function confRuleInvoke of internal/ir/exec/core.
+// Printed from Exec IR function confRuleInvoke of internal/ir/code/exec/compose.
 func (p *Parser) confRuleInvoke(r *Rule, min int) (*core.Node, bool) {
 	r0, r1 := p.invoke(r, min)
 	return r0, r1
 }
 
 // confRuleInvokePlain runs rule.invokePlain for the conformance suite.
-// Printed from Exec IR function confRuleInvokePlain of internal/ir/exec/core.
+// Printed from Exec IR function confRuleInvokePlain of internal/ir/code/exec/compose.
 func (p *Parser) confRuleInvokePlain(r *Rule, min int) (*core.Node, bool) {
 	r0, r1 := p.InvokePlain(r, min)
 	return r0, r1
 }
 
 // confSeenDefers runs seen.defers for the conformance suite.
-// Printed from Exec IR function confSeenDefers of internal/ir/exec/core.
+// Printed from Exec IR function confSeenDefers of internal/ir/code/exec/compose.
 func (p *Parser) confSeenDefers() bool {
 	var r bool
 	r = p.DeferMemo
@@ -91,7 +91,7 @@ func (p *Parser) confSeenDefers() bool {
 }
 
 // confSeenFirst runs seen.first for the conformance suite.
-// Printed from Exec IR function confSeenFirst of internal/ir/exec/core.
+// Printed from Exec IR function confSeenFirst of internal/ir/code/exec/compose.
 func (p *Parser) confSeenFirst(rule int, pos int) bool {
 	var r bool
 	r = p.memoFirstCall(pos, rule)

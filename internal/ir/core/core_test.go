@@ -54,7 +54,7 @@ func module(rules ...*Rule) *Module {
 	intern := func(c *Class) {
 		if !seen[c] {
 			seen[c] = true
-			c.Exp = exp(classString(c))
+			c.Exp = exp(ClassString(c))
 			m.Classes = append(m.Classes, c)
 		}
 	}
@@ -291,13 +291,13 @@ func TestAnalyzeFirst(t *testing.T) {
 		{6, "[0-9]", "[0-9]"},
 	} {
 		f := m.Rules[c.rule].Body.Attrs().First
-		if f == nil || firstString(m, f) != c.first || expString(m, f.Exp) != c.exp {
+		if f == nil || FirstString(m, f) != c.first || expString(m, f.Exp) != c.exp {
 			t.Errorf("rule %s: first %+v, want %s recording %s", m.Rules[c.rule].Name, f, c.first, c.exp)
 		}
 	}
 	for _, id := range []int{3, 4, 5} {
 		if f := m.Rules[id].Body.Attrs().First; f != nil {
-			t.Errorf("rule %s: first %s, want none (behind a leader)", m.Rules[id].Name, firstString(m, f))
+			t.Errorf("rule %s: first %s, want none (behind a leader)", m.Rules[id].Name, FirstString(m, f))
 		}
 	}
 }
@@ -311,7 +311,7 @@ func TestAnalyzeFirstThroughLaterItems(t *testing.T) {
 		rule(0, "p", seq(lit("if"), &Call{Rule: 1})),
 		rule(1, "q", choice(inner, lit("{"))),
 	))
-	if f := inner.Attrs().First; f == nil || firstString(m, f) != "'i'+1" {
+	if f := inner.Attrs().First; f == nil || FirstString(m, f) != "'i'+1" {
 		t.Errorf("call p in q: first %+v, want 'i'+1", f)
 	}
 }

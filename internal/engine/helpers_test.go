@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
@@ -328,7 +329,7 @@ func closureExprCore(t *testing.T, prog *compile.Program, e grammar.Expr) (*ir.M
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ir.Run(m, &ir.Env{}, ir.RunOptions{}); err != nil {
+	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	var found ir.Node

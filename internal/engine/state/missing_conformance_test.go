@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The engine's missing-token mode under conformance: every operation of the mode runs through its
@@ -61,7 +61,7 @@ func (m *missingMachine) Observe(component string) []string {
 	return out
 }
 
-func (m *missingMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *missingMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupt()
 	p := m.p
 	switch o.Name {
@@ -258,7 +258,7 @@ type brokenMissing struct {
 	call func(m *missingMachine, args []any) []any
 }
 
-func (b brokenMissing) Call(o *exec.Op, args []any) []any {
+func (b brokenMissing) Call(o *code.Op, args []any) []any {
 	if o.Name == b.op {
 		defer interrupt()
 		return b.call(b.missingMachine, args)

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 )
 
 // The push table (conform.PushCases) on the compositions push and pushItems of the node and the typed library

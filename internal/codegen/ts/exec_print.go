@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/code"
 )
 
 // Target is how printed code reaches the parser state and the operations of one TypeScript
@@ -33,13 +33,13 @@ type Target struct {
 	// Op returns the TypeScript expression of a call of an operation, given the call (with its
 	// immediate operand) and its printed arguments. A call without results may print as any
 	// statement without its semicolon, or as nothing when Op returns "".
-	Op func(c *exec.Call, args []string) string
+	Op func(c *code.Call, args []string) string
 	// Stmt, if not nil, prints a call of an operation as statements of its own, given the call, its
 	// printed arguments, the places it sets ("_" for a discarded result, none for a call without
 	// results) and the declaration keyword of a Let ("const" or "let"; empty for a Set or a call
 	// without results). Lines are separated by newlines and indented relative to the first. It
 	// reports false to print the call with Op.
-	Stmt func(c *exec.Call, args []string, dst []string, decl string) (string, bool)
+	Stmt func(c *code.Call, args []string, dst []string, decl string) (string, bool)
 	// Packed, if not empty, is the handle type whose pairs with bool print as one value: the handle
 	// when the bool is true, undefined when it is false. No handle of the type is undefined, and the
 	// handle of a pair whose bool is false is read only to return or bind it with its bool. The bool
@@ -57,7 +57,7 @@ type Target struct {
 	// Negate, if not nil, returns the TypeScript negation of a call of an operation that the operator !
 	// applies to, given its printed arguments, as a comparison or an operand, or reports false to
 	// print the operator.
-	Negate func(c *exec.Call, args []string) (string, bool)
+	Negate func(c *code.Call, args []string) (string, bool)
 	// Parts maps the handle types whose values the target holds in several locals, named after the
 	// local with the suffix of each part, to their parts: a range of a stack of numbers x is xFrom and
 	// xTo. A parameter of such a type prints as its parts, and so does a local of the type passed to a
@@ -75,9 +75,9 @@ type Part struct{ Suffix, Type string }
 
 // Method returns the TypeScript method of the function f of the verified module m, indented for
 // a class body by two spaces. Functions of the module are called as methods of this.
-func Method(m *exec.Module, f *exec.Func, t *Target) (string, error) {
-	p := &printer{m: m, t: t, f: f, labels: map[string]int{}, depth: 1, types: map[string]exec.Type{}, partner: map[string]string{}}
-	for _, x := range append(append([]exec.Param(nil), f.Params...), f.Locals...) {
+func Method(m *code.Module, f *code.Func, t *Target) (string, error) {
+	p := &printer{m: m, t: t, f: f, labels: map[string]int{}, depth: 1, types: map[string]code.Type{}, partner: map[string]string{}}
+	for _, x := range append(append([]code.Param(nil), f.Params...), f.Locals...) {
 		p.types[x.Name] = x.Type
 	}
 	if err := p.pairs(); err != nil {
@@ -92,11 +92,11 @@ func Method(m *exec.Module, f *exec.Func, t *Target) (string, error) {
 // Statements returns the statements of the body of the function f of the verified module m, without
 // the function's declaration, indented by two spaces for each level of depth, for a function without
 // locals or a labeled body that the caller wraps, such as a lowered term.
-func Statements(m *exec.Module, f *exec.Func, t *Target, depth int) (string, error) {
+func Statements(m *code.Module, f *code.Func, t *Target, depth int) (string, error) {
 	if len(f.Locals) > 0 || f.Body.Label != "" {
 		return "", fmt.Errorf("tsgen: function %s: statements of a function with locals or a labeled body", f.Name)
 	}
-	p := &printer{m: m, t: t, f: f, labels: map[string]int{}, depth: depth, types: map[string]exec.Type{}, partner: map[string]string{}}
+	p := &printer{m: m, t: t, f: f, labels: map[string]int{}, depth: depth, types: map[string]code.Type{}, partner: map[string]string{}}
 	for _, x := range f.Params {
 		p.types[x.Name] = x.Type
 	}
@@ -113,10 +113,10 @@ func Statements(m *exec.Module, f *exec.Func, t *Target, depth int) (string, err
 type printer struct {
 	// types holds the types of the locals declared so far; a later declaration of a name in a
 	// sibling block replaces the earlier one, whose reads are printed by then.
-	types  map[string]exec.Type
-	m      *exec.Module
+	types  map[string]code.Type
+	m      *code.Module
 	t      *Target
-	f      *exec.Func
+	f      *code.Func
 	b      strings.Builder
 	depth  int
 	labels map[string]int
@@ -127,13 +127,13 @@ type printer struct {
 }
 
 // packed reports whether the types are a packed pair.
-func (p *printer) packed(ts []exec.Type) bool {
-	return p.t.Packed != "" && len(ts) == 2 && ts[0] == exec.THandle(p.t.Packed) && ts[1] == exec.TBool
+func (p *printer) packed(ts []code.Type) bool {
+	return p.t.Packed != "" && len(ts) == 2 && ts[0] == code.THandle(p.t.Packed) && ts[1] == code.TBool
 }
 
 // packedCall reports whether x is a call whose results are a packed pair.
-func (p *printer) packedCall(x exec.Expr) bool {
-	c, ok := x.(*exec.Call)
+func (p *printer) packedCall(x code.Expr) bool {
+	c, ok := x.(*code.Call)
 	return ok && p.packed(p.results(c))
 }
 
@@ -149,13 +149,13 @@ func (p *printer) pairs() error {
 		}
 		p.partner[b] = h
 	}
-	exec.Walk(p.f.Body, func(st exec.Stmt) {
+	code.Walk(p.f.Body, func(st code.Stmt) {
 		switch s := st.(type) {
-		case *exec.Let:
+		case *code.Let:
 			if len(s.Names) == 2 && p.packedCall(s.Value) {
 				bind(s.Names[0], s.Names[1])
 			}
-		case *exec.Set:
+		case *code.Set:
 			if len(s.Dst) == 2 && len(s.Values) == 1 && p.packedCall(s.Values[0]) {
 				if s.Dst[0].Reg || s.Dst[1].Reg {
 					err = fmt.Errorf("a packed pair is set to a register")
@@ -165,8 +165,8 @@ func (p *printer) pairs() error {
 			}
 		}
 	}, nil)
-	exec.Walk(p.f.Body, func(st exec.Stmt) {
-		if s, ok := st.(*exec.Set); ok && !(len(s.Dst) == 2 && len(s.Values) == 1 && p.packedCall(s.Values[0])) {
+	code.Walk(p.f.Body, func(st code.Stmt) {
+		if s, ok := st.(*code.Set); ok && !(len(s.Dst) == 2 && len(s.Values) == 1 && p.packedCall(s.Values[0])) {
 			for _, d := range s.Dst {
 				if _, ok := p.partner[d.Name]; ok && !d.Reg {
 					err = fmt.Errorf("the bool %s of a packed pair is assigned alone", d.Name)
@@ -201,34 +201,34 @@ func (p *printer) name(n string) string {
 	return strings.ReplaceAll(n, ".", "_")
 }
 
-func (p *printer) typ(t exec.Type) string {
+func (p *printer) typ(t code.Type) string {
 	switch t.Kind {
-	case exec.KBool:
+	case code.KBool:
 		return "boolean"
-	case exec.KInt, exec.KI32, exec.KU32:
+	case code.KInt, code.KI32, code.KU32:
 		return "number"
-	case exec.KU64:
+	case code.KU64:
 		return "bigint"
-	case exec.KHandle:
+	case code.KHandle:
 		return p.t.Handle(t.Handle)
 	}
 	panic("tsgen: invalid type")
 }
 
-func zero(t exec.Type) string {
+func zero(t code.Type) string {
 	switch t.Kind {
-	case exec.KBool:
+	case code.KBool:
 		return "false"
-	case exec.KU64:
+	case code.KU64:
 		return "0n"
-	case exec.KHandle:
+	case code.KHandle:
 		return "null"
 	}
 	return "0"
 }
 
 // results returns the result types of the call c.
-func (p *printer) results(c *exec.Call) []exec.Type {
+func (p *printer) results(c *code.Call) []code.Type {
 	if c.Fn != nil {
 		return p.m.HandleType(p.typeOf(c.Fn).Handle).Callable.Results
 	}
@@ -311,10 +311,10 @@ func (p *printer) fn() error {
 	return p.err
 }
 
-func reads(ss []exec.Stmt, name string) bool {
+func reads(ss []code.Stmt, name string) bool {
 	found := false
-	exec.Walk(&exec.Block{Stmts: ss}, nil, func(x exec.Expr) {
-		if l, ok := x.(*exec.Local); ok && l.Name == name {
+	code.Walk(&code.Block{Stmts: ss}, nil, func(x code.Expr) {
+		if l, ok := x.(*code.Local); ok && l.Name == name {
 			found = true
 		}
 	})
@@ -322,20 +322,20 @@ func reads(ss []exec.Stmt, name string) bool {
 }
 
 // hasCall reports whether x calls an operation or a function.
-func hasCall(x exec.Expr) bool {
+func hasCall(x code.Expr) bool {
 	found := false
-	exec.Walk(&exec.Block{Stmts: []exec.Stmt{&exec.Assert{Cond: x}}}, nil, func(e exec.Expr) {
-		if _, ok := e.(*exec.Call); ok {
+	code.Walk(&code.Block{Stmts: []code.Stmt{&code.Assert{Cond: x}}}, nil, func(e code.Expr) {
+		if _, ok := e.(*code.Call); ok {
 			found = true
 		}
 	})
 	return found
 }
 
-func assigns(ss []exec.Stmt, name string) bool {
+func assigns(ss []code.Stmt, name string) bool {
 	found := false
-	exec.Walk(&exec.Block{Stmts: ss}, func(st exec.Stmt) {
-		if s, ok := st.(*exec.Set); ok {
+	code.Walk(&code.Block{Stmts: ss}, func(st code.Stmt) {
+		if s, ok := st.(*code.Set); ok {
 			for _, d := range s.Dst {
 				if !d.Reg && d.Name == name {
 					found = true
@@ -371,17 +371,17 @@ func init() {
 	}
 }
 
-func jumps(st exec.Stmt) bool {
+func jumps(st code.Stmt) bool {
 	switch st.(type) {
-	case *exec.Exit, *exec.Break, *exec.Continue, *exec.Return:
+	case *code.Exit, *code.Break, *code.Continue, *code.Return:
 		return true
 	}
 	return false
 }
 
-func declares(b *exec.Block) bool {
+func declares(b *code.Block) bool {
 	for _, st := range b.Stmts {
-		if _, ok := st.(*exec.Let); ok {
+		if _, ok := st.(*code.Let); ok {
 			return true
 		}
 	}
@@ -389,9 +389,9 @@ func declares(b *exec.Block) bool {
 }
 
 // stmts prints the statements of b in the current block statement.
-func (p *printer) stmts(b *exec.Block) {
+func (p *printer) stmts(b *code.Block) {
 	for i, st := range b.Stmts {
-		if l, ok := st.(*exec.Let); ok {
+		if l, ok := st.(*code.Let); ok {
 			p.let(l, b.Stmts[i+1:])
 		} else {
 			p.stmt(st)
@@ -404,7 +404,7 @@ func (p *printer) stmts(b *exec.Block) {
 
 // block prints a nested block: as a labeled block statement if a printed jump names its label, in
 // braces if it declares locals, and in place otherwise.
-func (p *printer) block(b *exec.Block) {
+func (p *printer) block(b *code.Block) {
 	fr := &frame{label: b.Label}
 	labeled := b.Label != "" && exitsTo(b.Stmts, b.Label)
 	if labeled {
@@ -429,24 +429,24 @@ func (p *printer) block(b *exec.Block) {
 
 // exitsTo reports whether a statement of ss that is printed (not after a jump in its block) exits
 // to the label.
-func exitsTo(ss []exec.Stmt, label string) bool {
+func exitsTo(ss []code.Stmt, label string) bool {
 	for _, st := range ss {
 		switch s := st.(type) {
-		case *exec.Exit:
+		case *code.Exit:
 			return s.Label == label
-		case *exec.Block:
+		case *code.Block:
 			if exitsTo(s.Stmts, label) {
 				return true
 			}
-		case *exec.Loop:
+		case *code.Loop:
 			if exitsTo(s.Body.Stmts, label) {
 				return true
 			}
-		case *exec.If:
+		case *code.If:
 			if exitsTo(s.Then.Stmts, label) || s.Else != nil && exitsTo(s.Else.Stmts, label) {
 				return true
 			}
-		case *exec.Protect:
+		case *code.Protect:
 			// The verifier keeps exits out of a cleanup.
 			if exitsTo(s.Body.Stmts, label) {
 				return true
@@ -459,7 +459,7 @@ func exitsTo(ss []exec.Stmt, label string) bool {
 	return false
 }
 
-func (p *printer) let(l *exec.Let, rest []exec.Stmt) {
+func (p *printer) let(l *code.Let, rest []code.Stmt) {
 	if len(l.Names) == 2 && p.packedCall(l.Value) {
 		p.letPacked(l, rest)
 		return
@@ -480,7 +480,7 @@ func (p *printer) let(l *exec.Let, rest []exec.Stmt) {
 			unread = append(unread, n)
 		}
 	}
-	if c, ok := l.Value.(*exec.Call); ok && len(l.Names) > 1 {
+	if c, ok := l.Value.(*code.Call); ok && len(l.Names) > 1 {
 		rs := p.results(c)
 		for i, n := range l.Names {
 			p.types[n] = rs[i]
@@ -488,7 +488,7 @@ func (p *printer) let(l *exec.Let, rest []exec.Stmt) {
 	} else {
 		p.types[l.Names[0]] = p.typeOf(l.Value)
 	}
-	if c, ok := l.Value.(*exec.Call); ok && bound {
+	if c, ok := l.Value.(*code.Call); ok && bound {
 		dst := make([]string, len(names))
 		for i, n := range names {
 			dst[i] = n
@@ -509,7 +509,7 @@ func (p *printer) let(l *exec.Let, rest []exec.Stmt) {
 		// Nothing reads the value and computing it has no effect.
 	case !bound:
 		p.line("%s;", v)
-	case len(names) == 1 && kw == "let" && p.types[names[0]].Kind == exec.KHandle:
+	case len(names) == 1 && kw == "let" && p.types[names[0]].Kind == code.KHandle:
 		// A local that is assigned later has the type of the handle, not the narrower type that
 		// TypeScript would infer from its first value (a number for an int constant of a value).
 		p.line("let %s: %s = %s;", names[0], p.typ(p.types[names[0]]), v)
@@ -524,9 +524,9 @@ func (p *printer) let(l *exec.Let, rest []exec.Stmt) {
 }
 
 // letPacked prints a Let of a packed pair as a declaration of its handle.
-func (p *printer) letPacked(l *exec.Let, rest []exec.Stmt) {
+func (p *printer) letPacked(l *code.Let, rest []code.Stmt) {
 	h, b := l.Names[0], l.Names[1]
-	p.types[h], p.types[b] = exec.THandle(p.t.Packed), exec.TBool
+	p.types[h], p.types[b] = code.THandle(p.t.Packed), code.TBool
 	read := reads(rest, h) || reads(rest, b)
 	assigned := assigns(rest, h) || assigns(rest, b)
 	v := p.expr(l.Value, 0)
@@ -545,7 +545,7 @@ func (p *printer) letPacked(l *exec.Let, rest []exec.Stmt) {
 
 // opStmt prints the call c of an operation with Target.Stmt, if it takes the call, and reports
 // whether it did.
-func (p *printer) opStmt(c *exec.Call, dst []string, decl string) bool {
+func (p *printer) opStmt(c *code.Call, dst []string, decl string) bool {
 	if p.t.Stmt == nil || p.m.Op(c.Callee) == nil {
 		return false
 	}
@@ -567,14 +567,14 @@ func (p *printer) lines(s string) {
 }
 
 // parts returns the parts of the values of t that the target holds in several locals, or nil.
-func (p *printer) parts(t exec.Type) []Part {
-	if t.Kind != exec.KHandle {
+func (p *printer) parts(t code.Type) []Part {
+	if t.Kind != code.KHandle {
 		return nil
 	}
 	return p.t.Parts[t.Handle]
 }
 
-func (p *printer) args(c *exec.Call) []string {
+func (p *printer) args(c *code.Call) []string {
 	args := make([]string, len(c.Args))
 	for i, a := range c.Args {
 		args[i] = p.expr(a, 0)
@@ -582,18 +582,18 @@ func (p *printer) args(c *exec.Call) []string {
 	return args
 }
 
-func (p *printer) stmt(st exec.Stmt) {
+func (p *printer) stmt(st code.Stmt) {
 	switch s := st.(type) {
-	case *exec.Block:
+	case *code.Block:
 		p.block(s)
-	case *exec.Loop:
+	case *code.Loop:
 		p.loop(s)
-	case *exec.If:
+	case *code.If:
 		if s.Init != nil {
 			p.line("%s;", p.set(s.Init))
 		}
 		p.ifStmt(s, "if")
-	case *exec.Protect:
+	case *code.Protect:
 		p.line("try {")
 		p.depth++
 		p.stmts(s.Body)
@@ -603,25 +603,25 @@ func (p *printer) stmt(st exec.Stmt) {
 		p.stmts(s.Finally)
 		p.depth--
 		p.line("}")
-	case *exec.Set:
-		if c, ok := s.Values[0].(*exec.Call); ok && len(s.Values) == 1 && !p.packedCall(c) && p.opStmt(c, p.places(s), "") {
+	case *code.Set:
+		if c, ok := s.Values[0].(*code.Call); ok && len(s.Values) == 1 && !p.packedCall(c) && p.opStmt(c, p.places(s), "") {
 			return
 		}
 		p.line("%s;", p.set(s))
-	case *exec.Do:
+	case *code.Do:
 		if p.opStmt(s.Call, nil, "") {
 			return
 		}
 		if x := p.expr(s.Call, 0); x != "" {
 			p.lines(x + ";")
 		}
-	case *exec.Exit:
+	case *code.Exit:
 		p.jump(s.Label, "")
-	case *exec.Break:
+	case *code.Break:
 		p.jump(s.Label, "break")
-	case *exec.Continue:
+	case *code.Continue:
 		p.jump(s.Label, "continue")
-	case *exec.Return:
+	case *code.Return:
 		if p.packed(p.f.Results) {
 			p.line("return %s;", p.packedValue(s.Values[0], s.Values[1]))
 			return
@@ -638,9 +638,9 @@ func (p *printer) stmt(st exec.Stmt) {
 			}
 			p.line("return [%s];", strings.Join(vals, ", "))
 		}
-	case *exec.Assert:
+	case *code.Assert:
 		p.line("if (!(%s)) throw new Error(%q);", p.expr(s.Cond, 0), "assertion failed: "+s.Msg)
-	case *exec.Comment:
+	case *code.Comment:
 		p.line("// %s", s.Text)
 	default:
 		panic(fmt.Sprintf("tsgen: statement %T", st))
@@ -676,7 +676,7 @@ func (p *printer) jump(l, kw string) {
 	panic("tsgen: jump to " + l + " outside it")
 }
 
-func (p *printer) loop(s *exec.Loop) {
+func (p *printer) loop(s *code.Loop) {
 	fr := &frame{label: s.Label, tsName: p.label(s.Label), loop: true}
 	p.scope = append(p.scope, fr)
 	mark := p.b.Len()
@@ -714,7 +714,7 @@ func (p *printer) loop(s *exec.Loop) {
 
 // blockBody prints a block that is the body of a statement with braces of its own: a loop or a
 // branch.
-func (p *printer) blockBody(b *exec.Block) {
+func (p *printer) blockBody(b *code.Block) {
 	if b.Label != "" {
 		p.block(b)
 		return
@@ -723,7 +723,7 @@ func (p *printer) blockBody(b *exec.Block) {
 }
 
 // constCond reports whether the target library prints the condition of s as a constant, and which.
-func (p *printer) constCond(s *exec.If) (value, ok bool) {
+func (p *printer) constCond(s *code.If) (value, ok bool) {
 	switch p.expr(s.Cond, 0) {
 	case "true":
 		return true, true
@@ -733,7 +733,7 @@ func (p *printer) constCond(s *exec.If) (value, ok bool) {
 	return false, false
 }
 
-func (p *printer) ifStmt(s *exec.If, kw string) {
+func (p *printer) ifStmt(s *code.If, kw string) {
 	if v, ok := p.constCond(s); ok {
 		// One branch stays, with no test.
 		if v {
@@ -748,7 +748,7 @@ func (p *printer) ifStmt(s *exec.If, kw string) {
 	p.blockBody(s.Then)
 	p.depth--
 	if s.Else != nil && len(s.Else.Stmts) == 1 && s.Else.Label == "" {
-		if e, ok := s.Else.Stmts[0].(*exec.If); ok && e.Init == nil {
+		if e, ok := s.Else.Stmts[0].(*code.If); ok && e.Init == nil {
 			if _, folded := p.constCond(e); folded {
 				p.line("} else {")
 				p.depth++
@@ -771,15 +771,15 @@ func (p *printer) ifStmt(s *exec.If, kw string) {
 }
 
 // packedValue returns the packed value of the pair h, b.
-func (p *printer) packedValue(h, b exec.Expr) string {
-	if c, ok := exec.Fold(b); ok {
+func (p *printer) packedValue(h, b code.Expr) string {
+	if c, ok := code.Fold(b); ok {
 		if c.Value.(bool) {
 			return p.expr(h, 0)
 		}
 		return "undefined"
 	}
-	if lb, ok := b.(*exec.Local); ok {
-		if lh, ok := h.(*exec.Local); ok && p.partner[lb.Name] == lh.Name {
+	if lb, ok := b.(*code.Local); ok {
+		if lh, ok := h.(*code.Local); ok && p.partner[lb.Name] == lh.Name {
 			return lh.Name
 		}
 	}
@@ -787,7 +787,7 @@ func (p *printer) packedValue(h, b exec.Expr) string {
 }
 
 // places returns the printed places of the Set s, with "_" for a discarded result.
-func (p *printer) places(s *exec.Set) []string {
+func (p *printer) places(s *code.Set) []string {
 	dst := p.dst(s)
 	for i, d := range dst {
 		if d == "" {
@@ -797,7 +797,7 @@ func (p *printer) places(s *exec.Set) []string {
 	return dst
 }
 
-func (p *printer) dst(s *exec.Set) []string {
+func (p *printer) dst(s *code.Set) []string {
 	dst := make([]string, len(s.Dst))
 	for i, d := range s.Dst {
 		switch {
@@ -811,7 +811,7 @@ func (p *printer) dst(s *exec.Set) []string {
 	return dst
 }
 
-func (p *printer) set(s *exec.Set) string {
+func (p *printer) set(s *code.Set) string {
 	dst := p.dst(s)
 	if len(dst) == 2 && len(s.Values) == 1 && p.packedCall(s.Values[0]) {
 		return dst[0] + " = " + p.expr(s.Values[0], 0)
@@ -824,9 +824,9 @@ func (p *printer) set(s *exec.Set) string {
 		if dst[0] == "" {
 			return vals[0]
 		}
-		if b, ok := s.Values[0].(*exec.Binary); ok && !s.Dst[0].Reg && s.Values[0] != nil {
-			if l, ok := b.X.(*exec.Local); ok && l.Name == s.Dst[0].Name && (b.Op == "+" || b.Op == "-") {
-				if c, ok := b.Y.(*exec.Const); ok && c.Type == exec.TInt && c.Value == int64(1) {
+		if b, ok := s.Values[0].(*code.Binary); ok && !s.Dst[0].Reg && s.Values[0] != nil {
+			if l, ok := b.X.(*code.Local); ok && l.Name == s.Dst[0].Name && (b.Op == "+" || b.Op == "-") {
+				if c, ok := b.Y.(*code.Const); ok && c.Type == code.TInt && c.Value == int64(1) {
 					return dst[0] + b.Op + b.Op
 				}
 			}
@@ -853,68 +853,68 @@ func paren(s string, n, outer int) string {
 	return s
 }
 
-func (p *printer) typeOf(x exec.Expr) exec.Type {
+func (p *printer) typeOf(x code.Expr) code.Type {
 	switch x := x.(type) {
-	case *exec.Const:
+	case *code.Const:
 		return x.Type
-	case *exec.Local:
+	case *code.Local:
 		if t, ok := p.types[x.Name]; ok {
 			return t
 		}
-	case *exec.Reg:
+	case *code.Reg:
 		for _, r := range p.m.Registers {
 			if r.Name == x.Name {
 				return r.Type
 			}
 		}
-	case *exec.Unary:
+	case *code.Unary:
 		return p.typeOf(x.X)
-	case *exec.Binary:
+	case *code.Binary:
 		switch x.Op {
 		case "==", "!=", "<", "<=", ">", ">=", "&&", "||":
-			return exec.TBool
+			return code.TBool
 		}
 		return p.typeOf(x.X)
-	case *exec.Convert:
+	case *code.Convert:
 		return x.To
-	case *exec.Call:
+	case *code.Call:
 		return p.results(x)[0]
-	case *exec.Feature:
-		return exec.TBool
+	case *code.Feature:
+		return code.TBool
 	}
 	panic(fmt.Sprintf("tsgen: no type for %T", x))
 }
 
 // expr returns the TypeScript expression of x where an operator of precedence outer encloses it.
 // An operator or a conversion of constants prints as its value.
-func (p *printer) expr(x exec.Expr, outer int) string {
-	if c, ok := exec.Fold(x); ok {
+func (p *printer) expr(x code.Expr, outer int) string {
+	if c, ok := code.Fold(x); ok {
 		x = c
 	}
 	switch x := x.(type) {
-	case *exec.Const:
+	case *code.Const:
 		s := constant(x)
 		if strings.HasPrefix(s, "-") {
 			return paren(s, 11, outer)
 		}
 		return s
-	case *exec.Local:
+	case *code.Local:
 		if h, ok := p.partner[x.Name]; ok {
 			return paren(h+" !== undefined", 6, outer)
 		}
 		return x.Name
-	case *exec.Reg:
+	case *code.Reg:
 		return p.t.Reg(x.Name)
-	case *exec.Feature:
+	case *code.Feature:
 		panic("tsgen: feature " + x.Name + " in a printed function; specialize it first")
-	case *exec.Unary:
+	case *code.Unary:
 		if x.Op == "!" {
-			if c, ok := x.X.(*exec.Call); ok && p.t.Negate != nil && p.m.Op(c.Callee) != nil {
+			if c, ok := x.X.(*code.Call); ok && p.t.Negate != nil && p.m.Op(c.Callee) != nil {
 				if s, ok := p.t.Negate(c, p.args(c)); ok {
 					return paren(s, 6, outer)
 				}
 			}
-			if l, ok := x.X.(*exec.Local); ok {
+			if l, ok := x.X.(*code.Local); ok {
 				if h, ok := p.partner[l.Name]; ok {
 					return paren(h+" === undefined", 6, outer)
 				}
@@ -924,19 +924,19 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 		t := p.typeOf(x.X)
 		neg := "-" + p.expr(x.X, 12)
 		switch t.Kind {
-		case exec.KI32:
+		case code.KI32:
 			return paren(paren(neg, 11, 3)+" | 0", 3, outer)
-		case exec.KU32:
+		case code.KU32:
 			return paren(paren(neg, 11, 8)+" >>> 0", 8, outer)
-		case exec.KU64:
+		case code.KU64:
 			return "BigInt.asUintN(64, " + neg + ")"
 		}
 		return paren(neg, 11, outer)
-	case *exec.Binary:
+	case *code.Binary:
 		return p.binary(x, outer)
-	case *exec.Convert:
+	case *code.Convert:
 		return p.convert(p.typeOf(x.X), x.To, x.X, outer)
-	case *exec.Call:
+	case *code.Call:
 		args := p.args(x)
 		if x.Fn != nil {
 			// The application of a callable handle, which a TypeScript target holds as a function.
@@ -944,7 +944,7 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 		}
 		if p.m.Op(x.Callee) != nil {
 			s := p.t.Op(x, args)
-			if outer > 0 && !exec.Atomic(s) {
+			if outer > 0 && !code.Atomic(s) {
 				s = "(" + s + ")"
 			}
 			return s
@@ -955,7 +955,7 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 			if parts == nil {
 				continue
 			}
-			l, ok := a.(*exec.Local)
+			l, ok := a.(*code.Local)
 			if !ok {
 				if p.err == nil {
 					p.err = fmt.Errorf("an argument of the type %s held in parts is not a local", t.Handle)
@@ -977,7 +977,7 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 	panic(fmt.Sprintf("tsgen: expression %T", x))
 }
 
-func (p *printer) binary(x *exec.Binary, outer int) string {
+func (p *printer) binary(x *code.Binary, outer int) string {
 	t := p.typeOf(x.X)
 	op := x.Op
 	switch op {
@@ -1004,12 +1004,12 @@ func (p *printer) binary(x *exec.Binary, outer int) string {
 		return plain()
 	}
 	switch t.Kind {
-	case exec.KInt:
+	case code.KInt:
 		if op == "/" {
 			return "Math.trunc(" + p.expr(x.X, 10) + " / " + p.expr(x.Y, 11) + ")"
 		}
 		return plain()
-	case exec.KI32:
+	case code.KI32:
 		switch op {
 		case "*":
 			return "Math.imul(" + p.expr(x.X, 0) + ", " + p.expr(x.Y, 0) + ")"
@@ -1018,7 +1018,7 @@ func (p *printer) binary(x *exec.Binary, outer int) string {
 		}
 		// +, -, /, %: the result of the number operation, truncated to 32 bits.
 		return paren(paren(p.expr(x.X, n)+" "+op+" "+p.expr(x.Y, n+1), n, 3)+" | 0", 3, outer)
-	case exec.KU32:
+	case code.KU32:
 		switch op {
 		case "*":
 			return paren("Math.imul("+p.expr(x.X, 0)+", "+p.expr(x.Y, 0)+") >>> 0", 8, outer)
@@ -1028,7 +1028,7 @@ func (p *printer) binary(x *exec.Binary, outer int) string {
 			return plain()
 		}
 		return paren(paren(p.expr(x.X, n)+" "+op+" "+p.expr(x.Y, n+1), n, 8)+" >>> 0", 8, outer)
-	case exec.KU64:
+	case code.KU64:
 		switch op {
 		case "/", "%", "&", "|", "^", ">>":
 			return plain()
@@ -1038,41 +1038,41 @@ func (p *printer) binary(x *exec.Binary, outer int) string {
 	return plain()
 }
 
-func (p *printer) convert(from, to exec.Type, x exec.Expr, outer int) string {
+func (p *printer) convert(from, to code.Type, x code.Expr, outer int) string {
 	if from == to {
 		return p.expr(x, outer)
 	}
-	if from.Kind == exec.KU64 {
+	if from.Kind == code.KU64 {
 		v := p.expr(x, 0)
 		switch to.Kind {
-		case exec.KInt:
+		case code.KInt:
 			return "Number(BigInt.asIntN(64, " + v + "))"
-		case exec.KI32:
+		case code.KI32:
 			return "Number(BigInt.asIntN(32, " + v + "))"
-		case exec.KU32:
+		case code.KU32:
 			return "Number(BigInt.asUintN(32, " + v + "))"
 		}
 	}
 	switch to.Kind {
-	case exec.KInt:
+	case code.KInt:
 		return p.expr(x, outer)
-	case exec.KI32:
+	case code.KI32:
 		return paren(p.expr(x, 4)+" | 0", 3, outer)
-	case exec.KU32:
+	case code.KU32:
 		return paren(p.expr(x, 9)+" >>> 0", 8, outer)
-	case exec.KU64:
+	case code.KU64:
 		return "BigInt.asUintN(64, BigInt(" + p.expr(x, 0) + "))"
 	}
 	panic("tsgen: conversion to " + to.String())
 }
 
-func constant(c *exec.Const) string {
+func constant(c *code.Const) string {
 	switch c.Type.Kind {
-	case exec.KBool:
+	case code.KBool:
 		return strconv.FormatBool(c.Value.(bool))
-	case exec.KU64:
+	case code.KU64:
 		return strconv.FormatUint(c.Value.(uint64), 10) + "n"
-	case exec.KHandle:
+	case code.KHandle:
 		return "null"
 	}
 	return fmt.Sprint(c.Value)

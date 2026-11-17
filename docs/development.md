@@ -41,7 +41,9 @@ This document describes the repository layout and architecture, how to run tests
 | `core/impl/` | The representation of `core.Node` that the parsers build and read; not a stable API |
 | `internal/codegen/go/` | Go generator: prints the parser, its types package and the library copy from the compiled program and the Exec form, and leaves out what the entry points cannot reach |
 | `internal/codegen/ts/` | TypeScript generator: prints the parser, its types and its library file from the compiled program and the Exec form |
-| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/`, its facts in `core/facts/` and its passes), `flow/` (the Flow form, which the target layout makes the Flow dialect of Code IR, and in `flow/lower/` the lowering from Core IR and which compiled rules it lowers), `exec/` (the Exec form, which becomes the Code IR base and the Exec dialect: the operations of the abstract machine in `exec/ops/`, the compositions in `exec/core/`, the lowering from the Flow form in `exec/lower/`, the passes in `exec/pass/`, the printer test support in `exec/printtest/`, the specification-table reader of the tests in `exec/spectest/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core IR and Code IR](design/intermediate-representations.md) |
+| `internal/pass/` | The runner of declared passes: a pipeline of passes over one unit, with the analyses they read and invalidate, where they apply, their order, and verification |
+| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR), `code/` (the structured code that Code IR shares, with the Exec dialect in `code/exec/`: the operations of the abstract machine, the compositions in `code/exec/compose/`, the reference models and conformance suite in `code/exec/ref/` and `code/exec/conform/`, and the specification-table reader of the tests in `code/exec/spectest/`), `flow/` (the Flow form, which the target layout makes the Flow dialect of Code IR) and `exec/lower/` (the lowering from the Flow form to the Exec dialect). See [Core IR and Code IR](design/intermediate-representations.md) |
+| `internal/middleend/` | The passes and lowerings between the representations: `corepass/` (the Core passes and the rule facts), `flowlower/` (the lowering from Core IR to the Flow form, and which compiled rules it lowers) and `codepass/` (the passes of Code IR that do not depend on a dialect) |
 | `internal/ir/opt/` | The registry of the optimizations (flags with a kind and a `speed` value) and of the `speed`, `memory` and `size` profiles, and the driver that runs the IR pass pipelines under them with their dumps and verification |
 | `codegen/ts/lib/` | Source of `lib.ts`, the library that generated TypeScript parsers import (joined from `lib.ts`, `budget.ts`, `trace.ts` and `profile.ts`) |
 | `cmd/zp/` | Command-line tool |
@@ -126,7 +128,7 @@ call counts with the engine across chunkings, units, controls, observability and
 the stream runtime should keep it and the bounded-memory consumer in `TestGeneratedStreamAPI` passing.
 
 Optimizations are the flags of one registry (`internal/ir/opt`), and the Core passes are a pipeline
-declared in `internal/ir/core/pipeline.go`, run by the generic manager in `internal/ir/pipeline` under the settings of
+declared in `internal/middleend/corepass/pipeline.go`, run by the generic manager in `internal/pass` under the settings of
 the driver in `internal/ir/opt`
 ([design 063](design/records/063-configurable-optimization-pass-pipeline.md)). To add an optimization:
 

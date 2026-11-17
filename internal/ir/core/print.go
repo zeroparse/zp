@@ -116,7 +116,7 @@ func (p *printer) node(n Node, d int) {
 			p.line(d, "lit %q", n.Text)
 		}
 	case *ClassNode:
-		p.line(d, "class %s", classString(n.Class))
+		p.line(d, "class %s", ClassString(n.Class))
 	case *Any:
 		p.line(d, "any")
 	case *Anchor:
@@ -129,7 +129,7 @@ func (p *printer) node(n Node, d int) {
 		for _, a := range n.Alts {
 			p.line(d+1, "alt")
 			if a.Guard != nil {
-				p.b.WriteString(" guard=" + firstString(p.m, a.Guard))
+				p.b.WriteString(" guard=" + FirstString(p.m, a.Guard))
 				if a.GuardedClass {
 					p.b.WriteString(" class")
 				}
@@ -230,7 +230,7 @@ func (p *printer) node(n Node, d int) {
 		if n.Class == nil {
 			p.line(d, "scan any %d %d", n.Min, n.Max)
 		} else {
-			p.line(d, "scan %s %d %d", classString(n.Class), n.Min, n.Max)
+			p.line(d, "scan %s %d %d", ClassString(n.Class), n.Min, n.Max)
 		}
 		if n.Site != 0 {
 			fmt.Fprintf(&p.b, " scan-site=%d", n.Site)
@@ -238,7 +238,7 @@ func (p *printer) node(n Node, d int) {
 	case *ClassRun:
 		cs := make([]string, len(n.Classes))
 		for i, c := range n.Classes {
-			cs[i] = classString(c)
+			cs[i] = ClassString(c)
 		}
 		p.line(d, "classrun %s", strings.Join(cs, " "))
 	case *Terminal:
@@ -272,7 +272,7 @@ func attrString(m *Module, a *Attrs) string {
 		xs = append(xs, "nullable-ins")
 	}
 	if a.First != nil {
-		xs = append(xs, "first="+firstString(m, a.First))
+		xs = append(xs, "first="+FirstString(m, a.First))
 	}
 	if e := effectString(a.Eff); e != "" {
 		xs = append(xs, e)
@@ -308,8 +308,10 @@ func expString(m *Module, id ExpID) string {
 	return fmt.Sprintf("exp%d", id)
 }
 
-func firstString(m *Module, f *First) string {
-	s := classString(f.Class)
+// FirstString returns the first set f as the printer writes it: a class, or a quoted rune with an
+// i suffix when it folds case, followed by +depth when the depth is not zero.
+func FirstString(m *Module, f *First) string {
+	s := ClassString(f.Class)
 	if f.Lit {
 		s = strconv.QuoteRune(f.Rune)
 		if f.Fold {
@@ -337,7 +339,8 @@ func effectString(e Effects) string {
 	return strings.Join(xs, ",")
 }
 
-func classString(c *Class) string {
+// ClassString returns the class c as the printer writes it, which is also its expectation.
+func ClassString(c *Class) string {
 	if c == nil {
 		return "<nil>"
 	}

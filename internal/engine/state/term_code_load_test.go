@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
+	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -60,21 +60,21 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 			*x = term(in)
 		}, "invalid operand"},
 		{"unary operator", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tUnary), B: int32(len(ops.UnaryOps) - 1)}
+			in := bytecode.TermInstr{Op: uint8(tUnary), B: int32(len(exec.UnaryOps) - 1)}
 			if bad {
 				in.B++
 			}
 			*x = term(in)
 		}, "invalid operand"},
 		{"binary operator", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tBinary), C: int32(len(ops.BinaryOps) - 1)}
+			in := bytecode.TermInstr{Op: uint8(tBinary), C: int32(len(exec.BinaryOps) - 1)}
 			if bad {
 				in.C++
 			}
 			*x = term(in)
 		}, "invalid operand"},
 		{"logical operator", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tLogic), B: int32(len(ops.LogicalOps) - 1)}
+			in := bytecode.TermInstr{Op: uint8(tLogic), B: int32(len(exec.LogicalOps) - 1)}
 			if bad {
 				in.B++
 			}

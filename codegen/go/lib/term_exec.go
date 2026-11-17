@@ -78,7 +78,7 @@ func memberKind(name string) (int, string) {
 	return MemberField, name
 }
 
-// termError returns the failure of a term with the message ops.TermErrors[code]; it is a value that the
+// termError returns the failure of a term with the message exec.TermErrors[code]; it is a value that the
 // caller raises.
 func (p *Parser) termError(code int, a, b any, op, n int) any {
 	switch code {
@@ -123,7 +123,7 @@ func (p *Parser) termError(code int, a, b any, op, n int) any {
 	panic("runtime: no term failure")
 }
 
-// termError returns the failure of a term with the message ops.TermErrors[code]; it is a value that the
+// termError returns the failure of a term with the message exec.TermErrors[code]; it is a value that the
 // caller raises.
 func (p *TParser) termError(code int, a, b any, op, n int) any {
 	switch code {
@@ -172,7 +172,7 @@ func (p *TParser) termError(code int, a, b any, op, n int) any {
 // which equals only nil, a box counting as the value it holds. It returns false for ok when the pair has no
 // equality, which is every other pair.
 //
-// Printed from Exec IR function equal of internal/ir/exec/core.
+// Printed from Exec IR function equal of internal/ir/code/exec/compose.
 func (p *Parser) termEqual(l any, r any) (bool, bool) {
 	a := UnboxValue(l)
 	b := UnboxValue(r)
@@ -199,7 +199,7 @@ func (p *Parser) termEqual(l any, r any) (bool, bool) {
 // termIndex returns element r of l, a list or a tuple (nil has no elements), with a box opened. It fails if l is
 // another value, if r is not an int, and if r is not an index of l.
 //
-// Printed from Exec IR function index of internal/ir/exec/core.
+// Printed from Exec IR function index of internal/ir/code/exec/compose.
 func (p *Parser) termIndex(l any, r any) (any, any) {
 	items, ok := valItems(l)
 	if !ok {
@@ -216,13 +216,13 @@ func (p *Parser) termIndex(l any, r any) (any, any) {
 	return UnboxNode(items[i]), nil
 }
 
-// TermBinary applies the binary operator that op indexes in ops.BinaryOps to l and r. Ints combine with + - *
+// TermBinary applies the binary operator that op indexes in exec.BinaryOps to l and r. Ints combine with + - *
 // / % and compare with < <= > >=, with 64-bit wraparound; / and % truncate toward zero, and a division by zero fails.
 // Strings concatenate with + and compare with < <= > >= by code point. == and != apply equal and fail where it has
 // no equality. [] is index. Any other operands fail.
 // TermBinary is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function binary of internal/ir/exec/core.
+// Printed from Exec IR function binary of internal/ir/code/exec/compose.
 func (p *Parser) TermBinary(op int, l any, r any) (any, any) {
 	if op == 11 {
 		v, e := p.termIndex(l, r)
@@ -291,11 +291,11 @@ func (p *Parser) TermBinary(op int, l any, r any) (any, any) {
 	return nil, p.termError(1, l, r, op, 0)
 }
 
-// TermUnary applies the unary operator that op indexes in ops.UnaryOps to x: - negates an int, with
+// TermUnary applies the unary operator that op indexes in exec.UnaryOps to x: - negates an int, with
 // wraparound, and ! negates a bool. Any other operand fails.
 // TermUnary is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function unary of internal/ir/exec/core.
+// Printed from Exec IR function unary of internal/ir/code/exec/compose.
 func (p *Parser) TermUnary(op int, x any) (any, any) {
 	if op == 0 && valKind(x) == 1 {
 		return any(-x.(int)), nil
@@ -306,12 +306,12 @@ func (p *Parser) TermUnary(op int, x any) (any, any) {
 	return nil, p.termError(3, x, nil, op, 0)
 }
 
-// TermLogic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
+// TermLogic checks the operand x of the logical operator that op indexes in exec.LogicalOps, and returns it. An
 // operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 // true and of || only if it is false, and checks each operand it evaluates.
 // TermLogic is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function logic of internal/ir/exec/core.
+// Printed from Exec IR function logic of internal/ir/code/exec/compose.
 func (p *Parser) TermLogic(op int, x any) (bool, any) {
 	if valKind(x) != 3 {
 		return false, p.termError(4, x, nil, op, 0)
@@ -319,14 +319,14 @@ func (p *Parser) TermLogic(op int, x any) (bool, any) {
 	return x.(bool), nil
 }
 
-// TermMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+// TermMember reads the member name of x, whose kind is kind (exec.MemberKinds) and which reads the field or
 // capture field. Start, End and Value of a node read its range and value; a recovered value has a range and a nil
 // value. A capture of a node reads it with a box opened, nil if it did not match; a field reads what the value holds,
 // and of a struct the zero value of the declared type of a field that is not set. A value that has no members, a
 // capture of a struct and a field that a struct does not declare fail.
 // TermMember is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function member of internal/ir/exec/core.
+// Printed from Exec IR function member of internal/ir/code/exec/compose.
 func (p *Parser) TermMember(c *ActCtx, kind int, x any, name string, field string) (any, any) {
 	n, ok := nodeOf(x)
 	if !ok {
@@ -373,7 +373,7 @@ func (p *Parser) TermMember(c *ActCtx, kind int, x any, name string, field strin
 // value, such as a function, fails and pushes nothing.
 // TermPush is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function push of internal/ir/exec/core.
+// Printed from Exec IR function push of internal/ir/code/exec/compose.
 func (p *Parser) TermPush(c *ActCtx, fn string, v any) any {
 	k := valKind(v)
 	if k == 0 {
@@ -397,7 +397,7 @@ func (p *Parser) TermPush(c *ActCtx, fn string, v any) any {
 // fails and pushes nothing.
 // TermPushItems is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function pushItems of internal/ir/exec/core.
+// Printed from Exec IR function pushItems of internal/ir/code/exec/compose.
 func (p *Parser) TermPushItems(c *ActCtx, fn string, v any) any {
 	items, ok := valItems(v)
 	if ok {
@@ -411,7 +411,7 @@ func (p *Parser) TermPushItems(c *ActCtx, fn string, v any) any {
 // and those of a list or a tuple. Any other value fails.
 // TermItems is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function items of internal/ir/exec/core.
+// Printed from Exec IR function items of internal/ir/code/exec/compose.
 func (p *Parser) TermItems(fn string, v any) ([]*core.Node, any) {
 	items, ok := valItems(v)
 	if ok {
@@ -425,7 +425,7 @@ func (p *Parser) TermItems(fn string, v any) ([]*core.Node, any) {
 // nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.
 // TermItemAt is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function itemAt of internal/ir/exec/core.
+// Printed from Exec IR function itemAt of internal/ir/code/exec/compose.
 func (p *Parser) TermItemAt(items []*core.Node, i int, right bool) any {
 	if right {
 		return UnboxNode(items[len(items)-1-i])
@@ -436,7 +436,7 @@ func (p *Parser) TermItemAt(items []*core.Node, i int, right bool) any {
 // TermFilterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.
 // TermFilterKeep is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function filterKeep of internal/ir/exec/core.
+// Printed from Exec IR function filterKeep of internal/ir/code/exec/compose.
 func (p *Parser) TermFilterKeep(v any) (bool, any) {
 	if valKind(v) != 3 {
 		return false, p.termError(16, v, nil, 0, 0)
@@ -449,7 +449,7 @@ func (p *Parser) TermFilterKeep(v any) (bool, any) {
 // other value fails.
 // TermLength is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function length of internal/ir/exec/core.
+// Printed from Exec IR function length of internal/ir/code/exec/compose.
 func (p *Parser) TermLength(x any) (any, any) {
 	k := valKind(x)
 	if k == 2 {
@@ -475,7 +475,7 @@ func (p *Parser) TermLength(x any) (any, any) {
 // of any other node, a recovered value among them, and the empty string for nil. Any other value fails.
 // TermText is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function text of internal/ir/exec/core.
+// Printed from Exec IR function text of internal/ir/code/exec/compose.
 func (p *Parser) TermText(x any) (string, any) {
 	k := valKind(x)
 	if k == 0 {
@@ -499,7 +499,7 @@ func (p *Parser) TermText(x any) (string, any) {
 // type or not, becomes a node of t. Any other value fails.
 // TermConvert is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function convert of internal/ir/exec/core.
+// Printed from Exec IR function convert of internal/ir/code/exec/compose.
 func (p *Parser) TermConvert(t *nodeTypeKinds, x any) (any, any) {
 	n, ok := nodeOf(x)
 	if ok {
@@ -515,7 +515,7 @@ func (p *Parser) TermConvert(t *nodeTypeKinds, x any) (any, any) {
 // whether it had none before, and the first node gives n its range.
 // TermCover is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function cover of internal/ir/exec/core.
+// Printed from Exec IR function cover of internal/ir/code/exec/compose.
 func (p *Parser) TermCover(n *core.Node, v any, first bool) bool {
 	k, ok := nodeOf(v)
 	if !ok {
@@ -539,7 +539,7 @@ func (p *Parser) TermCover(n *core.Node, v any, first bool) bool {
 // rule if no field value is a node, and c records n.
 // TermMade is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function made of internal/ir/exec/core.
+// Printed from Exec IR function made of internal/ir/code/exec/compose.
 func (p *Parser) TermMade(c *ActCtx, n *core.Node, first bool) {
 	if first {
 		rs, re := c.start, c.end
@@ -554,7 +554,7 @@ func (p *Parser) TermMade(c *ActCtx, n *core.Node, first bool) {
 // struct that holds one covers it.
 // TermHull is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function hull of internal/ir/exec/core.
+// Printed from Exec IR function hull of internal/ir/code/exec/compose.
 func (p *Parser) TermHull(c *ActCtx, tuple bool, kids []*core.Node) *core.Node {
 	var j int
 	n := p.NewNode(Data{Kind: seqKind(tuple), Children: kids})
@@ -586,7 +586,7 @@ func (p *Parser) TermHull(c *ActCtx, tuple bool, kids []*core.Node) *core.Node {
 // not the node of a repetition or a sequence.
 // TermConforms is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function conforms of internal/ir/exec/core.
+// Printed from Exec IR function conforms of internal/ir/code/exec/compose.
 func (p *Parser) TermConforms(t *FieldType, v any) bool {
 	var i int
 	kt := int(t.Kind)
@@ -669,7 +669,7 @@ func (p *Parser) TermConforms(t *FieldType, v any) bool {
 // termValueConforms returns whether the value of the node n, whose shape is shape, is of the type t: a string
 // node has a string, and a tuple node or a list node its elements as value.
 //
-// Printed from Exec IR function valueConforms of internal/ir/exec/core.
+// Printed from Exec IR function valueConforms of internal/ir/code/exec/compose.
 func (p *Parser) termValueConforms(t *FieldType, n *core.Node, shape int) bool {
 	var i int
 	kt := int(t.Kind)
@@ -710,7 +710,7 @@ func (p *Parser) termValueConforms(t *FieldType, n *core.Node, shape int) bool {
 // termElemsConform returns whether every element of items, the elements of a list, is of the element type t
 // of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.
 //
-// Printed from Exec IR function elemsConform of internal/ir/exec/core.
+// Printed from Exec IR function elemsConform of internal/ir/code/exec/compose.
 func (p *Parser) termElemsConform(t *FieldType, items []*core.Node) bool {
 	var j int
 	if int(t.Kind) == 95 {
@@ -729,7 +729,7 @@ func (p *Parser) termElemsConform(t *FieldType, items []*core.Node) bool {
 // termTupleConform returns whether the elements items of a tuple are of the element types of the tuple type t:
 // as many, and each of its own type, charging a step for each element it examines.
 //
-// Printed from Exec IR function tupleConform of internal/ir/exec/core.
+// Printed from Exec IR function tupleConform of internal/ir/code/exec/compose.
 func (p *Parser) termTupleConform(t *FieldType, items []*core.Node) bool {
 	var j int
 	count := len(items)
@@ -749,7 +749,7 @@ func (p *Parser) termTupleConform(t *FieldType, items []*core.Node) bool {
 // which equals only nil, a box counting as the value it holds. It returns false for ok when the pair has no
 // equality, which is every other pair.
 //
-// Printed from Exec IR function equal of internal/ir/exec/core.
+// Printed from Exec IR function equal of internal/ir/code/exec/compose.
 func (p *TParser) termEqual(l any, r any) (bool, bool) {
 	a := l
 	b := r
@@ -776,7 +776,7 @@ func (p *TParser) termEqual(l any, r any) (bool, bool) {
 // termIndex returns element r of l, a list or a tuple (nil has no elements), with a box opened. It fails if l is
 // another value, if r is not an int, and if r is not an index of l.
 //
-// Printed from Exec IR function index of internal/ir/exec/core.
+// Printed from Exec IR function index of internal/ir/code/exec/compose.
 func (p *TParser) termIndex(l any, r any) (any, any) {
 	items, ok := tvalItems(l)
 	if !ok {
@@ -793,13 +793,13 @@ func (p *TParser) termIndex(l any, r any) (any, any) {
 	return items[i], nil
 }
 
-// TermBinary applies the binary operator that op indexes in ops.BinaryOps to l and r. Ints combine with + - *
+// TermBinary applies the binary operator that op indexes in exec.BinaryOps to l and r. Ints combine with + - *
 // / % and compare with < <= > >=, with 64-bit wraparound; / and % truncate toward zero, and a division by zero fails.
 // Strings concatenate with + and compare with < <= > >= by code point. == and != apply equal and fail where it has
 // no equality. [] is index. Any other operands fail.
 // TermBinary is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function binary of internal/ir/exec/core.
+// Printed from Exec IR function binary of internal/ir/code/exec/compose.
 func (p *TParser) TermBinary(op int, l any, r any) (any, any) {
 	if op == 11 {
 		v, e := p.termIndex(l, r)
@@ -868,11 +868,11 @@ func (p *TParser) TermBinary(op int, l any, r any) (any, any) {
 	return nil, p.termError(1, l, r, op, 0)
 }
 
-// TermUnary applies the unary operator that op indexes in ops.UnaryOps to x: - negates an int, with
+// TermUnary applies the unary operator that op indexes in exec.UnaryOps to x: - negates an int, with
 // wraparound, and ! negates a bool. Any other operand fails.
 // TermUnary is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function unary of internal/ir/exec/core.
+// Printed from Exec IR function unary of internal/ir/code/exec/compose.
 func (p *TParser) TermUnary(op int, x any) (any, any) {
 	if op == 0 && valKind(x) == 1 {
 		return any(-x.(int)), nil
@@ -883,12 +883,12 @@ func (p *TParser) TermUnary(op int, x any) (any, any) {
 	return nil, p.termError(3, x, nil, op, 0)
 }
 
-// TermLogic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
+// TermLogic checks the operand x of the logical operator that op indexes in exec.LogicalOps, and returns it. An
 // operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 // true and of || only if it is false, and checks each operand it evaluates.
 // TermLogic is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function logic of internal/ir/exec/core.
+// Printed from Exec IR function logic of internal/ir/code/exec/compose.
 func (p *TParser) TermLogic(op int, x any) (bool, any) {
 	if valKind(x) != 3 {
 		return false, p.termError(4, x, nil, op, 0)
@@ -896,14 +896,14 @@ func (p *TParser) TermLogic(op int, x any) (bool, any) {
 	return x.(bool), nil
 }
 
-// TermMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+// TermMember reads the member name of x, whose kind is kind (exec.MemberKinds) and which reads the field or
 // capture field. Start, End and Value of a node read its range and value; a recovered value has a range and a nil
 // value. A capture of a node reads it with a box opened, nil if it did not match; a field reads what the value holds,
 // and of a struct the zero value of the declared type of a field that is not set. A value that has no members, a
 // capture of a struct and a field that a struct does not declare fail.
 // TermMember is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function member of internal/ir/exec/core.
+// Printed from Exec IR function member of internal/ir/code/exec/compose.
 func (p *TParser) TermMember(c *TActCtx, kind int, x any, name string, field string) (any, any) {
 	n, ok := tnodeOf(x)
 	if !ok {
@@ -950,7 +950,7 @@ func (p *TParser) TermMember(c *TActCtx, kind int, x any, name string, field str
 // value, such as a function, fails and pushes nothing.
 // TermPush is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function push of internal/ir/exec/core.
+// Printed from Exec IR function push of internal/ir/code/exec/compose.
 func (p *TParser) TermPush(c *TActCtx, fn string, v any) any {
 	k := valKind(v)
 	if k == 0 {
@@ -974,7 +974,7 @@ func (p *TParser) TermPush(c *TActCtx, fn string, v any) any {
 // fails and pushes nothing.
 // TermPushItems is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function pushItems of internal/ir/exec/core.
+// Printed from Exec IR function pushItems of internal/ir/code/exec/compose.
 func (p *TParser) TermPushItems(c *TActCtx, fn string, v any) any {
 	items, ok := tvalItems(v)
 	if ok {
@@ -988,7 +988,7 @@ func (p *TParser) TermPushItems(c *TActCtx, fn string, v any) any {
 // and those of a list or a tuple. Any other value fails.
 // TermItems is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function items of internal/ir/exec/core.
+// Printed from Exec IR function items of internal/ir/code/exec/compose.
 func (p *TParser) TermItems(fn string, v any) ([]any, any) {
 	items, ok := tvalItems(v)
 	if ok {
@@ -1002,7 +1002,7 @@ func (p *TParser) TermItems(fn string, v any) ([]any, any) {
 // nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.
 // TermItemAt is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function itemAt of internal/ir/exec/core.
+// Printed from Exec IR function itemAt of internal/ir/code/exec/compose.
 func (p *TParser) TermItemAt(items []any, i int, right bool) any {
 	if right {
 		return items[len(items)-1-i]
@@ -1013,7 +1013,7 @@ func (p *TParser) TermItemAt(items []any, i int, right bool) any {
 // TermFilterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.
 // TermFilterKeep is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function filterKeep of internal/ir/exec/core.
+// Printed from Exec IR function filterKeep of internal/ir/code/exec/compose.
 func (p *TParser) TermFilterKeep(v any) (bool, any) {
 	if valKind(v) != 3 {
 		return false, p.termError(16, v, nil, 0, 0)
@@ -1026,7 +1026,7 @@ func (p *TParser) TermFilterKeep(v any) (bool, any) {
 // other value fails.
 // TermLength is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function length of internal/ir/exec/core.
+// Printed from Exec IR function length of internal/ir/code/exec/compose.
 func (p *TParser) TermLength(x any) (any, any) {
 	k := valKind(x)
 	if k == 2 {
@@ -1052,7 +1052,7 @@ func (p *TParser) TermLength(x any) (any, any) {
 // of any other node, a recovered value among them, and the empty string for nil. Any other value fails.
 // TermText is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function text of internal/ir/exec/core.
+// Printed from Exec IR function text of internal/ir/code/exec/compose.
 func (p *TParser) TermText(x any) (string, any) {
 	k := valKind(x)
 	if k == 0 {
@@ -1076,7 +1076,7 @@ func (p *TParser) TermText(x any) (string, any) {
 // type or not, becomes a node of t. Any other value fails.
 // TermConvert is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function convert of internal/ir/exec/core.
+// Printed from Exec IR function convert of internal/ir/code/exec/compose.
 func (p *TParser) TermConvert(t uint16, x any) (any, any) {
 	n, ok := tnodeOf(x)
 	if ok {
@@ -1092,7 +1092,7 @@ func (p *TParser) TermConvert(t uint16, x any) (any, any) {
 // whether it had none before, and the first node gives n its range.
 // TermCover is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function cover of internal/ir/exec/core.
+// Printed from Exec IR function cover of internal/ir/code/exec/compose.
 func (p *TParser) TermCover(n TVal, v any, first bool) bool {
 	k, ok := tnodeOf(v)
 	if !ok {
@@ -1116,7 +1116,7 @@ func (p *TParser) TermCover(n TVal, v any, first bool) bool {
 // rule if no field value is a node, and c records n.
 // TermMade is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function made of internal/ir/exec/core.
+// Printed from Exec IR function made of internal/ir/code/exec/compose.
 func (p *TParser) TermMade(c *TActCtx, n TVal, first bool) {
 	if first {
 		rs, re := c.Start, c.End
@@ -1131,7 +1131,7 @@ func (p *TParser) TermMade(c *TActCtx, n TVal, first bool) {
 // struct that holds one covers it.
 // TermHull is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function hull of internal/ir/exec/core.
+// Printed from Exec IR function hull of internal/ir/code/exec/compose.
 func (p *TParser) TermHull(c *TActCtx, tuple bool, kids []any) TVal {
 	var j int
 	n := c.newSeq(tuple, kids)
@@ -1163,7 +1163,7 @@ func (p *TParser) TermHull(c *TActCtx, tuple bool, kids []any) TVal {
 // not the node of a repetition or a sequence.
 // TermConforms is for generated parsers; not a stable API.
 //
-// Printed from Exec IR function conforms of internal/ir/exec/core.
+// Printed from Exec IR function conforms of internal/ir/code/exec/compose.
 func (p *TParser) TermConforms(t *FieldType, v any) bool {
 	var i int
 	kt := int(t.Kind)
@@ -1246,7 +1246,7 @@ func (p *TParser) TermConforms(t *FieldType, v any) bool {
 // termValueConforms returns whether the value of the node n, whose shape is shape, is of the type t: a string
 // node has a string, and a tuple node or a list node its elements as value.
 //
-// Printed from Exec IR function valueConforms of internal/ir/exec/core.
+// Printed from Exec IR function valueConforms of internal/ir/code/exec/compose.
 func (p *TParser) termValueConforms(t *FieldType, n TVal, shape int) bool {
 	var i int
 	kt := int(t.Kind)
@@ -1287,7 +1287,7 @@ func (p *TParser) termValueConforms(t *FieldType, n TVal, shape int) bool {
 // termElemsConform returns whether every element of items, the elements of a list, is of the element type t
 // of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.
 //
-// Printed from Exec IR function elemsConform of internal/ir/exec/core.
+// Printed from Exec IR function elemsConform of internal/ir/code/exec/compose.
 func (p *TParser) termElemsConform(t *FieldType, items []any) bool {
 	var j int
 	if int(t.Kind) == 95 {
@@ -1306,7 +1306,7 @@ func (p *TParser) termElemsConform(t *FieldType, items []any) bool {
 // termTupleConform returns whether the elements items of a tuple are of the element types of the tuple type t:
 // as many, and each of its own type, charging a step for each element it examines.
 //
-// Printed from Exec IR function tupleConform of internal/ir/exec/core.
+// Printed from Exec IR function tupleConform of internal/ir/code/exec/compose.
 func (p *TParser) termTupleConform(t *FieldType, items []any) bool {
 	var j int
 	count := len(items)

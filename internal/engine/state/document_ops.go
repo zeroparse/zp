@@ -6,7 +6,7 @@ import (
 )
 
 // The engine's implementations of the Document operations (document_exec.go, printed from
-// internal/ir/exec/core): memo.splice applies an edit at once only to the entries at the edited positions,
+// internal/ir/code/exec/compose): memo.splice applies an edit at once only to the entries at the edited positions,
 // and records it in the log, from which the printed AdvanceEntry applies it to any other entry when a
 // lookup finds the entry; doc.move moves the nodes of a reused result in place.
 

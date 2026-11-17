@@ -66,26 +66,26 @@ var layout = []place{
 	{pkg: "internal/frontend/schemaexport", target: "internal/frontend/schemaexport"},
 
 	// Intermediate representations and the pass framework.
-	{pkg: "internal/ir/pipeline", target: "internal/pass"},
+	{pkg: "internal/pass", target: "internal/pass"},
 	{pkg: "internal/ir/core", target: "internal/ir/core"},
-	{pkg: "internal/ir/exec", target: "internal/ir/code"},
+	{pkg: "internal/ir/code", target: "internal/ir/code"},
 	// flow folds its structure types into internal/ir/code; its operations stay in the dialect.
 	{pkg: "internal/ir/flow", target: "internal/ir/code/flow"},
-	// ops splits into the machine operations (internal/ir/code/exec) and the action-expression
+	// exec splits into the machine operations (internal/ir/code/exec) and the action-expression
 	// operations (internal/ir/code/action).
-	{pkg: "internal/ir/exec/ops", target: "internal/ir/code/exec"},
-	{pkg: "internal/ir/exec/core", target: "internal/ir/code/exec/compose"},
-	{pkg: "internal/ir/exec/conform", target: "internal/ir/code/exec/conform"},
-	{pkg: "internal/ir/exec/ref", target: "internal/ir/code/exec/ref"},
-	{pkg: "internal/ir/exec/spectest", target: "internal/ir/code/exec/spectest"},
+	{pkg: "internal/ir/code/exec", target: "internal/ir/code/exec"},
+	{pkg: "internal/ir/code/exec/compose", target: "internal/ir/code/exec/compose"},
+	{pkg: "internal/ir/code/exec/conform", target: "internal/ir/code/exec/conform"},
+	{pkg: "internal/ir/code/exec/ref", target: "internal/ir/code/exec/ref"},
+	{pkg: "internal/ir/code/exec/spectest", target: "internal/ir/code/exec/spectest"},
 
 	// Middle end.
-	{pkg: "internal/ir/core/facts", target: "internal/middleend/corepass"},
-	{pkg: "internal/ir/flow/lower", target: "internal/middleend/flowlower"},
+	{pkg: "internal/middleend/corepass", target: "internal/middleend/corepass"},
+	{pkg: "internal/middleend/flowlower", target: "internal/middleend/flowlower"},
 	// lower splits into Flow to Exec (internal/middleend/execlower) and action-expression
 	// lowering (internal/middleend/flowlower).
 	{pkg: "internal/ir/exec/lower", target: "internal/middleend/execlower"},
-	{pkg: "internal/ir/exec/pass", target: "internal/middleend/codepass"},
+	{pkg: "internal/middleend/codepass", target: "internal/middleend/codepass"},
 
 	// Back end.
 	{pkg: "internal/codegen", target: "internal/backend/codegen/common"},
@@ -126,8 +126,7 @@ var layout = []place{
 	{pkg: "internal/testing/factstest", target: "internal/testing/factstest"},
 	{pkg: "internal/testing/recoveryquality", target: "internal/testing/recoveryquality"},
 	{pkg: "internal/testing/starttest", target: "internal/testing/starttest"},
-	// The printer tests of the Exec dialect are test support of the back ends.
-	{pkg: "internal/ir/exec/printtest", target: "internal/testing/exectest"},
+	{pkg: "internal/testing/exectest", target: "internal/testing/exectest"},
 	{pkg: "internal/testing/...", target: "internal/testing"},
 
 	// Commands, benchmarks, examples and the language specification's tests.

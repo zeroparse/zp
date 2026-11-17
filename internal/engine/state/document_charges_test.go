@@ -11,13 +11,13 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 	"zeroparse.dev/zp/internal/value"
 )
 
 // The tests of this file measure the operations of Document reuse at the bounds that they declare in
-// internal/ir/exec/ops. The operations of runs and of moving values have no reference model, so the
+// internal/ir/code/exec. The operations of runs and of moving values have no reference model, so the
 // conformance suites cannot state their quantities; here each worst case is built by hand, and the
 // quantities are worked out from the declaration. A driver of the operations (ResumeRepeat, the
 // REPEAT instruction) charges its own steps between them.
@@ -274,7 +274,7 @@ func TestMemoChainChargesAtItsBounds(t *testing.T) {
 // what stores charge, after edits that move and widen the gap.
 func TestMemoStoreChargesTheSlotsOfTheGap(t *testing.T) {
 	t.Parallel()
-	parseState := ops.Parser()
+	parseState := exec.Parser()
 	store, splice := parseState.Op("memo.store"), parseState.Op("memo.splice")
 	grown := 0
 	for seed := range uint64(200) {
@@ -293,10 +293,10 @@ func TestMemoStoreChargesTheSlotsOfTheGap(t *testing.T) {
 			}
 			pos := rng.IntN(20000)
 			args := []any{int64(0), int64(pos), int64(0), int64(0), true, int64(pos), false, nil, nil}
-			if model.Quantity(ops.QKeyScan, store, args) != 0 {
+			if model.Quantity(exec.QKeyScan, store, args) != 0 {
 				continue // the charges of a scan are the subject of the tests of lookups
 			}
-			want := model.Quantity(ops.QSlotGrowth, store, args)
+			want := model.Quantity(exec.QSlotGrowth, store, args)
 			got := spent(p, func() {
 				e := p.Memo.Alloc()
 				*e = MemoEntry{Ok: true, End: pos, Gen: p.Gen, Vgen: p.Gen}
@@ -318,7 +318,7 @@ func TestMemoStoreChargesTheSlotsOfTheGap(t *testing.T) {
 
 // TestMemoChargesMatchTheModel runs random stores, edits and lookups on the engine's lazy memo and on
 // the model of a lazy memo, and compares what each lookup and store charges with the quantities the model
-// counts: the entries a scan passes (ops.QKeyScan) and the edits a lookup applies (ops.QPending). The
+// counts: the entries a scan passes (exec.QKeyScan) and the edits a lookup applies (exec.QPending). The
 // declared cost is a bound, since a lookup stops at the entry it finds and an entry that fails an edit
 // stops there; the charge is equal to it where the model is exact:
 //
@@ -333,7 +333,7 @@ func TestMemoStoreChargesTheSlotsOfTheGap(t *testing.T) {
 // the declaration is a bound for them by design.
 func TestMemoChargesMatchTheModel(t *testing.T) {
 	t.Parallel()
-	parseState := ops.Parser()
+	parseState := exec.Parser()
 	lookupOp, storeOp, spliceOp, examineOp := parseState.Op("memo.lookup"), parseState.Op("memo.store"), parseState.Op("memo.splice"), parseState.Op("memo.examine")
 	const positions, rule = 14, 1
 	var absent, valid, held, overstated, stores int
@@ -384,7 +384,7 @@ func TestMemoChargesMatchTheModel(t *testing.T) {
 				}
 				examined := pos + 1 + rng.IntN(6)
 				present := slices.ContainsFunc(chain(pos), func(e *MemoEntry) bool { return e.Env[0] == any(int64(v)) })
-				want := uint64(2 + model.Quantity(ops.QKeyScan, storeOp, args) + model.Quantity(ops.QSlotGrowth, storeOp, args))
+				want := uint64(2 + model.Quantity(exec.QKeyScan, storeOp, args) + model.Quantity(exec.QSlotGrowth, storeOp, args))
 				got := spent(p, func() {
 					e := p.Memo.Alloc()
 					*e = MemoEntry{Ok: true, End: pos + 1, From: from, Examined: examined, Gen: p.Gen, Vgen: p.Gen}
@@ -404,7 +404,7 @@ func TestMemoChargesMatchTheModel(t *testing.T) {
 				if at >= 0 {
 					vgen = es[at].Vgen
 				}
-				want := uint64(1 + model.Quantity(ops.QKeyScan, lookupOp, args) + model.Quantity(ops.QPending, lookupOp, args))
+				want := uint64(1 + model.Quantity(exec.QKeyScan, lookupOp, args) + model.Quantity(exec.QPending, lookupOp, args))
 				var found bool
 				got := spent(p, func() {
 					e, ok := p.MemoGet(keyOf(pos, v))

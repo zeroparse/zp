@@ -6,10 +6,10 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
 	irc "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 // Terms printed from Exec IR.
@@ -69,7 +69,7 @@ func (g *Generator) leaf(name string, variable bool, s *check.Scope, locals map[
 // the scope s and the locals resolve.
 func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target {
 	return &Target{
-		Stmt: func(c *exec.Call, a []string, dst []string, decl string) (string, bool) {
+		Stmt: func(c *code.Call, a []string, dst []string, decl string) (string, bool) {
 			if c.Callee != lower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
 				return "", false
 			}
@@ -87,7 +87,7 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 		Handle:   tsHandle,
 		FuncName: tsTermMethod,
 		Reg:      func(name string) string { panic("tsgen: a lowered term reads the register " + name) },
-		Op: func(c *exec.Call, a []string) string {
+		Op: func(c *code.Call, a []string) string {
 			switch c.Callee {
 			case lower.OpTermConst:
 				switch v := c.Imm.(lower.TermConst).Value.(type) {
@@ -128,7 +128,7 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 				return fmt.Sprintf("castFailure(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)
 			case lower.OpTermTextEqual:
 				// == of two strings, which charges as binary does.
-				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", tsTermMethod("binary"), ops.BinaryCode("=="), a[0], a[1])
+				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", tsTermMethod("binary"), exec.BinaryCode("=="), a[0], a[1])
 			case lower.OpTermFromStr, lower.OpTermFromObj, "val.fromBool":
 				return a[0]
 			case lower.OpTermSpend, "seq.step":

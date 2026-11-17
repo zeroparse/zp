@@ -69,9 +69,9 @@ negative-control test. This record gives that rule a mechanism.
 
 ### Pass Declarations
 
-A pass is a value of `pipeline.Pass[M, X]` (`internal/ir/pipeline`), generic over the unit `M` and the mode `X`; the
-Core passes are declared in `internal/ir/core/pipeline.go`. The names are those of the pipeline code, not of any public
-API.
+A pass is a value of the type `Pass[M, X]` of `internal/pass`, generic over the unit `M` and the mode `X`; the Core
+passes are declared in `internal/middleend/corepass/pipeline.go`. The names are those of the pipeline code, not of any
+public API.
 
 | Field | Meaning |
 |:--|:--|

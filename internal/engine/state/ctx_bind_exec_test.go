@@ -5,7 +5,7 @@ package state
 import "zeroparse.dev/zp/core"
 
 // confCtxEnter runs ctx.enter for the conformance suite.
-// Printed from Exec IR function confCtxEnter of internal/ir/exec/core.
+// Printed from Exec IR function confCtxEnter of internal/ir/code/exec/compose.
 func (p *Parser) confCtxEnter(r *Rule, min int) (CtxState, ctxHit) {
 	var r0 CtxState
 	var r1 ctxHit
@@ -16,7 +16,7 @@ func (p *Parser) confCtxEnter(r *Rule, min int) (CtxState, ctxHit) {
 }
 
 // confCtxFound runs ctx.found for the conformance suite.
-// Printed from Exec IR function confCtxFound of internal/ir/exec/core.
+// Printed from Exec IR function confCtxFound of internal/ir/code/exec/compose.
 func (p *Parser) confCtxFound(s ctxHit) bool {
 	var r bool
 	r = s.e != nil
@@ -24,7 +24,7 @@ func (p *Parser) confCtxFound(s ctxHit) bool {
 }
 
 // confCtxOk runs ctx.ok for the conformance suite.
-// Printed from Exec IR function confCtxOk of internal/ir/exec/core.
+// Printed from Exec IR function confCtxOk of internal/ir/code/exec/compose.
 func (p *Parser) confCtxOk(s ctxHit) bool {
 	var r bool
 	r = s.e.Ok
@@ -32,7 +32,7 @@ func (p *Parser) confCtxOk(s ctxHit) bool {
 }
 
 // confCtxValue runs ctx.value for the conformance suite.
-// Printed from Exec IR function confCtxValue of internal/ir/exec/core.
+// Printed from Exec IR function confCtxValue of internal/ir/code/exec/compose.
 func (p *Parser) confCtxValue(s ctxHit) *core.Node {
 	var r *core.Node
 	r = s.e.Node
@@ -40,7 +40,7 @@ func (p *Parser) confCtxValue(s ctxHit) *core.Node {
 }
 
 // confCtxEnd runs ctx.end for the conformance suite.
-// Printed from Exec IR function confCtxEnd of internal/ir/exec/core.
+// Printed from Exec IR function confCtxEnd of internal/ir/code/exec/compose.
 func (p *Parser) confCtxEnd(s ctxHit) int {
 	var r int
 	r = s.e.End
@@ -48,7 +48,7 @@ func (p *Parser) confCtxEnd(s ctxHit) int {
 }
 
 // confCtxErrs runs ctx.errs for the conformance suite.
-// Printed from Exec IR function confCtxErrs of internal/ir/exec/core.
+// Printed from Exec IR function confCtxErrs of internal/ir/code/exec/compose.
 func (p *Parser) confCtxErrs(s ctxHit) RecEntry {
 	var r RecEntry
 	r = s.e.Errs
@@ -56,7 +56,7 @@ func (p *Parser) confCtxErrs(s ctxHit) RecEntry {
 }
 
 // confCtxFar runs ctx.far for the conformance suite.
-// Printed from Exec IR function confCtxFar of internal/ir/exec/core.
+// Printed from Exec IR function confCtxFar of internal/ir/code/exec/compose.
 func (p *Parser) confCtxFar(s ctxHit) int {
 	var r int
 	r = s.e.Far
@@ -64,7 +64,7 @@ func (p *Parser) confCtxFar(s ctxHit) int {
 }
 
 // confCtxExpected runs ctx.expected for the conformance suite.
-// Printed from Exec IR function confCtxExpected of internal/ir/exec/core.
+// Printed from Exec IR function confCtxExpected of internal/ir/code/exec/compose.
 func (p *Parser) confCtxExpected(s ctxHit) []ExpID {
 	var r []ExpID
 	r = s.e.Expected
@@ -72,7 +72,7 @@ func (p *Parser) confCtxExpected(s ctxHit) []ExpID {
 }
 
 // confCtxAllows runs ctx.allows for the conformance suite.
-// Printed from Exec IR function confCtxAllows of internal/ir/exec/core.
+// Printed from Exec IR function confCtxAllows of internal/ir/code/exec/compose.
 func (p *Parser) confCtxAllows(c CtxState, e *MemoEntry) (bool, CtxState) {
 	var r bool
 	r = (!c.ctx || p.ctxAllows(&c, e))
@@ -80,7 +80,7 @@ func (p *Parser) confCtxAllows(c CtxState, e *MemoEntry) (bool, CtxState) {
 }
 
 // confCtxActive runs ctx.active for the conformance suite.
-// Printed from Exec IR function confCtxActive of internal/ir/exec/core.
+// Printed from Exec IR function confCtxActive of internal/ir/code/exec/compose.
 func (p *Parser) confCtxActive(c CtxState) (bool, CtxState) {
 	var r bool
 	r = c.ctx
@@ -88,7 +88,7 @@ func (p *Parser) confCtxActive(c CtxState) (bool, CtxState) {
 }
 
 // confCtxLookup runs ctx.lookup for the conformance suite.
-// Printed from Exec IR function confCtxLookup of internal/ir/exec/core.
+// Printed from Exec IR function confCtxLookup of internal/ir/code/exec/compose.
 func (p *Parser) confCtxLookup(c CtxState, r *Rule, min int, key KeyVals) (ctxHit, CtxState) {
 	var res ctxHit
 	res = p.ctxLookup(&c, r, min, key)
@@ -96,7 +96,7 @@ func (p *Parser) confCtxLookup(c CtxState, r *Rule, min int, key KeyVals) (ctxHi
 }
 
 // confCtxPush runs ctx.push for the conformance suite.
-// Printed from Exec IR function confCtxPush of internal/ir/exec/core.
+// Printed from Exec IR function confCtxPush of internal/ir/code/exec/compose.
 func (p *Parser) confCtxPush(c CtxState) CtxState {
 	if c.framed {
 		p.pushFrame(p.Pos, c.gp)
@@ -105,7 +105,7 @@ func (p *Parser) confCtxPush(c CtxState) CtxState {
 }
 
 // confCtxPop runs ctx.pop for the conformance suite.
-// Printed from Exec IR function confCtxPop of internal/ir/exec/core.
+// Printed from Exec IR function confCtxPop of internal/ir/code/exec/compose.
 func (p *Parser) confCtxPop(c CtxState) (int, CtxState) {
 	var r int
 	r = storeMemo
@@ -116,7 +116,7 @@ func (p *Parser) confCtxPop(c CtxState) (int, CtxState) {
 }
 
 // confCtxStoreMemo runs ctx.storeMemo for the conformance suite.
-// Printed from Exec IR function confCtxStoreMemo of internal/ir/exec/core.
+// Printed from Exec IR function confCtxStoreMemo of internal/ir/code/exec/compose.
 func (p *Parser) confCtxStoreMemo() int {
 	var r int
 	r = storeMemo
@@ -124,7 +124,7 @@ func (p *Parser) confCtxStoreMemo() int {
 }
 
 // confCtxStoreCtx runs ctx.storeCtx for the conformance suite.
-// Printed from Exec IR function confCtxStoreCtx of internal/ir/exec/core.
+// Printed from Exec IR function confCtxStoreCtx of internal/ir/code/exec/compose.
 func (p *Parser) confCtxStoreCtx() int {
 	var r int
 	r = storeCtx
@@ -132,14 +132,14 @@ func (p *Parser) confCtxStoreCtx() int {
 }
 
 // confMemoSetPresent runs memo.setPresent for the conformance suite.
-// Printed from Exec IR function confMemoSetPresent of internal/ir/exec/core.
+// Printed from Exec IR function confMemoSetPresent of internal/ir/code/exec/compose.
 func (p *Parser) confMemoSetPresent(e *MemoEntry, c CtxState) CtxState {
 	e.Present = c.present
 	return c
 }
 
 // confCtxKeep runs ctx.keep for the conformance suite.
-// Printed from Exec IR function confCtxKeep of internal/ir/exec/core.
+// Printed from Exec IR function confCtxKeep of internal/ir/code/exec/compose.
 func (p *Parser) confCtxKeep(c CtxState, r *Rule, pos int, min int, key KeyVals, ok bool, end int, silent bool, value *core.Node, errs RecEntry, far int, k []ExpID) CtxState {
 	e := p.grown
 	if r.Leader {
@@ -154,7 +154,7 @@ func (p *Parser) confCtxKeep(c CtxState, r *Rule, pos int, min int, key KeyVals,
 }
 
 // confCtxDone runs ctx.done for the conformance suite.
-// Printed from Exec IR function confCtxDone of internal/ir/exec/core.
+// Printed from Exec IR function confCtxDone of internal/ir/code/exec/compose.
 func (p *Parser) confCtxDone(c CtxState) CtxState {
 	if c.framed {
 		p.mergeDeps(c.ds)
@@ -163,7 +163,7 @@ func (p *Parser) confCtxDone(c CtxState) CtxState {
 }
 
 // confGrowBegin runs grow.begin for the conformance suite.
-// Printed from Exec IR function confGrowBegin of internal/ir/exec/core.
+// Printed from Exec IR function confGrowBegin of internal/ir/code/exec/compose.
 func (p *Parser) confGrowBegin(r *Rule, min int) GrowState {
 	var res GrowState
 	res = p.GrowBegin(p.GrowKey(r, min), r)
@@ -171,7 +171,7 @@ func (p *Parser) confGrowBegin(r *Rule, min int) GrowState {
 }
 
 // confGrowCtx runs grow.ctx for the conformance suite.
-// Printed from Exec IR function confGrowCtx of internal/ir/exec/core.
+// Printed from Exec IR function confGrowCtx of internal/ir/code/exec/compose.
 func (p *Parser) confGrowCtx(g GrowState) (bool, GrowState) {
 	var r bool
 	r = g.ctx
@@ -179,7 +179,7 @@ func (p *Parser) confGrowCtx(g GrowState) (bool, GrowState) {
 }
 
 // confGrowLonger runs grow.longer for the conformance suite.
-// Printed from Exec IR function confGrowLonger of internal/ir/exec/core.
+// Printed from Exec IR function confGrowLonger of internal/ir/code/exec/compose.
 func (p *Parser) confGrowLonger(g GrowState, ok bool) (bool, GrowState) {
 	var r bool
 	r = p.growLonger(&g, ok)
@@ -187,7 +187,7 @@ func (p *Parser) confGrowLonger(g GrowState, ok bool) (bool, GrowState) {
 }
 
 // confGrowAdopt runs grow.adopt for the conformance suite.
-// Printed from Exec IR function confGrowAdopt of internal/ir/exec/core.
+// Printed from Exec IR function confGrowAdopt of internal/ir/code/exec/compose.
 func (p *Parser) confGrowAdopt(g GrowState, value *core.Node, errs RecEntry) GrowState {
 	p.growAdopt(&g, value, errs)
 	return g

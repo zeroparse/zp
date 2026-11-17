@@ -5,9 +5,10 @@ import (
 	"io"
 	"slices"
 
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // A Driver runs the pass pipelines of the IR under one Settings value: it turns the passes on and
@@ -28,17 +29,17 @@ type Driver struct {
 	// names the first pass that broke an invariant.
 	VerifyEach bool
 	// CoreHook, if set, is called with the Core module after it is built and after each pass that
-	// runs on it (core.RunOptions.Dump).
+	// runs on it (corepass.RunOptions.Dump).
 	CoreHook func(pass string, m *core.Module)
-	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that run a pipeline of
+	// CoreRun, if set, runs the Core passes in place of corepass.Run, for tests that run a pipeline of
 	// their own.
-	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
+	CoreRun func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error)
 	// FlowRun, if set, runs the Flow passes in place of flow.Run, for tests that run a pipeline of
 	// their own; table names the table of the function, as in the dumps.
 	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
-	// ExecRun, if set, runs the Exec passes in place of exec.RunPasses, for tests that run a pipeline
+	// ExecRun, if set, runs the Exec passes in place of code.RunPasses, for tests that run a pipeline
 	// of their own; table names the table of the module, as in the dumps.
-	ExecRun func(table string, m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error)
+	ExecRun func(table string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error)
 }
 
 // prints reports whether the unit is dumped after the named pass.
@@ -48,11 +49,11 @@ func (d *Driver) prints(pass string) bool {
 
 // RunCore runs the pipeline of Core passes on m in the mode, with the optimizations of the driver.
 // local selects the rules that terminal regions are made in, and prepareScans is called around the
-// scans (core.Env). The module is the one of the table named table, which the printed Core IR is
+// scans (corepass.Env). The module is the one of the table named table, which the printed Core IR is
 // labeled with. A failure is an internal error that names the pass.
-func (d *Driver) RunCore(table string, m *core.Module, mode core.Mode, local func(*core.Rule) bool, prepareScans func(*core.Module) func()) error {
-	env := &core.Env{Mode: mode, Flag: d.Opt.On, Local: local, PrepareScans: prepareScans}
-	run := core.Run
+func (d *Driver) RunCore(table string, m *core.Module, mode corepass.Mode, local func(*core.Rule) bool, prepareScans func(*core.Module) func()) error {
+	env := &corepass.Env{Mode: mode, Flag: d.Opt.On, Local: local, PrepareScans: prepareScans}
+	run := corepass.Run
 	if d.CoreRun != nil {
 		run = d.CoreRun
 	}
@@ -68,7 +69,7 @@ func (d *Driver) RunCore(table string, m *core.Module, mode core.Mode, local fun
 			}
 		}
 	}
-	if _, err := run(m, env, core.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}); err != nil {
+	if _, err := run(m, env, corepass.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}); err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 	return nil
@@ -110,11 +111,11 @@ func (d *Driver) RunFlow(table string, f *flow.Func, observe bool) error {
 // module belongs to the table named table, which the printed Exec IR of its functions is labeled
 // with, as the dump of "exec" before the first pass. A failure is an internal error that names the
 // pass.
-func (d *Driver) RunExec(table string, m *exec.Module, observe bool) error {
-	env := &exec.Env{Observe: observe, Flag: d.Opt.On}
-	var dump func(pass string, m *exec.Module)
+func (d *Driver) RunExec(table string, m *code.Module, observe bool) error {
+	env := &code.Env{Observe: observe, Flag: d.Opt.On}
+	var dump func(pass string, m *code.Module)
 	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
-		dump = func(pass string, m *exec.Module) {
+		dump = func(pass string, m *code.Module) {
 			if pass == PrintBuild {
 				pass = PrintExec
 			}
@@ -122,16 +123,16 @@ func (d *Driver) RunExec(table string, m *exec.Module, observe bool) error {
 				return
 			}
 			for _, f := range m.Funcs {
-				fmt.Fprintf(d.PrintTo, "-- Exec IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, exec.FuncString(f))
+				fmt.Fprintf(d.PrintTo, "-- Exec IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, code.FuncString(f))
 			}
 		}
 	}
-	o := exec.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}
+	o := code.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}
 	var err error
 	if d.ExecRun != nil {
 		_, err = d.ExecRun(table, m, env, o)
 	} else {
-		_, err = exec.RunPasses(m, env, o)
+		_, err = code.RunPasses(m, env, o)
 	}
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)

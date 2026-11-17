@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
@@ -88,7 +88,7 @@ func TestStructuralFacts(t *testing.T) {
 					}
 					t.Fatalf("node structure differs: %d nodes, want %d", len(got), len(want))
 				}
-				tf, uf := facts.Compute(typed, nil), facts.Compute(untyped, nil)
+				tf, uf := corepass.Compute(typed, nil), corepass.Compute(untyped, nil)
 				if !reflect.DeepEqual(uf.Rules[:n], tf.Rules[:n]) {
 					t.Fatalf("rule facts differ:\n%+v\nwant\n%+v", uf.Rules[:n], tf.Rules[:n])
 				}
@@ -125,7 +125,7 @@ func TestStructuralFactsNegative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := facts.Compute(m, nil)
+	f := corepass.Compute(m, nil)
 	if !f.Rules[0].Cyclic() {
 		t.Fatal("rule a is not left-recursive")
 	}
@@ -134,7 +134,7 @@ func TestStructuralFactsNegative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reflect.DeepEqual(facts.Compute(m2, nil).Rules, f.Rules) {
+	if reflect.DeepEqual(corepass.Compute(m2, nil).Rules, f.Rules) {
 		t.Fatal("facts do not see the rule body")
 	}
 }

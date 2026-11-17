@@ -132,7 +132,7 @@ The generator prunes candidates that the parser would read differently from how 
   (Using only the check made the Python grammar's coverage slightly worse: forcing `&")"` or `&(ws ":")` guides
   what follows.)
 - **Predicates and variables.** Predicates are evaluated by the reference evaluator of terms that the conformance
-  tests of the backends use (`internal/ir/exec/ref`), so the generator and the parser give a term the same meaning.
+  tests of the backends use (`internal/ir/code/exec/ref`), so the generator and the parser give a term the same meaning.
   The generator passes it the values that the parser would build, as far as it tracks them: string nodes, list nodes
   with their elements, nodes of rules and of repetition iterations with their captures, `nil` for a capture that did
   not match, and variables (scoped per rule invocation and undone on backtracking). What it does not track is an

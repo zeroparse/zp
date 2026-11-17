@@ -7,10 +7,10 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
 	irc "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 // Terms printed from Exec IR.
@@ -92,9 +92,9 @@ func (g *Generator) leaf(name string, variable bool, s *check.Scope, locals map[
 // termTarget returns the Go implementation of the operations of a lowered term whose leaves the scope
 // s and the locals resolve.
 func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target {
-	handles := map[string]string{ops.Datum: "any", ops.Fail: "any", ops.Str: "string", ops.Name: "string",
-		ops.Act: "*" + g.ctxType(), ops.FType: "*FieldType", ops.NodeType: g.pick("*nodeTypeKinds", "uint16"),
-		ops.Seq: g.pick("[]*Node", "[]any"), ops.Obj: g.pick("*Node", "TVal"), lower.HandleOperand: "TOperand"}
+	handles := map[string]string{exec.Datum: "any", exec.Fail: "any", exec.Str: "string", exec.Name: "string",
+		exec.Act: "*" + g.ctxType(), exec.FType: "*FieldType", exec.NodeType: g.pick("*nodeTypeKinds", "uint16"),
+		exec.Seq: g.pick("[]*Node", "[]any"), exec.Obj: g.pick("*Node", "TVal"), lower.HandleOperand: "TOperand"}
 	return &Target{
 		Handle: func(name string) string { return handles[name] },
 		FuncName: func(name string) string {
@@ -104,7 +104,7 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 			}
 			return "c.P." + n
 		},
-		Op: func(c *exec.Call, a []string) string {
+		Op: func(c *code.Call, a []string) string {
 			switch c.Callee {
 			case lower.OpTermConst:
 				switch v := c.Imm.(lower.TermConst).Value.(type) {
@@ -169,7 +169,7 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 			case lower.OpTermOperand:
 				return "TOperand{V: " + a[0] + "}"
 			case lower.OpTermCompare:
-				return fmt.Sprintf("c.TermCompare(%s.%s, %s, %s)", libAlias, ops.OperatorIdent(c.Imm.(string), false, false), a[0], a[1])
+				return fmt.Sprintf("c.TermCompare(%s.%s, %s, %s)", libAlias, exec.OperatorIdent(c.Imm.(string), false, false), a[0], a[1])
 			case lower.OpTermUncontrolled:
 				return "c.P.Control == nil"
 			case lower.OpTermTextIn:
@@ -192,7 +192,7 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 			}
 			panic("gogen: term operation " + c.Callee)
 		},
-		Stmt: func(c *exec.Call, a []string, dst []string, define bool) (string, bool) {
+		Stmt: func(c *code.Call, a []string, dst []string, define bool) (string, bool) {
 			if c.Callee != lower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
 				return "", false
 			}
@@ -210,7 +210,7 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 		},
 		Prec: goPrec,
 		Name: termConstName,
-		Pure: func(c *exec.Call) bool {
+		Pure: func(c *code.Call) bool {
 			switch c.Callee {
 			case lower.OpTermConst, lower.OpTermName, lower.OpTermField, lower.OpTermFromStr, "val.fromBool",
 				"val.unbox", "seq.len", lower.OpTermOperand, lower.OpTermTextIn:
@@ -246,21 +246,21 @@ func termConstName(callee string, arg int, v int64) (string, bool) {
 	var names []string
 	switch {
 	case callee == "binary" && arg == 0:
-		names = ops.BinaryNames
+		names = exec.BinaryNames
 	case callee == "unary" && arg == 0:
-		names = ops.UnaryNames
+		names = exec.UnaryNames
 	case callee == "logic" && arg == 0:
-		names = ops.LogicalNames
+		names = exec.LogicalNames
 	case callee == "member" && arg == 1:
-		if v < 0 || int(v) >= len(ops.MemberKinds) {
+		if v < 0 || int(v) >= len(exec.MemberKinds) {
 			return "", false
 		}
-		return libAlias + ".Member" + ops.MemberKinds[v].Name, true
+		return libAlias + ".Member" + exec.MemberKinds[v].Name, true
 	default:
 		return "", false
 	}
 	if v < 0 || int(v) >= len(names) {
 		return "", false
 	}
-	return libAlias + "." + ops.Ident(names[v]), true
+	return libAlias + "." + exec.Ident(names[v]), true
 }

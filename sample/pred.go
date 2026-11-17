@@ -4,7 +4,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // Kinds of generated values (see val).

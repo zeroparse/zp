@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
 )
 
 // TestTermDeclareKeepsTheFile checks that a local keeps the register file of its first
@@ -13,17 +13,17 @@ import (
 // its readers would not see.
 func TestTermDeclareKeepsTheFile(t *testing.T) {
 	c := &termCompiler{locals: map[string]termReg{}, prog: &TermProgram{}}
-	n, err := c.declare("x", exec.Type{Kind: exec.KInt})
+	n, err := c.declare("x", code.Type{Kind: code.KInt})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if again, err := c.declare("x", exec.Type{Kind: exec.KBool}); err != nil || again != n {
+	if again, err := c.declare("x", code.Type{Kind: code.KBool}); err != nil || again != n {
 		t.Errorf("declaring x again in its file gives %v, %v; want %v", again, err, n)
 	}
-	if r, err := c.declare("x", exec.Type{Kind: exec.KHandle, Handle: ops.Datum}); err == nil {
+	if r, err := c.declare("x", code.Type{Kind: code.KHandle, Handle: exec.Datum}); err == nil {
 		t.Errorf("declaring the int x as a value gives the register %v, want an error", r)
 	}
-	if r, err := c.declare("y", exec.Type{Kind: exec.KHandle, Handle: "Nope"}); err == nil {
+	if r, err := c.declare("y", code.Type{Kind: code.KHandle, Handle: "Nope"}); err == nil {
 		t.Errorf("a local of a type without a register file gets %v, want an error", r)
 	}
 }

@@ -2,7 +2,7 @@ package gogen
 
 import (
 	"zeroparse.dev/zp/internal/compile"
-	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
 
 // typedFrameComment reports whether the body of the typed rule r is printed in place under the

@@ -8,7 +8,7 @@ import (
 )
 
 // confOprLed runs opr.led for the conformance suite.
-// Printed from Exec IR function confOprLed of internal/ir/exec/core.
+// Printed from Exec IR function confOprLed of internal/ir/code/exec/compose.
 func (p *Parser) confOprLed(r *Rule) []*OperatorsRuleOp {
 	var res []*OperatorsRuleOp
 	res = r.OperatorsRule.Led
@@ -16,7 +16,7 @@ func (p *Parser) confOprLed(r *Rule) []*OperatorsRuleOp {
 }
 
 // confOprPrefix runs opr.prefix for the conformance suite.
-// Printed from Exec IR function confOprPrefix of internal/ir/exec/core.
+// Printed from Exec IR function confOprPrefix of internal/ir/code/exec/compose.
 func (p *Parser) confOprPrefix(r *Rule) []*OperatorsRuleOp {
 	var res []*OperatorsRuleOp
 	res = r.OperatorsRule.Prefix
@@ -24,7 +24,7 @@ func (p *Parser) confOprPrefix(r *Rule) []*OperatorsRuleOp {
 }
 
 // confOprCount runs opr.count for the conformance suite.
-// Printed from Exec IR function confOprCount of internal/ir/exec/core.
+// Printed from Exec IR function confOprCount of internal/ir/code/exec/compose.
 func (p *Parser) confOprCount(l []*OperatorsRuleOp) int {
 	var r int
 	r = len(l)
@@ -32,7 +32,7 @@ func (p *Parser) confOprCount(l []*OperatorsRuleOp) int {
 }
 
 // confOprAt runs opr.at for the conformance suite.
-// Printed from Exec IR function confOprAt of internal/ir/exec/core.
+// Printed from Exec IR function confOprAt of internal/ir/code/exec/compose.
 func (p *Parser) confOprAt(l []*OperatorsRuleOp, i int) *OperatorsRuleOp {
 	var r *OperatorsRuleOp
 	r = l[i]
@@ -40,7 +40,7 @@ func (p *Parser) confOprAt(l []*OperatorsRuleOp, i int) *OperatorsRuleOp {
 }
 
 // confOprOperands runs opr.operands for the conformance suite.
-// Printed from Exec IR function confOprOperands of internal/ir/exec/core.
+// Printed from Exec IR function confOprOperands of internal/ir/code/exec/compose.
 func (p *Parser) confOprOperands(r *Rule) int {
 	var res int
 	res = len(r.OperatorsRule.Operands)
@@ -48,7 +48,7 @@ func (p *Parser) confOprOperands(r *Rule) int {
 }
 
 // confOprOperand runs opr.operand for the conformance suite.
-// Printed from Exec IR function confOprOperand of internal/ir/exec/core.
+// Printed from Exec IR function confOprOperand of internal/ir/code/exec/compose.
 func (p *Parser) confOprOperand(r *Rule, i int) *OperatorsRuleLine {
 	var res *OperatorsRuleLine
 	res = r.OperatorsRule.Operands[i]
@@ -56,7 +56,7 @@ func (p *Parser) confOprOperand(r *Rule, i int) *OperatorsRuleLine {
 }
 
 // confOprLine runs opr.line for the conformance suite.
-// Printed from Exec IR function confOprLine of internal/ir/exec/core.
+// Printed from Exec IR function confOprLine of internal/ir/code/exec/compose.
 func (p *Parser) confOprLine(op *OperatorsRuleOp) *OperatorsRuleLine {
 	var r *OperatorsRuleLine
 	r = op.Line
@@ -64,7 +64,7 @@ func (p *Parser) confOprLine(op *OperatorsRuleOp) *OperatorsRuleLine {
 }
 
 // confOprLevel runs opr.level for the conformance suite.
-// Printed from Exec IR function confOprLevel of internal/ir/exec/core.
+// Printed from Exec IR function confOprLevel of internal/ir/code/exec/compose.
 func (p *Parser) confOprLevel(op *OperatorsRuleOp) int {
 	var r int
 	r = op.Level
@@ -72,7 +72,7 @@ func (p *Parser) confOprLevel(op *OperatorsRuleOp) int {
 }
 
 // confOprInfix runs opr.infix for the conformance suite.
-// Printed from Exec IR function confOprInfix of internal/ir/exec/core.
+// Printed from Exec IR function confOprInfix of internal/ir/code/exec/compose.
 func (p *Parser) confOprInfix(op *OperatorsRuleOp) bool {
 	var r bool
 	r = op.Kind == grammar.Infix
@@ -80,7 +80,7 @@ func (p *Parser) confOprInfix(op *OperatorsRuleOp) bool {
 }
 
 // confOprPostfix runs opr.postfix for the conformance suite.
-// Printed from Exec IR function confOprPostfix of internal/ir/exec/core.
+// Printed from Exec IR function confOprPostfix of internal/ir/code/exec/compose.
 func (p *Parser) confOprPostfix(op *OperatorsRuleOp) bool {
 	var r bool
 	r = op.Kind == grammar.Postfix
@@ -88,7 +88,7 @@ func (p *Parser) confOprPostfix(op *OperatorsRuleOp) bool {
 }
 
 // confOprRight runs opr.right for the conformance suite.
-// Printed from Exec IR function confOprRight of internal/ir/exec/core.
+// Printed from Exec IR function confOprRight of internal/ir/code/exec/compose.
 func (p *Parser) confOprRight(op *OperatorsRuleOp) bool {
 	var r bool
 	r = op.Assoc == grammar.AssocRight
@@ -96,7 +96,7 @@ func (p *Parser) confOprRight(op *OperatorsRuleOp) bool {
 }
 
 // confOprNonAssoc runs opr.nonAssoc for the conformance suite.
-// Printed from Exec IR function confOprNonAssoc of internal/ir/exec/core.
+// Printed from Exec IR function confOprNonAssoc of internal/ir/code/exec/compose.
 func (p *Parser) confOprNonAssoc(op *OperatorsRuleOp) bool {
 	var r bool
 	r = op.Assoc == grammar.AssocNone
@@ -104,7 +104,7 @@ func (p *Parser) confOprNonAssoc(op *OperatorsRuleOp) bool {
 }
 
 // confOprScope runs opr.scope for the conformance suite.
-// Printed from Exec IR function confOprScope of internal/ir/exec/core.
+// Printed from Exec IR function confOprScope of internal/ir/code/exec/compose.
 func (p *Parser) confOprScope(l *OperatorsRuleLine) int {
 	var r int
 	r = len(l.Scope.Names)
@@ -112,7 +112,7 @@ func (p *Parser) confOprScope(l *OperatorsRuleLine) int {
 }
 
 // confOprHasSkip runs opr.hasSkip for the conformance suite.
-// Printed from Exec IR function confOprHasSkip of internal/ir/exec/core.
+// Printed from Exec IR function confOprHasSkip of internal/ir/code/exec/compose.
 func (p *Parser) confOprHasSkip(r *Rule) bool {
 	var res bool
 	res = r.OperatorsRule.Skip != nil
@@ -120,7 +120,7 @@ func (p *Parser) confOprHasSkip(r *Rule) bool {
 }
 
 // confOprAttempt runs opr.attempt for the conformance suite.
-// Printed from Exec IR function confOprAttempt of internal/ir/exec/core.
+// Printed from Exec IR function confOprAttempt of internal/ir/code/exec/compose.
 func (p *Parser) confOprAttempt(op *OperatorsRuleOp, f *Frame, v *core.Node, start int, cut bool, errs RecEntry) OperatorsRuleAttempt {
 	var r OperatorsRuleAttempt
 	r = OperatorsRuleAttempt{Op: op, Frame: f, V: v, Start: start, End: p.Pos, Env: p.Env, Cut: cut, Errs: errs}
@@ -128,7 +128,7 @@ func (p *Parser) confOprAttempt(op *OperatorsRuleOp, f *Frame, v *core.Node, sta
 }
 
 // confOprFound runs opr.found for the conformance suite.
-// Printed from Exec IR function confOprFound of internal/ir/exec/core.
+// Printed from Exec IR function confOprFound of internal/ir/code/exec/compose.
 func (p *Parser) confOprFound(a OperatorsRuleAttempt) bool {
 	var r bool
 	r = a.Op != nil
@@ -136,7 +136,7 @@ func (p *Parser) confOprFound(a OperatorsRuleAttempt) bool {
 }
 
 // confOprOp runs opr.op for the conformance suite.
-// Printed from Exec IR function confOprOp of internal/ir/exec/core.
+// Printed from Exec IR function confOprOp of internal/ir/code/exec/compose.
 func (p *Parser) confOprOp(a OperatorsRuleAttempt) *OperatorsRuleOp {
 	var r *OperatorsRuleOp
 	r = a.Op
@@ -144,7 +144,7 @@ func (p *Parser) confOprOp(a OperatorsRuleAttempt) *OperatorsRuleOp {
 }
 
 // confOprEnd runs opr.end for the conformance suite.
-// Printed from Exec IR function confOprEnd of internal/ir/exec/core.
+// Printed from Exec IR function confOprEnd of internal/ir/code/exec/compose.
 func (p *Parser) confOprEnd(a OperatorsRuleAttempt) int {
 	var r int
 	r = a.End
@@ -152,7 +152,7 @@ func (p *Parser) confOprEnd(a OperatorsRuleAttempt) int {
 }
 
 // confOprCut runs opr.cut for the conformance suite.
-// Printed from Exec IR function confOprCut of internal/ir/exec/core.
+// Printed from Exec IR function confOprCut of internal/ir/code/exec/compose.
 func (p *Parser) confOprCut(a OperatorsRuleAttempt) bool {
 	var r bool
 	r = a.Cut
@@ -160,7 +160,7 @@ func (p *Parser) confOprCut(a OperatorsRuleAttempt) bool {
 }
 
 // confOprEnv runs opr.env for the conformance suite.
-// Printed from Exec IR function confOprEnv of internal/ir/exec/core.
+// Printed from Exec IR function confOprEnv of internal/ir/code/exec/compose.
 func (p *Parser) confOprEnv(a OperatorsRuleAttempt) *Env {
 	var r *Env
 	r = a.Env
@@ -168,7 +168,7 @@ func (p *Parser) confOprEnv(a OperatorsRuleAttempt) *Env {
 }
 
 // confOprErrs runs opr.errs for the conformance suite.
-// Printed from Exec IR function confOprErrs of internal/ir/exec/core.
+// Printed from Exec IR function confOprErrs of internal/ir/code/exec/compose.
 func (p *Parser) confOprErrs(a OperatorsRuleAttempt) RecEntry {
 	var r RecEntry
 	r = a.Errs
@@ -176,13 +176,13 @@ func (p *Parser) confOprErrs(a OperatorsRuleAttempt) RecEntry {
 }
 
 // confOprSetCutFailed runs opr.setCutFailed for the conformance suite.
-// Printed from Exec IR function confOprSetCutFailed of internal/ir/exec/core.
+// Printed from Exec IR function confOprSetCutFailed of internal/ir/code/exec/compose.
 func (p *Parser) confOprSetCutFailed(failed bool) {
 	p.cutFailed = failed
 }
 
 // confOprCutFailed runs opr.cutFailed for the conformance suite.
-// Printed from Exec IR function confOprCutFailed of internal/ir/exec/core.
+// Printed from Exec IR function confOprCutFailed of internal/ir/code/exec/compose.
 func (p *Parser) confOprCutFailed() bool {
 	var r bool
 	r = p.cutFailed
@@ -190,13 +190,13 @@ func (p *Parser) confOprCutFailed() bool {
 }
 
 // confOprSetNudBound runs opr.setNudBound for the conformance suite.
-// Printed from Exec IR function confOprSetNudBound of internal/ir/exec/core.
+// Printed from Exec IR function confOprSetNudBound of internal/ir/code/exec/compose.
 func (p *Parser) confOprSetNudBound(bound int) {
 	p.nudBound = bound
 }
 
 // confOprNudBound runs opr.nudBound for the conformance suite.
-// Printed from Exec IR function confOprNudBound of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudBound of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudBound() int {
 	var r int
 	r = p.nudBound
@@ -204,13 +204,13 @@ func (p *Parser) confOprNudBound() int {
 }
 
 // confOprSetAfterEmpty runs opr.setAfterEmpty for the conformance suite.
-// Printed from Exec IR function confOprSetAfterEmpty of internal/ir/exec/core.
+// Printed from Exec IR function confOprSetAfterEmpty of internal/ir/code/exec/compose.
 func (p *Parser) confOprSetAfterEmpty(empty bool) {
 	p.afterEmpty = empty
 }
 
 // confOprAfterEmpty runs opr.afterEmpty for the conformance suite.
-// Printed from Exec IR function confOprAfterEmpty of internal/ir/exec/core.
+// Printed from Exec IR function confOprAfterEmpty of internal/ir/code/exec/compose.
 func (p *Parser) confOprAfterEmpty() bool {
 	var r bool
 	r = p.afterEmpty
@@ -218,7 +218,7 @@ func (p *Parser) confOprAfterEmpty() bool {
 }
 
 // confOprLongestL runs oprLongest.l for the conformance suite.
-// Printed from Exec IR function confOprLongestL of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestL of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestL(st *LongestState) []*OperatorsRuleOp {
 	var r []*OperatorsRuleOp
 	r = st.L
@@ -226,13 +226,13 @@ func (p *Parser) confOprLongestL(st *LongestState) []*OperatorsRuleOp {
 }
 
 // confOprLongestSetL runs oprLongest.setL for the conformance suite.
-// Printed from Exec IR function confOprLongestSetL of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestSetL of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestSetL(st *LongestState, x []*OperatorsRuleOp) {
 	st.L = x
 }
 
 // confOprLongestI runs oprLongest.i for the conformance suite.
-// Printed from Exec IR function confOprLongestI of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestI of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestI(st *LongestState) int {
 	var r int
 	r = st.I
@@ -240,13 +240,13 @@ func (p *Parser) confOprLongestI(st *LongestState) int {
 }
 
 // confOprLongestSetI runs oprLongest.setI for the conformance suite.
-// Printed from Exec IR function confOprLongestSetI of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestSetI of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestSetI(st *LongestState, x int) {
 	st.I = x
 }
 
 // confOprLongestM0 runs oprLongest.m0 for the conformance suite.
-// Printed from Exec IR function confOprLongestM0 of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestM0 of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestM0(st *LongestState) Mark {
 	var r Mark
 	r = st.M0
@@ -254,13 +254,13 @@ func (p *Parser) confOprLongestM0(st *LongestState) Mark {
 }
 
 // confOprLongestSetM0 runs oprLongest.setM0 for the conformance suite.
-// Printed from Exec IR function confOprLongestSetM0 of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestSetM0 of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestSetM0(st *LongestState, x Mark) {
 	st.M0 = x
 }
 
 // confOprLongestBest runs oprLongest.best for the conformance suite.
-// Printed from Exec IR function confOprLongestBest of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestBest of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestBest(st *LongestState) OperatorsRuleAttempt {
 	var r OperatorsRuleAttempt
 	r = st.Best
@@ -268,13 +268,13 @@ func (p *Parser) confOprLongestBest(st *LongestState) OperatorsRuleAttempt {
 }
 
 // confOprLongestSetBest runs oprLongest.setBest for the conformance suite.
-// Printed from Exec IR function confOprLongestSetBest of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestSetBest of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestSetBest(st *LongestState, x OperatorsRuleAttempt) {
 	st.Best = x
 }
 
 // confOprLongestCutFailed runs oprLongest.cutFailed for the conformance suite.
-// Printed from Exec IR function confOprLongestCutFailed of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestCutFailed of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestCutFailed(st *LongestState) bool {
 	var r bool
 	r = st.CutFailed
@@ -282,13 +282,13 @@ func (p *Parser) confOprLongestCutFailed(st *LongestState) bool {
 }
 
 // confOprLongestSetCutFailed runs oprLongest.setCutFailed for the conformance suite.
-// Printed from Exec IR function confOprLongestSetCutFailed of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestSetCutFailed of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestSetCutFailed(st *LongestState, x bool) {
 	st.CutFailed = x
 }
 
 // confOprLongestPrevFrame runs oprLongest.prevFrame for the conformance suite.
-// Printed from Exec IR function confOprLongestPrevFrame of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestPrevFrame of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestPrevFrame(st *LongestState) *Frame {
 	var r *Frame
 	r = st.PrevFrame
@@ -296,13 +296,13 @@ func (p *Parser) confOprLongestPrevFrame(st *LongestState) *Frame {
 }
 
 // confOprLongestSetPrevFrame runs oprLongest.setPrevFrame for the conformance suite.
-// Printed from Exec IR function confOprLongestSetPrevFrame of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestSetPrevFrame of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestSetPrevFrame(st *LongestState, x *Frame) {
 	st.PrevFrame = x
 }
 
 // confOprLongestPrevCut runs oprLongest.prevCut for the conformance suite.
-// Printed from Exec IR function confOprLongestPrevCut of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestPrevCut of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestPrevCut(st *LongestState) bool {
 	var r bool
 	r = st.PrevCut
@@ -310,13 +310,13 @@ func (p *Parser) confOprLongestPrevCut(st *LongestState) bool {
 }
 
 // confOprLongestSetPrevCut runs oprLongest.setPrevCut for the conformance suite.
-// Printed from Exec IR function confOprLongestSetPrevCut of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestSetPrevCut of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestSetPrevCut(st *LongestState, x bool) {
 	st.PrevCut = x
 }
 
 // confOprLongestF runs oprLongest.f for the conformance suite.
-// Printed from Exec IR function confOprLongestF of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestF of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestF(st *LongestState) *Frame {
 	var r *Frame
 	r = st.F
@@ -324,13 +324,13 @@ func (p *Parser) confOprLongestF(st *LongestState) *Frame {
 }
 
 // confOprLongestSetF runs oprLongest.setF for the conformance suite.
-// Printed from Exec IR function confOprLongestSetF of internal/ir/exec/core.
+// Printed from Exec IR function confOprLongestSetF of internal/ir/code/exec/compose.
 func (p *Parser) confOprLongestSetF(st *LongestState, x *Frame) {
 	st.F = x
 }
 
 // confOprNudM0 runs oprNud.m0 for the conformance suite.
-// Printed from Exec IR function confOprNudM0 of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudM0 of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudM0(st *NudState) Mark {
 	var r Mark
 	r = st.M0
@@ -338,13 +338,13 @@ func (p *Parser) confOprNudM0(st *NudState) Mark {
 }
 
 // confOprNudSetM0 runs oprNud.setM0 for the conformance suite.
-// Printed from Exec IR function confOprNudSetM0 of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudSetM0 of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudSetM0(st *NudState, x Mark) {
 	st.M0 = x
 }
 
 // confOprNudA runs oprNud.a for the conformance suite.
-// Printed from Exec IR function confOprNudA of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudA of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudA(st *NudState) OperatorsRuleAttempt {
 	var r OperatorsRuleAttempt
 	r = st.A
@@ -352,13 +352,13 @@ func (p *Parser) confOprNudA(st *NudState) OperatorsRuleAttempt {
 }
 
 // confOprNudSetA runs oprNud.setA for the conformance suite.
-// Printed from Exec IR function confOprNudSetA of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudSetA of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudSetA(st *NudState, x OperatorsRuleAttempt) {
 	st.A = x
 }
 
 // confOprNudI runs oprNud.i for the conformance suite.
-// Printed from Exec IR function confOprNudI of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudI of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudI(st *NudState) int {
 	var r int
 	r = st.I
@@ -366,13 +366,13 @@ func (p *Parser) confOprNudI(st *NudState) int {
 }
 
 // confOprNudSetI runs oprNud.setI for the conformance suite.
-// Printed from Exec IR function confOprNudSetI of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudSetI of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudSetI(st *NudState, x int) {
 	st.I = x
 }
 
 // confOprNudPrevFrame runs oprNud.prevFrame for the conformance suite.
-// Printed from Exec IR function confOprNudPrevFrame of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudPrevFrame of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudPrevFrame(st *NudState) *Frame {
 	var r *Frame
 	r = st.PrevFrame
@@ -380,13 +380,13 @@ func (p *Parser) confOprNudPrevFrame(st *NudState) *Frame {
 }
 
 // confOprNudSetPrevFrame runs oprNud.setPrevFrame for the conformance suite.
-// Printed from Exec IR function confOprNudSetPrevFrame of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudSetPrevFrame of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudSetPrevFrame(st *NudState, x *Frame) {
 	st.PrevFrame = x
 }
 
 // confOprNudPrevCut runs oprNud.prevCut for the conformance suite.
-// Printed from Exec IR function confOprNudPrevCut of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudPrevCut of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudPrevCut(st *NudState) bool {
 	var r bool
 	r = st.PrevCut
@@ -394,13 +394,13 @@ func (p *Parser) confOprNudPrevCut(st *NudState) bool {
 }
 
 // confOprNudSetPrevCut runs oprNud.setPrevCut for the conformance suite.
-// Printed from Exec IR function confOprNudSetPrevCut of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudSetPrevCut of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudSetPrevCut(st *NudState, x bool) {
 	st.PrevCut = x
 }
 
 // confOprNudF runs oprNud.f for the conformance suite.
-// Printed from Exec IR function confOprNudF of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudF of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudF(st *NudState) *Frame {
 	var r *Frame
 	r = st.F
@@ -408,13 +408,13 @@ func (p *Parser) confOprNudF(st *NudState) *Frame {
 }
 
 // confOprNudSetF runs oprNud.setF for the conformance suite.
-// Printed from Exec IR function confOprNudSetF of internal/ir/exec/core.
+// Printed from Exec IR function confOprNudSetF of internal/ir/code/exec/compose.
 func (p *Parser) confOprNudSetF(st *NudState, x *Frame) {
 	st.F = x
 }
 
 // confOprExprMin runs oprExpr.min for the conformance suite.
-// Printed from Exec IR function confOprExprMin of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprMin of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprMin(st *ExprState) int {
 	var r int
 	r = st.Min
@@ -422,13 +422,13 @@ func (p *Parser) confOprExprMin(st *ExprState) int {
 }
 
 // confOprExprSetMin runs oprExpr.setMin for the conformance suite.
-// Printed from Exec IR function confOprExprSetMin of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprSetMin of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprSetMin(st *ExprState, x int) {
 	st.Min = x
 }
 
 // confOprExprLhs runs oprExpr.lhs for the conformance suite.
-// Printed from Exec IR function confOprExprLhs of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprLhs of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprLhs(st *ExprState) *core.Node {
 	var r *core.Node
 	r = st.Lhs
@@ -436,13 +436,13 @@ func (p *Parser) confOprExprLhs(st *ExprState) *core.Node {
 }
 
 // confOprExprSetLhs runs oprExpr.setLhs for the conformance suite.
-// Printed from Exec IR function confOprExprSetLhs of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprSetLhs of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprSetLhs(st *ExprState, x *core.Node) {
 	st.Lhs = x
 }
 
 // confOprExprLastNone runs oprExpr.lastNone for the conformance suite.
-// Printed from Exec IR function confOprExprLastNone of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprLastNone of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprLastNone(st *ExprState) int {
 	var r int
 	r = st.LastNone
@@ -450,13 +450,13 @@ func (p *Parser) confOprExprLastNone(st *ExprState) int {
 }
 
 // confOprExprSetLastNone runs oprExpr.setLastNone for the conformance suite.
-// Printed from Exec IR function confOprExprSetLastNone of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprSetLastNone of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprSetLastNone(st *ExprState, x int) {
 	st.LastNone = x
 }
 
 // confOprExprBound runs oprExpr.bound for the conformance suite.
-// Printed from Exec IR function confOprExprBound of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprBound of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprBound(st *ExprState) int {
 	var r int
 	r = st.Bound
@@ -464,13 +464,13 @@ func (p *Parser) confOprExprBound(st *ExprState) int {
 }
 
 // confOprExprSetBound runs oprExpr.setBound for the conformance suite.
-// Printed from Exec IR function confOprExprSetBound of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprSetBound of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprSetBound(st *ExprState, x int) {
 	st.Bound = x
 }
 
 // confOprExprGuard runs oprExpr.guard for the conformance suite.
-// Printed from Exec IR function confOprExprGuard of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprGuard of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprGuard(st *ExprState) int {
 	var r int
 	r = st.Guard
@@ -478,13 +478,13 @@ func (p *Parser) confOprExprGuard(st *ExprState) int {
 }
 
 // confOprExprSetGuard runs oprExpr.setGuard for the conformance suite.
-// Printed from Exec IR function confOprExprSetGuard of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprSetGuard of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprSetGuard(st *ExprState, x int) {
 	st.Guard = x
 }
 
 // confOprExprM0 runs oprExpr.m0 for the conformance suite.
-// Printed from Exec IR function confOprExprM0 of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprM0 of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprM0(st *ExprState) Mark {
 	var r Mark
 	r = st.M0
@@ -492,13 +492,13 @@ func (p *Parser) confOprExprM0(st *ExprState) Mark {
 }
 
 // confOprExprSetM0 runs oprExpr.setM0 for the conformance suite.
-// Printed from Exec IR function confOprExprSetM0 of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprSetM0 of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprSetM0(st *ExprState, x Mark) {
 	st.M0 = x
 }
 
 // confOprExprA runs oprExpr.a for the conformance suite.
-// Printed from Exec IR function confOprExprA of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprA of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprA(st *ExprState) OperatorsRuleAttempt {
 	var r OperatorsRuleAttempt
 	r = st.A
@@ -506,7 +506,7 @@ func (p *Parser) confOprExprA(st *ExprState) OperatorsRuleAttempt {
 }
 
 // confOprExprSetA runs oprExpr.setA for the conformance suite.
-// Printed from Exec IR function confOprExprSetA of internal/ir/exec/core.
+// Printed from Exec IR function confOprExprSetA of internal/ir/code/exec/compose.
 func (p *Parser) confOprExprSetA(st *ExprState, x OperatorsRuleAttempt) {
 	st.A = x
 }

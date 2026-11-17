@@ -17,9 +17,9 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // Kind says what an optimization changes.
@@ -37,7 +37,7 @@ const (
 	Runtime
 	// FlowPass is a pass over Flow IR (internal/ir/flow, Pipeline).
 	FlowPass
-	// ExecPass is a pass over Exec IR (internal/ir/exec, Pipeline).
+	// ExecPass is a pass over Exec IR (internal/ir/code, Pipeline).
 	ExecPass
 )
 
@@ -76,13 +76,13 @@ type Flag struct {
 
 // Flags lists the optimizations in the order the reference documents them.
 var Flags = []Flag{
-	{Name: core.PassTerminals, Kind: Pass, Default: 1, Doc: "value-free choices of many literals and classes run as one program (lean typed Go)"},
+	{Name: corepass.PassTerminals, Kind: Pass, Default: 1, Doc: "value-free choices of many literals and classes run as one program (lean typed Go)"},
 	{Name: "text-dispatch", Kind: Lowering, Default: 1, Doc: "a predicate that compares the text of a capture with literals tests them at once when the parse runs without limit controls"},
 	{Name: "field-compare", Kind: Lowering, Default: 1, Doc: "typed Go compares fields in the actions and predicates of typed rules without boxing string fields"},
-	{Name: core.PassGuards, Kind: Pass, Default: 1, Doc: "skip an alternative when the next character cannot start it"},
-	{Name: core.FlagGuardedClasses, Kind: Pass, Default: 1, Doc: "a leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers)"},
-	{Name: core.PassScans, Kind: Pass, Default: 1, Doc: "a value-free repetition of a class or of any character runs as a scan"},
-	{Name: core.PassClassRuns, Kind: Pass, Default: 1, Doc: "consecutive classes of a value-free sequence run as one (lean typed Go)"},
+	{Name: corepass.PassGuards, Kind: Pass, Default: 1, Doc: "skip an alternative when the next character cannot start it"},
+	{Name: corepass.FlagGuardedClasses, Kind: Pass, Default: 1, Doc: "a leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers)"},
+	{Name: corepass.PassScans, Kind: Pass, Default: 1, Doc: "a value-free repetition of a class or of any character runs as a scan"},
+	{Name: corepass.PassClassRuns, Kind: Pass, Default: 1, Doc: "consecutive classes of a value-free sequence run as one (lean typed Go)"},
 	{Name: "class-tables", Kind: Lowering, Int: true, Default: 0, Doc: "match a class of at least this many ranges through a membership table (lean typed Go); smaller source against a slower parse, so an opt-in: 0 in speed, 5 is the measured choice"},
 	{Name: "inline-literals", Kind: Lowering, Int: true, Default: 4, Doc: "compare literals of at most this many code points in place first; 0 turns it off"},
 	{Name: "method-sharing", Kind: Printer, Default: 1, Doc: "emit one helper for generated bodies that are exactly equal (Go and TypeScript)"},
@@ -369,11 +369,11 @@ const (
 // the Core passes, "flow", the Flow passes, "exec", the Exec passes, and "all".
 func PrintNames() []string {
 	out := []string{PrintBuild}
-	out = append(out, core.Pipeline.Names()...)
+	out = append(out, corepass.Pipeline.Names()...)
 	out = append(out, PrintFlow)
 	out = append(out, flow.Pipeline.Names()...)
 	out = append(out, PrintExec)
-	out = append(out, exec.Pipeline.Names()...)
+	out = append(out, code.Pipeline.Names()...)
 	return append(out, PrintAll)
 }
 

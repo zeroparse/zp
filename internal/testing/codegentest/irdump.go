@@ -5,9 +5,9 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/flow"
-	"zeroparse.dev/zp/internal/ir/pipeline"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // irDumpHeader matches the header of a dump of one Flow IR or Exec IR function before the first
@@ -53,7 +53,7 @@ func CheckIRPipelines(t *testing.T, dump string, tables ...string) map[string]in
 
 // BrokenFlowPass is a Flow pass that lists a variable that is also an entry variable, which flow.Verify
 // rejects.
-var BrokenFlowPass = pipeline.Pass[*flow.Func, *flow.Env]{
+var BrokenFlowPass = pass.Pass[*flow.Func, *flow.Env]{
 	Name:       "break-flow",
 	Obligation: "none: it breaks the function on purpose",
 	Run: func(f *flow.Func, _ *flow.Env) error {
@@ -63,11 +63,11 @@ var BrokenFlowPass = pipeline.Pass[*flow.Func, *flow.Env]{
 }
 
 // BrokenExecPass is an Exec pass that declares the first function of the module twice, which
-// exec.Verify rejects.
-var BrokenExecPass = pipeline.Pass[*exec.Module, *exec.Env]{
+// code.Verify rejects.
+var BrokenExecPass = pass.Pass[*code.Module, *code.Env]{
 	Name:       "break-exec",
 	Obligation: "none: it breaks the module on purpose",
-	Run: func(m *exec.Module, _ *exec.Env) error {
+	Run: func(m *code.Module, _ *code.Env) error {
 		m.Funcs = append(m.Funcs, m.Funcs[0])
 		return nil
 	},
@@ -92,12 +92,12 @@ func BrokenFlowRun(table string, seen *int) func(string, *flow.Func, *flow.Env, 
 }
 
 // BrokenExecRun is BrokenFlowRun for the Exec pipeline, with BrokenExecPass.
-func BrokenExecRun(table string, seen *int) func(string, *exec.Module, *exec.Env, exec.RunOptions) ([]string, error) {
-	p := *exec.Pipeline
-	p.Passes = append(slices.Clone(exec.Pipeline.Passes), BrokenExecPass)
-	return func(tb string, m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error) {
+func BrokenExecRun(table string, seen *int) func(string, *code.Module, *code.Env, code.RunOptions) ([]string, error) {
+	p := *code.Pipeline
+	p.Passes = append(slices.Clone(code.Pipeline.Passes), BrokenExecPass)
+	return func(tb string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error) {
 		if tb != table {
-			return exec.RunPasses(m, env, o)
+			return code.RunPasses(m, env, o)
 		}
 		*seen++
 		po := o.Options(env)

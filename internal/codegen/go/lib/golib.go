@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
-	"zeroparse.dev/zp/internal/ir/exec/pass"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/compose"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 )
 
 // goLibFile is the file of the printed compositions in the Go library of generated parsers,
@@ -40,7 +40,7 @@ type goSpec struct {
 var goSpecs = []goSpec{
 	// Parser.Call hands observed and Document parses to the tracked path, so it neither observes nor
 	// reads a Document itself beyond that test.
-	{fn: "call", on: []string{ops.Document, ops.Observe, ops.Budget}, name: "Call"},
+	{fn: "call", on: []string{exec.Document, exec.Observe, exec.Budget}, name: "Call"},
 	// The deferral of memoization: the node library's is the one that generated parsers call, also for
 	// the typed library's rules; the typed library's compositions call their own, of a typed rule.
 	{fn: "firstCall", name: "FirstCall"},
@@ -48,29 +48,29 @@ var goSpecs = []goSpec{
 	{fn: "grow", name: "grow"},
 	// The expectation record: the form of a parse with limit controls or a Document, and the form of
 	// an ordinary parse with its slow path.
-	{fn: "expect", on: []string{ops.Budget}, name: "Expect"},
+	{fn: "expect", on: []string{exec.Budget}, name: "Expect"},
 	{fn: "expectOrdinary", name: "ExpectOrdinary"},
 	{fn: "expectSlow", name: "expectOrdinarySlow"},
-	{fn: "mergeExpected", on: []string{ops.Budget}, name: "MergeExpected"},
-	{fn: "keep", on: []string{ops.Budget}, name: "Keep"},
-	{fn: "call", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, name: "callBody"},
-	{fn: "callMemo", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "CallMemo"},
-	{fn: "grow", typed: true, on: []string{ops.Typed}, name: "grow"},
+	{fn: "mergeExpected", on: []string{exec.Budget}, name: "MergeExpected"},
+	{fn: "keep", on: []string{exec.Budget}, name: "Keep"},
+	{fn: "call", typed: true, on: []string{exec.Document, exec.Observe, exec.Typed, exec.Budget}, name: "callBody"},
+	{fn: "callMemo", typed: true, on: []string{exec.Document, exec.Observe, exec.Typed}, name: "CallMemo"},
+	{fn: "grow", typed: true, on: []string{exec.Typed}, name: "grow"},
 	// The observed calls and plain invocations of both libraries, which their callers take in an
 	// observed parse.
-	{fn: "observed", on: []string{ops.Document, ops.Observe}, name: "callObserved"},
-	{fn: "observedPlain", on: []string{ops.Document, ops.Observe}, name: "invokePlainObserved"},
-	{fn: "observed", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "callObserved"},
-	{fn: "observedPlain", typed: true, on: []string{ops.Document, ops.Observe}, name: "invokePlainObserved"},
+	{fn: "observed", on: []string{exec.Document, exec.Observe}, name: "callObserved"},
+	{fn: "observedPlain", on: []string{exec.Document, exec.Observe}, name: "invokePlainObserved"},
+	{fn: "observed", typed: true, on: []string{exec.Document, exec.Observe, exec.Typed}, name: "callObserved"},
+	{fn: "observedPlain", typed: true, on: []string{exec.Document, exec.Observe}, name: "invokePlainObserved"},
 	// The tracked path of the node library: the rule call of a Document parse, the unmemoized and
 	// memoized calls, the call without observation, and the entry of the path.
-	{fn: "document", on: []string{ops.Document, ops.Budget}, name: "callDocument"},
+	{fn: "document", on: []string{exec.Document, exec.Budget}, name: "callDocument"},
 	{fn: "unmemoized", name: "callUnmemoized"},
-	{fn: "memoized", on: []string{ops.Document, ops.Observe, ops.Budget}, name: "callMemo"},
-	{fn: "body", on: []string{ops.Document, ops.Budget}, name: "callBody"},
-	{fn: "tracked", on: []string{ops.Document, ops.Observe}, name: "callTracked"},
+	{fn: "memoized", on: []string{exec.Document, exec.Observe, exec.Budget}, name: "callMemo"},
+	{fn: "body", on: []string{exec.Document, exec.Budget}, name: "callBody"},
+	{fn: "tracked", on: []string{exec.Document, exec.Observe}, name: "callTracked"},
 	// The rule call of a Document parse in the typed library.
-	{fn: "typedDocument", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, name: "DocumentCall", docMeta: true},
+	{fn: "typedDocument", typed: true, on: []string{exec.Document, exec.Observe, exec.Typed, exec.Budget}, name: "DocumentCall", docMeta: true},
 	// The predicates and bindings of both libraries.
 	{fn: "predicate", name: "Predicate"},
 	{fn: "bind", name: "Bind"},
@@ -81,24 +81,24 @@ var goSpecs = []goSpec{
 // goStreamSpecs are the functions of the stream mechanism that the compositions replace, in the
 // node library (the typed library has no streams).
 var goStreamSpecs = []goSpec{
-	{fn: "streamEmit", on: []string{ops.Stream}, name: "EmitStream"},
-	{fn: "streamCommit", on: []string{ops.Stream}, name: "streamCommit"},
-	{fn: "streamsIn", on: []string{ops.Stream}, name: "StreamsIn"},
+	{fn: "streamEmit", on: []string{exec.Stream}, name: "EmitStream"},
+	{fn: "streamCommit", on: []string{exec.Stream}, name: "streamCommit"},
+	{fn: "streamsIn", on: []string{exec.Stream}, name: "StreamsIn"},
 }
 
 // goOperatorSpecs are the functions of the Operators Rule loop that the compositions replace, in the
 // node and the typed library.
 var goOperatorSpecs = []goSpec{
-	{fn: "operatorsParse", on: []string{ops.Budget}, name: "OperatorsRuleParse"},
-	{fn: "operatorsExpr", on: []string{ops.Budget}, name: "operatorsRuleExpr"},
-	{fn: "operatorsNud", on: []string{ops.Budget}, name: "operatorsRuleNud"},
-	{fn: "longest", on: []string{ops.Budget}, name: "longest"},
+	{fn: "operatorsParse", on: []string{exec.Budget}, name: "OperatorsRuleParse"},
+	{fn: "operatorsExpr", on: []string{exec.Budget}, name: "operatorsRuleExpr"},
+	{fn: "operatorsNud", on: []string{exec.Budget}, name: "operatorsRuleNud"},
+	{fn: "longest", on: []string{exec.Budget}, name: "longest"},
 	{fn: "skipTrivia", name: "skipTrivia"},
 	{fn: "reset", name: "Reset"},
-	{fn: "operatorsParseTyped", typed: true, on: []string{ops.Budget, ops.Typed}, name: "OperatorsRuleParse"},
-	{fn: "operatorsExprTyped", typed: true, on: []string{ops.Budget, ops.Typed}, name: "operatorsRuleExpr"},
-	{fn: "operatorsNudTyped", typed: true, on: []string{ops.Budget, ops.Typed}, name: "operatorsRuleNud"},
-	{fn: "longest", typed: true, on: []string{ops.Budget}, name: "longest"},
+	{fn: "operatorsParseTyped", typed: true, on: []string{exec.Budget, exec.Typed}, name: "OperatorsRuleParse"},
+	{fn: "operatorsExprTyped", typed: true, on: []string{exec.Budget, exec.Typed}, name: "operatorsRuleExpr"},
+	{fn: "operatorsNudTyped", typed: true, on: []string{exec.Budget, exec.Typed}, name: "operatorsRuleNud"},
+	{fn: "longest", typed: true, on: []string{exec.Budget}, name: "longest"},
 	{fn: "skipTrivia", typed: true, name: "skipTrivia"},
 	{fn: "reset", typed: true, name: "Reset"},
 }
@@ -108,10 +108,10 @@ func printGoOperators() (string, error) { return goFile(goOperatorSpecs) }
 
 // printGoStream returns the Go file of the printed stream compositions for package libgo.
 func printGoStream() (string, error) {
-	m := core.Build()
+	m := compose.Build()
 	var b strings.Builder
 	for _, s := range goStreamSpecs {
-		f, err := pass.Specialize(m, m.Func(s.fn), s.fn, s.on)
+		f, err := codepass.Specialize(m, m.Func(s.fn), s.fn, s.on)
 		if err != nil {
 			return "", err
 		}
@@ -140,11 +140,11 @@ func printGoLib() (string, error) {
 	// The limit on pending edits is defined once, in the operations, and printed for the library.
 	limit := fmt.Sprintf(`
 // pendingEditLimit is the number of edits after which a Document drops its memo until the next parse
-// (ops.PendingEditLimit): the engine treats a memo entry that lags behind by more edits as absent, and
+// (exec.PendingEditLimit): the engine treats a memo entry that lags behind by more edits as absent, and
 // a generated parser applies each edit to the memo when it is made, which a memo that many edits old
 // no longer pays for.
 const pendingEditLimit = %d
-`, ops.PendingEditLimit)
+`, exec.PendingEditLimit)
 	return libFileHeader(body, nil) + limit + body, nil
 }
 
@@ -159,10 +159,10 @@ func goFile(specs []goSpec) (string, error) {
 
 // goBody returns the printed functions specs for package libgo.
 func goBody(specs []goSpec) (string, error) {
-	m := core.Build()
+	m := compose.Build()
 	var b strings.Builder
 	for _, s := range specs {
-		f, err := pass.Specialize(m, m.Func(s.fn), s.fn, s.on)
+		f, err := codepass.Specialize(m, m.Func(s.fn), s.fn, s.on)
 		if err != nil {
 			return "", err
 		}
@@ -179,16 +179,16 @@ func goBody(specs []goSpec) (string, error) {
 // the printed function s.
 func goTarget(s goSpec) *gogen.Target {
 	typed := s.typed
-	t := &gogen.Target{Recv: "p *Parser", Source: "internal/ir/exec/core"}
+	t := &gogen.Target{Recv: "p *Parser", Source: "internal/ir/code/exec/compose"}
 	handles := map[string]string{
-		ops.Rule: "*Rule", ops.Value: "*core.Node", ops.Entry: "*memoEntry", ops.Values: "[]any", ops.Errs: "recEntry",
-		ops.ExpID: "ExpID", ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID",
-		ops.Ctx: "ctxCallState", ops.Res: "*ctxResult", ops.Grow: "growState",
-		ops.Frame: "*CaptureFrame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
-		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "operatorsRuleAttempt",
-		ops.Term: "func(*ActCtx) (any, any)", ops.Datum: "any", ops.Seq: "[]*core.Node",
-		ops.Obj: "*core.Node", ops.Name: "string", ops.Str: "string", ops.Act: "*ActCtx", ops.Fail: "any", ops.Elem: "*core.Node",
-		ops.NodeType: "*nodeTypeKinds", ops.FType: "*FieldType",
+		exec.Rule: "*Rule", exec.Value: "*core.Node", exec.Entry: "*memoEntry", exec.Values: "[]any", exec.Errs: "recEntry",
+		exec.ExpID: "ExpID", exec.Mark: "ExpMark", exec.Set: "[]ExpID", exec.Kept: "[]ExpID",
+		exec.Ctx: "ctxCallState", exec.Res: "*ctxResult", exec.Grow: "growState",
+		exec.Frame: "*CaptureFrame", exec.Backtrack: "Mark", exec.Scope: "*Env", exec.Operators: "[]*OperatorsRuleOp",
+		exec.Operator: "*OperatorsRuleOp", exec.Line: "*OperatorsRuleLine", exec.Attempt: "operatorsRuleAttempt",
+		exec.Term: "func(*ActCtx) (any, any)", exec.Datum: "any", exec.Seq: "[]*core.Node",
+		exec.Obj: "*core.Node", exec.Name: "string", exec.Str: "string", exec.Act: "*ActCtx", exec.Fail: "any", exec.Elem: "*core.Node",
+		exec.NodeType: "*nodeTypeKinds", exec.FType: "*FieldType",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "firstCall": "FirstCall", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
 		"document": "callDocument", "body": "callBody", "observed": "callObserved", "tracked": "callTracked", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
@@ -208,13 +208,13 @@ func goTarget(s goSpec) *gogen.Target {
 	step := func(v string) string { return v + ", nil" }
 	if typed {
 		t.Recv = "p *TParser"
-		handles[ops.Rule], handles[ops.Value], handles[ops.Entry] = "*TRule", "any", "*tmemoEntry"
-		handles[ops.Body] = "func(*TParser) (any, bool)"
-		handles[ops.Frame], handles[ops.Operators], handles[ops.Operator] = "*TCaptureFrame", "[]*TOperatorsRuleOp", "*TOperatorsRuleOp"
-		handles[ops.Line], handles[ops.Attempt] = "*TOperatorsRuleLine", "toperatorsRuleAttempt"
-		handles[ops.Term] = "func(*TActCtx) (any, any)"
-		handles[ops.Seq], handles[ops.Obj], handles[ops.Act], handles[ops.Elem] = "[]any", "TVal", "*TActCtx", "any"
-		handles[ops.NodeType] = "uint16"
+		handles[exec.Rule], handles[exec.Value], handles[exec.Entry] = "*TRule", "any", "*tmemoEntry"
+		handles[exec.Body] = "func(*TParser) (any, bool)"
+		handles[exec.Frame], handles[exec.Operators], handles[exec.Operator] = "*TCaptureFrame", "[]*TOperatorsRuleOp", "*TOperatorsRuleOp"
+		handles[exec.Line], handles[exec.Attempt] = "*TOperatorsRuleLine", "toperatorsRuleAttempt"
+		handles[exec.Term] = "func(*TActCtx) (any, any)"
+		handles[exec.Seq], handles[exec.Obj], handles[exec.Act], handles[exec.Elem] = "[]any", "TVal", "*TActCtx", "any"
+		handles[exec.NodeType] = "uint16"
 		names = map[string]string{"call": "callBody", "firstCall": "firstCall", "typedDocument": "DocumentCall", "observed": "callObserved", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
 			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
 		for _, s := range goOperatorSpecs {
@@ -230,9 +230,9 @@ func goTarget(s goSpec) *gogen.Target {
 	t.Handle = func(name string) string { return handles[name] }
 	t.FuncName = func(name string) string { return names[name] }
 	t.Reg = func(name string) string {
-		return map[string]string{ops.Pos: "p.Pos", ops.Silent: "p.Silent", ops.Cut: "p.Cut"}[name]
+		return map[string]string{exec.Pos: "p.Pos", exec.Silent: "p.Silent", exec.Cut: "p.Cut"}[name]
 	}
-	t.Op = func(c *exec.Call, a []string) string {
+	t.Op = func(c *code.Call, a []string) string {
 		if s, ok := goValueOp(c.Callee, a, typed); ok {
 			return s
 		}
@@ -353,7 +353,7 @@ func goTarget(s goSpec) *gogen.Target {
 			return "p.afterEmpty"
 		case "budget.charge":
 			// Spend is the charge of one unit, small enough to inline.
-			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
+			if k, ok := c.Args[0].(*code.Const); ok && k.Value == uint64(1) {
 				return "p.Spend()"
 			}
 			// A charge of n is n one-unit reservations (Take).
@@ -580,7 +580,7 @@ func goTarget(s goSpec) *gogen.Target {
 		}
 		panic("core: no Go implementation of " + c.Callee)
 	}
-	t.Negate = func(c *exec.Call, a []string) (string, bool) {
+	t.Negate = func(c *code.Call, a []string) (string, bool) {
 		switch c.Callee {
 		case "opr.found":
 			return a[0] + ".op == nil", true
@@ -593,7 +593,7 @@ func goTarget(s goSpec) *gogen.Target {
 		}
 		return "", false
 	}
-	t.Stmt = func(c *exec.Call, a []string, dst []string, define bool) (string, bool) {
+	t.Stmt = func(c *code.Call, a []string, dst []string, define bool) (string, bool) {
 		op := " = "
 		if define {
 			op = " := "

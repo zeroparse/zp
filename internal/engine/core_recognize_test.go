@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -41,8 +42,8 @@ func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, err
 			}
 		}
 	}
-	env := &core.Env{Mode: core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, Flag: g.Opt.On, PrepareScans: prepare}
-	if _, err := core.Run(m, env, core.RunOptions{Dump: check}); err != nil {
+	env := &corepass.Env{Mode: corepass.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, Flag: g.Opt.On, PrepareScans: prepare}
+	if _, err := corepass.Run(m, env, corepass.RunOptions{Dump: check}); err != nil {
 		return nil, err
 	}
 	c.m = m

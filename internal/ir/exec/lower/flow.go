@@ -16,7 +16,7 @@ import (
 	"reflect"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
 
@@ -38,8 +38,8 @@ const Any = "any"
 // Lowered is a Flow IR function lowered to Exec IR.
 type Lowered struct {
 	// Module declares the registers, handle types and operations that Func calls, and holds Func.
-	Module *exec.Module
-	Func   *exec.Func
+	Module *code.Module
+	Func   *code.Func
 	// Vars are the locals of Func that are variables of the Flow IR function (Func.Vars); the other
 	// locals are its entry variables, which the caller declares.
 	Vars []string
@@ -52,46 +52,46 @@ type Lowered struct {
 // function ends its block by publishing its cut flag (Func.Cut) and returning its value and true;
 // after the block, it publishes the cut flag again and returns the null value and false.
 func Flow(f *flow.Func) (*Lowered, error) {
-	l := &lowerer{m: exec.NewModule("flow " + f.Name), shapes: map[string]string{}, kinds: map[string]int{},
-		types: map[*flow.Var]exec.Type{}, loops: map[*flow.Label]bool{}, labels: map[*flow.Label]string{}}
+	l := &lowerer{m: code.NewModule("flow " + f.Name), shapes: map[string]string{}, kinds: map[string]int{},
+		types: map[*flow.Var]code.Type{}, loops: map[*flow.Label]bool{}, labels: map[*flow.Label]string{}}
 	l.m.AddComponent(Component, "The state of the hand-written runtime.")
-	l.m.AddRegister(Pos, exec.TInt, "The position.")
+	l.m.AddRegister(Pos, code.TInt, "The position.")
 	l.handle(Any)
-	l.m.AddRegister(Cut, exec.TBool, "The cut flag of the scope the runtime entered last.")
-	fn := &exec.Func{Name: f.Name}
+	l.m.AddRegister(Cut, code.TBool, "The cut flag of the scope the runtime entered last.")
+	fn := &code.Func{Name: f.Name}
 	out := &Lowered{Module: l.m, Func: fn}
 	for _, v := range f.Vars {
 		t := l.varType(v.Type)
 		l.types[v] = t
-		fn.Locals = append(fn.Locals, exec.P(v.Name, t))
+		fn.Locals = append(fn.Locals, code.P(v.Name, t))
 		out.Vars = append(out.Vars, v.Name)
 	}
 	// The entry variables, which the caller declares.
 	for _, v := range []*flow.Var{f.Start, f.Result, f.Ctx} {
-		if v != nil && l.types[v] == (exec.Type{}) {
+		if v != nil && l.types[v] == (code.Type{}) {
 			t := l.varType(v.Type)
 			l.types[v] = t
-			fn.Locals = append(fn.Locals, exec.P(v.Name, t))
+			fn.Locals = append(fn.Locals, code.P(v.Name, t))
 		}
 	}
-	body := &exec.Block{Label: l.label(f.Fail), Stmts: l.stmts(f.Body)}
+	body := &code.Block{Label: l.label(f.Fail), Stmts: l.stmts(f.Body)}
 	fn.Body = body
 	if f.Frame {
 		value := l.handle(flow.TypeValue.String())
-		fn.Results = []exec.Type{value, exec.TBool}
-		publish := func() []exec.Stmt {
+		fn.Results = []code.Type{value, code.TBool}
+		publish := func() []code.Stmt {
 			if f.Cut == nil {
 				return nil
 			}
-			return []exec.Stmt{&exec.Set{Dst: []exec.Place{{Name: Cut, Reg: true}}, Values: []exec.Expr{exec.L(f.Cut.Name)}}}
+			return []code.Stmt{&code.Set{Dst: []code.Place{{Name: Cut, Reg: true}}, Values: []code.Expr{code.L(f.Cut.Name)}}}
 		}
-		var v exec.Expr = exec.Null(value)
+		var v code.Expr = code.Null(value)
 		if f.Value != nil {
 			v = l.expr(f.Value, value)
 		}
-		body.Stmts = append(append(body.Stmts, publish()...), &exec.Return{Values: []exec.Expr{v, exec.BoolC(true)}})
-		fn.Body = &exec.Block{Stmts: append(append([]exec.Stmt{body}, publish()...),
-			&exec.Return{Values: []exec.Expr{exec.Null(value), exec.BoolC(false)}})}
+		body.Stmts = append(append(body.Stmts, publish()...), &code.Return{Values: []code.Expr{v, code.BoolC(true)}})
+		fn.Body = &code.Block{Stmts: append(append([]code.Stmt{body}, publish()...),
+			&code.Return{Values: []code.Expr{code.Null(value), code.BoolC(false)}})}
 	}
 	if l.err != nil {
 		return nil, fmt.Errorf("lower %s: %w", f.Name, l.err)
@@ -101,19 +101,19 @@ func Flow(f *flow.Func) (*Lowered, error) {
 		out.Labels[name] = x
 	}
 	l.m.Funcs = append(l.m.Funcs, fn)
-	if err := exec.Verify(l.m); err != nil {
+	if err := code.Verify(l.m); err != nil {
 		return nil, fmt.Errorf("lower %s: %w", f.Name, err)
 	}
 	return out, nil
 }
 
 type lowerer struct {
-	m *exec.Module
+	m *code.Module
 	// shapes maps the shape of an operation's call to the operation's name, and kinds counts the
 	// shapes of each kind.
 	shapes map[string]string
 	kinds  map[string]int
-	types  map[*flow.Var]exec.Type
+	types  map[*flow.Var]code.Type
 	loops  map[*flow.Label]bool
 	anon   int
 	labels map[*flow.Label]string
@@ -121,22 +121,22 @@ type lowerer struct {
 }
 
 // handle returns the handle type name, declaring it on first use.
-func (l *lowerer) handle(name string) exec.Type {
+func (l *lowerer) handle(name string) code.Type {
 	for _, h := range l.m.Handles {
 		if h.Name == name {
-			return exec.THandle(name)
+			return code.THandle(name)
 		}
 	}
 	return l.m.AddHandle(name, Component, "A "+name+" of the hand-written runtime.")
 }
 
 // varType returns the Exec IR type of a variable of the Flow IR type t.
-func (l *lowerer) varType(t flow.Type) exec.Type {
+func (l *lowerer) varType(t flow.Type) code.Type {
 	switch t {
 	case flow.TypeInt:
-		return exec.TInt
+		return code.TInt
 	case flow.TypeBool:
-		return exec.TBool
+		return code.TBool
 	}
 	return l.handle(t.String())
 }
@@ -152,8 +152,8 @@ func Kind(x any) string {
 
 // op returns a call of the operation of the primitive x with the arguments args and the results
 // results, declaring the operation for the shape of the call on first use.
-func (l *lowerer) op(x any, args []exec.Expr, results []exec.Type) *exec.Call {
-	types := make([]exec.Type, len(args))
+func (l *lowerer) op(x any, args []code.Expr, results []code.Type) *code.Call {
+	types := make([]code.Type, len(args))
 	for i, a := range args {
 		types[i] = l.types[l.local(a)]
 	}
@@ -161,13 +161,13 @@ func (l *lowerer) op(x any, args []exec.Expr, results []exec.Type) *exec.Call {
 }
 
 // opTyped is op with the types of the arguments.
-func (l *lowerer) opTyped(x any, args []exec.Expr, types, results []exec.Type) *exec.Call {
+func (l *lowerer) opTyped(x any, args []code.Expr, types, results []code.Type) *code.Call {
 	kind := Kind(x)
-	var params []exec.Param
+	var params []code.Param
 	var sig []string
 	for i := range args {
 		t := types[i]
-		params = append(params, exec.P(fmt.Sprintf("a%d", i), t))
+		params = append(params, code.P(fmt.Sprintf("a%d", i), t))
 		sig = append(sig, t.String())
 	}
 	var res []string
@@ -183,17 +183,17 @@ func (l *lowerer) opTyped(x any, args []exec.Expr, types, results []exec.Type) *
 			name = fmt.Sprintf("%s.%d", kind, n)
 		}
 		l.shapes[key] = name
-		l.m.AddOp(&exec.Op{Name: name, Component: Component, Params: params, Results: results,
+		l.m.AddOp(&code.Op{Name: name, Component: Component, Params: params, Results: results,
 			Reads: []string{Component, Pos, Cut}, Writes: []string{Component, Pos, Cut},
 			NoReturn: true, Transitional: true, Imm: "the Flow IR primitive",
 			Contract: "Does what the Flow IR primitive " + strings.TrimPrefix(kind, "flow.") + " in Imm does."})
 	}
-	return &exec.Call{Callee: name, Args: args, Imm: x}
+	return &code.Call{Callee: name, Args: args, Imm: x}
 }
 
 // local returns the variable that the argument a, a Local, names.
-func (l *lowerer) local(a exec.Expr) *flow.Var {
-	name := a.(*exec.Local).Name
+func (l *lowerer) local(a code.Expr) *flow.Var {
+	name := a.(*code.Local).Name
 	for v := range l.types {
 		if v.Name == name {
 			return v
@@ -203,8 +203,8 @@ func (l *lowerer) local(a exec.Expr) *flow.Var {
 }
 
 // uses returns the locals that the expressions read, in order, each once.
-func (l *lowerer) uses(xs ...flow.Expr) []exec.Expr {
-	var out []exec.Expr
+func (l *lowerer) uses(xs ...flow.Expr) []code.Expr {
+	var out []code.Expr
 	seen := map[*flow.Var]bool{}
 	for _, x := range xs {
 		if x == nil {
@@ -213,55 +213,55 @@ func (l *lowerer) uses(xs ...flow.Expr) []exec.Expr {
 		flow.Uses(x, func(v *flow.Var) {
 			if !seen[v] {
 				seen[v] = true
-				out = append(out, exec.L(v.Name))
+				out = append(out, code.L(v.Name))
 			}
 		})
 	}
 	return out
 }
 
-func (l *lowerer) stmts(ss []flow.Stmt) []exec.Stmt {
-	var out []exec.Stmt
+func (l *lowerer) stmts(ss []flow.Stmt) []code.Stmt {
+	var out []code.Stmt
 	for _, s := range ss {
 		out = append(out, l.stmt(s))
 	}
 	return out
 }
 
-func (l *lowerer) stmt(s flow.Stmt) exec.Stmt {
+func (l *lowerer) stmt(s flow.Stmt) code.Stmt {
 	switch s := s.(type) {
 	case *flow.Block:
-		return &exec.Block{Label: l.label(s.Label), Stmts: l.stmts(s.Body)}
+		return &code.Block{Label: l.label(s.Label), Stmts: l.stmts(s.Body)}
 	case *flow.Loop:
 		l.loops[s.Label] = true
-		lp := &exec.Loop{Label: l.label(s.Label)}
+		lp := &code.Loop{Label: l.label(s.Label)}
 		switch {
 		case s.Counter != nil:
 			c := s.Counter.Name
-			lp.Init = exec.Assign(c, exec.Int(0))
-			lp.Cond = &exec.Binary{Op: "<", X: exec.L(c), Y: exec.Int(int64(s.Max))}
-			lp.Post = exec.Assign(c, &exec.Binary{Op: "+", X: exec.L(c), Y: exec.Int(1)})
+			lp.Init = code.Assign(c, code.Int(0))
+			lp.Cond = &code.Binary{Op: "<", X: code.L(c), Y: code.Int(int64(s.Max))}
+			lp.Post = code.Assign(c, &code.Binary{Op: "+", X: code.L(c), Y: code.Int(1)})
 		case s.While != nil:
-			lp.Cond = l.expr(s.While, exec.TBool)
+			lp.Cond = l.expr(s.While, code.TBool)
 		}
-		lp.Body = &exec.Block{Stmts: l.stmts(s.Body)}
+		lp.Body = &code.Block{Stmts: l.stmts(s.Body)}
 		return lp
 	case *flow.If:
-		st := &exec.If{Cond: l.expr(s.Cond, exec.TBool), Then: &exec.Block{Stmts: l.stmts(s.Then)}}
+		st := &code.If{Cond: l.expr(s.Cond, code.TBool), Then: &code.Block{Stmts: l.stmts(s.Then)}}
 		if s.Init != nil {
 			st.Init = l.set(s.Init)
 		}
 		if s.Else != nil {
-			st.Else = &exec.Block{Stmts: l.stmts(s.Else)}
+			st.Else = &code.Block{Stmts: l.stmts(s.Else)}
 		}
 		return st
 	case *flow.Exit:
 		if l.loops[s.To] {
-			return &exec.Break{Label: l.label(s.To)}
+			return &code.Break{Label: l.label(s.To)}
 		}
-		return &exec.Exit{Label: l.label(s.To)}
+		return &code.Exit{Label: l.label(s.To)}
 	case *flow.Continue:
-		return &exec.Continue{Label: l.label(s.To)}
+		return &code.Continue{Label: l.label(s.To)}
 	case *flow.Set:
 		if st := l.set(s); st != nil {
 			return st
@@ -269,37 +269,37 @@ func (l *lowerer) stmt(s flow.Stmt) exec.Stmt {
 		// The assignment of a register that holds a handle.
 		r := s.Dst[0].(flow.Reg)
 		t := l.handleReg(r)
-		return &exec.Do{Call: l.opTyped(r, []exec.Expr{l.expr(s.X[0], t)}, []exec.Type{t}, nil)}
+		return &code.Do{Call: l.opTyped(r, []code.Expr{l.expr(s.X[0], t)}, []code.Type{t}, nil)}
 	case *flow.Inc:
-		return exec.Assign(s.V.Name, &exec.Binary{Op: "+", X: exec.L(s.V.Name), Y: exec.Int(1)})
+		return code.Assign(s.V.Name, &code.Binary{Op: "+", X: code.L(s.V.Name), Y: code.Int(1)})
 	case *flow.Peek:
-		dst := make([]exec.Place, 3)
-		var res []exec.Type
+		dst := make([]code.Place, 3)
+		var res []code.Type
 		for i, v := range []*flow.Var{s.Ch, s.Size, s.OK} {
 			if v != nil {
-				dst[i] = exec.Place{Name: v.Name}
+				dst[i] = code.Place{Name: v.Name}
 				res = append(res, l.types[v])
 			} else {
 				res = append(res, l.handle(Any))
 			}
 		}
-		return &exec.Set{Dst: dst, Values: []exec.Expr{l.op(s, nil, res)}}
+		return &code.Set{Dst: dst, Values: []code.Expr{l.op(s, nil, res)}}
 	case *flow.Append:
 		// The list is assigned the list with X appended.
-		args := append([]exec.Expr{exec.L(s.Vals.Name)}, l.uses(s.X)...)
-		return &exec.Set{Dst: []exec.Place{{Name: s.Vals.Name}}, Values: []exec.Expr{l.op(s, dedup(args), []exec.Type{l.types[s.Vals]})}}
+		args := append([]code.Expr{code.L(s.Vals.Name)}, l.uses(s.X)...)
+		return &code.Set{Dst: []code.Place{{Name: s.Vals.Name}}, Values: []code.Expr{l.op(s, dedup(args), []code.Type{l.types[s.Vals]})}}
 	case *flow.Comment:
-		return &exec.Comment{Text: s.Text}
+		return &code.Comment{Text: s.Text}
 	}
-	return &exec.Do{Call: l.op(s, l.stmtUses(s), nil)}
+	return &code.Do{Call: l.op(s, l.stmtUses(s), nil)}
 }
 
 // dedup returns the locals args, each once.
-func dedup(args []exec.Expr) []exec.Expr {
-	var out []exec.Expr
+func dedup(args []code.Expr) []code.Expr {
+	var out []code.Expr
 	seen := map[string]bool{}
 	for _, a := range args {
-		if n := a.(*exec.Local).Name; !seen[n] {
+		if n := a.(*code.Local).Name; !seen[n] {
 			seen[n] = true
 			out = append(out, a)
 		}
@@ -308,7 +308,7 @@ func dedup(args []exec.Expr) []exec.Expr {
 }
 
 // stmtUses returns the locals that the primitive statement s reads.
-func (l *lowerer) stmtUses(s flow.Stmt) []exec.Expr {
+func (l *lowerer) stmtUses(s flow.Stmt) []code.Expr {
 	switch s := s.(type) {
 	case *flow.Advance:
 		return l.uses(s.N)
@@ -337,11 +337,11 @@ func (l *lowerer) stmtUses(s flow.Stmt) []exec.Expr {
 	case *flow.SetCapture:
 		return l.uses(s.X)
 	case *flow.ClearVals:
-		return []exec.Expr{exec.L(s.F.Name)}
+		return []code.Expr{code.L(s.F.Name)}
 	case *flow.DropTrail:
 		return l.uses(s.M)
 	case *flow.FreeFrame:
-		return []exec.Expr{exec.L(s.F.Name)}
+		return []code.Expr{code.L(s.F.Name)}
 	case *flow.AppendError:
 		return l.uses(s.X)
 	case *flow.Step, *flow.Silent, *flow.StreamStart, *flow.SetWhere, *flow.DeclareNames, *flow.ObserveSkip,
@@ -355,31 +355,31 @@ func (l *lowerer) stmtUses(s flow.Stmt) []exec.Expr {
 }
 
 // set lowers the assignment s.
-func (l *lowerer) set(s *flow.Set) *exec.Set {
-	dst := make([]exec.Place, len(s.Dst))
-	types := make([]exec.Type, len(s.Dst))
+func (l *lowerer) set(s *flow.Set) *code.Set {
+	dst := make([]code.Place, len(s.Dst))
+	types := make([]code.Type, len(s.Dst))
 	for i, d := range s.Dst {
 		switch d := d.(type) {
 		case *flow.Var:
-			dst[i], types[i] = exec.Place{Name: d.Name}, l.types[d]
+			dst[i], types[i] = code.Place{Name: d.Name}, l.types[d]
 		case flow.Reg:
 			if d == flow.RegEnv || d == flow.RegFrame {
 				if len(s.Dst) != 1 || len(s.X) != 1 {
 					l.fail(fmt.Errorf("assignment of the register %d with other places", d))
-					return &exec.Set{Dst: []exec.Place{{}}, Values: []exec.Expr{exec.BoolC(false)}}
+					return &code.Set{Dst: []code.Place{{}}, Values: []code.Expr{code.BoolC(false)}}
 				}
 				return nil
 			}
 			name := regName(d)
-			dst[i], types[i] = exec.Place{Name: name, Reg: true}, l.regType(name)
+			dst[i], types[i] = code.Place{Name: name, Reg: true}, l.regType(name)
 		case *flow.Discard:
 			types[i] = l.handle(Any)
 		}
 	}
-	out := &exec.Set{Dst: dst}
+	out := &code.Set{Dst: dst}
 	if len(s.X) == 1 && len(s.Dst) > 1 {
 		// One primitive of several results.
-		out.Values = []exec.Expr{l.op(s.X[0], l.uses(s.X[0]), types)}
+		out.Values = []code.Expr{l.op(s.X[0], l.uses(s.X[0]), types)}
 		return out
 	}
 	for i, x := range s.X {
@@ -389,7 +389,7 @@ func (l *lowerer) set(s *flow.Set) *exec.Set {
 }
 
 // regType returns the type of the register name.
-func (l *lowerer) regType(name string) exec.Type {
+func (l *lowerer) regType(name string) code.Type {
 	for _, r := range l.m.Registers {
 		if r.Name == name {
 			return r.Type
@@ -430,7 +430,7 @@ func (l *lowerer) fail(err error) {
 }
 
 // handleReg returns the handle type of the register r of Flow IR that holds a handle.
-func (l *lowerer) handleReg(r flow.Reg) exec.Type {
+func (l *lowerer) handleReg(r flow.Reg) code.Type {
 	if r == flow.RegEnv {
 		return l.handle(flow.TypeEnv.String())
 	}
@@ -438,33 +438,33 @@ func (l *lowerer) handleReg(r flow.Reg) exec.Type {
 }
 
 // expr lowers the expression x, of the type t.
-func (l *lowerer) expr(x flow.Expr, t exec.Type) exec.Expr {
+func (l *lowerer) expr(x flow.Expr, t code.Type) code.Expr {
 	switch x := x.(type) {
 	case *flow.Use:
-		return exec.L(x.V.Name)
+		return code.L(x.V.Name)
 	case *flow.Read:
 		if x.R == flow.RegEnv || x.R == flow.RegFrame {
-			return l.opTyped(x, nil, nil, []exec.Type{l.handleReg(x.R)})
+			return l.opTyped(x, nil, nil, []code.Type{l.handleReg(x.R)})
 		}
-		return exec.R(regName(x.R))
+		return code.R(regName(x.R))
 	case *flow.Nil:
-		return exec.Null(t)
+		return code.Null(t)
 	case *flow.Int:
-		return exec.Int(int64(x.N))
+		return code.Int(int64(x.N))
 	case *flow.Bool:
-		return exec.BoolC(x.B)
+		return code.BoolC(x.B)
 	case *flow.Not:
-		return &exec.Unary{Op: "!", X: l.expr(x.X, exec.TBool)}
+		return &code.Unary{Op: "!", X: l.expr(x.X, code.TBool)}
 	case *flow.Or:
-		return &exec.Binary{Op: "||", X: l.expr(x.X, exec.TBool), Y: l.expr(x.Y, exec.TBool)}
+		return &code.Binary{Op: "||", X: l.expr(x.X, code.TBool), Y: l.expr(x.Y, code.TBool)}
 	case *flow.Cmp:
-		ot := exec.TInt
+		ot := code.TInt
 		if u, ok := x.L.(*flow.Use); ok {
 			ot = l.types[u.V]
 		} else if u, ok := x.R.(*flow.Use); ok {
 			ot = l.types[u.V]
 		}
-		return &exec.Binary{Op: x.Op, X: l.expr(x.L, ot), Y: l.expr(x.R, ot)}
+		return &code.Binary{Op: x.Op, X: l.expr(x.L, ot), Y: l.expr(x.R, ot)}
 	}
-	return l.op(x, l.uses(x), []exec.Type{t})
+	return l.op(x, l.uses(x), []code.Type{t})
 }

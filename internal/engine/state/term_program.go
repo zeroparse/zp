@@ -6,10 +6,10 @@ import (
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -164,22 +164,22 @@ func CompileTerm(t ir.Term, env TermEnv) (*TermProgram, error) {
 
 type termCompiler struct {
 	env    TermEnv
-	m      *exec.Module
+	m      *code.Module
 	prog   *TermProgram
 	locals map[string]termReg
 }
 
-func fileOf(t exec.Type) (int, bool) {
+func fileOf(t code.Type) (int, bool) {
 	switch t.Kind {
-	case exec.KBool, exec.KInt:
+	case code.KBool, code.KInt:
 		return fileN, true
-	case exec.KHandle:
+	case code.KHandle:
 		switch t.Handle {
-		case ops.Datum, ops.Obj, ops.Fail:
+		case exec.Datum, exec.Obj, exec.Fail:
 			return fileA, true
-		case ops.Seq:
+		case exec.Seq:
 			return fileS, true
-		case ops.Str:
+		case exec.Str:
 			return fileT, true
 		}
 	}
@@ -207,7 +207,7 @@ func (c *termCompiler) reg(file int) termReg {
 // declare returns the register of the local name of type t, taking one in the file of t on first
 // use. A name declared again in another file is an error: an instruction would write one file and
 // its reader read the other.
-func (c *termCompiler) declare(name string, t exec.Type) (termReg, error) {
+func (c *termCompiler) declare(name string, t code.Type) (termReg, error) {
 	f, ok := fileOf(t)
 	if !ok {
 		return termReg{}, fmt.Errorf("local %s of type %s", name, t)
@@ -254,7 +254,7 @@ func (c *termCompiler) jumpsTo(pc int32) bool {
 }
 
 // results returns the result types of the operation or function callee.
-func (c *termCompiler) results(callee string) []exec.Type {
+func (c *termCompiler) results(callee string) []code.Type {
 	if o := c.m.Op(callee); o != nil {
 		return o.Results
 	}
@@ -264,20 +264,20 @@ func (c *termCompiler) results(callee string) []exec.Type {
 	return nil
 }
 
-func (c *termCompiler) block(b *exec.Block) error {
+func (c *termCompiler) block(b *code.Block) error {
 	for i := 0; i < len(b.Stmts); i++ {
-		next := func() exec.Stmt {
+		next := func() code.Stmt {
 			if i+1 < len(b.Stmts) {
 				return b.Stmts[i+1]
 			}
 			return nil
 		}
 		switch s := b.Stmts[i].(type) {
-		case *exec.Let:
-			call, isCall := s.Value.(*exec.Call)
+		case *code.Let:
+			call, isCall := s.Value.(*code.Call)
 			if isCall {
 				res := c.results(call.Callee)
-				if len(res) == len(s.Names) && len(res) > 0 && res[len(res)-1] == exec.THandle(ops.Fail) {
+				if len(res) == len(s.Names) && len(res) > 0 && res[len(res)-1] == code.THandle(exec.Fail) {
 					// A composition that can fail: its failure must be raised right after it.
 					fail := s.Names[len(s.Names)-1]
 					if !raises(next(), fail) {
@@ -311,7 +311,7 @@ func (c *termCompiler) block(b *exec.Block) error {
 			if err := c.exprInto(s.Value, dst); err != nil {
 				return err
 			}
-		case *exec.Set:
+		case *code.Set:
 			if len(s.Dst) != 1 || len(s.Values) != 1 || s.Dst[0].Reg {
 				return fmt.Errorf("set of %d places", len(s.Dst))
 			}
@@ -322,15 +322,15 @@ func (c *termCompiler) block(b *exec.Block) error {
 			if err := c.exprInto(s.Values[0], dst); err != nil {
 				return err
 			}
-		case *exec.Do:
+		case *code.Do:
 			res := c.results(s.Call.Callee)
-			if len(res) == 1 && res[0] == exec.THandle(ops.Fail) {
+			if len(res) == 1 && res[0] == code.THandle(exec.Fail) {
 				return fmt.Errorf("the failure of %s is discarded", s.Call.Callee)
 			}
 			if err := c.effect(s.Call); err != nil {
 				return err
 			}
-		case *exec.If:
+		case *code.If:
 			if s.Init != nil {
 				return fmt.Errorf("if with an init")
 			}
@@ -352,7 +352,7 @@ func (c *termCompiler) block(b *exec.Block) error {
 			} else {
 				c.prog.code[jf].dst = int32(len(c.prog.code))
 			}
-		case *exec.Loop:
+		case *code.Loop:
 			if s.Init != nil || s.Cond == nil {
 				return fmt.Errorf("loop without the form of a for loop")
 			}
@@ -366,13 +366,13 @@ func (c *termCompiler) block(b *exec.Block) error {
 				return err
 			}
 			if s.Post != nil {
-				if err := c.block(&exec.Block{Stmts: []exec.Stmt{s.Post}}); err != nil {
+				if err := c.block(&code.Block{Stmts: []code.Stmt{s.Post}}); err != nil {
 					return err
 				}
 			}
 			c.emit(termInstr{op: tJump, dst: top})
 			c.prog.code[jf].dst = int32(len(c.prog.code))
-		case *exec.Return:
+		case *code.Return:
 			if len(s.Values) != 2 {
 				return fmt.Errorf("return of %d values", len(s.Values))
 			}
@@ -392,7 +392,7 @@ func (c *termCompiler) block(b *exec.Block) error {
 				return err
 			}
 			c.emit(termInstr{op: tRetErr, a: f.r})
-		case *exec.Comment:
+		case *code.Comment:
 		default:
 			return fmt.Errorf("statement %T", s)
 		}
@@ -400,71 +400,71 @@ func (c *termCompiler) block(b *exec.Block) error {
 	return nil
 }
 
-func isNull(e exec.Expr) bool {
-	k, ok := e.(*exec.Const)
-	return ok && k.Type.Kind == exec.KHandle && k.Value == nil
+func isNull(e code.Expr) bool {
+	k, ok := e.(*code.Const)
+	return ok && k.Type.Kind == code.KHandle && k.Value == nil
 }
 
 // raises reports whether s is the return of the failure in the local fail when it is not null, as
 // the lowering of terms follows a call that can fail.
-func raises(s exec.Stmt, fail string) bool {
-	f, ok := s.(*exec.If)
+func raises(s code.Stmt, fail string) bool {
+	f, ok := s.(*code.If)
 	if !ok || f.Init != nil || f.Else != nil || len(f.Then.Stmts) != 1 {
 		return false
 	}
-	cond, ok := f.Cond.(*exec.Binary)
+	cond, ok := f.Cond.(*code.Binary)
 	if !ok || cond.Op != "!=" || !isLocal(cond.X, fail) || !isNull(cond.Y) {
 		return false
 	}
-	r, ok := f.Then.Stmts[0].(*exec.Return)
+	r, ok := f.Then.Stmts[0].(*code.Return)
 	return ok && len(r.Values) == 2 && isNull(r.Values[0]) && isLocal(r.Values[1], fail)
 }
 
-func isLocal(e exec.Expr, name string) bool {
-	l, ok := e.(*exec.Local)
+func isLocal(e code.Expr, name string) bool {
+	l, ok := e.(*code.Local)
 	return ok && l.Name == name
 }
 
 // typeOf returns the type of the expression e of one value.
-func (c *termCompiler) typeOf(e exec.Expr) (exec.Type, error) {
+func (c *termCompiler) typeOf(e code.Expr) (code.Type, error) {
 	switch e := e.(type) {
-	case *exec.Const:
+	case *code.Const:
 		return e.Type, nil
-	case *exec.Local:
+	case *code.Local:
 		r, ok := c.locals[e.Name]
 		if !ok {
-			return exec.Type{}, fmt.Errorf("undeclared local %s", e.Name)
+			return code.Type{}, fmt.Errorf("undeclared local %s", e.Name)
 		}
 		switch r.file {
 		case fileA:
-			return exec.THandle(ops.Datum), nil
+			return code.THandle(exec.Datum), nil
 		case fileN:
-			return exec.TInt, nil
+			return code.TInt, nil
 		case fileS:
-			return exec.THandle(ops.Seq), nil
+			return code.THandle(exec.Seq), nil
 		default:
-			return exec.THandle(ops.Str), nil
+			return code.THandle(exec.Str), nil
 		}
-	case *exec.Unary:
-		return exec.TBool, nil
-	case *exec.Binary:
+	case *code.Unary:
+		return code.TBool, nil
+	case *code.Binary:
 		if e.Op == "+" {
-			return exec.TInt, nil
+			return code.TInt, nil
 		}
-		return exec.TBool, nil
-	case *exec.Call:
+		return code.TBool, nil
+	case *code.Call:
 		res := c.results(e.Callee)
 		if len(res) != 1 {
-			return exec.Type{}, fmt.Errorf("%s has %d results", e.Callee, len(res))
+			return code.Type{}, fmt.Errorf("%s has %d results", e.Callee, len(res))
 		}
 		return res[0], nil
 	}
-	return exec.Type{}, fmt.Errorf("expression %T", e)
+	return code.Type{}, fmt.Errorf("expression %T", e)
 }
 
 // expr translates e and returns the register that holds its value.
-func (c *termCompiler) expr(e exec.Expr) (termReg, error) {
-	if l, ok := e.(*exec.Local); ok {
+func (c *termCompiler) expr(e code.Expr) (termReg, error) {
+	if l, ok := e.(*code.Local); ok {
 		r, ok := c.locals[l.Name]
 		if !ok {
 			return termReg{}, fmt.Errorf("undeclared local %s", l.Name)
@@ -484,19 +484,19 @@ func (c *termCompiler) expr(e exec.Expr) (termReg, error) {
 }
 
 // exprInto translates e into the register dst.
-func (c *termCompiler) exprInto(e exec.Expr, dst termReg) error {
+func (c *termCompiler) exprInto(e code.Expr, dst termReg) error {
 	switch e := e.(type) {
-	case *exec.Const:
+	case *code.Const:
 		switch e.Type.Kind {
-		case exec.KBool:
+		case code.KBool:
 			v := int32(0)
 			if e.Value.(bool) {
 				v = 1
 			}
 			c.emit(termInstr{op: tIntK, dst: dst.r, a: v})
-		case exec.KInt:
+		case code.KInt:
 			c.emit(termInstr{op: tIntK, dst: dst.r, a: int32(e.Value.(int64))})
-		case exec.KHandle:
+		case code.KHandle:
 			if e.Value != nil || dst.file != fileA {
 				return fmt.Errorf("constant of type %s", e.Type)
 			}
@@ -505,7 +505,7 @@ func (c *termCompiler) exprInto(e exec.Expr, dst termReg) error {
 			return fmt.Errorf("constant of type %s", e.Type)
 		}
 		return nil
-	case *exec.Local:
+	case *code.Local:
 		src, ok := c.locals[e.Name]
 		if !ok {
 			return fmt.Errorf("undeclared local %s", e.Name)
@@ -519,7 +519,7 @@ func (c *termCompiler) exprInto(e exec.Expr, dst termReg) error {
 		op := [...]termOp{fileA: tMoveA, fileN: tMoveN, fileS: tMoveS, fileT: tMoveT}[src.file]
 		c.emit(termInstr{op: op, dst: dst.r, a: src.r})
 		return nil
-	case *exec.Unary:
+	case *code.Unary:
 		if e.Op != "!" {
 			return fmt.Errorf("unary %s", e.Op)
 		}
@@ -529,7 +529,7 @@ func (c *termCompiler) exprInto(e exec.Expr, dst termReg) error {
 		}
 		c.emit(termInstr{op: tNot, dst: dst.r, a: x.r})
 		return nil
-	case *exec.Binary:
+	case *code.Binary:
 		x, err := c.expr(e.X)
 		if err != nil {
 			return err
@@ -562,7 +562,7 @@ func (c *termCompiler) exprInto(e exec.Expr, dst termReg) error {
 			return fmt.Errorf("binary %s", e.Op)
 		}
 		return nil
-	case *exec.Call:
+	case *code.Call:
 		return c.call(e, dst)
 	}
 	return fmt.Errorf("expression %T", e)
@@ -593,7 +593,7 @@ func (c *termCompiler) name(s string) int32 {
 }
 
 // args translates the arguments of the call e at the positions idx and returns their registers.
-func (c *termCompiler) args(e *exec.Call, idx ...int) ([]int32, error) {
+func (c *termCompiler) args(e *code.Call, idx ...int) ([]int32, error) {
 	rs := make([]int32, len(idx))
 	for i, j := range idx {
 		if j >= len(e.Args) {
@@ -609,9 +609,9 @@ func (c *termCompiler) args(e *exec.Call, idx ...int) ([]int32, error) {
 }
 
 // intImm returns the integer constant that is argument i of the call e.
-func intImm(e *exec.Call, i int) (int32, error) {
+func intImm(e *code.Call, i int) (int32, error) {
 	if i < len(e.Args) {
-		if k, ok := e.Args[i].(*exec.Const); ok {
+		if k, ok := e.Args[i].(*code.Const); ok {
 			switch v := k.Value.(type) {
 			case int64:
 				return int32(v), nil
@@ -628,9 +628,9 @@ func intImm(e *exec.Call, i int) (int32, error) {
 
 // immArg returns the immediate operand of the call that is argument i of e, which must be of the
 // operation op.
-func immArg(e *exec.Call, i int, op string) (any, error) {
+func immArg(e *code.Call, i int, op string) (any, error) {
 	if i < len(e.Args) {
-		if a, ok := e.Args[i].(*exec.Call); ok && a.Callee == op {
+		if a, ok := e.Args[i].(*code.Call); ok && a.Callee == op {
 			return a.Imm, nil
 		}
 	}
@@ -639,7 +639,7 @@ func immArg(e *exec.Call, i int, op string) (any, error) {
 
 // fallible translates the call e of a composition that returns its failure, with its value, if it
 // has one, into dst.
-func (c *termCompiler) fallible(e *exec.Call, dst termReg) error {
+func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 	in := termInstr{dst: dst.r}
 	switch e.Callee {
 	case "member":
@@ -728,7 +728,7 @@ func (c *termCompiler) fallible(e *exec.Call, dst termReg) error {
 }
 
 // effect translates the call e, whose results are discarded.
-func (c *termCompiler) effect(e *exec.Call) error {
+func (c *termCompiler) effect(e *code.Call) error {
 	switch e.Callee {
 	case "seq.step":
 		c.emit(termInstr{op: tStep})
@@ -757,7 +757,7 @@ func (c *termCompiler) effect(e *exec.Call) error {
 }
 
 // call translates the call e of one result into dst.
-func (c *termCompiler) call(e *exec.Call, dst termReg) error {
+func (c *termCompiler) call(e *code.Call, dst termReg) error {
 	in := termInstr{dst: dst.r}
 	switch e.Callee {
 	case lower.OpTermConst:

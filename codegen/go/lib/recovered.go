@@ -10,7 +10,7 @@ import (
 // made, and immutable lists that the results of calls, growths and Operators Rule attempts share. A
 // result keeps its errors as one entry (recEntry), which the record takes again when the result is
 // reused, so that a reuse costs the same however many errors it holds. See addRecovery in
-// internal/ir/exec/ops/ops.go and Lemma 14 of spec/proofs/linear-cost.md.
+// internal/ir/code/exec/exec.go and Lemma 14 of spec/proofs/linear-cost.md.
 
 // recEntry is an entry of the record of recovered errors, or the errors that a result holds: an
 // error, a shared list, or, as the zero value, no errors.

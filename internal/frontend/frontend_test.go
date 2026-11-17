@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
@@ -45,7 +45,7 @@ func TestRunMatchesCompile(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				facts.Compute(want, nil) // Run's module has its facts set
+				corepass.Compute(want, nil) // Run's module has its facts set
 				res, err := frontend.Run(g, v.opts, nil)
 				if err != nil {
 					t.Fatalf("%s: %v", v.name, err)

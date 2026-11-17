@@ -15,7 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
-// The guards of the Core IR (core.Guards) skip an alternative of a choice when the next character
+// The guards of the Core IR (corepass.Guards) skip an alternative of a choice when the next character
 // cannot begin it, and every parser printed from Flow IR relies on that. The decision goldens freeze
 // what the guards are; they do not say that a guard is sound. This test does, with the engine as the
 // oracle: a guard is sound if the engine never matches its alternative at a position where the guard

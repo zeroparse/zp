@@ -5,19 +5,19 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // Every pass of the Core pipeline is an optimization that can be turned off, under its own name.
 func TestEveryCorePassIsAFlag(t *testing.T) {
-	for _, name := range core.Pipeline.Names() {
+	for _, name := range corepass.Pipeline.Names() {
 		if f, ok := lookup(name); !ok || f.Kind != Pass {
 			t.Errorf("pass %s is not a registered optimization of kind pass", name)
 		}
 	}
-	for _, name := range []string{"text-dispatch", "field-compare", core.FlagGuardedClasses} {
+	for _, name := range []string{"text-dispatch", "field-compare", corepass.FlagGuardedClasses} {
 		if _, ok := lookup(name); !ok {
 			t.Errorf("the flag %s is not registered", name)
 		}
@@ -31,7 +31,7 @@ func TestEveryFlowPassIsAFlag(t *testing.T) {
 		if f, ok := lookup(name); !ok || f.Kind != FlowPass {
 			t.Errorf("pass %s is not a registered optimization of kind flow pass", name)
 		}
-		if slices.Contains(core.Pipeline.Names(), name) {
+		if slices.Contains(corepass.Pipeline.Names(), name) {
 			t.Errorf("pass %s is both a Core and a Flow pass", name)
 		}
 	}
@@ -43,15 +43,15 @@ func TestEveryFlowPassIsAFlag(t *testing.T) {
 // Every pass of the Exec pipeline is an optimization that can be turned off, under its own name, and
 // no Exec pass has the name of a Core or Flow pass.
 func TestEveryExecPassIsAFlag(t *testing.T) {
-	for _, name := range exec.Pipeline.Names() {
+	for _, name := range code.Pipeline.Names() {
 		if f, ok := lookup(name); !ok || f.Kind != ExecPass {
 			t.Errorf("pass %s is not a registered optimization of kind exec pass", name)
 		}
-		if slices.Contains(core.Pipeline.Names(), name) || slices.Contains(flow.Pipeline.Names(), name) {
+		if slices.Contains(corepass.Pipeline.Names(), name) || slices.Contains(flow.Pipeline.Names(), name) {
 			t.Errorf("pass %s is also a Core or Flow pass", name)
 		}
 	}
-	if err := exec.Pipeline.Validate(); err != nil {
+	if err := code.Pipeline.Validate(); err != nil {
 		t.Error(err)
 	}
 }
@@ -138,9 +138,9 @@ func TestParsePrintAfter(t *testing.T) {
 	}
 	// The names follow the order the steps run in: the Core build and passes, then the Flow lowering
 	// and passes, then the Exec lowering and passes.
-	want := append([]string{"build"}, core.Pipeline.Names()...)
+	want := append([]string{"build"}, corepass.Pipeline.Names()...)
 	want = append(append(want, "flow"), flow.Pipeline.Names()...)
-	want = append(append(want, "exec"), exec.Pipeline.Names()...)
+	want = append(append(want, "exec"), code.Pipeline.Names()...)
 	want = append(want, "all")
 	if got := PrintNames(); !slices.Equal(got, want) {
 		t.Errorf("names %v, want %v", got, want)

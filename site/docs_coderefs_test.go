@@ -141,7 +141,7 @@ func loadRepoCode(t *testing.T, root string) *repoCode {
 		sc := bufio.NewScanner(f)
 		sc.Buffer(make([]byte, 1<<20), 1<<24)
 		inBlock := false
-		execIR := under(rel, "internal/ir/exec")
+		execIR := under(rel, "internal/ir/code")
 		for sc.Scan() {
 			if execIR {
 				for _, m := range execOpDeclRe.FindAllStringSubmatch(sc.Text(), -1) {

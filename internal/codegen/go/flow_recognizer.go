@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/flow"
-	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
 
 // Value-free rules of the Node library printed from Flow IR.

@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // structuralErrors returns the errors that depend on the facts of g: they read the structure of the
@@ -30,7 +30,7 @@ func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.In
 	if err != nil {
 		return nil
 	}
-	f := facts.Compute(m, control)
+	f := corepass.Compute(m, control)
 	var out diagnostic.ErrorList
 	for _, e := range f.Errors(m, !opts.LeftRecursionBindings) {
 		var pos grammar.Pos

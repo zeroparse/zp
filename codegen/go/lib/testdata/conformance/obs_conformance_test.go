@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec/conform"
+	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
 // The observation of the node library under conformance: every operation of the observation runs
@@ -52,7 +52,7 @@ func (m *obsMachine) Observe(component string) []string {
 	return append([]string{}, m.events...)
 }
 
-func (m *obsMachine) Call(o *exec.Op, args []any) (res []any) {
+func (m *obsMachine) Call(o *code.Op, args []any) (res []any) {
 	defer interrupted()
 	p := m.p
 	switch o.Name {
@@ -153,7 +153,7 @@ type brokenObs struct {
 	call func(m *obsMachine, args []any) []any
 }
 
-func (b brokenObs) Call(o *exec.Op, args []any) []any {
+func (b brokenObs) Call(o *code.Op, args []any) []any {
 	if o.Name == b.op {
 		return b.call(b.obsMachine, args)
 	}
