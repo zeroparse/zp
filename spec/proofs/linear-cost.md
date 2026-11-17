@@ -836,10 +836,12 @@ and outside lookaheads ([Skip Runs](../runtime/parsing.md#skip-runs)), so
 of two such evaluations in different lookahead states the earlier can take a
 record where the later evaluates the iterations that the record answers,
 and the later then holds activations to which nothing in the earlier
-corresponds. *Descent in the reference parse* in Lemma 4 counts them
-instead by the memoized evaluations that own them, inside the iterations
-as outside, through their counterparts in the reference parse, whatever
-the records answer, and leaves the parts that step 8 states. The same holds of the iterations themselves of a candidate site
+corresponds. *Descent in the reference parse* in Lemma 4 counts instead
+those that memoized evaluations own, inside the iterations as outside,
+through their counterparts in the reference parse, whatever the records
+answer, and *Families without the records* in Lemma 5 those that growth
+steps and evaluations in a context of growths own, in a parse that
+resumes no run of a Document; both leave the parts that step 8 states. The same holds of the iterations themselves of a candidate site
 that keeps records and is no recorded site of the parse, which are
 activations of a source of this list: the count of Lemma 4 is not shown for
 them. Step 8 of [Open Steps](#open-steps) lists both, as its sixth
@@ -7200,13 +7202,16 @@ outside. $\square$
 The claim asks that the parse resume no run. A walk that a Document
 resumes evaluates no element in the iterations that it reuses, and (P)
 says nothing of it, since it is no walk of a site that keeps records. A
-head can resume a run whole from a record of the previous parse, which
-the resumption removes from the records that the parse can resume
-([Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)),
-so a later growth of its key can evaluate the walk at the same place;
-the head then need not hold what that growth holds, and *Heads hold what
-later growths hold* is not shown for such a parse, which the eighth part
-of step 8 of [Open Steps](#open-steps) leaves open.
+repetition resumes a record only outside a lookahead and a `skip`
+([Documents](../runtime/documents.md)), so a head in lookahead state $0$
+can resume a run whose walk a later growth of its key in lookahead state
+$1$ evaluates; that growth then holds activations inside the iterations
+to which nothing in the head corresponds, and *Heads hold what later
+growths hold* is not shown. And the first growth of *Consecutive repeats
+inside a family* can evaluate a walk and record its run, and the second
+resume the run whole from that record, so that it holds nothing at the
+place of $\alpha$. The eighth part of step 8 of [Open
+Steps](#open-steps) leaves such a parse open.
 
 So the count above holds of the successful activations of $\sigma$ at $q$
 that growth steps and evaluations in a context of growths own and that are
@@ -10457,7 +10462,15 @@ theorem covers such a parse.
    call, so the parse evaluates nothing inside them, and *Counterparts in
    the reference parse* and *Covered keys* do not list them among the
    evaluations of $\mathcal{R}$ that the parse does not make, as they list
-   the iterations that a record answers, case (d). The claims that rest
+   the iterations that a record answers, case (d). Nor does
+   *Counterparts* state that a resumed walk leaves what the walk of
+   $\mathcal{R}$ leaves, as (R1) states of a walk that takes a record,
+   which its induction needs to go on past the walk and 2 of *Restarts in
+   a parse that keeps records* needs too; [Lemma 3 of the Documents
+   proof](documents.md#lemma-3-resumed-runs) gives it, a resumed
+   repetition ending where it ends in $\mathcal{R}$, with the same value
+   and the outcome that its iterations record there, and it is to be
+   carried into those claims. The claims that rest
    on them are not shown of such a parse where a resumed iteration lies
    on the paths that they follow. *Families in a parse that keeps
    records* and *Families without the records* are stated for a parse
