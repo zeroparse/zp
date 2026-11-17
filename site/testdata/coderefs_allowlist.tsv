@@ -1,8 +1,5 @@
 # Violations of the Code References rule that are still to be fixed (see docs/documentation-style.md).
 # The list only shrinks. Columns: file, category, token, number of references.
-docs/design/records/001-grammar-json.md	gofile	grammar/ast.go	1
-docs/design/records/001-grammar-json.md	gofile	grammar/json.go	1
-docs/design/records/001-grammar-json.md	gofile	grammar/json_test.go	1
 docs/design/records/002-transparent-choice.md	unexport	compileRule	1
 docs/design/records/003-packrat-parsing.md	gofile	vm.go	2
 docs/design/records/005-operators-rule.md	gofile	internal/engine/state/operators_rule.go	1
@@ -98,7 +95,6 @@ docs/design/records/037-replayable-edit-fuzzing.md	codelink	pkg/sample/sample.go
 docs/design/records/037-replayable-edit-fuzzing.md	gofile	internal/engine/document/document.go	1
 docs/design/records/037-replayable-edit-fuzzing.md	gofile	internal/engine/document_test.go	1
 docs/design/records/037-replayable-edit-fuzzing.md	gofile	pkg/sample/sample.go	1
-docs/design/records/038-structured-output-schema.md	gofile	grammar/ast.go	1
 docs/design/records/038-structured-output-schema.md	gofile	internal/engine/compiled_schema_test.go	1
 docs/design/records/038-structured-output-schema.md	gofile	schema/output_schema_validate_bench_test.go	1
 docs/design/records/038-structured-output-schema.md	gofile	schema/diff_bench_test.go	1
@@ -107,8 +103,6 @@ docs/design/records/041-missing-token-recovery.md	codelink	codegen/go/lib/lib.go
 docs/design/records/041-missing-token-recovery.md	gofile	codegen/go/lib/lib.go	2
 docs/design/records/041-missing-token-recovery.md	unexport	recoverAttr	1
 docs/design/records/042-responsive-lsp-analysis-and-code-actions.md	gofile	features.go	1
-docs/design/records/042-responsive-lsp-analysis-and-code-actions.md	gofile	grammar/format_context_bench_test.go	1
-docs/design/records/042-responsive-lsp-analysis-and-code-actions.md	gofile	grammar/validate_bench_test.go	1
 docs/design/records/042-responsive-lsp-analysis-and-code-actions.md	gofile	internal/compile/class_context_bench_test.go	1
 docs/design/records/042-responsive-lsp-analysis-and-code-actions.md	gofile	internal/compile/normalize_context_bench_test.go	1
 docs/design/records/042-responsive-lsp-analysis-and-code-actions.md	gofile	responsive.go	1
