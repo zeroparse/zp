@@ -3085,6 +3085,78 @@ plain; whether the memo alone bounds it is not shown, and a bound would rest
 on the activations that the frames hold, which the parse must evaluate and
 not answer.
 
+**One activation in a frame.** Under the hypotheses of *Restarts through a
+frame*, of the activations $\alpha_1, \alpha_2, \ldots$ the $q$-frame $e'_i$
+holds $\alpha_i$ alone, and so does $e_{i+1}$. So when $\mathcal{R}(e'_i)$
+holds, at any depth, a successful activation $\beta$ of $\sigma$ at $q$ other
+than the counterpart of $\alpha_i$, the parse answers a call or leaves out a
+step of a growth on the way from $\mathcal{R}(e'_i)$ down to $\beta$, or it
+evaluates the activation whose counterpart is $\beta$ as one that the
+sequence $\alpha_1, \alpha_2, \ldots$ leaves out: of case 5, of the third
+case of *Dropped steps*, or a repeat at the position of a growth that
+*Repeats inside a growth* of Lemma 5 leaves out.
+
+*Proof.* By 1 of *Iterations at one scan* applied to $it_{k'}$ and
+$it_{k''}$, $\alpha_i$ is the first activation in $it_{k'}$, and by the
+hypothesis it is the last, so of the $\alpha$'s $it_{k'}$ holds $\alpha_i$
+alone. $e'_i$ lies inside $it_{k'}$ (2 of *Iterations at one scan*) and
+contains $\alpha_i$, and $e_{i+1}$ lies inside $e'_i$ and contains
+$\alpha_i$ (1 of *Restarts through a frame* and *Repeats*). The parse
+evaluates inside $e'_i$ the counterparts of what $\mathcal{R}(e'_i)$
+evaluates, apart from what lies inside the calls that it answers, the steps
+of a growth that it does not evaluate and the alternatives that it skips by
+the next character, and an alternative that holds $\beta$ is not skipped
+(*Counterparts*). An evaluation that the parse makes has the outcome of its
+counterpart, so if it evaluated the activation whose counterpart is $\beta$,
+that activation would be a successful activation of $\sigma$ at $q$ inside
+$e'_i$, at a place other than that of $\alpha_i$, and so one that the
+sequence leaves out. $\square$
+
+**Holders of the frames' activations.** Let the hypotheses of *Restarts
+through a frame* hold for each $k$ from $i$ to $i + m - 1$ in place of $i$,
+with $k + 1$ linked, so that the run restarts through the $q$-frames
+$e'_i, \ldots, e'_{i+m-1}$ in turn. Let each $e_{k+1}$ be an evaluation of a
+key, and let no evaluation on the way from $e_{k+1}$, itself included, down to
+$\alpha_k$ be a step of a growth or in a context of growths. For each $k$ let
+$h_k$ be the innermost evaluation of a key that contains $\alpha_k$ and lies
+inside $e_{k+1}$, at the position $p_k$. Then $h_k$ holds $\alpha_k$,
+$t_{k+1} \le p_k \le q$, the $h_k$ are distinct, and at most three of them
+are evaluations of one key, at most two in each lookahead state.
+
+*Proof.* $e_{k+1}$ is an evaluation of a key that contains $\alpha_k$
+(*Repeats*), so $h_k$ exists. The parse evaluates every call on the way from
+$e_{k+1}$ down to $\alpha_k$, since it runs $\alpha_k$. A body evaluation on
+that way of a rule that the parse memoizes is no step of a growth, so it is
+of no leader, whose body evaluations are all growth steps (Lemma 3), and it
+is in no context of growths, so it reads no growth open at its start, since a
+call reads only the growths of the cycle of its rule at its position
+([Lemma 2 of the memoization
+proof](memoization.md#lemma-2-reading-an-open-growth)); so it is an
+evaluation of a key. Below $h_k$ the way therefore passes only calls of
+rules that the parse does not memoize, and $\alpha_k$ lies in the own region
+of $h_k$. $h_k$ lies inside $e_{k+1}$, which starts at $t_{k+1}$, and contains
+$\alpha_k$, which starts at $q$. $e_{k+1}$ lies inside $w_{k+1}$, which is
+abandoned before $\kappa_{k+1}$ makes $e'_{k+1}$ (*Repeats*), and for
+$k + 1 < i + m$, $e_{k+2}$ lies inside $e'_{k+1}$ (1 of *Restarts through a
+frame* for $k + 1$), so $e_{k+1}$ ends before $e_{k+2}$ starts: the
+$e_{k+1}$ follow one another in time, and the $h_k$ inside them are distinct.
+Each $h_k$ is a body evaluation of a memoized rule that is neither a growth
+step nor in a context of growths, so Lemma 3 allows at most three for its
+variant, position, level and combination of the values of the variables that
+its rule reads, which make its key, and at most two in each lookahead
+state. $\square$
+
+So a run that restarts through $m$ $q$-frames in turn has $m$ at most three
+times the number of distinct keys of the $h_k$, whether or not its links are
+plain, and the count does not rest on which first evaluation stores its
+result. At one position the calls have at most
+$2 \cdot |\text{rules}| \cdot |\text{levels}| \cdot K$ keys, so a long such
+run needs evaluations $h_k$ at many distinct positions between $t_{i+1}$ and
+$q$, each of which holds the activation of its link in its own region, below
+which the way to it passes only calls of rules that the parse does not
+memoize. That condition 2 bounds the number of these positions is not shown
+here.
+
 ## Lemma 5 (Growth)
 
 *Outline.* Under conditions 2, 3 and 5, and with the growths at the calls
