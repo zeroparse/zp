@@ -19,6 +19,15 @@ func (h ExclusionHooks) Set() func() {
 // restoreExclusionDefaults sets the hooks of the exclusion analysis to what the classifier uses:
 // decided units at k = 3 and trivia rules on, the memo of trivia rules and cut prefixes off.
 func restoreExclusionDefaults() {
-	cutPrefixesOn, decidedUnitsOn, decidedUnitsK, deadPathsOn = false, true, 3, true
+	cutPrefixesOn, decidedUnitsOn, decidedUnitsK, deadPathsOn, copyStopsOn = false, true, 3, true, true
 	triviaOn, triviaOnly, triviaMemo = true, nil, false
+}
+
+// SetCopyStops sets whether the strict analysis ends a path at a copying operation that is a
+// scanning source (copyStopsOn), for the tests of package complexity_test, and returns a function
+// that restores the defaults. The off setting is the mutant that passes over such a copy.
+func SetCopyStops(on bool) func() {
+	restoreExclusionDefaults()
+	copyStopsOn = on
+	return restoreExclusionDefaults
 }

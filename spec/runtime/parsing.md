@@ -1521,7 +1521,9 @@ The conditions below use these terms.
   path without deciding anything. A `_|_` of the normal view, such as the one
   to which it reduces `!"b" "b"`, is a **dead** symbol and ends the path too.
   A predicate (`{ ... }`) examines nothing and is passed over, even one that
-  no evaluation passes, such as `{ false }`; it is not a dead symbol. The
+  no evaluation passes, such as `{ false }`; it is not a dead symbol. Under
+  the strict conditions (below), one with a copying operation that is a
+  scanning source ends the path instead. The
   paths also cover the evaluations that fail at a dead symbol, so a unit
   that never succeeds has the paths of what it evaluates before it fails,
   and these must part like any other. The unit decides the continuation when
@@ -1618,7 +1620,17 @@ The conditions below use these terms.
   - a lookahead that only the continuation evaluates, or an alternative of it
     before the one that the unit's match implies, costs a constant: it has no
     scanning source of its own, and each call in it is answered by the memo or
-    reaches no scanning source.
+    reaches no scanning source;
+  - a predicate or a binding whose copying operation is a scanning source
+    ends the path, as an unbounded repetition does, instead of being passed
+    over, and so does an inline action with such a copy, after its
+    expression: the copy can examine as much input as the path consumed
+    before it, which the cheap symbols do not bound. An action at the end of
+    a rule body, or an action of an Operators Rule, with such a copy ends the
+    path where it leaves that body or an operand of the rule, and where a
+    call of the rule stands for the paths of its body. The end of the parse
+    after the start rule is the exception: the action of the start rule runs
+    there once.
 
   A **trivia rule** is a rule whose body is a greedy repetition `X*`, atomic or
   not, where `X` cannot match nothing, and that neither it nor

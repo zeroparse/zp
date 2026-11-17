@@ -1084,6 +1084,9 @@ func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all con
 		if tc.holder != nil {
 			k.srcExprs[tc.holder] = true
 		}
+		if tc.pred == nil && tc.holder == nil {
+			k.actionSource[tc.rule] = true
+		}
 	}
 }
 

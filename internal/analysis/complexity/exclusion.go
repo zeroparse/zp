@@ -34,6 +34,15 @@ var (
 // succeeds decide every continuation for want of paths.
 var deadPathsOn = true
 
+// copyStopsOn makes a path of the strict analysis end at a copying operation that is a scanning
+// source and that the path would otherwise pass over: a predicate or a binding that holds one, an
+// inline action that holds one after its expression, and the action at the end of a rule body
+// that has one, where a path leaves the body or a call is expanded into it. The copy can examine
+// as much input as the path has consumed, which neither side's alike symbols bound. It is on by
+// default; the variable is a test hook, whose off setting is the analysis that passed over such a
+// copy as over any predicate.
+var copyStopsOn = true
+
 const (
 	exclPaths  = 256 // the most paths of an expression that the analysis enumerates
 	exclInline = 6   // the most rule bodies that the analysis expands for one pair of paths
@@ -265,6 +274,21 @@ func (x excl) paths(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 	one := func(s sym) ([][]sym, bool) { return [][]sym{{s}}, true }
 	if x.strict {
 		switch e.(type) {
+		case *grammar.Predicate:
+			// A predicate or a binding is passed over as a symbol that consumes nothing, but a
+			// copying operation in it can examine as much input as the path has consumed.
+			if copyStopsOn && x.k.srcExprs[e] {
+				return one(sym{symStop, e, item})
+			}
+		case *grammar.InlineAction:
+			// The action runs after its expression, and so does its copying operation.
+			if copyStopsOn && x.k.srcExprs[e] {
+				ps, ok := x.pathsOf(e, item)
+				if !ok {
+					return nil, false
+				}
+				return stopped(ps, item)
+			}
 		case *grammar.Choice, *grammar.Optional, *grammar.Repeat:
 			if !x.cheapAll(e) {
 				y := x
@@ -401,7 +425,11 @@ func (x excl) body(s sym) ([][]sym, bool) {
 	if !ok {
 		return nil, false
 	}
-	return x.paths(def.Expr, s.item)
+	ps, ok := x.paths(def.Expr, s.item)
+	if !ok || !x.copyStops(def.Name) {
+		return ps, ok
+	}
+	return stopped(ps, s.item)
 }
 
 // concatPaths returns every path of ps followed by a path of qs; a path that ends with a stop or a
@@ -474,7 +502,19 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 var (
 	stopFollow = &grammar.Bottom{} // more than x.follow rule or operator ends
 	stopLength = &grammar.Bottom{} // exclLen symbols
+	stopCopy   = &grammar.Bottom{} // an action at the end of a rule body that copies (copyStops)
 )
+
+// copyStops reports whether the strict analysis ends a path at the end of the body of rule, whose
+// action, or an action of whose Operators Rule, is a scanning source (copyStopsOn).
+func (x excl) copyStops(rule string) bool {
+	return x.strict && copyStopsOn && x.k.actionSource[rule]
+}
+
+// stopped returns the paths ps, each followed by a stop at a copying action.
+func stopped(ps [][]sym, item int) ([][]sym, bool) {
+	return concatPaths(ps, [][]sym{{{symStop, stopCopy, item}}})
+}
 
 // followPaths returns the paths of the continuation c, followed through as many ends as the
 // limit on the number of paths allows, up to exclFollow. Where it follows fewer, the paths
@@ -494,10 +534,15 @@ func (x excl) followPaths(c *cont) ([][]sym, bool) {
 func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 	var after [][]sym
 	if rule == x.k.start {
+		// The parse ends once, so an action of the start rule that copies runs there once.
 		after = append(after, x.exited([][]sym{{{kind: symEnd}}}, rule, "")...)
 	}
 	for _, s := range x.k.sites {
 		if s.callee != rule {
+			continue
+		}
+		if x.copyStops(rule) {
+			after = append(after, x.exited([][]sym{{{kind: symStop, e: stopCopy}}}, rule, s.caller)...)
 			continue
 		}
 		if depth >= x.follow {
@@ -534,6 +579,9 @@ func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 // parts are those that the classifier takes as the continuations of an operand. The result is
 // computed once for each key; contPaths, its only caller, copies the paths that it extends.
 func (x excl) opsEnd(rule string, depth int) ([][]sym, bool) {
+	if x.copyStops(rule) {
+		return [][]sym{{{kind: symStop, e: stopCopy}}}, true
+	}
 	if depth >= x.follow {
 		return [][]sym{{{kind: symStop, e: stopFollow}}}, true
 	}
