@@ -283,16 +283,17 @@ code that builds untyped trees, which is most of the source of a large grammar. 
 errors: `-typed-only` needs `-types` and has no `-document` or `-stream`, which build untyped trees, and `-recognize-only`
 has nothing else. The sizes below are the kilobytes of the generated `parser.go` (with `-nodoc -lib import`) of
 six language grammars. With `-lib embed`, the parser also carries a copy of the library that keeps only the code the
-parser can run; the last column is the size of that copy for `-types` (the whole library is 456 KB).
+parser can run; [Generated Parser Size](../benchmarks.md#generated-parser-size) gives the size of that copy and of the
+whole library for the grammars of the repository.
 
-| Grammar | `-types` | `-types -recognize` | `-types -typed-only` | `-types -typed-only -recognize` | `-recognize-only` | Library copy, `-types -lib embed` |
-|:--|--:|--:|--:|--:|--:|--:|
-| cel | 213 | 293 | 115 | 195 | 89 | 392 |
-| cue | 782 | 1,091 | 419 | 729 | 331 | 393 |
-| duckdb | 3,749 | 5,370 | 1,747 | 3,369 | 1,719 | 393 |
-| golang | 1,109 | 1,620 | 597 | 1,107 | 548 | 392 |
-| python | 1,207 | 1,763 | 657 | 1,212 | 604 | 393 |
-| typescript | 1,893 | 2,767 | 1,038 | 1,916 | 959 | 393 |
+| Grammar | `-types` | `-types -recognize` | `-types -typed-only` | `-types -typed-only -recognize` | `-recognize-only` |
+|:--|--:|--:|--:|--:|--:|
+| cel | 213 | 293 | 115 | 195 | 89 |
+| cue | 782 | 1,091 | 419 | 729 | 331 |
+| duckdb | 3,749 | 5,370 | 1,747 | 3,369 | 1,719 |
+| golang | 1,109 | 1,620 | 597 | 1,107 | 548 |
+| python | 1,207 | 1,763 | 657 | 1,212 | 604 |
+| typescript | 1,893 | 2,767 | 1,038 | 1,916 | 959 |
 
 ### Optimizations
 
