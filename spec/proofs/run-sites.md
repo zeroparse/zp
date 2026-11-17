@@ -95,21 +95,23 @@ under its position alone. Two environment objects that are equal but distinct
 give distinct keys. Since that changes only which records a walk finds, never
 what one holds, the lemmas below hold for keys by object as stated.
 
-**Kinds.** The records of a site are kept apart for each lookahead state, so
+### Record Kinds
+
+The records of a site are kept apart for each lookahead state, so
 all the records that the walks of $(\sigma, \lambda)$ find were made by walks
 of $(\sigma, \lambda)$. A rule and its value-free twin walk the same site, so
 a record also notes whether the walk that made it built values. A walk that
 builds values finds only a record that notes values, and treats a slot whose
 record notes none as not recorded under its key; a walk that builds none
 takes a record of either kind and ignores its values, which the rest of its
-walk does not use. A key holds one record at a time. A walk that builds
-values stores records that note values, and a record that notes none never
-replaces one that notes values (a walk without values that records such a
+walk does not use. A key holds one record at a time, and a later store
+under it replaces it, except that a record that notes no values never
+replaces one that notes values: a walk without values that records such a
 key, as in its first $c_{\min}$ iterations, leaves the record in place,
-which holds everything it would store besides the values, by Lemma 1). So a
-key holds a record without values at most until a walk that builds values
-records it, and each key is recorded at most twice: once by each kind of
-walk.
+which holds everything it would store besides the values (Lemma 1). A walk
+that builds values stores records that note values. So a key holds a record
+without values only until a walk that builds values records it, and never
+after.
 
 ## Lemma 1 (Exactness)
 
@@ -138,7 +140,7 @@ environment that $E(r_m, \eta_m)$ left. The walk ends in one of two ways.
   errors of $E(r_k, \eta_k)$ and no values, which is
   $\mathrm{Rest}(r_k, \eta_k)$.
 - At a position $r_{k+1}$ with a record found under its key, which notes
-  values if the walk builds them (Kinds). The record was
+  values if the walk builds them ([Record Kinds](#record-kinds)). The record was
   stored earlier, so it is $\mathrm{Rest}(r_{k+1}, \eta_{k+1})$ by the
   induction hypothesis, with its values when the walk builds them. For a site free of the environment it is
   $\mathrm{Rest}(r_{k+1})$, which is the same.
@@ -180,9 +182,11 @@ Fix a key class $\kappa$. For a site free of the environment, all walks of
 $(\sigma, \lambda)$ share one class. Otherwise, each environment object in
 which a walk visits a position is a class of its own. In a parse with $W$
 walks of $(\sigma, \lambda)$ while the site is hot, the element is evaluated
-in those walks at most $3(n + 1)$ times at positions whose slot is fresh or
-not yet recorded under $\kappa$ for the kind of the walk (Kinds), summed over the classes that occur, plus
-$W (c_{\min} + 1)$ times. The walks look up at most
+in those walks at most $n + 1$ times at positions whose slot is fresh, at
+most $2(n + 1)$ times for each class at positions whose slot is not yet
+recorded under its key for the kind of the walk
+([Record Kinds](#record-kinds)), or $n + 1$ when the walks of
+$(\sigma, \lambda)$ are of one kind, plus $W (c_{\min} + 1)$ times. The walks look up at most
 $2(n + 1) + W (c_{\min} + 1)$ slots for each class and store at most as many
 records as they evaluate iterations while recording.
 
@@ -204,7 +208,8 @@ in [Lemma 2](skip-runs.md#lemma-2-cost) of the Skip Runs proof.
    positions only after that, so it finds the inner walk's records under the
    same key. So each slot and class is evaluated this way at most once before
    it is recorded for each kind of walk, since a record that notes values
-   serves both kinds: at most $2(n + 1)$ evaluations per class, and at most
+   serves both kinds and no later store takes it back to one without
+   ([Record Kinds](#record-kinds)): at most $2(n + 1)$ evaluations per class, and at most
    $n + 1$ when the walks of $(\sigma, \lambda)$ are of one kind.
 3. *A recording walk at a recorded slot.* This happens only within the first
    $c_{\min}$ iterations of the walk: at most $W c_{\min}$ evaluations.
