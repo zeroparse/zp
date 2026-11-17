@@ -6834,7 +6834,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    must be argued. And the statement on twins that the counterparts take over is
    tested on the Core IR of the generated parsers and on the calls and their
    outcomes in the engine, for rules on no cycle that read no variable, and
-   not for the values that a twin builds for its predicates and bindings.
+   not for the values that the captures of a twin build.
 2. **Continuations of growing units.** Lemma 5 bounds, in all but a constant
    number of steps of a growth, a unit followed by a growing unit with which it
    shares no call (*Sources at fixed offsets*), shows that a pair with a shared

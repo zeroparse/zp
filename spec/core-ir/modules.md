@@ -73,7 +73,7 @@ The finish of a rule selects how it makes its value.
 
 ### Value-Free Twins
 
-A rule that is called where no value is wanted can have a twin: a rule with the same body that builds no value. A twin
+A rule that is called where no value is wanted can have a twin: a rule with the same body that builds no value of its own. A twin
 has the policy NoValue, no type, the finish None and Want false. A node calls the twin instead of the rule where its own
 value is not wanted.
 

@@ -444,7 +444,8 @@ the two states stores a result. Whether a call is inside a lookahead or a
 `skip` is thus part of the key of a result computed there, and not of one
 computed outside them. A rule without an action that is on no left-recursion
 cycle can have a **value-free twin**, which matches as the rule does and builds
-no value beyond those that its predicates and bindings read. It evaluates the
+no value of its own: it builds a value only inside a capture, and every
+capture in it builds the value of what it captures, as in the rule. It evaluates the
 body of the rule as the rule does: the same expressions at the same positions,
 with the same matches and ends, its predicates and bindings reading the same
 values, and at each call the rule that the rule calls there or the twin of that
