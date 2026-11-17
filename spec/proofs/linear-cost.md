@@ -3325,7 +3325,9 @@ literal of the grammar. The calls that $v_k$ shares with $\kappa$ are the
 ones that the removal takes, and condition 2 compares what remains after
 them, so $j_k \le 16$; when the two share more, what remains begins with a
 call that both evaluate, and a unit committing by first characters needs
-that call to examine no input.
+that call to examine no input. A unit committing by its words reads its word
+after the removed calls, through the body of that call when the word begins
+inside it, so the input at $r_k$ begins with the word in that case too.
 
 *Proof.* As in the proof of *Positions of the holders*, $e_{k+1}$ and
 $e'_{k+1}$ are evaluations of keys of one class, so $\mathcal{R}(e_{k+1})$
@@ -3414,11 +3416,209 @@ the same position with the same result (*Direct activations*). That
 evaluation lies in the rest of $\mathcal{R}(I)$ or in one of the next $j_k$
 iterations of $T$: $\kappa$ evaluates each of its $j_k$ shared calls once, and
 one made after $\mathcal{R}(I)$ ends lies inside an iteration of $T$, as in
-the proof. Where that evaluation lies relative to the next
-frames, and whether a bound on the links that are not plain follows, is not
-shown here, and the cases in which $v_k$ decides $\kappa$, commits through
-a path that enters the growth again, or lies below a growth in $\mathcal{R}$
-are not treated.
+the proof. *Shared calls of the units below* follows that evaluation, and
+the calls that the abandoned units inside it share, down to $\alpha_k$ at any
+depth, and bounds the links after $k + 1$ apart from those that pass a pair
+of evaluations of a shared call that is not plain. The cases in which a unit
+on that way decides its continuation, commits through a path that enters the
+growth again, or lies below a growth in $\mathcal{R}$ are not treated.
+
+**Shared calls of the units below.** Let the hypotheses of *Units below the
+earlier evaluations* hold, apart from those on where $\alpha_k$ lies in $v_k$
+and on the way in which $v_k$ is committing, and let $m > k + 1$ index a link
+of the run, whose activation $\alpha_m$ lies in the iteration $I_m$ of $T$.
+Let no evaluation on the way from $T$ down to $\alpha_m$ be a step of a
+growth or in a context of growths, and let no growth lie, in $\mathcal{R}$,
+on the way from $\mathcal{R}(T)$ down to an evaluation made after $v'_k$ that
+holds a successful activation of $\sigma$ at $q$ at any depth. Call the
+abandoned evaluations on the way from $e_{k+1}$ down to $\alpha_k$ the
+**units below** $e_{k+1}$, and let each of them, $v$, be committing by first
+characters or by its words for every continuation $\kappa'$ such that
+$\alpha_k$ lies in $v$ outside the evaluations of the calls that $v$ shares
+with $\kappa'$, where, as in that claim, these calls are the ones that the
+removal takes. Then $\alpha_m$ lies inside an evaluation $f'_m$ that the
+parse makes in $I_m$ of a call at a position $x_m$, and a unit below
+$e_{k+1}$ makes, on its way to $\alpha_k$, a call $f_m$ at $x_m$, of the same
+rule or of its twin with the same level restriction, of a rule that reads no
+variable, that it shares with the continuation that $\mathcal{R}$ evaluates
+after the evaluation at its place. One of the following holds:
+
+1. $f_m$ contains $\alpha_k$, and $\alpha_m$ lies in $f'_m$ at the place of
+   $\alpha_k$ in $f_m$. Either $f_m$ is an evaluation of a key, and the
+   innermost evaluation of a key that contains $\alpha_m$ has the class and
+   position of $h_k$; or $f_m$ and $f'_m$ are evaluations of the rule of
+   $\sigma$, which calls no rule, and $\alpha_k$ and $\alpha_m$ are direct in
+   them.
+2. The parse answers $f_m$, or a call $g$ inside the evaluation $f_m$ on the
+   way down to the place of $\alpha_m$, outside contexts of growths, and
+   evaluates the call $\hat{g}$ at its place in $f'_m$; and $f_m$ and $f'_m$
+   have different variants, or $f_m$ is in lookahead state $1$ and $f'_m$ in
+   state $0$, with no lookahead between $f'_m$ and $\hat{g}$.
+3. On the way from $\mathcal{R}(e_{k+1})$ down to the activation at the place
+   of $\alpha_m$ in $\mathcal{R}(f_m)$, the parse leaves out a step of a
+   growth or answers a call in a context of growths, or it evaluates the
+   activation whose counterpart that is as one that the sequence $\alpha_1,
+   \alpha_2, \ldots$ leaves out.
+
+At most five links after $k + 1$ have the first form of 1.
+
+*Proof.* By 1 and 2 of *Iterations at one scan*, $I_m$ is a reaching
+iteration after $I$. Let $\rho$ be the counterpart of $\alpha_m$ in
+$\mathcal{R}(I_m)$, a successful activation of $\sigma$ at $q$ that consumes
+input from $q$, as $\alpha_m$ does (*Counterparts*). By the proof of *Units
+below the earlier evaluations*, which does not use where $\alpha_k$ lies in
+$v_k$ or how $v_k$ is committing, $\mathcal{R}$ evaluates, from the end of
+$v'_k$ to the end of $\mathcal{R}(T)$, a continuation of $v'_k$ from $s_k$ and
+returns to no position before $s_k$, and $\rho$, which starts after
+$\mathcal{R}(I)$ ends, lies in it. So the following holds for $l = 1$, with
+$v^{(1)} = v_k$ and $u_1 = v'_k$: $v^{(l)}$ is a unit below $e_{k+1}$ that
+contains $\alpha_k$ and starts at $s^{(l)}$, $u_l$ is an evaluation of
+$\mathcal{R}$ of the same unit at $s^{(l)}$ that takes the steps of
+$\mathcal{R}(v^{(l)})$ up to the variants of its calls, and from the end of
+$u_l$ to $\rho$, $\mathcal{R}$ evaluates a continuation $\kappa^{(l)}$ of
+$u_l$ from $s^{(l)}$ and returns to no position before $s^{(l)}$.
+
+Let the calls that $v^{(l)}$ shares with $\kappa^{(l)}$ end in $u_l$ at
+$r^{(l)}$. Every path of $\kappa^{(l)}$ that examines the input begins with
+them, each evaluated where $u_l$ evaluates it and with the result that it has
+there (*Direct activations*), and $\rho$ consumes input, so on its way to
+$\rho$, $\mathcal{R}$ keeps evaluations of them, one after another from
+$s^{(l)}$, and examines no other input before it has kept the last. The path
+of $v^{(l)}$ that holds $\alpha_k$ begins with them too, so $\alpha_k$ lies
+inside the evaluation $d$ of one of them in $v^{(l)}$, and $v^{(l)}$ makes
+the calls up to that one, or $\alpha_k$ follows them all and $v^{(l)}$ makes
+them all. Three cases remain.
+
+In the first, $\rho$ lies inside the evaluation $F$ that $\mathcal{R}$ keeps
+on its way to $\rho$ of a call that $v^{(l)}$ makes, at a position $x$; let
+$f$ be that call in $v^{(l)}$, made by the parse inside $e_{k+1}$. The parse
+runs $\alpha_m$, so it evaluates the counterparts of the evaluations on the
+way from $\mathcal{R}(I_m)$ down to $\rho$, and $f'_m$, whose counterpart is
+$F$, is one. A call of a rule of a left-recursion cycle is shared only when
+the two calls lie in the same growths of the cycle, and no growth lies on the
+way down to $F$, so neither $F$ nor $\mathcal{R}(f)$ reads a growth open at
+its start, and the two, of the same rule or of its twin with the same level
+restriction, of a rule that reads no variable, take the same steps up to the
+variants of their calls (*Counterparts*). So $\mathcal{R}(f)$ holds, at the
+place of $\rho$, a successful activation $\rho'$ of $\sigma$ at $q$, inside
+$\mathcal{R}(e_{k+1})$.
+
+If $\rho'$ is the counterpart of $\alpha_k$, $f$ contains $\alpha_k$. The
+parse runs $\alpha_k$ and $\alpha_m$, so it answers no call on the way from
+$f$ down to $\alpha_k$ or from $f'_m$ down to $\alpha_m$, and, as in the proof
+of *Positions of the holders*, the two ways pass, call by call, calls at
+places that correspond, at the same positions and with keys of one class, of
+which the parse memoizes both or neither, and every body evaluation on either
+way of a rule that the parse memoizes is an evaluation of a key, by the
+hypotheses of *Holders of the frames' activations* and of this claim. When $f$
+is an evaluation of a key, the innermost evaluations of keys on the two ways
+are at places that correspond: $h_k$, since $f$ contains $\alpha_k$, and the
+innermost evaluation of a key that contains $\alpha_m$. Otherwise $f$ is a
+call of a rule that the parse does not memoize, which as a shared call calls
+no rule, so $\alpha_k$ is direct in it, its rule is the rule of $\sigma$,
+and so for $f'_m$ and $\alpha_m$. This is 1. The innermost evaluations of
+keys that contain the activations of the links of the first form lie in
+their iterations after $I$, and $h_k$ lies in $e_{k+1}$, inside the iteration
+that holds $e'_k$, before $I$ (1 of *Restarts through a frame*). They are
+distinct evaluations of keys of one class at one position, neither steps of a
+growth nor in a context of growths, so by Lemma 3 they number at most six,
+$h_k$ among them.
+
+Otherwise $\rho'$ is a successful activation of $\sigma$ at $q$ in
+$\mathcal{R}(e_{k+1})$ other than the counterpart of $\alpha_k$. Of the
+activations $\alpha_1, \alpha_2, \ldots$, $e_{k+1}$ contains $\alpha_k$ alone,
+and the statement of *One activation in a frame* for $\mathcal{R}(e_{k+1})$,
+with $\rho'$ in place of $\beta$, gives: the parse answers a call or leaves
+out a step of a growth on the way from $\mathcal{R}(e_{k+1})$ down to
+$\rho'$, or it evaluates the activation whose counterpart is $\rho'$ as one
+that the sequence leaves out. In the case of an answered call, let $g$ be the
+outermost on that way, with no step of a growth left out above it, since
+otherwise 3 holds. The parse makes $f$, so above $\mathcal{R}(f)$ it
+evaluates the counterparts of the evaluations on the way, and $g$ is $f$ or
+lies inside it. If the parse answers $g$ in a context of growths, 3 holds.
+Otherwise, as above, the ways from $\mathcal{R}(f)$ down to $\rho'$ and from
+$F$ down to $\rho$ pass calls at places that correspond, so the parse,
+which answers no call on the way from $f'_m$ down to $\alpha_m$, evaluates
+the call $\hat{g}$ at the place of $g$, at its position, with a key of the
+class of its key, and the expressions from $f$ down to $g$ and from $f'_m$
+down to $\hat{g}$ are the same, so a lookahead lies between both pairs or
+neither. The variant of each call on the two ways depends only on its place
+and on the variant of the body that makes it (*Counterparts*), so $g$ and
+$\hat{g}$ have one variant when $f$ and $f'_m$ do. $e_{k+1}$ ends before $I$,
+so the parse makes $\hat{g}$ after it answers $g$, and $\hat{g}$ is in no
+context of growths. Were $f$ and $f'_m$ of one variant, with $f'_m$ in a
+lookahead state no smaller than that of $f$, $g$ and $\hat{g}$ would have one
+key and $\hat{g}$ a lookahead state no smaller than that of $g$: both are in
+state $1$ when a lookahead lies between, and otherwise in the states of $f$
+and $f'_m$. The memo would then answer $\hat{g}$ (*Answered calls*), which
+the parse evaluates. This is 2.
+
+In the second case, $\alpha_k$ lies inside the evaluation $d$ in $v^{(l)}$ of
+a shared call, at a position $p$, and $\rho$ lies after the evaluation $D$ of
+that call at $p$ that $\mathcal{R}$ keeps on its way to $\rho$, so $q \ge
+\mathrm{end}(D) = \mathrm{end}(d)$, since $D$ and $\mathcal{R}(d)$ take the
+same steps up to the variants of their calls, as $F$ and $\mathcal{R}(f)$
+do. If no evaluation below $d$ on the way to $\alpha_k$ were abandoned,
+$\alpha_k$ would consume input from $q$ inside the match of $d$, and
+$\mathrm{end}(d) > q$. So let $v^{(l+1)}$ be the first, at $s^{(l+1)}$: as
+in the proof of *Units below the earlier evaluations*, no evaluation on the
+way from $e_{k+1}$ down to $\alpha_k$ is a step of a growth, so $v^{(l+1)}$ is
+a unit below $e_{k+1}$, and it contains $\alpha_k$. $D$ holds, at the place
+of $v^{(l+1)}$, an evaluation $u_{l+1}$ of the same unit at $s^{(l+1)}$ that
+takes its steps up to the variants of its calls. None from $D$ down to the
+parent of $u_{l+1}$ is abandoned, since none from $d$ down to the parent of
+$v^{(l+1)}$ is; none from $D$ up to the innermost evaluation that contains
+$D$ and $\rho$ is abandoned before $\rho$, since $D$ is kept on the way to
+$\rho$, and those above it contain $\rho$; and no growth lies on the way from
+$\mathcal{R}(T)$ down to $u_{l+1}$: none down to $D$, which holds a successful
+activation of $\sigma$ at $q$ at the place of $\alpha_k$, and none below,
+since none lies on the way from $d$ down to $v^{(l+1)}$. So, as in the proof
+of *Units below the earlier evaluations*, from the end of $u_{l+1}$ to $\rho$,
+which lies after $D$ and so after $u_{l+1}$, $\mathcal{R}$ returns to no
+position before $s^{(l+1)}$ and evaluates a continuation $\kappa^{(l+1)}$ of
+$u_{l+1}$ from there, and the statement above holds for $l + 1$.
+
+In the third case, $\alpha_k$ follows the shared calls in $v^{(l)}$, and
+$\rho$ follows them on the way of $\mathcal{R}$ to it. As in the proof of
+*Direct activations*, the input from $r^{(l)}$ to the end of $\alpha_k$ is
+consumed in $v^{(l)}$ after the shared calls, so $r^{(l)} \le q$ and the
+character at $r^{(l)}$ is a first character of $v^{(l)}$ after them. On its
+way to $\rho$, $\mathcal{R}$ consumes the input from $r^{(l)}$ to $q$ after
+them, and $\rho$ the character at $q$, so the character at $r^{(l)}$ is a
+first character of $\kappa^{(l)}$ after them too, and the first characters of
+the two are not disjoint. When $v^{(l)}$ commits by its words, the path that
+holds $\alpha_k$ begins after the removed calls with its word $W$, read as in
+*Units below the earlier evaluations*, and $\sigma$ follows the word, so $q
+\ge r^{(l)} + |W|$; on that input every path of $\kappa^{(l)}$ fails,
+examines nothing more or evaluates a negative lookahead that is known to
+match before it reaches the end of $W$, and $\mathcal{R}$ does not reach $q$
+on it. Both contradict the hypothesis on the units below.
+
+$v^{(l+1)}$ lies strictly inside $v^{(l)}$, on the way from $e_{k+1}$ down to
+$\alpha_k$, so the second case occurs at finitely many levels, and the first
+case holds at the last. $\square$
+
+So the depth of the units below $e_{k+1}$ does not enter the count. Each link
+after $k + 1$ lies in its own iteration, inside the later evaluation of a call
+that a unit below $e_{k+1}$ shares with the continuation that $\mathcal{R}$
+evaluates after the evaluation at its place, and the parse evaluates that
+call there: the later evaluations that the memo answers hold no link, however
+many units below lie between $e_{k+1}$ and $\alpha_k$ and however far their
+shared calls reach past the ends of the rule bodies that hold them. A pair of
+the two evaluations of such a call with one variant, the earlier in a
+lookahead state no greater than the later, holds a link only at the place of
+$\alpha_k$, and then, when the call is of a rule that the parse memoizes, the
+holder of the link has the class and position of $h_k$. So a run whose links
+after $k + 1$ meet the hypotheses has at most five of them besides those of
+the second form of 1, of 2 and of 3, and the later evaluations $f'_m$ of the
+links of 2 lie in distinct iterations of $T$. Three parts stay open: a bound
+on the links of 2, at each of which a unit below evaluates a shared call as
+the twin and the continuation as the rule, or the reverse, or the unit below
+evaluates it inside a lookahead and the continuation outside every lookahead
+down to the call $\hat{g}$; the links of the second form of 1, leaf links of
+the kind of *Calls that call no rule* through the rule of $\sigma$; and the
+units below that commit only by deciding their continuation or for a path
+that enters the growth again.
 
 ## Lemma 5 (Growth)
 
@@ -7184,6 +7384,17 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    first characters or by its word, at most one more link follows than those
    calls and the length of the word, which depend only on the grammar, so in a longer run the activation lies
    inside a call that the unit shares, or the unit commits in another way.
+   *Shared calls of the units below* follows the activation through the
+   calls that the abandoned units below the earlier evaluation share, at
+   any depth: each later link lies, in its own iteration, inside the later
+   evaluation of such a call, which the parse evaluates there, and at most
+   five of them pass a pair of the two evaluations with one variant and the
+   earlier in a lookahead state no greater than the later, apart from leaf
+   links through the rule of the source; the others pass a pair that is not
+   plain in this way, or meet a growth or an activation that the sequence
+   leaves out. A bound on the links that pass a pair that is not plain stays
+   open, with the units below that commit only by deciding their
+   continuation or for a path that enters the growth again.
    Refinements,
    the links that are not plain, the number of
    runs in one evaluation $T$ of a repetition, the number of repetition
