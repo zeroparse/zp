@@ -2870,13 +2870,19 @@ the iterations that a record answers. In a
 [Document](../runtime/documents.md) parse a walk that resumes a run
 reuses recorded iterations, each an activation that makes no call, and
 evaluates nothing inside them. By [Lemma 3 of the Documents
-proof](documents.md#lemma-3-resumed-runs), under the invariant of the
-memoization theorem for the evaluations completed before it, which the
-induction of that theorem gives, the walk visits the iterations that the
+proof](documents.md#lemma-3-resumed-runs) and its proof, under the invariant of the
+memoization theorem for the evaluations that completed before it in this
+parse and in the parse that stored the record, which the induction of the
+[theorem of that
+proof](documents.md#theorem-document-parses-equal-fresh-parses) over the
+parses of the Document gives, the walk visits the iterations that the
 walk of $\mathcal{R}$ visits, in the same order and with the same
-outcomes, each starting where the one before ended, and leaves the
-enclosing evaluation with the same record of failures and range; its
-element reads no variable and no capture from outside. So the induction
+outcomes, each starting where the one before ended, and records into the
+enclosing evaluation the same farthest failure and expected items and an
+examined range that contains theirs, as (I2) of the memoization theorem
+asks of any evaluation; only the decisions to reuse an entry or a record read a range,
+and the induction here follows outcomes. Its element reads no variable
+and no capture from outside. So the induction
 goes on past each reused iteration, and the parse evaluates what
 $\mathcal{R}(x)$ evaluates except, besides the four kinds above, inside
 the iterations that a resumed walk reuses. A reused iteration is the
@@ -4120,8 +4126,10 @@ makes an evaluation of the key of $z$, of the class $C$, and so has a
 head $H$ of the class $C$, its first evaluation of a key of that class.
 
 $\mathcal{R}(H)$ and $\mathcal{R}(M)$ are body evaluations in
-$\mathcal{R}$ of calls with keys of one class that read no growth open
-at their start, so they take the same steps up to the variants of their
+$\mathcal{R}$ of calls with keys of one class. The calls of $H$ and $M$
+read no growth open at their start, in $\mathcal{X}$ and in the parse,
+as evaluations of keys, and so their counterparts read none in
+$\mathcal{R}$ (the first paragraph of the proof of *Replays*). So they take the same steps up to the variants of their
 calls (*Counterparts*), and the evaluations inside one correspond one to
 one, in order, to those inside the other. A call of a rule that the
 parse memoizes corresponds to a call of the same rule or of its twin,
@@ -4162,9 +4170,15 @@ counterparts and 2 of *Descent in the reference parse*, whose path from
 $\mathcal{R}(M)$ down to the counterpart of $\alpha$ holds only
 counterparts of evaluations of the parse. So it holds whatever the parse
 answers from the memo, from an entry of an earlier parse or from a
-record, and whatever runs of a Document it resumes, since a resumed
-iteration contains no evaluation of the parse and so lies on that path
-only as $\alpha$ itself; and it compares no two evaluations of the parse.
+record, and whatever runs of a Document it resumes. 2 of *Descent* rests
+on the nesting of the counterparts that *Counterparts* gives, which takes
+in the iterations that a resumed walk reuses as its fifth kind: an
+evaluation of $\mathcal{R}$ that contains the counterpart of an
+evaluation of the parse lies inside no reused iteration other than as
+that iteration itself, which is the counterpart of one, so it is the
+counterpart of an evaluation of the parse, and a reused iteration, which
+contains no evaluation of the parse, lies on the path only as $\alpha$
+itself. And the claim compares no two evaluations of the parse.
 It gives the parse no credit for its records: a walk of the head of a
 class is counted in $\mathcal{X}$ with all its iterations.
 
@@ -4184,9 +4198,22 @@ parts of step 1 for that parse, and the records add no open part of
 their own to them. Whatever bound step 1 gives for $\mathcal{X}$ is in
 terms of the evaluations of $\mathcal{X}$, whose calls at one position
 are counterparts of calls of $\mathcal{R}$ there, as those of the parse
-are, but can bind the variables to combinations of values that no call
-of the parse binds, inside the walks that records answer in the parse;
-that the $K$ of $\mathcal{X}$ is at most that of the parse is not shown.
+are. The $K$ of [Classification](../runtime/parsing.md#classification)
+counts the combinations of values among the calls at one position of a
+parse, and the records of the parse do not raise it in $\mathcal{X}$
+when they are made as (M1) and (M2) of *Covered keys through records*
+state: a record answers an iteration at a position only after a walk of
+the parse evaluated an iteration of the site there, under the same values
+of the variables for a site that is not free of them, and the iterations
+of a free or skip-run site read no variable from outside, so the calls of
+$\mathcal{X}$ inside the iterations that the records answer repeat calls
+of the parse with the same values. That the $K$ of $\mathcal{X}$ is at
+most that of the parse is not shown when the parse answers calls from
+entries of an earlier parse, whose bodies $\mathcal{X}$ evaluates,
+resumes a run of a Document, or keeps records not made as (M1) and (M2),
+which (R1) alone allows. In the class Linear the $K$ of every parse is at
+most the constant of Lemma 8, so the comparison matters only for the
+class Linear given an environment bound.
 
 **Leaf links in a parse that keeps records.** In a parse whose records are
 exact, (R1) of the [Setting](#setting), *Growths around a leaf link*,
@@ -10556,7 +10583,10 @@ theorem covers such a parse.
    context of growths, so the leaf reference links, which make roots of
    their own, are counted as the leaf links of step 1 in such a parse and
    stay open with them, and the records add no open part to them; that
-   the $K$ of that parse is at most the $K$ of the parse is not shown. The
+   the $K$ of that parse is at most the $K$ of the parse is not shown when
+   the parse answers from entries of an earlier parse, resumes a run or
+   keeps records not made as (M1) and (M2), and matters only for the class
+   Linear given an environment bound. The
    activations inside the iterations that a growth step or an evaluation
    in a context of growths owns are bounded, with those outside them, by
    the count of Lemma 5 in a parse that keeps no records and reuses
@@ -10610,22 +10640,37 @@ theorem covers such a parse.
    call, so the parse evaluates nothing inside them. *Counterparts in the
    reference parse* lists them among the evaluations of $\mathcal{R}$ that
    the parse does not make and carries its induction past them by [Lemma 3
-   of the Documents proof](documents.md#lemma-3-resumed-runs), whose
+   of the Documents proof](documents.md#lemma-3-resumed-runs) and its
+   proof, whose
    outcome holds the recovered errors, none, since a run is recorded only
    when no recovered error remains at its end, and the farthest failure
    with its expected items ([Outcomes](memoization.md#setting) of the
-   memoization proof); and *Covered keys* has them as its case (e), which
+   memoization proof), and whose examined range contains that of
+   $\mathcal{R}$, which only the decisions to reuse read, given the
+   invariant of the memoization theorem in this parse and in the parse
+   that stored the record; and *Covered keys* has them as its case (e), which
    the claims that leave out case (d) leave out too. Not shown is where
    case (e) arises, as *Heads in a parse that keeps records* shows it for
    case (d), nor are the claims that compare two evaluations of one class
    or follow a path through a resumed walk read again for it: *Replays*,
    *Replayed activations*, *Answered calls*, the claims from *Links lead to
    repeated evaluations* to *Evaluated pairs of a shared call*, *Heads in a
-   parse that keeps records*, *Covered keys through records*, 2 of
-   *Restarts in a parse that keeps records*, the claims on leaf links and
-   on the scans in a parse that keeps records, and *Activations held by
-   heads*. *Families in a parse that keeps records* and *Families without
-   the records* are stated for a parse that resumes no run, and in a parse
-   that resumes one the activations that growth steps and evaluations in
-   a context of growths own are not bounded by them, inside the iterations
-   of the walks of the sites that keep records or outside.
+   parse that keeps records*, *Covered keys through records*, *Restarts
+   in a parse that keeps records*, whose 1 and 7 are stated of a walk that
+   takes a record, and the claims that rest on them, *Activations that do
+   not succeed in a parse that keeps records* and *Repeats inside a growth
+   in a parse that keeps records*, the claims on leaf links and on the
+   scans in a parse that keeps records, and *Activations held by heads*.
+   Nor are the claims of Lemma 5 from *Covered growths* to *First
+   activations of heads* shown of a parse that resumes a run, even one
+   that keeps no record of any site: a head can resume a run whose walk a
+   later growth of its key evaluates, and the second growth of
+   *Consecutive repeats inside a family* can resume whole the run that
+   the first recorded, which needs no record of a site (the remark after
+   *Families in a parse that keeps records*). *Families in a parse that
+   keeps records* and *Families without the records* are stated for a
+   parse that resumes no run, and in a parse that resumes one the
+   activations that growth steps and evaluations in a context of growths
+   own are not bounded by them or by the claims of Lemma 5 above, inside
+   the iterations of the walks of the sites that keep records or
+   outside.
