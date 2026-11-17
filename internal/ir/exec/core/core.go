@@ -405,7 +405,8 @@ the rule is called at the position again, or its memoization is no longer deferr
 		})
 	grow.Doc = `grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
 the match gets longer, and returns the last longer result. A growth in a context takes its steps
-through the context, which may give them without evaluating the body.`
+through the context, which may give them without evaluating the body. Outside a context, the form
+specialized for missing also drops the tokens that each adopted step inserted.`
 
 	// observe reports the call that body makes to the observation, with how far it examined the input.
 	observe := func(body func(b *Builder)) func(b *Builder) {

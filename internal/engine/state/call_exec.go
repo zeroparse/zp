@@ -293,7 +293,8 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *core.Node, ok bool) (*core.N
 
 // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
 // the match gets longer, and returns the last longer result. A growth in a context takes its steps
-// through the context, which may give them without evaluating the body.
+// through the context, which may give them without evaluating the body. Outside a context, the form
+// specialized for missing also drops the tokens that each adopted step inserted.
 //
 // Printed from Exec IR function grow of internal/ir/exec/core, specialized for missing.
 func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {

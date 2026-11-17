@@ -145,7 +145,8 @@ func (p *TParser) firstCall(r *TRule) bool {
 
 // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
 // the match gets longer, and returns the last longer result. A growth in a context takes its steps
-// through the context, which may give them without evaluating the body.
+// through the context, which may give them without evaluating the body. Outside a context, the form
+// specialized for missing also drops the tokens that each adopted step inserted.
 //
 // Printed from Exec IR function grow of internal/ir/exec/core.
 func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
@@ -527,7 +528,8 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 
 // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
 // the match gets longer, and returns the last longer result. A growth in a context takes its steps
-// through the context, which may give them without evaluating the body.
+// through the context, which may give them without evaluating the body. Outside a context, the form
+// specialized for missing also drops the tokens that each adopted step inserted.
 //
 // Printed from Exec IR function grow of internal/ir/exec/core, specialized for typed.
 func (p *TParser) grow(r *TRule, min int) (any, bool) {

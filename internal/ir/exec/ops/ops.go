@@ -337,7 +337,7 @@ made: later writes of the list do not change it.`, Requires: atMost})
 		Contract: `Records the errors of errs again, after the recovered errors, as one entry that shares
 errs; an empty list records nothing.`})
 	m.AddOp(&exec.Op{Name: "rec.none", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Results: []exec.Type{exec.TBool},
-		Contract: `Reports whether the list of errors is empty.`})
+		Contract: `Reports whether the list of errors is empty. The null handle is the empty list.`})
 	m.AddOp(&exec.Op{Name: "stream.settleErrors", Component: Rec, Writes: []string{Rec}, Features: []string{Stream},
 		NoReturn: true, Cost: exec.Cost{Const: 16},
 		Contract: `Forgets the recovered errors, which were delivered and collected, and counts none as delivered.
