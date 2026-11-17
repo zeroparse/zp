@@ -807,16 +807,17 @@ outside those iterations where the claim says so. *The position of a growth in a
 in Lemma 5 shows the claims of that lemma at the position of a growth,
 and with them the second case of *Repeats inside a growth*, of such a
 parse, and *Reuse in a context* the bounds from *Calls in a context of
-growths* to *Growths inside a step*. The claims of Lemma 5 other than
-those, the first case of *Repeats inside a growth* and those that
-*Families in a parse that keeps records* shows for a parse that resumes
-no run of a Document have not been read again for such
-a parse (step 8 of [Open Steps](#open-steps)); *Families in every parse*
-bounds the activations that growth steps and evaluations in a context of
-growths own in such a parse, whether it resumes runs or not, by a constant
-times those of a parse that keeps no record, resumes no run and answers
-nothing in contexts, for which no such reading is needed, subject to the
-open parts of the count of Lemma 5 in that parse.
+growths* to *Growths inside a step*. *Families in a parse that keeps
+records* and *Families in a parse that resumes runs* show the family
+claims for the activations that they call outside, and *Growth
+activations in a parse that keeps records or resumes runs* the claims
+from *Growths at many positions* to the end of the lemma, with the family
+claims for the growth activations, so every claim of Lemma 5 is read for
+such a parse; *Families in every parse* bounds the activations that growth
+steps and evaluations in a context of growths own in such a parse,
+whether it resumes runs or not, by a constant times those of a parse that
+keeps no record, resumes no run and answers nothing in contexts, subject
+to the open parts of the count of Lemma 5 in that parse.
 
 **Sources without records.** $A_u$ counts the successful activations of the
 following, and the count of Lemma 4 is needed for them and for the growths
@@ -9455,6 +9456,191 @@ growth of a step with an empty seed, and then no call at that position of a
 rule of the cycle of that growth is made inside the shared call (*Steps with
 an empty seed*).
 
+**Growth activations in a parse that keeps records or resumes runs.** In a
+parse whose records of sites, if it keeps any, are exact, (R1) of the
+[Setting](#setting), and that may be a [Document](../runtime/documents.md)
+parse that resumes runs, whose records of runs are then stored and resumed
+as (N1) and (N2) of *Covered keys through resumed runs* read them:
+
+1. No iteration of $\mathcal{R}$ that a resumed walk of the parse reuses
+   holds a call that reads the current result of a growth, and no growth
+   inside it takes a growth activation. So an evaluation of $\mathcal{R}$
+   lies in no such iteration, and in no iteration of a walk of a candidate
+   site or of a skip-run site, when it holds a successful growth
+   activation, or when it is a call that reads no growth open at its start
+   with the key of a call that reads none and whose growth takes a growth
+   activation.
+2. The claims from *Growths at many positions* to *Answered places*, and
+   the paragraphs between and after them, hold as stated, those that ask
+   the parse to answer nothing in contexts under that hypothesis, except
+   the first sentence of part 3 of *Growths at many positions*, which holds
+   for the outer growths that hold a successful growth activation, the only
+   ones that its second sentence counts. The family claims hold of the
+   growth activations as the paragraph after *Second outer growths* applies
+   them, whether or not the activations are outside in the sense of
+   *Families in a parse that keeps records* and *Families in a parse that
+   resumes runs*, and the exception of the second of those claims does not
+   arise for them.
+3. *Replayed activations* holds of every growth activation of such a parse,
+   inside the iterations of the walks of the repetitions at which a walk of
+   the parse resumes a run as outside them.
+
+*Proof.* 1. Let $\iota$ be an iteration of $\mathcal{R}$ that a resumed
+walk reuses. If it comes from no earlier parse, 1 of *Covered keys through
+resumed runs* and its proof show that neither $\iota$ nor a call inside it
+reads the current result of a growth. If it comes from an earlier parse,
+[Lemma 4 of the Documents
+proof](documents.md#lemma-4-recorded-iterations-read-no-open-growth) and
+its proof show the same: the evaluation of $\iota$ takes the steps of the
+recorded iteration on the text on which it was recorded, which reads no
+current result, until one of the two is answered with a current result, and
+the proof shows that neither is. Let $G$ be a growth of a leader at $p_G$
+inside $\iota$. Its steps evaluate the body of the leader at $p_G$ in the
+lookahead state and with the values of the variables of its call, and
+their states differ only in the current result of $G$, which no call inside
+them reads; $\mathcal{R}$ answers no call from a store, so each step after
+the first takes the steps of the first and gives its result. So the second
+step gives no longer result, $G$ ends with it, and no step of $G$ is a
+growth activation. Two calls that read no growth open at their start and
+have one key take the same steps (the proof of [Lemma 3 of the memoization
+proof](memoization.md#lemma-3-answering-from-a-sound-entry), as in
+*Counterparts in the reference parse*), so when the growth of one takes a
+growth activation, so does that of the other, which then lies in no such
+iteration. *Growths lie outside the recorded walks* gives the rest.
+
+2. The proofs of these claims use, of the parse, the facts on the restarts,
+the dropped steps and the units of a link, which *Restarts in a parse that
+keeps records* and *Restarts in a parse that resumes runs* show of such a
+parse; the claims at the position of a growth and both cases of *Repeats
+inside a growth*, which *The position of a growth in a parse that keeps
+records or resumes runs*, *Repeats inside a growth in a parse that keeps
+records* and *Repeats inside a growth in a parse that resumes runs* show;
+*Families of growths*, *Answered calls*, *Evaluations that read no growing
+result* and *Growths inside a step*, which hold in every parse, *Answered
+calls* through 4 of *Restarts in a parse that resumes runs* when the parse
+resumes runs; *Covered growths*,
+which holds of such a parse with the path followed through the records and
+the resumed runs (*Families in a parse that keeps records* and *Families
+in a parse that resumes runs*); and, at a few places, that the parse makes
+an evaluation at a place of a growth, of a step or of an earlier
+evaluation with the same steps, unless it answers a call or a step around
+that place. Records and resumed walks change the last only by taking whole
+iterations out of the parse (*Counterparts in the reference parse*), and
+each such place is that of a growth activation, of a call that starts a
+growth that holds one or of a call with the key of such a call that reads
+no growth open at its start, so by 1 no iteration around it in
+$\mathcal{R}$ is taken out. In turn:
+
+- *Growths at many positions*, parts 1 and 2: a growth evaluates the body
+  again while its result gets longer, a growth of a leader stores its
+  result, *Answered calls* holds, so a key has at most two outer growths,
+  and part 2 uses the ends and outcomes of the evaluations and the claims
+  at the position of a growth. In part 3, the reads at $p$, the
+  combinations and the growths of the three kinds are as stated, the steps
+  evaluating alike as *Evaluations that read no growing result* states it
+  in every parse. Let a step of a combination start on the path an outer
+  growth $g'$ that holds a successful growth activation, at a call at a
+  position after $p$, and let $\pi$ be the place of that call in the
+  evaluation of $\mathcal{R}$ that the path makes, one place in all the
+  steps of the combination. Its evaluation there has one key in those
+  steps, reads no growth open at its start and holds that growth
+  activation, so by 1 no iteration around it is taken out of any of them:
+  in every step of the combination the parse makes the call at $\pi$ or
+  answers a call around it, as in a parse without records and resumed
+  runs. The call at $\pi$ lies in no context of growths, since $g'$ is
+  outer, so the memo stores the result of $g'$ when it ends and answers
+  the call at $\pi$ in every later step that makes it; a call around it
+  that the memo answers in one step it answers in every later one
+  (*Answered calls*). So the first step of the combination makes the call
+  at $\pi$ or answers a call around it, and every later step answers the
+  call at $\pi$ or a call around it: such growths start only in the first
+  step of each combination, and the second sentence,
+  which counts the steps that start a growth that holds the growth
+  activation $\alpha'$, holds as stated. The proof does not show the first
+  sentence for the outer growths that hold none: a step can reuse, in a
+  resumed walk, an iteration that holds a call that starts such a growth,
+  which (N1) allows when no step of the growth reaches a left call, and a
+  later step, which (N2) does not oblige to resume the same record, can
+  evaluate it and start the growth there for the first time.
+- *Restarts of growth activations*: its proof uses the abandoned evaluation
+  $w$, the ends of the evaluations on the path from $N$ down to $\alpha$,
+  which hold the growth of $\alpha$ and are evaluated, condition 2 through
+  *Failure after a source*, read in $\mathcal{R}$ as 5 of *Restarts in a
+  parse that keeps records* reads it, *Dropped steps* and the two cases of
+  *Repeats inside a growth*, all shown of such a parse, and the count after
+  that claim, which reads such a parse as it states.
+- *Direct growth activations*: the shared call has the same result in $w$
+  and in $\kappa$ (2 of *Restarts in a parse that keeps records*), the
+  first characters and the word of case 4 are those of the input that the
+  evaluations consume (3 of that claim), and the memo answers as *Answered
+  calls* states. At the end of the proof, the call that starts $g'$ has
+  the key of a call that starts a growth that holds the growth activation
+  $\alpha'$, so by 1 the first outer growth, or the earlier evaluation
+  from which it was answered, makes the call at the same place unless it
+  answers a call around it from the memo, as the proof follows it.
+- *Second outer growths*: in its first kind, $e^k$ is a call with the key
+  of the call $c_2$, which starts a growth that holds a successful growth
+  activation, and reads no growth open at its start, so by 1 no iteration
+  on the path down to $e^k$ is taken out, the first evaluation $y$ on it
+  that the parse does not make is a call or a step, and the induction goes
+  on as *Covered growths* goes on in such a parse. In its second kind, the
+  alternative evaluates its scanning sources only inside calls memoized at
+  the call, so no walk of it outside them takes a record or resumes a run
+  (4 of *The position of a growth in a parse that keeps records or resumes
+  runs*), and the memo stores and answers those calls as stated.
+- The paragraph on the family claims: the path from the head $h$ down to
+  the place of the call $c$ that starts the growth of the activation ends,
+  in $\mathcal{R}$, at a call with the key of $c$ that reads no growth open
+  at its start, so by 1 the parse evaluates every call and step on it that
+  it neither answers nor takes in a run of steps, as *Heads hold what later
+  growths hold* uses. Cases (d) and (e) of the covered keys arise on a path
+  only at an iteration on it that a record answers or a resumed walk
+  reuses, and every iteration on the paths of *Links lead to later growths*
+  and of *First activations of heads* for a growth activation contains, in
+  $\mathcal{R}$, a growth activation or a call with the key of $c$: the
+  segment from $\mathcal{R}(h)$ down to $e^k$ included, since $e^k$ takes
+  the steps of the evaluation of its reference link that contains the
+  counterpart of the activation. So neither case arises there, and neither
+  does the exception of *Families in a parse that resumes runs*. *Repeats
+  inside a family* holds as stated in such a parse (those two claims).
+- *Answered places*: on the path from the growth of $R_k$ that $\kappa_k$
+  makes down to the place of $x_k$, every evaluation contains, in
+  $\mathcal{R}$, the evaluation at that place, a growth activation of
+  $\sigma$ or a call with the key of the call that starts the growth of
+  $\alpha$, so by 1 no record answers and no resumed walk reuses an
+  iteration on it, and the parse, which answers nothing in contexts,
+  evaluates each evaluation on it again; the calls and walks off it have
+  the outcomes and the ends of their counterparts in $\mathcal{R}$ in both
+  growths (2 of *Restarts in a parse that keeps records* and of *Restarts
+  in a parse that resumes runs*). So the growth takes the same steps down
+  to that place, and the rest of the proof uses the memo, the stand-ins and
+  the claims above, as stated.
+
+3. The replays leave out of their correspondence only the evaluations
+inside an iteration that one of the two evaluations of a class reuses or
+takes a record for where the other evaluates it (the proof of *Replays*).
+$\mathcal{R}(M)$ and $\mathcal{R}(H)$ take the same steps, so an iteration
+on the path from $\mathcal{R}(H)$ down to the place of a growth activation
+that $M$ holds corresponds to one on the path in $\mathcal{R}(M)$, and
+both contain a growth activation; by 1 neither is reused or answered by a
+record, and the proof of *Replayed activations* applies to the growth
+activation as stated. $\square$
+
+So every claim of Lemma 5 holds of such a parse, the family claims for the
+activations that *Families in a parse that keeps records* and *Families in a
+parse that resumes runs* call outside and for the growth activations, and
+*Families in every parse* carries their count to the other activations that
+growth steps and evaluations in a context of growths own. *Activations held
+by heads*, which counts the growth activations that memoized evaluations
+own, states its bound in a Document parse for the activations inside no
+iteration of a walk of a repetition at which a walk of the parse resumes a
+run; it holds of the growth activations inside such iterations too. Its
+factor six is that of *Replayed activations*, which 3 gives them, and case
+(e) of the covered keys arises on the path of a link or of a reference link
+only at an iteration on it that a resumed walk reuses, which by 1 none is:
+each contains, in $\mathcal{R}$, the counterpart of the growth activation
+or the place of it in an evaluation that takes the same steps.
+
 ## Lemma 6 (Values and Copies)
 
 Under conditions 1, 2 and 4, the size of the values that actions and
@@ -11872,9 +12058,13 @@ theorem covers such a parse.
    *Decided units at the position of the growth*, and with them the second
    case of *Repeats inside a growth*, of such a parse, and *Reuse in a
    context* the bounds from *Calls in a context of growths* to *Growths
-   inside a step*. The other claims of Lemma 5 have not been read again
-   for a parse that keeps records, for the sources without records or for
-   the growths. Sixth, a source without
+   inside a step*. *Growth activations in a parse that keeps records or
+   resumes runs* shows the claims from *Growths at many positions* to the
+   end of Lemma 5 of such a parse, the first sentence of part 3 of
+   *Growths at many positions* for the outer growths that hold a growth
+   activation, the only ones that the count uses, and the family claims
+   for the growth activations, so every claim of Lemma 5 is read for such
+   a parse. Sixth, a source without
    records inside the element of a site that keeps records, or in
    a rule that the
    element calls: a `#recover` whose skip is not reused, a walk
@@ -12064,7 +12254,13 @@ theorem covers such a parse.
    *Activations held by heads* states its reading for a Document parse
    with *Heads in a parse that resumes runs* and *Covered keys through
    resumed runs*, and uses none of the claims on leaf links or on the
-   scans. *Families in a parse that resumes runs* shows the claims of
+   scans. *Growth activations in a parse that keeps records or resumes
+   runs* shows that no iteration that a resumed walk reuses holds a growth
+   activation in the reference parse, and with it the claims from *Growths
+   at many positions* to the end of Lemma 5 of such a parse, and *Replayed
+   activations* and *Activations held by heads* of its growth activations
+   inside resumable iterations as outside them. *Families in a parse that
+   resumes runs* shows the claims of
    Lemma 5 from *Covered growths* to *First activations of heads* of a
    parse that resumes runs, with records of sites or without, for the
    activations that are no iteration of the kind and no resumable
