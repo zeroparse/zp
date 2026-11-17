@@ -171,7 +171,9 @@ entries of the chain only, and when the key is not among them it adds an entry
 in front, so a chain of more than 32 entries can hold more entries under such a
 key. Only one entry under a key matters in a parse: a lookup returns the first
 entry of the chain under its key, through the chain or the index alike, and a
-store replaces that entry in its place or puts the new entry in front of it, so
+store puts in that entry's place the join of it and the new result that
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) describes,
+or the new result where the parse cannot use the entry, or puts the new entry in front of it, so
 the others are not seen until a later edit relinks them. A lookup compares at most 32 entries
 of a chain before it consults an index, and Lemma 12 counts the walks and
 indexes of longer chains. Calls outside a Document have none of these
@@ -437,12 +439,21 @@ a rule's own cycle form its context, and the result of a rule of a cycle
 outside every context is memoized like that of any rule. So every body
 evaluation that the claim counts is one of the at most three that the section
 allows for its variant, position, level and combination. The memo answers
-each of these from one entry, the first under its key ([Setting](#setting)),
-and a store replaces that entry. An entry stored outside a
+each of these from one entry, the first under its key ([Setting](#setting)).
+An entry stored outside a
 lookahead answers the calls in both lookahead states, and one stored inside a
 lookahead answers only those inside one, condition (L) of the memoization
-proof. A call inside a lookahead is evaluated only when no entry answers it, so
-its store replaces no entry stored outside. So in each state at most one
+proof; a call outside every context of growths does not look at the leaders
+that the entry records. A store keeps the join of the entry and the new
+result ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)), which answers every call
+that either answered, so the entry never narrows, whether the store is made
+in a context of growths or not. An entry that the parse cannot use, as one
+of an earlier parse that lags behind too many edits, answers no call, and
+the store that replaces it narrows nothing. A call that the claim counts is
+evaluated only when no entry answers it: when its key has no entry, or, for
+a call outside lookaheads, only an entry computed inside one. Neither holds
+again once an evaluation in the same state has stored. So in each state at most one
 evaluation stores an entry, after which every call in that state is answered, and the only
 evaluation that stores none is the one of the first call of the variant at the
 position, which is in one of the two states.
@@ -3126,13 +3137,16 @@ outside contexts of growths in the same lookahead state or a greater one, from
 an entry of this parse or, in a [Document](../runtime/documents.md), of an
 earlier one.
 
-*Proof.* A call evaluates only when no entry answers it, and a store replaces
-the entry that a lookup of its key finds ([Setting](#setting)). An entry stored outside a lookahead answers the calls in
+*Proof.* A call evaluates only when no entry answers it, and a store keeps
+the join of the entry that a lookup of its key finds and the new result
+([Setting](#setting), [Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)), which answers every call
+that either answered, a store in a context of growths included. An entry
+stored outside a lookahead answers the calls in
 both states, and one stored inside a lookahead those inside one, condition (L)
-of the [memoization proof](memoization.md#setting). A store outside a
-lookahead therefore makes an entry that answers the calls of both states, and
-a store inside one is made only when no entry answers the calls inside, so it
-replaces no entry stored outside. So no store makes an entry that answers a
+of the [memoization proof](memoization.md#setting), and a call outside
+contexts of growths does not look at the leaders that it records. So no store
+makes an entry that answers a
 call stop answering the calls of its state, and an entry that answers a call
 outside lookaheads answers those inside them too. Entries
 stay until the end of the parse, apart from those that a stream discards before
@@ -6733,7 +6747,7 @@ symbol, so apart from the first three steps with a non-empty seed, the path of
 $g$ in the step passes its first three symbols, through the seed. $u$ then fails
 at the decisive symbol or before it, after the symbols that it passed alike.
 Each of these is cheap, and by *Evaluations that read no growing result* below
-each costs a constant in every step after the first that evaluates it alike,
+each costs a constant in every step after the first two that evaluate it alike,
 except a call of a rule that calls no rule, which repeats its own scan;
 *Decided units at the position of the growth* below shows that such a call
 examines a constant amount of the input. $\square$
@@ -6901,7 +6915,7 @@ step owns bound.
 in a step of the growth at $p$, that calls no rule of the cycle at $p$. The
 steps that evaluate $x$ with the same values of the variables that it reads
 evaluate it alike: with the same outcome, over the same input and with the
-same calls, and from the second of them on the memo answers each call of $x$
+same calls, and from the third of them on the memo answers each call of $x$
 that is memoized at the call.
 
 *Proof.* Only a call at $p$ of a rule of the cycle reads a growing result of
@@ -6915,8 +6929,14 @@ belong to growths that were in progress when the growth at $p$ started and do
 not change before it ends. The steps evaluate $x$ in the same lookahead state,
 so with the same values of the variables everything that $x$ evaluates reads
 the same input, results and values in each of them. A call memoized at the
-call stores its result in the first of them, and the result read no growing
-result that changes, so the memo answers it in the later ones. $\square$
+call is outside every context of growths, and its result read no growing
+result that changes. It stores its result in the first of them, or, when that
+is the first call of its variant at its position, which may leave no result
+([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), in the
+second. A store never narrows the calls that the entry of its key answers,
+whether a later store under the key is made in a context of growths or in
+the other lookahead state (*Answered calls* in Lemma 4), so the memo answers
+the call in every later step. $\square$
 
 **Results that do not include the seed.** At most a constant number of the
 steps of a growth whose values of variables do not change have a result that
@@ -7141,8 +7161,8 @@ one of them.
   since a rule reached from the cycle through left calls that reaches the
   cycle again through left calls is on it, and it reads no variable, so by
   *Evaluations that read no growing result* the memo answers it in every step
-  after the first that evaluates it, and $x$ is evaluated in one step of the
-  growth at most. Otherwise its rule calls no rule, and $g$ evaluates $c_i$ at
+  after the first two that evaluate it, and $x$ is evaluated in two steps of
+  the growth at most. Otherwise its rule calls no rule, and $g$ evaluates $c_i$ at
   $p$ again in the same step, before its left call, which comes after $c_i$ in
   $g$ since $c_i$ examines input. That evaluation evaluates an evaluation $x'$
   of the expression of $x$ at $p$ again, over the same input and with the same
@@ -7183,7 +7203,7 @@ position. So $C$ is a call at $p$, evaluated in each step in a body of the
 cycle or in a call at $p$ that is not memoized at the call. If $C$ is inside
 a call memoized at the call of a rule off the cycle, so is $V$, and by
 *Evaluations that read no growing result* the memo answers that call in every
-step after the first that evaluates it. Otherwise the rule of $C$ calls no
+step after the first two that evaluate it. Otherwise the rule of $C$ calls no
 rule and is not memoized, so by condition 3 it holds no scanning source, and
 $C$ examines what Lemma 1 bounds.
 
@@ -8308,7 +8328,9 @@ evaluation of a rule that is not cycle-free that read no growing result
 wherever the memo can answer a later call of its key in the lookahead
 state and with the growths open where it was made, except possibly the
 first evaluation of its variant at its position outside every context of
-growths, and let whether the memo can answer a call there depend on the
+growths, each store keeping the join of the entry and the new result that
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
+describes, and let whether the memo can answer a call there depend on the
 same things in both, as in the engine. Then $\mathcal{P}$ is a parse of the
 [Setting](#setting), and every successful activation $\alpha$ of a source
 $\sigma$ at $q$ that a growth step or an evaluation in a context of
@@ -8337,16 +8359,22 @@ answer is not the current result of an open growth, since
 $\mathcal{R}(y)$ would then make no call, and with no reuse in a context
 of growths $\mathcal{P}$ answers $y$ from an entry of the memo, whose result read no
 growing result and observed no lookahead that read one ([Evaluations of
-Rules](../runtime/parsing.md#evaluations-of-rules)). The entry does not
-come from an earlier parse: the parse holds the entries of earlier parses
-that $\mathcal{P}$ holds, and replaces one only with a store under its
-key that answers the calls in the state where it answered them (the
-proof of the claim of Lemma 3 on body evaluations), so it would answer
-the counterpart of $y$, which it evaluates, since it makes $G$. So the
-entry was stored by an evaluation $y_1$ of $\mathcal{P}$ of a call with
-the key of $y$, or of a growth of it, whose counterpart starts before
-that of $y$, and by the argument of [Lemma 4 of the memoization
-proof](memoization.md#lemma-4-answering-from-a-dependent-result), as in
+Rules](../runtime/parsing.md#evaluations-of-rules)). Up to $y$ both
+parses evaluate the same path, so $y$ is in the same lookahead state and
+the same context of growths in both. The entry of $\mathcal{P}$ under the
+key of $y$ is the join of the entry of an earlier parse under the key, if
+the parse can use one, and of the results that $\mathcal{P}$ has stored
+under the key. The parse holds the same entry of the earlier parse, and its
+own stores keep joins, which never narrow (*Answered calls* in Lemma 4, a
+store in a context of growths included), so its entry answers every call
+that the earlier entry answers. Were the entry of $\mathcal{P}$ the earlier
+entry alone, the parse would therefore answer $y$, which it evaluates, since
+it makes $G$. So $\mathcal{P}$ has stored under the key the result of an
+evaluation $y_1$ of a call with the key of $y$, or of a growth of it, whose
+counterpart starts before that of $y$. Neither $y$ nor $y_1$ reads a growth
+open at its start, and two such evaluations of one key take the same steps
+(the proof of [Lemma 3 of the memoization
+proof](memoization.md#lemma-3-answering-from-a-sound-entry)), so, as in
 *Heads hold what later growths hold*, $\mathcal{R}(y)$ and
 $\mathcal{R}(y_1)$ take the same steps. The path goes on from
 $\mathcal{R}(y_1)$ to the place of $\mathcal{R}(G)$, and by induction on
@@ -8413,15 +8441,20 @@ growth of $x$.
 
 (i) Let the result of $x$ read no growing result, and let the memo be
 able to answer a call of its key where $x$ is made. The parse evaluates
-$x$ only when no entry answers it, and then stores its result, unless
-$x$ is the first evaluation of its variant at its position, in the
-lookahead state of $x$ and with the growths open at its position; that
-entry answers every later call of the key in the same state or inside a
-lookahead and with a subset of those growths open. So the parse makes at
-most one more such evaluation of the key than there are pairs of a
-lookahead state and a set of leaders of the cycle of its rule, a
-constant, and a growth of each has one step of each rank: the owners of
-this kind with one image are at most that constant.
+$x$ only when the entry of its key does not answer it, and then stores its
+result, unless $x$ is the first evaluation of its variant at its position,
+in the lookahead state of $x$ and with the leaders that grow in its
+context. The store keeps the join, which answers the call of $x$, which
+the entry did not, and every call that the entry answered. An entry
+answers the calls in the states at least its own and with sets of growing
+leaders contained in the set it records, so the entries that the key has
+in turn answer strictly growing sets of calls, ordered as the pairs of a
+lookahead state and a set of leaders of the cycle of its rule. A chain of
+such pairs has at most two more members than the cycle has leaders, so the
+parse makes at most three more such evaluations of the key than the cycle
+has leaders, a constant of the grammar, and a growth of each has one step
+of each rank: the owners of this kind with one image are at most that
+constant.
 
 (ii) Let the result of $x$ read the growing result of a growth $h$ open
 at the start of $x$, the innermost such growth, so that $x$, and with it

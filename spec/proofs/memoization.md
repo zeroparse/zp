@@ -69,8 +69,14 @@ evaluating it, under these conditions:
 
 - **(S) Storing.** A call that reads a growth that was open when the call
   started is not stored in the table. This applies to every rule, including a
-  leader that grew inside the growth of another leader. An entry records the
-  present set $P$ of the call that stored it.
+  leader that grew inside the growth of another leader. An entry records a
+  present set $P$: that of the call that stored it, or the union of the
+  present sets of several calls of its key that $\mathcal{M}$ evaluated and
+  that read no growth open at their start, the call that stored it among
+  them. The second is how the engine keeps one entry for a key when a later
+  call of the key stores: it keeps the outcome computed outside a lookahead,
+  or the later one, with the union of the two present sets
+  ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)).
 - **(L) Lookahead state.** An entry stored in state $\lambda$ answers a call in
   state $\lambda'$ only if $\lambda \le \lambda'$.
 - **(C) Contexts.** A call of a rule of a left-recursion cycle with the present
@@ -335,15 +341,22 @@ that contains the range of the call in $\mathcal{R}$.
 
 *Proof.* Suppose that the call reads a growth open at its start. By Lemma 2
 it is a call, at the position $p$ of an open growth, of a rule of its cycle, so
-by (C) its present set $P'$ is a subset of the present set $P$ of the call
-that stored the entry, which read no growth open at its start. Compare the
-two evaluations in $\mathcal{R}$ from their start: they take the same steps
-until one of them is answered with a current result. A growth that started
-within one started within the other too, so the first difference is a call of
-a leader $L$ at $p$ answered with the current result of a growth open at the
-start, which by Lemma 2 is on the cycle of the rule, so $L \in P'$. Since
-$L \in P$, the corresponding call in the evaluation that
-stored the entry is answered with a current result too, which it never is. So
+by (C) its present set $P'$ is a subset of the present set $P$ of the entry,
+the union of the present sets of calls of its key that read no growth open at
+their start, by (S). Two evaluations in $\mathcal{R}$ of one key at $p$
+take the same steps from their start until one of them is answered with a
+current result, apart from the lookahead state, which as in Lemma 1 changes
+no decision. A growth that started within one started within the other too,
+so the first difference is a call of a leader $L$ at $p$ that one of them
+makes and that is answered there with the current result of a growth open at
+its start, which by Lemma 2 is on the cycle of the rule. Two of the calls
+whose present sets make up $P$ therefore take the same steps throughout: at
+their first difference one of them would read a growth open at its start.
+So none of them calls at $p$ a leader of $P$: the one whose present set holds
+that leader would read its current result, the call being made in it too.
+Now compare the call with one of them. At the first difference the call reads
+the current result of a growth of a leader $L \in P' \subseteq P$, and the
+other makes the same call of $L$ at $p$, which none of them makes. So
 the call reads no growth open at its start, and by Lemma 1 its outcome in
 $\mathcal{R}$ is $F(\kappa, \lambda')$, with the range that Lemma 1 gives for
 $\kappa$, which $\rho$ contains.
