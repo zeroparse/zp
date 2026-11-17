@@ -10,17 +10,18 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
-// The cases of the dependency memo of left recursion (the ctx operations). They install growths and
-// begin and end lookaheads with conformance operations (ref.CtxGrowOp and the others) instead of
-// running the growth loop, so that the ctx operations are checked apart from how growth steps compute
-// seed identities. A Value handle comes from OprNodeOp, so an implementation of the family is also an
+// The cases of the dependency memo of left recursion (the ctx operations) and of the growth outside a
+// context (grow.begin, grow.ctx, grow.longer and grow.adopt). They also install growths and begin and
+// end lookaheads with conformance operations (ref.CtxGrowOp and the others) instead of running the
+// growth in a context, so that the ctx operations are checked apart from how its steps compute seed
+// identities. A Value handle comes from OprNodeOp, so an implementation of the family is also an
 // Operators that makes that handle.
 
 // CtxOps are the operations of the dependency memo that cases for the reference model cover.
 var CtxOps = []string{
 	"ctx.enter", "ctx.found", "ctx.ok", "ctx.value", "ctx.end", "ctx.errs", "ctx.far", "ctx.expected",
 	"ctx.allows", "ctx.active", "ctx.lookup", "ctx.push", "ctx.pop", "ctx.storeMemo", "ctx.storeCtx", "memo.setPresent",
-	"ctx.keep", "ctx.done",
+	"ctx.keep", "ctx.done", "grow.begin", "grow.ctx", "grow.longer", "grow.adopt",
 }
 
 // CtxTestOps are the conformance operations that install growths and lookaheads.
@@ -305,6 +306,82 @@ func CtxCases() []Case {
 		b.Assert(exec.Not(exec.C("ctx.found", exec.C("ctx.lookup", c5, rule(ctxWide), i(0), exec.C(ValuesOp, i(0))))),
 			"a new growth starts with an empty table")
 	})
+	// adopt adopts a step of the growth g that ends at end with the errors recovered after the mark rec,
+	// as the grow composition does.
+	adopt := func(b *exec.Builder, g exec.Expr, end int64, v exec.Expr, rec exec.Expr) {
+		b.SetReg(ops.Pos, i(end))
+		b.Assert(exec.C("grow.longer", g, t), "the step matched more than the seed")
+		b.Do("grow.adopt", g, v, exec.C("rec.since", rec))
+		b.Do("rec.truncate", rec)
+	}
+	add("grow_outside", func(b *exec.Builder) {
+		b.SetReg(ops.Pos, i(1))
+		rec := b.Let("rec", exec.C("rec.mark"))
+		g := b.Let("g", exec.C("grow.begin", rule(ctxLeaderA), i(0)))
+		b.Assert(exec.Not(exec.C("grow.ctx", g)), "a growth alone at its position is in no context")
+		_, s := enter(b, "c", ctxLeaderA)
+		b.Assert(exec.C("ctx.found", s), "the leader reads its seed")
+		b.Assert(exec.Not(exec.C("ctx.ok", s)), "which failed")
+		b.Assert(eq(exec.C("ctx.end", s), i(1)), "at the start of the growth")
+		b.Assert(exec.Not(exec.C("grow.longer", g, f)), "a failed step is not longer")
+		v := b.Let("v", exec.C(OprNodeOp))
+		b.Do("rec.push", exec.C(ErrOp, i(4)))
+		b.SetReg(ops.Pos, i(1))
+		b.Assert(exec.C("grow.longer", g, t), "an empty match is longer than a failed seed")
+		adopt(b, g, 3, v, rec)
+		b.Assert(eq(exec.R(ops.Pos), i(1)), "the position returns to the start")
+		b.Assert(eq(exec.C("rec.mark"), rec), "the errors of the step are dropped from the record")
+		_, s2 := enter(b, "c2", ctxLeaderA)
+		b.Assert(exec.C("ctx.ok", s2), "the seed is the step")
+		b.Let("v2", exec.C("ctx.value", s2))
+		b.Assert(eq(exec.C("ctx.end", s2), i(3)), "and ends where it did")
+		b.Assert(exec.Not(exec.C("rec.none", exec.C("ctx.errs", s2))), "with its errors")
+		b.SetReg(ops.Pos, i(3))
+		b.Assert(exec.Not(exec.C("grow.longer", g, t)), "a step that ends where the seed does is not longer")
+		b.SetReg(ops.Pos, i(2))
+		b.Assert(exec.Not(exec.C("grow.longer", g, t)), "nor one that ends before")
+		adopt(b, g, 5, v, rec)
+		_, s3 := enter(b, "c3", ctxLeaderA)
+		b.Assert(eq(exec.C("ctx.end", s3), i(5)), "the next step is the seed")
+		b.Assert(exec.C("rec.none", exec.C("ctx.errs", s3)), "without errors when it recovered none")
+		b.Do(ref.CtxUngrowOp)
+	})
+	add("grow_context", func(b *exec.Builder) {
+		g := b.Let("g", exec.C("grow.begin", rule(ctxLeaderA), i(0)))
+		gb := b.Let("gb", exec.C("grow.begin", rule(ctxLeaderB), i(0)))
+		b.Assert(exec.C("grow.ctx", gb), "a growth where another leader of its cycle grows is in a context")
+		c, _ := enter(b, "c", ctxMember)
+		b.Assert(exec.C("ctx.active", c), "a call of the cycle is in their context")
+		b.Do("ctx.push", c)
+		readSeed(b, "in", ctxLeaderA)
+		readSeed(b, "inb", ctxLeaderB)
+		b.Assert(eq(exec.C("ctx.pop", c), exec.C("ctx.storeCtx")), "a result that read the failed seeds goes to the context")
+		keep(b, c, ctxMember, 0, true, 2, exec.C(OprNodeOp), noErrs, exec.C("exp.empty"))
+		b.Do("ctx.done", c)
+		b.Do(ref.CtxUngrowOp)
+		b.Assert(exec.Not(exec.C("grow.ctx", g)), "the first growth is in no context")
+		rec := b.Let("rec", exec.C("rec.mark"))
+		gb2 := b.Let("gb2", exec.C("grow.begin", rule(ctxLeaderB), i(0)))
+		c2, _ := enter(b, "c2", ctxMember)
+		b.Assert(exec.C("ctx.found", exec.C("ctx.lookup", c2, rule(ctxMember), i(0), exec.C(ValuesOp, i(0)))),
+			"every failed seed has the same identity")
+		b.Assert(exec.C("grow.ctx", gb2), "the growth is in the context again")
+		b.Do(ref.CtxUngrowOp)
+		adopt(b, g, 2, exec.C(OprNodeOp), rec)
+		b.Let("gb3", exec.C("grow.begin", rule(ctxLeaderB), i(0)))
+		c3, _ := enter(b, "c3", ctxMember)
+		b.Assert(exec.Not(exec.C("ctx.found", exec.C("ctx.lookup", c3, rule(ctxMember), i(0), exec.C(ValuesOp, i(0))))),
+			"an adopted seed has a new identity")
+		b.Do(ref.CtxUngrowOp)
+		b.Do(ref.CtxUngrowOp)
+	})
+	add("grow_wide", func(b *exec.Builder) {
+		b.Let("g", exec.C("grow.begin", rule(ctxWideLead), i(0)))
+		g2 := b.Let("g2", exec.C("grow.begin", rule(ctxNarrowLead), i(0)))
+		b.Assert(exec.C("grow.ctx", g2), "the growth names a present set with a leader that has no bit")
+		b.Do(ref.CtxUngrowOp)
+		b.Do(ref.CtxUngrowOp)
+	})
 	return cs
 }
 
@@ -477,6 +554,44 @@ func RandomCtx(name string, rng *rand.Rand, n int) Case {
 						continue
 					}
 					items(depth+1, true)
+					call(ref.CtxUngrowOp, nil)
+				case x < 3 && depth < 4 && rng.IntN(2) == 0:
+					// A growth that grow.begin begins, with its steps outside a context as the grow
+					// composition takes them; in a context it only reads.
+					setReg(ops.Pos, pos())
+					start := regs[ops.Pos].(int64)
+					leader := leaders[rng.IntN(len(leaders))]
+					ra, rx := ruleArg(leader)
+					gs, gx, allowed := call("grow.begin", []any{ra, int64(0)}, rx, exec.Int(0))
+					if !allowed {
+						continue
+					}
+					if res, _, _ := call("grow.ctx", []any{gs[0]}, gx[0]); res[0].(bool) {
+						items(depth+1, false)
+						call(ref.CtxUngrowOp, nil)
+						continue
+					}
+					mark, markx, _ := call("rec.mark", nil)
+					for range 1 + rng.IntN(3) {
+						items(depth+1, false)
+						if rng.IntN(2) == 0 {
+							e := rng.Int64N(20)
+							call("rec.push", []any{&ref.Err{ID: e}}, exec.C(ErrOp, exec.Int(e)))
+						}
+						setReg(ops.Pos, start+rng.Int64N(4))
+						ok := rng.IntN(4) > 0
+						if res, _, _ := call("grow.longer", []any{gs[0], ok}, gx[0], exec.BoolC(ok)); !res[0].(bool) {
+							break
+						}
+						es, ex, _ := call("rec.since", []any{mark[0]}, markx[0])
+						v := pick(values)
+						call("grow.adopt", []any{gs[0], v.h, es[0]}, gx[0], v.expr, ex[0])
+						call("rec.truncate", []any{mark[0]}, markx[0])
+						// The next step reads the seed it adopted.
+						callBlock(depth+1, leader, 0)
+					}
+					call("rec.truncate", []any{mark[0]}, markx[0])
+					setReg(ops.Pos, start)
 					call(ref.CtxUngrowOp, nil)
 				case x < 3 && inGrowth && rng.IntN(2) == 0:
 					ok, end, id := rng.IntN(2) == 0, regs[ops.Pos].(int64)+rng.Int64N(3), ids()

@@ -32,6 +32,9 @@ type ctxMachine struct {
 // ctxBox is the handle of a context state, which the library holds by value.
 type ctxBox struct{ c ctxCallState }
 
+// growBox is the handle of a growth, which the library holds by value.
+type growBox struct{ g growState }
+
 type meteredCtx struct{ *ctxMachine }
 
 func (m meteredCtx) Used() uint64 { return m.p.Control.budgetUsed() }
@@ -45,6 +48,10 @@ func newCtxMachine(cfg ref.Config, controlled bool) conform.Impl {
 		em = x.expMachine
 	}
 	m := &ctxMachine{expMachine: em}
+	// The library keeps the seed of a growth outside a context in the record of the growth, where
+	// ctx.enter returns it; a parse reads it at once, but a case holds it as a handle. Room for every
+	// growth of a case keeps the records, and with them those seeds, where they are.
+	m.p.gamma = make([]growRec, 0, 64)
 	for i, cr := range cfg.CtxRules {
 		m.ctxRules = append(m.ctxRules, &Rule{Id: i, Cycle: int32(cr.Cycle), Leader: cr.Leader})
 	}
@@ -88,15 +95,19 @@ func (m *ctxMachine) Call(o *exec.Op, args []any) []any {
 		m.testOp(o.Name, args)
 		return nil
 	}
-	if !strings.HasPrefix(o.Name, "ctx.") && o.Name != "memo.setPresent" {
+	if !strings.HasPrefix(o.Name, "ctx.") && !strings.HasPrefix(o.Name, "grow.") && o.Name != "memo.setPresent" {
 		return m.expMachine.Call(o, args)
 	}
 	defer interrupted()
 	res := m.binder.Call(o, args)
 	k := len(o.Results)
 	for i, prm := range o.Params {
-		if prm.Type == exec.THandle(ops.Ctx) {
+		switch prm.Type {
+		case exec.THandle(ops.Ctx):
 			args[i].(*ctxBox).c = res[k].(*ctxBox).c
+			k++
+		case exec.THandle(ops.Grow):
+			args[i].(*growBox).g = res[k].(*growBox).g
 			k++
 		}
 	}
@@ -149,6 +160,8 @@ func (c ctxConv) ToImpl(arg any, t reflect.Type) (reflect.Value, bool) {
 	switch a := arg.(type) {
 	case *ctxBox:
 		return reflect.ValueOf(a.c), true
+	case *growBox:
+		return reflect.ValueOf(a.g), true
 	case *errorList:
 		return reflect.ValueOf(a.e), true
 	case keptID:
@@ -165,6 +178,8 @@ func (c ctxConv) FromImpl(v reflect.Value) (any, bool) {
 	switch x := v.Interface().(type) {
 	case ctxCallState:
 		return &ctxBox{x}, true
+	case growState:
+		return &growBox{x}, true
 	case []ExpID:
 		return c.m.keptHandle(x), true
 	case recEntry:
@@ -177,6 +192,9 @@ func (c ctxConv) FromImpl(v reflect.Value) (any, bool) {
 	return nil, false
 }
 
+// ctxExact are the operations of the growth whose charges the model states to the unit.
+var ctxExact = []string{"grow.begin", "grow.adopt"}
+
 // ctxSuites are the suites of the library's dependency memo, with and without charge controls.
 func ctxSuites() []conform.Suite {
 	var suites []conform.Suite
@@ -186,9 +204,10 @@ func ctxSuites() []conform.Suite {
 			names = append(names, rtBudgetOps...)
 		}
 		suites = append(suites, conform.Suite{
-			Name: fmt.Sprintf("runtime ctx (controlled=%v)", controlled),
-			Ops:  names,
-			New:  func(c ref.Config) conform.Impl { return newCtxMachine(c, controlled) },
+			Name:  fmt.Sprintf("runtime ctx (controlled=%v)", controlled),
+			Ops:   names,
+			New:   func(c ref.Config) conform.Impl { return newCtxMachine(c, controlled) },
+			Exact: ctxExact,
 		})
 	}
 	return suites
@@ -259,5 +278,46 @@ func TestExecConformanceCtxDetectsBrokenLib(t *testing.T) {
 				t.Fatal("no case detected the broken library")
 			}
 		})
+	}
+}
+
+// chargedCtx is the library with charge controls whose operation op charges one unit less or more than
+// it does.
+type chargedCtx struct {
+	meteredCtx
+	op   string
+	more bool
+}
+
+func (c chargedCtx) Call(o *exec.Op, args []any) []any {
+	if o.Name != c.op {
+		return c.meteredCtx.Call(o, args)
+	}
+	p := c.p
+	if c.more {
+		defer p.Spend()
+	} else {
+		control := p.Control
+		p.Control = nil
+		defer func() { p.Control = control }()
+	}
+	return c.meteredCtx.Call(o, args)
+}
+
+// TestExecConformanceCtxDetectsCharges is the negative control of the charges of the growth: the
+// library with grow.begin or grow.adopt charging no unit, or one more, fails the controlled suite.
+func TestExecConformanceCtxDetectsCharges(t *testing.T) {
+	for _, op := range ctxExact {
+		for _, more := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s more=%v", op, more), func(t *testing.T) {
+				s := ctxSuites()[1]
+				s.New = func(c ref.Config) conform.Impl {
+					return chargedCtx{newCtxMachine(c, true).(meteredCtx), op, more}
+				}
+				if fails, _ := ctxConformanceFailures(s, 60, 250); len(fails) == 0 {
+					t.Fatal("no case detected the charges")
+				}
+			})
+		}
 	}
 }
