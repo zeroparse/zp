@@ -1,33 +1,35 @@
 // Rule profiling; execution history belongs to each invocation. A parser generated without
 // observability rejects the profile options.
 
-export interface ProfileLocation { pos: number; level: number }
-export interface SkipReasonCount { reason: string; count: number }
+/** Where a call began: its position and binding level. Generated parsers have no line information, so line and col are 0. */
+export interface CallSite { pos: number; line: number; col: number; level: number }
+export interface SkipReasonCount { reason: SkipReason; count: number }
 
-/** Owned counters; time and selfTime are milliseconds from a monotonic clock. */
+/** The cost of one rule. time and selfTime are milliseconds from a monotonic clock. */
 export interface RuleProfile {
   rule: string;
   entered: number;
   calls: number;
-  evals: number;
   memoHits: number;
   matched: number;
   failed: number;
+  evals: number;
+  reusedElements: number;
   consumed: number;
   skipped: number;
   skipReasons: SkipReasonCount[];
+  examined: number;
+  wasted: number;
+  longestFail: number;
+  longestFailAt: CallSite;
   repeats: number;
   maxEvals: number;
-  maxEvalsAt: ProfileLocation;
-  examined: number;
-  examinedKnown: boolean;
-  wasted: number;
-  wastedKnown: boolean;
+  maxEvalsAt: CallSite;
   time: number;
   selfTime: number;
 }
 
-/** Owned, rule-sorted snapshot. Completed counters exclude unfinished calls. */
+/** An owned copy of the counts of a Profile, rules sorted by name. Completed counters exclude unfinished calls. */
 export interface ProfileSnapshot {
   parses: number;
   entered: number;
@@ -35,6 +37,8 @@ export interface ProfileSnapshot {
   evals: number;
   memoHits: number;
   skipped: number;
+  reusedElements: number;
+  examined: number;
   time: number;
   rules: RuleProfile[];
 }
@@ -43,16 +47,17 @@ export interface ProfileData { totals: ProfileSnapshot; rows: Map<string, RulePr
 // Weak keys let a discarded sink be collected; values contain only scalar rows.
 export const profileData = new WeakMap<Profile, ProfileData>();
 
-/** Accumulates across parses without retaining input, nodes or call history. */
+/** Accumulates the cost of each rule over the parses it is given to, without retaining input, nodes or call history. */
 export class Profile {
   constructor() {
-    profileData.set(this, { totals: { parses: 0, entered: 0, calls: 0, evals: 0, memoHits: 0, skipped: 0, time: 0, rules: [] }, rows: new Map() });
+    profileData.set(this, { totals: { parses: 0, entered: 0, calls: 0, evals: 0, memoHits: 0, skipped: 0, reusedElements: 0, examined: 0, time: 0, rules: [] }, rows: new Map() });
   }
 
   /** Returns independent rows and nested arrays, sorted for deterministic JSON. */
   snapshot(): ProfileSnapshot {
     const data = profileData.get(this)!;
     const rules = Array.from(data.rows.values(), row => ({ ...row,
+      longestFailAt: { ...row.longestFailAt },
       maxEvalsAt: { ...row.maxEvalsAt },
       skipReasons: row.skipReasons.map(reason => ({ ...reason })).sort((a, b) => a.reason < b.reason ? -1 : a.reason > b.reason ? 1 : 0),
     })).sort((a, b) => a.rule < b.rule ? -1 : a.rule > b.rule ? 1 : 0);
@@ -68,33 +73,40 @@ export function resolveProfileClock(): (() => number) | Error {
   return now.bind(host) as () => number;
 }
 
-export interface ProfileFrame { row: RuleProfile; start: number; child: number }
+// A call in progress: its row, when it began, the time excluded before it, and the time of its nested calls.
+export interface ProfileFrame { row: RuleProfile; start: number; excluded: number; child: number }
 
-export class ProfileObservation extends Observation {
+// ProfileRecorder adds the events of one invocation to a Profile. The observation records each event
+// before the trace functions receive it and resumes the recorder after they return, so that their
+// time is not counted.
+export class ProfileRecorder {
   private data: ProfileData | null;
   private clock: (() => number) | null;
-  private profileScope: object | null;
+  private scope: object | null;
   private lastTime: number | null = null;
+  // excluded is the time of the trace functions so far, and paused when the last event was recorded.
+  private excluded = 0;
+  private paused: number | null = null;
   private readonly frames: ProfileFrame[] = [];
+  // seen counts the evaluating calls by rule, position and level; open counts the calls in progress by rule.
   private readonly seen = new Map<string, Map<number, Map<number, number>>>();
   private readonly open = new Map<string, number>();
 
-  constructor(o: ResolvedParseOptions) {
-    super(o);
-    this.data = profileData.get(o.profile!)!;
-    this.clock = o.profileClock;
-    this.profileScope = o;
+  constructor(profile: Profile, clock: () => number, scope: object) {
+    this.data = profileData.get(profile)!;
+    this.clock = clock;
+    this.scope = scope;
   }
 
-  override release(): void {
+  close(): void {
     this.data = null;
     this.clock = null;
-    this.profileScope = null;
+    this.scope = null;
     this.lastTime = null;
+    this.paused = null;
     this.frames.length = 0;
     this.seen.clear();
     this.open.clear();
-    super.release();
   }
 
   private now(): number {
@@ -104,77 +116,98 @@ export class ProfileObservation extends Observation {
       if (this.lastTime !== null && value < this.lastTime) throw new Error("profiling clock must be monotonic");
       this.lastTime = value;
       return value;
-    } catch (value) { throw new TraceFailure(value, this.profileScope!); }
+    } catch (value) { throw new TraceFailure(value, this.scope!); }
   }
 
   private row(rule: string): RuleProfile {
     let row = this.data!.rows.get(rule);
     if (row === undefined) {
-      row = { rule, entered: 0, calls: 0, evals: 0, memoHits: 0, matched: 0, failed: 0, consumed: 0, skipped: 0, skipReasons: [], repeats: 0,
-        maxEvals: 0, maxEvalsAt: { pos: 0, level: 0 }, examined: 0, examinedKnown: false, wasted: 0, wastedKnown: false, time: 0, selfTime: 0 };
+      row = { rule, entered: 0, calls: 0, memoHits: 0, matched: 0, failed: 0, evals: 0, reusedElements: 0, consumed: 0, skipped: 0, skipReasons: [],
+        examined: 0, wasted: 0, longestFail: 0, longestFailAt: { pos: 0, line: 0, col: 0, level: 0 },
+        repeats: 0, maxEvals: 0, maxEvalsAt: { pos: 0, line: 0, col: 0, level: 0 }, time: 0, selfTime: 0 };
       this.data!.rows.set(rule, row);
     }
     return row;
   }
 
-  override enter(rule: string, pos: number, level: number): void {
-    const start = this.now();
-    const totals = this.data!.totals, row = this.row(rule);
-    if (this.frames.length === 0) totals.parses++;
-    totals.entered++;
-    row.entered++;
-    this.open.set(rule, (this.open.get(rule) ?? 0) + 1);
-    this.frames.push({ row, start, child: 0 });
-    super.enter(rule, pos, level);
+  // record adds the event e; the time of the event is when record reads the clock.
+  record(e: TraceEvent): void {
+    const now = this.now();
+    switch (e.kind) {
+      case "enter": {
+        const totals = this.data!.totals, row = this.row(e.rule);
+        if (this.frames.length === 0) totals.parses++;
+        totals.entered++;
+        row.entered++;
+        this.open.set(e.rule, (this.open.get(e.rule) ?? 0) + 1);
+        this.frames.push({ row, start: now, excluded: this.excluded, child: 0 });
+        break;
+      }
+      case "exit":
+        this.exit(e, now);
+        break;
+      case "skipped":
+        this.skipped(e);
+        break;
+    }
+    this.paused = now;
   }
 
-  override exit(matched: boolean, end: number): void {
-    const call = this.stack[this.stack.length - 1]!;
-    let callbackFailed = false;
-    try { super.exit(matched, end); }
-    catch (value) { callbackFailed = true; throw value; }
-    finally {
-      // A secondary host clock failure must not replace a callback's throw.
-      try { this.completed(call, matched, end); }
-      catch (value) { if (!callbackFailed) throw value; }
+  // resume tells the recorder that the trace functions have handled the last event recorded.
+  resume(): void {
+    if (this.paused !== null) {
+      this.excluded += this.now() - this.paused;
+      this.paused = null;
     }
   }
 
-  private completed(call: ObservationCall, matched: boolean, end: number): void {
-    const now = this.now(), frame = this.frames.pop()!;
-    const elapsed = now - frame.start;
+  private exit(e: TraceEvent, now: number): void {
+    const frame = this.frames.pop();
+    if (frame === undefined) return;
     const row = frame.row, totals = this.data!.totals;
-    row.selfTime += Math.max(0, elapsed - frame.child);
-    const open = this.open.get(call.rule)! - 1;
-    this.open.set(call.rule, open);
+    const elapsed = now - frame.start - (this.excluded - frame.excluded);
+    row.selfTime += elapsed - frame.child;
+    const open = this.open.get(e.rule)! - 1;
+    this.open.set(e.rule, open);
     if (open === 0) row.time += elapsed;
+    const examined = Math.max(e.examined - e.pos, 0);
     const parent = this.frames[this.frames.length - 1];
-    if (parent === undefined) totals.time += elapsed;
-    else parent.child += elapsed;
+    if (parent === undefined) {
+      totals.time += elapsed;
+      totals.examined += examined;
+      totals.reusedElements += e.reusedElements;
+    } else parent.child += elapsed;
     row.calls++; totals.calls++;
-    row.evals += call.evals; totals.evals += call.evals;
-    if (call.memo) { row.memoHits++; totals.memoHits++; }
-    if (matched) { row.matched++; row.consumed += end - call.pos; }
-    else row.failed++;
-    if (!call.memo && call.evals > 0) {
-      let positions = this.seen.get(call.rule);
-      if (positions === undefined) { positions = new Map(); this.seen.set(call.rule, positions); }
-      let levels = positions.get(call.pos);
-      if (levels === undefined) { levels = new Map(); positions.set(call.pos, levels); }
-      const n = (levels.get(call.level) ?? 0) + 1;
-      levels.set(call.level, n);
+    row.evals += e.evals; totals.evals += e.evals;
+    row.reusedElements += e.reusedElements;
+    row.examined += examined;
+    if (e.memo) { row.memoHits++; totals.memoHits++; }
+    if (e.matched) { row.matched++; row.consumed += e.end - e.pos; }
+    else {
+      row.failed++;
+      if (!e.memo) {
+        row.wasted += examined;
+        if (examined > row.longestFail) { row.longestFail = examined; row.longestFailAt = { pos: e.pos, line: 0, col: 0, level: e.level }; }
+      }
+    }
+    if (!e.memo && e.evals > 0) {
+      let positions = this.seen.get(e.rule);
+      if (positions === undefined) { positions = new Map(); this.seen.set(e.rule, positions); }
+      let levels = positions.get(e.pos);
+      if (levels === undefined) { levels = new Map(); positions.set(e.pos, levels); }
+      const n = (levels.get(e.level) ?? 0) + 1;
+      levels.set(e.level, n);
       if (n > 1) row.repeats++;
-      if (n > row.maxEvals) { row.maxEvals = n; row.maxEvalsAt = { pos: call.pos, level: call.level }; }
+      if (n > row.maxEvals) { row.maxEvals = n; row.maxEvalsAt = { pos: e.pos, line: 0, col: 0, level: e.level }; }
     }
   }
 
-  override skipped(rule: string, pos: number, level: number): void {
-    const row = this.row(rule);
+  private skipped(e: TraceEvent): void {
+    const row = this.row(e.rule);
     this.data!.totals.skipped++;
     row.skipped++;
-    let reason = row.skipReasons.find(x => x.reason === "first-character");
-    if (reason === undefined) { reason = { reason: "first-character", count: 0 }; row.skipReasons.push(reason); }
+    let reason = row.skipReasons.find(x => x.reason === e.skipReason);
+    if (reason === undefined) { reason = { reason: e.skipReason, count: 0 }; row.skipReasons.push(reason); }
     reason.count++;
-    super.skipped(rule, pos, level);
   }
 }

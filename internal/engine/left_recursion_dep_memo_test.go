@@ -266,7 +266,7 @@ func TestLeftRecursionDependencyMemoDefaultBudget(t *testing.T) {
 
 // TestLeftRecursionDependencyMemoUnexamined checks that leaving the examined range out of the
 // identities of growth steps and the outcomes of lookaheads (ParseOptions.ContextMemoUnexamined,
-// what generated parsers do outside a Document parse) changes only what is evaluated: the random
+// what generated parsers do outside Document and observed parses) changes only what is evaluated: the random
 // grammars give the results of evaluating every call in a context again, and on mutual leaders it
 // takes a step that the examined range keeps apart.
 func TestLeftRecursionDependencyMemoUnexamined(t *testing.T) {

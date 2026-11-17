@@ -348,12 +348,12 @@ for (const [s, e, r] of [[0, 1, "s"], [4, 5, "x"]]) {
 	if got := run(nil); got != want {
 		t.Fatalf("got\n%s\nwant\n%s", got, want)
 	}
-	const old = "this.documentTouch(e!.examined);"
+	const old = "this.documentTouch(e!.examined);\n      if (e!.from === fromBefore) {"
 	got := run(func(src string) string {
 		if strings.Count(src, old) != 1 {
 			t.Fatalf("the library has %d copies of %q, want 1", strings.Count(src, old), old)
 		}
-		return strings.Replace(src, old, "", 1)
+		return strings.Replace(src, old, "if (e!.from === fromBefore) {", 1)
 	})
 	if got == want {
 		t.Error("the library that does not record what a reused result examined passes")
