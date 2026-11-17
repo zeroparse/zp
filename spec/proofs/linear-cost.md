@@ -7714,7 +7714,11 @@ evaluations examine, it takes results with different examined ranges as
 different too, and evaluates again what it could have reused. The bounds of
 this lemma on the evaluations, from *Calls in a context of growths* to
 *Growths inside a step*, hold in every parse, whatever it answers in
-contexts. The counts of the activations from *Repeats inside a family* to
+contexts, except that for a parse that resumes runs of a
+[Document](../runtime/documents.md), *Evaluations that read no growing
+result*, on which *Growths inside a step* rests, does not hold as it
+stands, as the eighth part of step 8 of [Open Steps](#open-steps) states.
+The counts of the activations from *Repeats inside a family* to
 *First activations of heads* are made in a parse that answers nothing in
 contexts, and *Families in every parse* carries them to every parse, the
 engine's parse included.
