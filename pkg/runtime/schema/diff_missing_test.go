@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // A field that changes between error and missing is a change of its type.

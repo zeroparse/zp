@@ -1,6 +1,6 @@
 package schemaexport
 
-import "zeroparse.dev/zp/schema"
+import "zeroparse.dev/zp/pkg/runtime/schema"
 
 // validInMemoryOutputSchema is a minimal valid schema built in memory. Package schema's tests
 // have the same helper; this copy serves the export tests here.

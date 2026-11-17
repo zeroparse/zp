@@ -37,12 +37,12 @@ var layout = []place{
 	{pkg: "engine", target: "pkg/compiler"},
 	{pkg: "grammar", target: "pkg/grammar"},
 	{pkg: "lint", target: "pkg/lint"},
-	{pkg: "query", target: "pkg/runtime/query"},
+	{pkg: "pkg/runtime/query", target: "pkg/runtime/query"},
 	{pkg: "sample", target: "pkg/sample"},
 	// The fixture suites of zp test are a tool over the compiler, in the layer of the public tool
 	// packages, though internal.
 	{pkg: "internal/fixture", target: "internal/fixture"},
-	{pkg: "schema", target: "pkg/runtime/schema"},
+	{pkg: "pkg/runtime/schema", target: "pkg/runtime/schema"},
 
 	// Utilities of the compiler side.
 	{pkg: "internal/cancel", target: "internal/cancel"},

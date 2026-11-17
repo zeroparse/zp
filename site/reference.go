@@ -33,8 +33,8 @@ var refPackages = []refPackage{
 	{dir: "codegen", importPath: modulePath + "/codegen", url: "reference/codegen/", title: "Package zp/codegen", label: "zp/codegen"},
 	{dir: "codegen/go/lib", importPath: modulePath + "/codegen/go/lib", url: "reference/libgo/", title: "Package zp/codegen/go/lib", label: "zp/codegen/go/lib"},
 	{dir: "lint", importPath: modulePath + "/lint", url: "reference/lint/", title: "Package zp/lint", label: "zp/lint"},
-	{dir: "schema", importPath: modulePath + "/schema", url: "reference/schema/", title: "Package zp/schema", label: "zp/schema"},
-	{dir: "query", importPath: modulePath + "/query", url: "reference/query/", title: "Package zp/query", label: "zp/query"},
+	{dir: "pkg/runtime/schema", importPath: modulePath + "/pkg/runtime/schema", url: "reference/schema/", title: "Package zp/pkg/runtime/schema", label: "zp/pkg/runtime/schema"},
+	{dir: "pkg/runtime/query", importPath: modulePath + "/pkg/runtime/query", url: "reference/query/", title: "Package zp/pkg/runtime/query", label: "zp/pkg/runtime/query"},
 	{dir: "sample", importPath: modulePath + "/sample", url: "reference/sample/", title: "Package zp/sample", label: "zp/sample"},
 	{dir: "editfuzz", importPath: modulePath + "/editfuzz", url: "reference/editfuzz/", title: "Package zp/editfuzz", label: "zp/editfuzz"},
 }
