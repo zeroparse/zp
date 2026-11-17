@@ -116,23 +116,23 @@ p, err := engine.Compile(g, "main")
 
 ### From Go Values (Programmatic Grammars)
 
-The `grammar` package defines the AST, so a grammar can also be built without any ZeroParse source: for a tool that
+Package `ast` (`zeroparse.dev/zp/pkg/grammar/ast`) defines the AST, so a grammar can also be built without any ZeroParse source: for a tool that
 generates grammars, or to embed a tiny grammar in a test. This builds the equivalent of
 `rule main = word $$` and `rule word =  [a-z]+ #atomic `:
 
 ```go
-g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{
-	&grammar.RuleDef{
+g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{
+	&ast.RuleDef{
 		Name: "main",
-		Expr: &grammar.Seq{Items: []grammar.Expr{
-			&grammar.Ref{Name: "word"},
-			&grammar.EndInput{},
+		Expr: &ast.Seq{Items: []ast.Expr{
+			&ast.Ref{Name: "word"},
+			&ast.EndInput{},
 		}},
 	},
-	&grammar.RuleDef{
+	&ast.RuleDef{
 		Name: "word",
-		Expr: &grammar.Atomic{Expr: &grammar.Repeat{
-			Expr: &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: 'a', Hi: 'z'}}},
+		Expr: &ast.Atomic{Expr: &ast.Repeat{
+			Expr: &ast.CharClass{Ranges: []ast.CharRange{{Lo: 'a', Hi: 'z'}}},
 			Min:  1,
 			Max:  -1, // no upper bound
 		}},
@@ -161,14 +161,14 @@ through the same analysis and type checking as one parsed from source, so mistak
 errors have no line numbers because there is no source:
 
 ```go
-bad := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{
-	&grammar.RuleDef{Name: "main", Expr: &grammar.Ref{Name: "missing"}},
+bad := &ast.Grammar{File: ast.File{Decls: []ast.Decl{
+	&ast.RuleDef{Name: "main", Expr: &ast.Ref{Name: "missing"}},
 }}}
 _, err = engine.Compile(bad, "main")
 fmt.Println(err) // undefined rule missing
 ```
 
-An AST can be exchanged as JSON with `grammar.MarshalJSON` and `grammar.UnmarshalJSON`, which round-trip the grammar
+An AST can be exchanged as JSON with `ast.MarshalJSON` and `ast.UnmarshalJSON`, which round-trip the grammar
 (`grammar.Format` of the decoded grammar equals the original). The command line does the same with
 [`zp convert`](command-line.md#convert).
 

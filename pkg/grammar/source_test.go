@@ -26,7 +26,7 @@ func jsonOf(t *testing.T) []byte {
 	return data
 }
 
-func ruleNames(t *testing.T, s grammar.Source) []string {
+func loadedRules(t *testing.T, s grammar.Source) []string {
 	t.Helper()
 	g, err := grammar.Load(s)
 	if err != nil {
@@ -54,7 +54,7 @@ func TestLoadDecidesTheEncoding(t *testing.T) {
 		grammar.FromFS(fsys, "dir/g.json"),
 		grammar.FromFS(fsys, "dir/g.txt"),
 	} {
-		if got := ruleNames(t, s); len(got) != 1 || got[0] != "main" {
+		if got := loadedRules(t, s); len(got) != 1 || got[0] != "main" {
 			t.Errorf("%s: rules %v", s.Name(), got)
 		}
 	}

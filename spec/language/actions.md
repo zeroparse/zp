@@ -5,8 +5,8 @@ where a Rule Expression atom is expected. It evaluates without consuming
 input or producing a value. A **Value Action** follows `=>` and computes a
 rule's value from the values produced by its grammar body. An ordinary rule may
 have a whole-rule Value Action after its complete expression:
-`rule name [Type] = expression => term`. A Value Action may also stand inside
-parentheses as an inline Value Action, `(expression => term)`, which is
+`rule name [Type] = expression => expr`. A Value Action may also stand inside
+parentheses as an inline Value Action, `(expression => expr)`, which is
 described [below](#inline-value-actions). An Operators Rule has specialized
 Value Actions on its operand and operator entries, and its declaration-level
 action is a [whole-rule action](operators-rule.md#whole-rule-action) that runs
@@ -233,7 +233,7 @@ Nothing else checks the fields of a constructor or the elements of a typed list 
 runs: the compile-time check is complete.
 
 In the public source AST, a tuple literal is `TupleLit{Elems}`, and parentheses around
-one action expression are retained as `TermGroup{Term}`. The group is semantically transparent: it affects
+one action expression are retained as `ActionGroup{Action}`. The group is semantically transparent: it affects
 precedence and source formatting, but creates no value or evaluation scope. See
 [Parenthesized Groups in the Public AST](grammar-files.md#parenthesized-groups-in-the-public-ast)
 for comment and layout preservation.

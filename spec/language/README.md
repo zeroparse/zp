@@ -61,7 +61,7 @@ where each is defined.
 
 The self-hosted grammar syntax chapter is a projection of the source parser, not
 the public grammar AST contract. Its typed source tree is an implementation
-representation; the public `grammar.Grammar` AST and its JSON representation
+representation; the public `ast.Grammar` AST and its JSON representation
 are defined in [Grammar Files](grammar-files.md#grammar-ast-source-metadata).
 
 ## Conventions
