@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/query"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/query"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 const missingSchemaGrammar = `type P = { M missing; E error; O *missing; L []missing }
