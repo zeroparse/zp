@@ -1,5 +1,5 @@
 main null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
-  alt 480:25/0 first="\x00"@0
+  alt 480:25/0 first="\u{0}"@0
   alt 480:25/1 first=-
 sourceFile null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
 topLevelStatement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
