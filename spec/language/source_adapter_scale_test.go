@@ -62,15 +62,43 @@ var scaleSources = []struct {
 // computeCost returns the compute units that a parse takes: the least Compute limit under which run
 // does not fail with a limit error. run parses with the given limit. The parser charges its work (input
 // units inspected, rule calls and loop iterations) to one counter and rejects the charge that passes
-// the limit, so the cost is exact and does not depend on the time or the load of the machine. A parse
-// that ends with another error, such as a syntax error, has completed.
-func computeCost(run func(limit uint64) error) uint64 {
-	completes := func(limit uint64) bool { return !errors.Is(run(limit), core.ErrLimit) }
+// the limit, so the cost is exact and does not depend on the time or the load of the machine.
+//
+// A parse has completed when it ends without an error or with syntax errors, which is how the sources
+// of these tests end. Any other error (an option error, a depth limit, a cancellation) would make a
+// parse that did no work look complete at every limit and the ratio of two sizes 1, so the test stops
+// on it. The search verifies the failing side of the interval: the limit 1 must fail, or the cost is
+// at most 1, and every lower bound that it keeps was run and failed. It stops at a limit that no parse
+// can complete under, instead of doubling for ever.
+func computeCost(t *testing.T, run func(limit uint64) error) uint64 {
+	t.Helper()
+	completes := func(limit uint64) bool {
+		err := run(limit)
+		var syntax zpparser.SyntaxErrors
+		var one *zpparser.SyntaxError
+		switch {
+		case err == nil, errors.As(err, &syntax), errors.As(err, &one):
+			return true
+		case errors.Is(err, core.ErrLimit):
+			var l *core.LimitError
+			if errors.As(err, &l) && l.Kind == core.LimitCompute {
+				return false
+			}
+		}
+		t.Fatalf("a parse under the compute limit %d ended with %v, which is neither success, a syntax error nor the compute limit", limit, err)
+		return false
+	}
+	lo := uint64(1) // lo fails; hi completes
+	if completes(lo) {
+		return lo
+	}
 	hi := uint64(1 << 10)
 	for !completes(hi) {
-		hi *= 2
+		if hi >= 1<<50 {
+			t.Fatalf("no parse completes under the compute limit %d", hi)
+		}
+		lo, hi = hi, hi*2
 	}
-	lo := hi / 2 // lo fails, or is zero; hi completes
 	for hi-lo > 1 {
 		if mid := lo + (hi-lo)/2; completes(mid) {
 			hi = mid
@@ -96,6 +124,11 @@ const (
 func scalesLinearly(t *testing.T, small int, cost func(n int) uint64) (ratio float64, ok bool) {
 	t.Helper()
 	a, b := cost(small), cost(small*scaleFactor)
+	// Every input unit costs a unit, so a cost under half of the size means that the work was not
+	// done, as when the parse fails at once; its ratio would pass for linear.
+	if a < uint64(small)/2 || b < uint64(small*scaleFactor)/2 {
+		t.Fatalf("the costs %d at %d and %d at %d are under the size: the work was not measured", a, small, b, small*scaleFactor)
+	}
 	ratio = float64(b) / float64(max(a, 1))
 	t.Logf("%d: %d units, %d: %d units, ratio %.2f", small, a, small*scaleFactor, b, ratio)
 	return ratio, ratio <= scaleLimit
@@ -103,8 +136,9 @@ func scalesLinearly(t *testing.T, small int, cost func(n int) uint64) (ratio flo
 
 // sourceCost is the compute cost of the generated parser of ZeroParse sources on src, with the options
 // and the limits of the source APIs except for Compute.
-func sourceCost(src string) uint64 {
-	return computeCost(func(limit uint64) error {
+func sourceCost(t *testing.T, src string) uint64 {
+	t.Helper()
+	return computeCost(t, func(limit uint64) error {
 		_, err := zpparser.ParseValue(src, zpparser.WithExpectations(), zpparser.WithLimits(zpparser.Limits{Compute: limit}))
 		return err
 	})
@@ -113,7 +147,7 @@ func sourceCost(src string) uint64 {
 func TestRecoveryScalesLinearly(t *testing.T) {
 	for _, c := range scaleSources {
 		t.Run(c.name, func(t *testing.T) {
-			ratio, ok := scalesLinearly(t, 2000, func(n int) uint64 { return sourceCost(c.make(n)) })
+			ratio, ok := scalesLinearly(t, 2000, func(n int) uint64 { return sourceCost(t, c.make(n)) })
 			if !ok {
 				t.Errorf("the cost grows %.1f times for %d times as many brackets (limit %d)", ratio, scaleFactor, scaleLimit)
 			}
@@ -171,7 +205,7 @@ func TestSourceAPIAllocationsScaleLinearly(t *testing.T) {
 
 func classRetryCost(t *testing.T, src string) uint64 {
 	t.Helper()
-	return computeCost(func(limit uint64) error {
+	return computeCost(t, func(limit uint64) error {
 		_, err := classretry.Parse(src, classretry.WithLimits(core.Limits{Compute: limit}))
 		return err
 	})
@@ -228,7 +262,7 @@ func TestScaleDetectorSeesGeneratedClassRetries(t *testing.T) {
 // same while every CPU is busy with other work as when it is idle, so no run can fail by noise.
 func TestScaleCostIgnoresLoad(t *testing.T) {
 	src := "rule a = x" + strings.Repeat("[", 2000) + "\nrule b = c\n"
-	idle := sourceCost(src)
+	idle := sourceCost(t, src)
 	stop := make(chan struct{})
 	var wg sync.WaitGroup
 	for i := 0; i < 2*runtime.NumCPU(); i++ {
@@ -245,7 +279,7 @@ func TestScaleCostIgnoresLoad(t *testing.T) {
 			}
 		}()
 	}
-	loaded := sourceCost(src)
+	loaded := sourceCost(t, src)
 	close(stop)
 	wg.Wait()
 	if idle != loaded {
