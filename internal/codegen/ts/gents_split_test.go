@@ -142,7 +142,8 @@ process.stdout.write("ok\n");
 		check(t, dir, "shared/rt.ts", "types.ts", "parser.ts")
 	})
 	t.Run("only", func(t *testing.T) {
-		// A library alone compiles, and equals the library that embedded mode writes for any grammar.
+		// A library alone compiles, and equals the whole library that embedded mode writes for any grammar
+		// with used-features off.
 		only := libFiles(t)
 		if len(only) != 1 || only[0].Path != "lib.ts" {
 			t.Fatalf("only wrote %v", only)
@@ -154,7 +155,7 @@ process.stdout.write("ok\n");
 		for _, gr := range []struct {
 			g    *grammar.Grammar
 			opts codegen.GenOptions
-		}{{g, codegen.GenOptions{Start: "main", Types: true}}, {g2, codegen.GenOptions{Start: "main", Observability: true}}} {
+		}{{g, codegen.GenOptions{Start: "main", Types: true, NoOpt: []string{codegen.UsedFeatures}}}, {g2, codegen.GenOptions{Start: "main", Observability: true, NoOpt: []string{codegen.UsedFeatures}}}} {
 			files, err := codegentest.GenerateTSRaw(gr.g, gr.opts)
 			if err != nil {
 				t.Fatal(err)

@@ -141,7 +141,9 @@ func TestTSDocumentExaminedEnds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts := codegen.GenOptions{Start: "main", Document: true}
+	// The whole library (used-features off): the test code builds rules that the parser of this grammar
+	// does not have.
+	opts := codegen.GenOptions{Start: "main", Document: true, NoOpt: []string{codegen.UsedFeatures}}
 	node, err := exec.LookPath("node")
 	if err != nil {
 		t.Skip("node not found")

@@ -29,7 +29,9 @@ func TestTSKeepAndMergeMatchReference(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	// The whole library (used-features off): the test code drives the library with budget controls
+	// that the parser of this grammar does not use.
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", NoOpt: []string{codegen.UsedFeatures}})
 	if err != nil {
 		t.Fatal(err)
 	}
