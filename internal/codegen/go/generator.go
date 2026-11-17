@@ -458,7 +458,13 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 			roots = append(roots, f.Content)
 			if f.Path != "parser.go" {
 				users = append(users, f.Content)
+				continue
 			}
+			surface, err := userSurface(f.Content)
+			if err != nil {
+				return nil, err
+			}
+			users = append(users, surface)
 		}
 		rt, err := embeddedLib(opts, features, settings.On(codegen.UsedFeatures), roots, users)
 		if err != nil {
