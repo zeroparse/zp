@@ -3,6 +3,7 @@ package ref
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/frontend/parser"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -31,6 +32,27 @@ func TestTypeTextMatchesFormatter(t *testing.T) {
 	} {
 		if got, want := typeText(typ), syntaxfmt.FormatType(typ); got != want {
 			t.Errorf("typeText = %q, the formatter writes %q", got, want)
+		}
+	}
+}
+
+// TestTypeTextIgnoresLayout checks that the type printer writes a parsed type on one line and
+// without its comments, where the formatter keeps the layout and the comments of the source.
+func TestTypeTextIgnoresLayout(t *testing.T) {
+	for _, c := range []struct{ src, want string }{
+		{"type T ~ (\n    int,\n    string,\n)", "(int, string)"},
+		{"type T ~ { a /* c */ int }", "{ a int }"},
+		{"type T ~ {\n    a int // c\n    b []string\n}", "{ a int; b []string }"},
+		{"type T ~ (\n    A | B\n)", "(A | B)"},
+		{"type T ~ Node[\n    A,\n    B & C,\n]", "Node[A, B & C]"},
+	} {
+		g, err := parser.Parse(c.src + "\nrule main = \"a\"\n")
+		if err != nil {
+			t.Fatalf("%q: %v", c.src, err)
+		}
+		typ := g.File.Decls[0].(*ast.TypeAlias).Type
+		if got := typeText(typ); got != c.want {
+			t.Errorf("%q: typeText = %q, want %q (the formatter writes %q)", c.src, got, c.want, syntaxfmt.FormatType(typ))
 		}
 	}
 }
