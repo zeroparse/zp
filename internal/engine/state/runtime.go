@@ -23,6 +23,22 @@ type SharedProgram struct {
 	initEnv *Env
 	// envLevels is the depth of the environment trie (EnvLevels of the variable count).
 	envLevels int
+	// runKeys holds, by site, the slots of the variables that key the records of a run site that is
+	// not free of the environment (compile.Program.RunKey), nil for the other sites.
+	runKeys []*runKeySlots
+}
+
+// runKeySlots are the slots of the variables of a compile.RunKey.
+type runKeySlots struct {
+	vars, bind []int
+}
+
+// runKeySlots returns the slots of the key of the run site, which is not free of the environment.
+func (s *SharedProgram) runKeySlots(site int) *runKeySlots {
+	if site < len(s.runKeys) && s.runKeys[site] != nil {
+		return s.runKeys[site]
+	}
+	panic(fmt.Sprintf("run site %d is keyed by the variables but the program has no key for it", site))
 }
 
 // InitSharedProgram makes s the shared part of a program that runs the static program sp, with
@@ -36,6 +52,13 @@ func InitSharedProgram(s *SharedProgram, sp *staticProgram) {
 	}
 	s.envLevels = EnvLevels(len(vals))
 	s.initEnv = NewEnv(vals, s.envLevels)
+	s.runKeys = nil
+	for site, k := range sp.RunKeys() {
+		for len(s.runKeys) <= site {
+			s.runKeys = append(s.runKeys, nil)
+		}
+		s.runKeys[site] = &runKeySlots{vars: sp.Vars.Slots(k.Vars), bind: sp.Vars.Slots(k.Bind)}
+	}
 }
 
 // StaticProgramOf returns the static program that s runs.
