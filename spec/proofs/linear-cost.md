@@ -3625,11 +3625,16 @@ key of $g$, which is that of $\hat{g}$. So $\hat{g}$ is not the first
 evaluation of its key, it stores its result in state $0$, and the memo answers
 every later call of that key outside contexts of growths: such links have
 their calls $\hat{g}$ at distinct keys. A bound on the links of 2 in a run is
-therefore a bound on the number of positions of their calls $\hat{g}$, each
+therefore, up to a factor that depends only on the grammar, six times the
+number of classes of keys, a bound on the number of positions of their calls
+$\hat{g}$, each
 inside the evaluation $f'_m$ of a call that a unit below shares, from
 $t_{k+1}$ to $q$. Each unit below shares at most sixteen calls, but the units
 below are not bounded in number, and this proof does not bound the units
-below whose shared calls hold the later evaluations of links. Three parts
+below whose shared calls hold the later evaluations of links. *Holders of
+the later links* below shows that these links hold their activations only in
+evaluations whose class and position an evaluation made before $e_{k+1}$ ends
+has already, so that the run adds none. Three parts
 stay open: a bound
 on the links of 2, at each of which a unit below evaluates a shared call as
 the twin and the continuation as the rule, or the reverse, or the unit below
@@ -3642,6 +3647,79 @@ unit that shares more than sixteen calls with a continuation and holds
 $\alpha_k$ in the seventeenth, the first shared call after the sixteenth,
 only when that unit commits by its words: that call begins what remains of both, and since it examines
 input, the first characters do not part.
+
+**Holders of the later links.** Let the hypotheses of *Shared calls of the
+units below* hold, and let the link $m > k + 1$ have the form 2, with $f_m$,
+$f'_m$, $g$ and $\hat{g}$ as there. Let $h_m$ be the innermost evaluation of a
+key that contains $\alpha_m$, at the position $z_m$, and let the call at the
+place of $h_m$ in $\mathcal{R}(f_m)$ read no growth open at its start. Then
+$h_m$ lies inside $\hat{g}$ and holds $\alpha_m$, and, outside cases (a) and
+(b) of the covered keys on the path from $\mathcal{R}(e_{k+1})$ down to that
+call, the parse makes, before $e_{k+1}$ ends, an evaluation $h^\circ_m$ of a
+key of the class of the key of $h_m$ at $z_m$ that holds a successful
+activation of $\sigma$ at $q$, at the place of $\alpha_m$ in $h_m$. The
+$h_m$ of distinct links are distinct, and at most six of them have keys of one
+class at one position.
+
+*Proof.* $\hat{g}$ is a body evaluation, on the way from $T$ down to
+$\alpha_m$, of a rule that the parse memoizes, since the parse answers the
+call $g$ of that rule or of its twin. By the hypothesis of *Shared calls of
+the units below* no evaluation on that way is a step of a growth or in a
+context of growths, so, as in the proof of *Holders of the frames'
+activations*, every body evaluation on it of a rule that the parse memoizes
+is an evaluation of a key. So $\hat{g}$ is one, $h_m$ exists and is $\hat{g}$
+or lies inside it, below $h_m$ the way passes only calls of rules that the
+parse does not memoize, and $\alpha_m$ lies in the own region of $h_m$.
+
+Let $F$ be the counterpart of $f'_m$, as in the proof of *Shared calls of the
+units below*. $F$ and $\mathcal{R}(f_m)$ take the same steps up to the
+variants of their calls, and the parse evaluates the counterparts of the
+evaluations on the way from $F$ down to the counterpart $\rho$ of $\alpha_m$,
+of which $\mathcal{R}(h_m)$ is one. So $\mathcal{R}(f_m)$ makes, at the place
+of $\mathcal{R}(h_m)$, a call $z$ at $z_m$ with a key of the class of the key
+of $h_m$, of a rule that the parse memoizes and that is no leader, since
+$h_m$ is an evaluation of a key and the parse memoizes a twin exactly when it
+memoizes its rule; and the evaluation of $z$ contains, at the place of $\rho$,
+a successful activation of $\sigma$ at $q$. By the hypothesis $z$ reads no
+growth open at its start. The parse makes $f_m$ inside $e_{k+1}$, so
+$\mathcal{R}(f_m)$, and $z$ with it, lies inside $\mathcal{R}(e_{k+1})$
+(*Counterparts*). The covered keys, with $e_{k+1}$ as $x$, then give an
+evaluation $h^\circ_m$ of the key of $z$ that the parse makes before
+$e_{k+1}$ ends; case (c) does not arise, since $z$ holds an activation in
+$\mathcal{R}$. $e_{k+1}$ ends before $I$ starts, and $h_m$ lies in $I_m$,
+after $I$, so $h^\circ_m$ is the earlier of the two. They are evaluations of
+keys of one class, so by the replays the evaluations in the own region of
+$h_m$ correspond one to one to those in the own region of $h^\circ_m$, each
+to an evaluation of the same expression at the same position with the same
+success, apart from those inside an alternative that the parse skips by the
+next character, which holds no activation. So $h^\circ_m$ holds a successful
+activation of $\sigma$ at $q$ at the place of $\alpha_m$.
+
+The $h_m$ of distinct links lie in the iterations of their links, which are
+distinct. They are body evaluations of rules that the parse memoizes, neither
+steps of a growth nor in a context of growths, so by Lemma 3 at most six of
+them have keys of one class at one position. $\square$
+
+A link of the first form of 1 meets the same statement with $h_k$ as the
+earlier evaluation: its holder has the class and position of $h_k$, which
+lies inside $e_{k+1}$ and holds $\alpha_k$. So the links after $k + 1$ of the
+first form of 1 and of 2 that meet the hypotheses above number at most six
+times the classes and positions, from $t_{k+1}$ to $q$, of the evaluations of
+keys that the parse makes before $e_{k+1}$ ends and that hold a successful
+activation of $\sigma$ at $q$. The run adds none of these: each of its later
+links repeats, in a later evaluation of a class at a position, an activation
+that an evaluation of that class at that position held before $e_{k+1}$
+ended, whether the pair that the link passes is plain or not, and however
+many units below lie on the way. The claim counts nothing, and it does not
+rest on which first evaluation stores its result. It gives no bound that
+depends only on the grammar: those earlier activations are among $\alpha_1,
+\ldots, \alpha_k$ and those that the sequence leaves out, and the head of
+each of those classes holds one at the same place (the replays),
+so their number is part of the number of heads that start at or before the
+position of the scan and hold an activation there, which step 1 of [Open
+Steps](#open-steps) leaves open. A bound on the links of 2 in a run is
+therefore no open part of its own: it follows, with the factor six, from a
+bound on those heads, and this claim gives no other.
 
 ## Lemma 5 (Growth)
 
@@ -7415,9 +7493,16 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    earlier in a lookahead state no greater than the later, apart from leaf
    links through the rule of the source; the others pass a pair that is not
    plain in this way, or meet a growth or an activation that the sequence
-   leaves out. A bound on the links that pass a pair that is not plain stays
-   open, with the units below that commit only by deciding their
-   continuation or for a path that enters the growth again.
+   leaves out. *Holders of the later links* shows that each link that passes
+   a pair that is not plain holds its activation in an evaluation whose class
+   and position an evaluation made before the earlier evaluation of the first
+   link ends has already, with an activation at the same place, so that the
+   run adds no class and position of a holder and these links number at most
+   six times the classes and positions of such earlier evaluations; a bound
+   on them that depends only on the grammar is thus part of the bound on the
+   heads that start at or before the position of the scan, open above. The units
+   below that commit only by deciding their
+   continuation or for a path that enters the growth again stay open.
    Refinements,
    the links that are not plain, the number of
    runs in one evaluation $T$ of a repetition, the number of repetition
