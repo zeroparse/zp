@@ -165,9 +165,9 @@ import (
   "encoding/json"
   "fmt"
   "errors"
+  "runtime"
   "strings"
   "testing"
-  "time"
 )
 func dump(n *Node, err error) string {
   b, _ := json.Marshal(n)
@@ -204,19 +204,24 @@ func TestDefaultLimits(t *testing.T) {
   }
 }
 
-// letterEdits replaces count letters of the text, spread over it, by another letter.
-func letterEdits(t *testing.T, d *Document, count int) time.Duration {
+// letterEdits replaces count letters of the text, spread over it, by another letter, and returns the
+// objects and bytes that the edits allocate. The edits use no pool, so the counts are exact whenever a
+// collection runs: they are the same on every run and under any load, and only the background of the
+// runtime can add a few objects.
+func letterEdits(t *testing.T, d *Document, count int) (objects, bytes uint64) {
   text := []byte(d.Text())
   var at []int
   for i, c := range text {
     if c >= 'a' && c <= 'z' { at = append(at, i) }
   }
-  start := time.Now()
+  var before, after runtime.MemStats
+  runtime.ReadMemStats(&before)
   for i := 0; i < count; i++ {
     p := at[(i*7919)%len(at)]
     if err := d.Edit(p, p+1, string(rune('a'+(i%25)+1))); err != nil { t.Fatal(err) }
   }
-  return time.Since(start)
+  runtime.ReadMemStats(&after)
+  return after.Mallocs - before.Mallocs, after.TotalAlloc - before.TotalAlloc
 }
 
 // minimalFresh returns the smallest explicit Compute limit under which a parse of the text succeeds.
@@ -240,35 +245,25 @@ func minimalFresh(t *testing.T, text string) uint64 {
 // its memo past that limit instead of applying each edit to it.
 func TestWorkWithinFactorOfFresh(t *testing.T) {
   const factor = 6
-  // The time per edit depends on the load of the machine, so the memo-drop check compares the per-edit
-  // times of one attempt and passes if any of a few attempts does: a memo that is not dropped is slower
-  // in every attempt.
-  const attempts = 3
-  perEdit := func(edits int) (*Document, time.Duration) {
+  // Up to the limit each edit splices the memo into a new table, allocating in proportion to the memo;
+  // past the limit an edit allocates what the edit of the text does. The allocations of an edit are the
+  // measure of its work: unlike its time, they do not depend on the load of the machine.
+  perEdit := func(edits int) (*Document, uint64, uint64) {
     d, err := NewDocument(strings.Repeat("ab cd\n", 20000))
     if err != nil { t.Fatal(err) }
     if _, err := d.Parse(); err != nil { t.Fatalf("first parse: %v", err) }
-    took := letterEdits(t, d, edits)
-    t.Logf("%d edits took %v", edits, took)
-    return d, took / time.Duration(edits)
+    objects, bytes := letterEdits(t, d, edits)
+    t.Logf("%d edits allocated %d objects and %d bytes", edits, objects, bytes)
+    return d, objects / uint64(edits), bytes / uint64(edits)
   }
+  var baseObjects, baseBytes uint64
   for _, edits := range []int{128, 6000, 65536} {
-    var d *Document
+    d, objects, bytes := perEdit(edits)
     if edits == 128 {
-      d, _ = perEdit(edits)
-    } else {
-      // Up to the limit each edit splices the memo, at a cost in proportion to it; past the limit an
-      // edit costs what the edit of the text costs.
-      var each, base time.Duration
-      for attempt := 0; attempt < attempts; attempt++ {
-        _, base = perEdit(128)
-        d, each = perEdit(edits)
-        if each <= base/4 { break }
-        if attempt == attempts-1 {
-          t.Fatalf("%d edits took %v each, more than a quarter of the %v of the first 128: the memo is not dropped past the limit",
-            edits, each, base)
-        }
-      }
+      baseObjects, baseBytes = objects, bytes
+    } else if objects > baseObjects/4 || bytes > baseBytes/4 {
+      t.Fatalf("%d edits allocated %d objects and %d bytes each, more than a quarter of the %d and %d of the first 128: the memo is not dropped past the limit",
+        edits, objects, bytes, baseObjects, baseBytes)
     }
     fresh := minimalFresh(t, d.Text())
     if _, err := d.Parse(WithLimits(Limits{Compute: factor * fresh})); err != nil {
