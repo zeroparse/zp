@@ -3555,7 +3555,9 @@ the parse evaluates. This is 2.
 
 In the second case, $\alpha_k$ lies inside the evaluation $d$ in $v^{(l)}$ of
 a shared call, at a position $p$, and $\rho$ lies after the evaluation $D$ of
-that call at $p$ that $\mathcal{R}$ keeps on its way to $\rho$, so $q \ge
+that call at $p$ that $\mathcal{R}$ keeps on its way to $\rho$. A shared
+call that fails ends every path of $\kappa^{(l)}$ through it, so $D$
+succeeds, and so does $d$, which has its result. So $q \ge
 \mathrm{end}(D) = \mathrm{end}(d)$, since $D$ and $\mathcal{R}(d)$ take the
 same steps up to the variants of their calls, as $F$ and $\mathcal{R}(f)$
 do. If no evaluation below $d$ on the way to $\alpha_k$ were abandoned,
@@ -3618,7 +3620,11 @@ evaluates it inside a lookahead and the continuation outside every lookahead
 down to the call $\hat{g}$; the links of the second form of 1, leaf links of
 the kind of *Calls that call no rule* through the rule of $\sigma$; and the
 units below that commit only by deciding their continuation or for a path
-that enters the growth again.
+that enters the growth again. The hypothesis on the units below holds for a
+unit that shares more than sixteen calls with a continuation and holds
+$\alpha_k$ in a shared call after the sixteenth only when that unit commits by
+its words: that call begins what remains of both, and since it examines
+input, the first characters do not part.
 
 ## Lemma 5 (Growth)
 
