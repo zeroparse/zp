@@ -3561,7 +3561,7 @@ read them so):
   record, it found it in the environment that its iteration left. A walk
   may find fewer records than that. By
   [Run Sites](../runtime/parsing.md#run-sites) and the paragraph *Kinds*
-  of the [Run Sites proof](run-sites.md#lemma-2-cost-once-hot), the
+  in the [Setting](run-sites.md#setting) of the Run Sites proof, the
   records of the walks inside lookaheads are kept apart from those of the
   walks outside them, a position has one record at a time for one
   lookahead state and one key, which at a site that is not free of the
@@ -3569,8 +3569,9 @@ read them so):
   and a walk whose iterations have values takes no record that a walk
   without values made, which holds no elements: it records the position
   again, and its record takes the place of that one. A record without
-  values never takes the place of one with them, so a key is recorded at
-  most twice. A walk whose iterations have no values takes a record of
+  values never takes the place of one with them, so a key holds a record
+  without values only until a walk that builds values records it, and
+  never after. A walk whose iterations have no values takes a record of
   either kind.
 
 An implementation that makes the records of such a site in another way
@@ -4086,7 +4087,8 @@ and 2 of [Lemma 2](run-sites.md#lemma-2-cost-once-hot) of the Run Sites
 proof, for the records of one key), and, where a walk whose iterations
 have values takes no record that a walk without values made, (M2), case 2
 of that lemma counts the second evaluation once for each of the two kinds
-of walk (its paragraph *Kinds*), which gives its bound of $3(n + 1)$ for
+of walk (the paragraph *Kinds* in the [Setting](run-sites.md#setting) of
+that proof), which gives its bound of $3(n + 1)$ for
 a class in place of $2(n + 1)$. They do not bound the iterations that
 a walk evaluates whatever the slot holds, which those lemmas count for
 each walk and not for each position: its first iterations up to the
@@ -4207,9 +4209,12 @@ $\mathcal{R}$ repeats do not enter.
 
 **Fresh roots.** This claim removes from the count of the roots what
 $\mathcal{R}$ evaluates more than once because it stores nothing. It is a
-claim on $\mathcal{R}$ and uses of the parse only *Counterparts* and the
-claim above: neither the covered keys nor a replay, so none of the cases
-(a) to (d). Call a successful activation $\beta$ of $\sigma$ at $q$ in
+claim on $\mathcal{R}$ and uses of the parse only *Counterparts*, the
+claim above and, in 2, the first paragraph of the proof of *Replays*,
+that a call of the parse that reads no growth open at its start reads
+none in $\mathcal{R}$, which rests on (S), (D) and *Growths lie outside
+the recorded walks*. It uses neither the covered keys nor the
+correspondence that *Replays* states, so none of the cases (a) to (d). Call a successful activation $\beta$ of $\sigma$ at $q$ in
 $\mathcal{R}$ **fresh** when its owner call is the evaluation where
 $\mathcal{R}$ begins, or is an evaluation in $\mathcal{R}$ of a key that
 reads no growth open at its start and no evaluation in $\mathcal{R}$ of a
@@ -4283,7 +4288,10 @@ two growths of one key take the same steps, as in *Heads hold what later
 growths hold*). $y_1$ does not contain $y$: if $y$ lay at a place strictly
 inside $y_1$, the evaluation at that place inside $y$ would take the steps
 of $y$ again, strictly inside it, and so on without end, while
-$\mathcal{R}$ makes finitely many evaluations, as the parse does. So $y_1$ ended
+$\mathcal{R}$ makes finitely many evaluations: the reasons of
+[Termination](../runtime/parsing.md#termination) use no memo, and [Lemma 1
+of the memoization proof](memoization.md#lemma-1-context) takes the
+nesting of the evaluations of $\mathcal{R}$ as finite by it. So $y_1$ ended
 before $y$ started. Let a fresh $\beta$ whose owner call $O$ is a call lie
 in $y$. $O$ is made by a call of a rule other than a leader, and $y$ is
 made by a call of a rule that the parse memoizes and contains $\beta$, so
@@ -4304,17 +4312,21 @@ with an owner call, whether the parse answers those calls or not: this is
 where the roots outnumber what the parse evaluates through the memo, and
 3 does not count it. An evaluation in a context of growths that
 $\mathcal{R}$ makes again in each step, or takes again where the parse
-reuses a result or a step kept in a context, reads a growth open at its
-start and is the owner call of no fresh root; a fresh root inside it lies
-in the first evaluation of the class of its owner call, which a later
-step or a later growth evaluates again and no longer first. So the count
+reuses a result or a step kept in a context, is of one of two kinds. If
+its call reads a growth open at its start, it is the owner call of no
+fresh root by the definition. If its call reads none, it is an evaluation
+of a key (*Keys and classes*), and by 4 only the first evaluation in
+$\mathcal{R}$ of its class is the owner call of a fresh root or contains
+one with an owner call; a later step or a later growth evaluates the
+class again and no longer first. So the count
 of 3 is a count of the classes: for each class of memoized evaluations of
 the parse, the roots at $q$ that the first evaluation of the class in
 $\mathcal{R}$ holds outside its calls of rules that the parse memoizes.
-The fresh roots are the activations of $\mathcal{R}$ that correspond to
-those that heads hold in the parse (*Activations held by heads*), with
+The fresh roots play in $\mathcal{R}$ the part that the activations held
+by heads play in the parse (*Activations held by heads*), with
 the first evaluation of a class in $\mathcal{R}$ in the place of the
-head, and they need no replay, so the iterations that a record answers
+head; this is a comparison, and no correspondence between the two is
+shown or used. They need no replay, so the iterations that a record answers
 and the entries and kept results of cases (a) and (b) do not enter.
 
 The fresh roots at $q$ are not bounded by this claim. For a source whose
