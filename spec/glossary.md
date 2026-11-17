@@ -52,8 +52,8 @@ definition and the place where the term is defined.
 | position | A number that identifies a place between two characters of the input, counted in the position unit. See [Input and positions](runtime/parsing.md#input-and-positions). |
 | position unit | The unit in which positions and lengths in the input are measured: code points or bytes. See [Input and positions](runtime/parsing.md#input-and-positions). |
 | pragma | A `#` annotation that changes expression behavior or structure, such as `#atomic`, `#recover`, `#repeat(...)` or `#stream`, which follow an expression, and `#cut`, which stands in place of one. See [Pragmas](language/pragmas.md). |
-| predicate | A Rule Expression `{ term }` that evaluates a Predicate Action without consuming input; a single term retains the established predicate semantics. See [Predicates and Variables](language/predicates.md). |
-| Predicate Action | `{ term }`: an action in a Rule Expression that evaluates without consuming input or producing a value, and fails if the result is false or an error. See [Predicates and Variables](language/predicates.md#predicate-actions). |
+| predicate | A Rule Expression `{ expr }` that evaluates a Predicate Action without consuming input; a single expression retains the established predicate semantics. See [Predicates and Variables](language/predicates.md). |
+| Predicate Action | `{ expr }`: an action in a Rule Expression that evaluates without consuming input or producing a value, and fails if the result is false or an error. See [Predicates and Variables](language/predicates.md#predicate-actions). |
 | prefix parse | A parse that matches the start rule at the beginning of the input and reports how much it consumed, instead of requiring the whole input. See [Prefix Parsing](runtime/parsing.md#prefix-parsing). |
 | range | The pair of positions `[start, end)` that a node covers. See [Nodes and Values](runtime/nodes.md#node-model). |
 | recognition | A parse that only tells whether the input matches, without building a tree. See [Modes](runtime/parsing.md#modes). |
@@ -82,5 +82,5 @@ definition and the place where the term is defined.
 | Type Definition | `type a = b`: defines a new type `a`, distinct from every other type. See [Type Definitions](language/types.md#type-definitions). |
 | Type Expression | An expression that specifies a type, including the declared value type of a rule or the right-hand side of a Type Declaration Statement. See [Type System](language/types.md). |
 | value | What a Rule Expression, a rule or an action produces: a node, `nil`, an error value, a struct, or an integer, string or boolean inside actions. See [Rule Expressions](language/parser-expressions.md#values-and-the-concrete-syntax-tree). |
-| Value Action | `=> term`: the action that follows a complete Rule Expression and computes the value of the rule from its captures. See [Actions](language/actions.md#whole-rule-value-actions). |
+| Value Action | `=> expr`: the action that follows a complete Rule Expression and computes the value of the rule from its captures. See [Actions](language/actions.md#whole-rule-value-actions). |
 | variable | A named `int`, `string` or `bool` value declared by a `var` declaration, bound and read by actions. See [Variables](language/predicates.md#variables). |
