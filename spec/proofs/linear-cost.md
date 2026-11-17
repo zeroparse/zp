@@ -9092,8 +9092,9 @@ $\mathcal{R}(e)$ (*Counterparts in the reference parse*), and the
 evaluation at its place in $\mathcal{R}(\bar{e})$, which takes the same
 steps, evaluates the iterations of $\mathcal{R}(W)$. Between
 $\mathcal{R}(\bar{e})$ and it lies no call and so no step of a growth, it
-lies in no alternative that $\mathcal{P}$ skips, since it enters a
-repetition, and $\mathcal{P}$ takes no record and resumes no run; so
+lies in no alternative that $\mathcal{P}$ skips, since the skip depends on
+the input alone and the parse, which made $W$ there, did not skip it, as in
+*Images of owners*, and $\mathcal{P}$ takes no record and resumes no run; so
 $\mathcal{P}$ evaluates it, a walk $\bar{W}$ that evaluates every
 iteration of $\mathcal{R}(W)$ (*Counterparts*). Distinct walks of the
 parse inside one $e$ are distinct evaluations inside $\mathcal{R}(e)$,
@@ -11933,7 +11934,12 @@ theorem covers such a parse.
    unit shares a call of the rule of the source with its continuation, and
    that the continuation evaluates that call again in the own region, or
    inside a call of a memoized rule with which it starts, where another
-   evaluation holds the repeated activation; neither case is bounded. Inside
+   evaluation holds the repeated activation; neither case is bounded. In a
+   parse that keeps records or resumes runs the claim has a third case,
+   in which the continuation passes the call inside an iteration that a
+   record answers or a resumed walk reuses and evaluates it in no
+   evaluation; it belongs to the fifth and eighth parts of step 8, and is
+   not bounded either. Inside
    one evaluation of a
    repetition, *Iterations at one scan* bounds a run of linked reaching
    iterations at one position by the shared calls of its first unit, and
