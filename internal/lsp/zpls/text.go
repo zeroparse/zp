@@ -42,6 +42,10 @@ type checkpoint struct {
 
 const checkpointEvery = 64
 
+// walkHook, if not nil, is called by every conversion with the number of code points that it walked
+// from a checkpoint. Tests use it to count the work of conversions, which is not an allocation.
+var walkHook func(runes int)
+
 func newTextIndex(text string) *textIndex {
 	t, _ := newTextIndexContext(nil, text)
 	return t
@@ -104,6 +108,9 @@ func (t *textIndex) count(off int) (units, runes int) {
 		runes++
 		i += size
 	}
+	if walkHook != nil {
+		walkHook(runes - c.runes)
+	}
 	return units, runes
 }
 
@@ -127,6 +134,7 @@ func (t *textIndex) seek(lo, hi, n int, units bool) int {
 		c := t.checkpoints[k]
 		off, cu, cr = c.off, c.units, c.runes
 	}
+	walked := cr
 	for off < hi {
 		r, size := utf8.DecodeRuneInString(t.text[off:hi])
 		w := 1
@@ -143,6 +151,9 @@ func (t *textIndex) seek(lo, hi, n int, units bool) int {
 		cu += utf16Len(r)
 		cr++
 		off += size
+	}
+	if walkHook != nil {
+		walkHook(cr - walked)
 	}
 	return off
 }

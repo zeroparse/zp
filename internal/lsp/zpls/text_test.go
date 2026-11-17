@@ -1,16 +1,16 @@
 package zpls
 
 import (
-	"fmt"
+	"context"
 	"math/rand/v2"
 	"sort"
 	"strings"
 	"testing"
-	"time"
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/internal/testing/linearity"
 )
 
 func TestTextIndexPositions(t *testing.T) {
@@ -231,41 +231,42 @@ func TestTextIndexMatchesNaive(t *testing.T) {
 	}
 }
 
-// TestLongLine checks that a document with a long line is analyzed in about linear time. The
-// conversions used to walk the line from its start for every token, so a line of 64 KB took
-// seconds and one of 1 MB did not open. The check compares the time of a document with that of
-// one a quarter its size, measured one after the other: linear work takes about 4 times as long
-// and quadratic work about 16 times, whatever the load of the machine (a fixed limit on the time
-// failed under load). It keeps the best of three pairs, since load can change between the two.
+// TestLongLine checks that a document with a long line is analyzed in linear work. The conversions
+// used to walk the line from its start for every token, so a line of 64 KB took seconds and one of
+// 1 MB did not open. The check counts the work instead of timing it, so that its verdict does not
+// depend on the load of the machine: the code points that the conversions walk, the steps of the
+// semantic tokens request, and the objects and bytes that the analysis and the request allocate. Each
+// count of a document linearity.Factor times as long must be at most linearity.Limit times that of
+// the shorter one: linear work grows Factor times and quadratic work Factor squared times.
 func TestLongLine(t *testing.T) {
-	c := newInitialized(t)
-	const n = 1 << 17
-	analyze := func(uri string, n int) time.Duration {
-		text := "rule a = " + strings.Repeat(`"😀" b `, n) + "\nrule b = \"x\"" // 260,000 tokens for n = 1<<17
-		start := time.Now()
-		c.open(uri, text)
-		var res struct {
-			Data []int `json:"data"`
+	const small = 1 << 11
+	measure := func(n int) (walked, steps, objects, bytes uint64) {
+		text := "rule a = " + strings.Repeat(`"😀" b `, n) + "\nrule b = \"x\""
+		work := func() {
+			walked, steps = 0, 0
+			walkHook = func(runes int) { walked += uint64(runes) }
+			defer func() { walkHook = nil }()
+			control := &renderControl{ctx: context.Background()}
+			data := analyze(text).semanticTokensControlled(control)
+			steps = uint64(control.steps)
+			if len(data) != 5*(2+2*n+3) {
+				t.Errorf("%d semantic token integers, want %d", len(data), 5*(2+2*n+3))
+			}
 		}
-		c.requestInto("textDocument/semanticTokens/full", docParams(uri), &res)
-		d := time.Since(start)
-		if len(res.Data) != 5*(2+2*n+3) {
-			t.Errorf("%d semantic token integers, want %d", len(res.Data), 5*(2+2*n+3))
+		objects, bytes = linearity.Allocs(work)
+		return
+	}
+	sw, ss, so, sb := measure(small)
+	lw, ls, lo, lb := measure(small * linearity.Factor)
+	for _, m := range []struct {
+		name         string
+		small, large uint64
+	}{{"code points walked", sw, lw}, {"request steps", ss, ls}, {"objects allocated", so, lo}, {"bytes allocated", sb, lb}} {
+		ratio, ok := linearity.Linear(m.small, m.large)
+		t.Logf("%s: %d at %d tokens, %d at %d tokens, ratio %.1f", m.name, m.small, 2*small, m.large, 2*small*linearity.Factor, ratio)
+		if !ok {
+			t.Errorf("%s grew %.1f times for a document %d times as long (linear work grows %d times, at most %d allowed)",
+				m.name, ratio, linearity.Factor, linearity.Factor, linearity.Limit)
 		}
-		return d
 	}
-	best := 1e9
-	for i := range 3 {
-		small := analyze(fmt.Sprintf("file:///long-small-%d.zp", i), n/4)
-		large := analyze(fmt.Sprintf("file:///long-%d.zp", i), n)
-		best = min(best, float64(large)/float64(small))
-		t.Logf("pair %d: small %v large %v", i, small, large)
-		if best <= 10 {
-			break
-		}
-	}
-	if best > 10 {
-		t.Errorf("a document 4 times as long took %.1f times as long (linear work takes 4)", best)
-	}
-	c.exit()
 }
