@@ -55,6 +55,7 @@ var layout = []place{
 	{pkg: "internal/frontend/parser/sourceast", target: "internal/frontend/parser/sourceast"},
 	{pkg: "internal/frontend/parser/zpparser/...", target: "internal/frontend/parser/zpparser", generated: true},
 	{pkg: "internal/frontend/desugar", target: "internal/frontend/desugar"},
+	{pkg: "internal/syntax/fmt", target: "internal/syntax/fmt"},
 	// compile splits into the semantic model (internal/frontend/check and types), Core
 	// construction (internal/frontend/elaborate), rule facts and site numbers
 	// (internal/middleend/corepass) and the run-time program (internal/runtime/program).

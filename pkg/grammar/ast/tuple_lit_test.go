@@ -17,22 +17,6 @@ func tupleGrammar() *Grammar {
 	}}}}
 }
 
-func TestTupleLitFormat(t *testing.T) {
-	for _, tc := range []struct {
-		term Term
-		want string
-	}{
-		{&TupleLit{Elems: []Term{}}, "()"},
-		{&TupleLit{Elems: []Term{&IntLit{Value: 1}}}, "(1,)"},
-		{&TupleLit{Elems: []Term{&IntLit{Value: 1}, &VarRef{Name: "x"}}}, "(1, x)"},
-		{&Binary{Op: "[]", L: &TupleLit{Elems: []Term{&IntLit{Value: 1}, &IntLit{Value: 2}}}, R: &IntLit{Value: 0}}, "(1, 2)[0]"},
-	} {
-		if got := FormatTerm(tc.term); got != tc.want {
-			t.Errorf("got %q, want %q", got, tc.want)
-		}
-	}
-}
-
 func TestTupleLitJSON(t *testing.T) {
 	g := tupleGrammar()
 	data, err := MarshalJSON(g)
