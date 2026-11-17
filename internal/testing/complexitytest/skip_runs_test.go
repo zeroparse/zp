@@ -1,13 +1,12 @@
 package complexitytest
 
 import (
-	"math"
-	"runtime"
 	"testing"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/linearity"
 )
 
 // skipRunControls returns the E8 controls whose walks a parse without skip-run records repeats.
@@ -56,35 +55,42 @@ func TestSkipRunsNeverRecordControl(t *testing.T) {
 }
 
 // TestSkipRunsLinearMemory checks that the memory of a parse of the E8 controls grows linearly:
-// in the nested family every walk starts before the slots of the site, which grow at the front.
+// in the nested family every walk starts before the slots of the site, which grow at the front. The
+// memory is the objects and bytes that a parse allocates with the collector off, for inputs
+// linearity.Factor times apart, so the verdict does not depend on the load of the machine. It does
+// not run in parallel: the counters are those of the process.
 func TestSkipRunsLinearMemory(t *testing.T) {
 	if testing.Short() {
 		t.Skip("measures large inputs")
 	}
+	const small = 2000
 	for _, c := range skipRunControls(t) {
 		p, err := Compile(c.Source)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, b := range Backends {
-			var bytes []float64
-			for _, n := range []int{4000, 8000, 16000} {
+			measure := func(n int) (objects, bytes uint64) {
 				in := c.Input(n)
-				var before, after runtime.MemStats
-				runtime.GC()
-				runtime.ReadMemStats(&before)
-				if _, err := p.Parse(in, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: core.Unlimited})); err != nil {
-					t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
-				}
-				runtime.ReadMemStats(&after)
-				bytes = append(bytes, float64(after.TotalAlloc-before.TotalAlloc))
+				return linearity.Allocs(func() {
+					if _, err := p.Parse(in, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: core.Unlimited})); err != nil {
+						t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
+					}
+				})
 			}
-			for i := 1; i < len(bytes); i++ {
-				if slope := math.Log2(bytes[i] / bytes[i-1]); slope > 1.3 {
-					t.Errorf("%s, %s: allocated %v bytes, slope %.2f", c.Name, BackendName(b), bytes, slope)
+			so, sb := measure(small)
+			lo, lb := measure(small * linearity.Factor)
+			for _, m := range []struct {
+				name         string
+				small, large uint64
+			}{{"objects", so, lo}, {"bytes", sb, lb}} {
+				ratio, ok := linearity.Linear(m.small, m.large)
+				t.Logf("%s, %s: %s %d at %d, %d at %d, ratio %.1f", c.Name, BackendName(b), m.name, m.small, small, m.large, small*linearity.Factor, ratio)
+				if !ok {
+					t.Errorf("%s, %s: allocated %s %d at %d and %d at %d, a ratio of %.1f (at most %d allowed for %d times the size)",
+						c.Name, BackendName(b), m.name, m.small, small, m.large, small*linearity.Factor, ratio, linearity.Limit, linearity.Factor)
 				}
 			}
-			t.Logf("%s, %s: allocated %v bytes", c.Name, BackendName(b), bytes)
 		}
 	}
 }
