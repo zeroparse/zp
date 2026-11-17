@@ -30,6 +30,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -43,6 +44,7 @@ import (
 	iengine "zeroparse.dev/zp/internal/engine"
 	iropt "zeroparse.dev/zp/internal/ir/opt"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/pkg/grammar"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -497,33 +499,25 @@ func convertCmd(args []string, stdout io.Writer) error {
 		return errors.New("convert: expected one grammar file")
 	}
 	path := paths[0]
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	target := *to
-	if target == "" {
-		switch {
-		case engine.IsCompiled(data):
-			return compiledNeedsSource(path, "convert")
-		case filepath.Ext(path) == ".json":
-			target = "zp"
-		default:
-			target = "json"
+	var target grammar.Encoding
+	switch *to {
+	case "zp":
+		target = grammar.EncodingZP
+	case "json":
+		target = grammar.EncodingJSON
+	case "":
+		// The other encoding of the input.
+		if filepath.Ext(path) == ".json" {
+			target = grammar.EncodingZP
+		} else {
+			target = grammar.EncodingJSON
 		}
+	default:
+		return fmt.Errorf("convert: unknown format %q (want zp or json)", *to)
 	}
-	if target != "zp" && target != "json" {
-		return fmt.Errorf("convert: unknown format %q (want zp or json)", target)
-	}
-	g, err := loadGrammar(path, "convert")
+	out, err := grammar.Convert(fileSource(path), target)
 	if err != nil {
-		return err
-	}
-	var out []byte
-	if target == "zp" {
-		out = []byte(syntaxfmt.Format(g))
-	} else if out, err = ast.MarshalJSON(g); err != nil {
-		return err
+		return sourceError(path, "convert", err)
 	}
 	if *output == "" {
 		_, err = stdout.Write(out)
@@ -565,23 +559,29 @@ func compiledNeedsSource(path, command string) error {
 // loadGrammar reads the grammar source at path for command, which needs the grammar itself and
 // so rejects a compiled grammar.
 func loadGrammar(path, command string) (*ast.Grammar, error) {
-	data, err := os.ReadFile(path)
+	g, err := grammar.Load(fileSource(path))
 	if err != nil {
-		return nil, err
-	}
-	if engine.IsCompiled(data) {
-		return nil, compiledNeedsSource(path, command)
-	}
-	var g *ast.Grammar
-	if strings.HasSuffix(path, ".json") {
-		g, err = ast.UnmarshalJSON(data)
-	} else {
-		g, err = engine.ParseGrammar(string(data))
-	}
-	if err != nil {
-		return nil, fileError(path, err)
+		return nil, sourceError(path, command, err)
 	}
 	return g, nil
+}
+
+// fileSource is the grammar source of the file at path.
+func fileSource(path string) grammar.Source {
+	return grammar.FromFS(os.DirFS(filepath.Dir(path)), filepath.Base(path))
+}
+
+// sourceError is the error of loading the grammar source at path (see fileSource) for command:
+// it names path as the user gave it.
+func sourceError(path, command string, err error) error {
+	var pathErr *fs.PathError
+	switch {
+	case errors.Is(err, grammar.ErrCompiled):
+		return compiledNeedsSource(path, command)
+	case errors.As(err, &pathErr):
+		return &fs.PathError{Op: pathErr.Op, Path: path, Err: pathErr.Err}
+	}
+	return fileError(path, err)
 }
 
 // loadSourceParser compiles the grammar source at path for command, starting at the rule start
