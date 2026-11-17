@@ -2038,7 +2038,9 @@ Cost](../runtime/parsing.md#conditions-for-linear-cost)), since what follows
 $\pi_l$ can match without consuming input, and so is each rule of the cycle,
 which calls the next one at such a call, the callee of $\pi_l$ among them; so
 $\pi_l$ nests at one end. *Nesting at one end* below proves this in general,
-when abandoned evaluations lie on the path. The continuation of $w_l$ reaches
+when abandoned evaluations lie on the path, under its hypotheses on the
+dropped and the later kept steps and apart from its open case of a unit
+decided by a negative lookahead on its own side. The continuation of $w_l$ reaches
 $e'_l$ in what follows $\pi_l$, after leaving the body of $Y_l$, so the call is
 not shared, against the choice of the link. So no two outer links have one
 call place, and the outer links are at most the number of call places.
@@ -2787,8 +2789,9 @@ row, and through calls each followed in its caller by what matched without
 consuming input, which repeat no rule, since a repeated rule closes a cycle of
 such calls, which nests at one end and makes the rule nest.
 
-**Alike calls end alike.** Let a unit that condition 2 checks and a
-continuation of it each evaluate, at one position $q$, a call that the two
+**Alike calls end alike.** Let a unit that condition 2 checks and the
+continuation that the parser evaluates after it, or one joined from two
+such continuations as in case (d) of *Nesting at one end*, each evaluate, at one position $q$, a call that the two
 share, or a symbol that the comparison of a decided unit passes alike. Then
 the two evaluations both fail or both succeed and end at one position.
 
@@ -2801,7 +2804,8 @@ that reads variables is called with the same ones on both sides. When its
 rule is on no left-recursion cycle, which every call that the comparison
 passes alike is, a trivia rule included, since neither it nor a rule that
 it calls contains a call of a cycle, or when no growth of the cycle of its
-rule is open at $q$, it reads no growth open at its start ([Lemma 2 of the
+rule is open at $q$ at either call (the next sentences show that a growth
+open at one is open at the other), it reads no growth open at its start ([Lemma 2 of the
 memoization proof](memoization.md#lemma-2-reading-an-open-growth)), so the
 two calls have one key and, by [Lemma 1 of the memoization
 proof](memoization.md#lemma-1-context), their evaluations in
@@ -2810,10 +2814,20 @@ its rule is of a cycle $C$ with a growth open at $q$, the definition of a
 shared call places the two calls in the same growths of $C$: neither is
 reached through a call of a rule of $C$ that the unit or the continuation
 starts with, nor after leaving the body of a rule of $C$. So both start in
-the steps that are in progress at the start of the unit, of the growths of
+the steps that are in progress where the unit, after the shared calls
+before $q$ are removed, starts its remainder at $q$ (the clause on the calls
+that the two start with, read for that remainder), of the growths of
 $C$ open at $q$ then, and no other growth of $C$ is open at $q$ at either
 start: the continuation has left no body of a leader of $C$, so no such step
-has ended, and a step reads one current result throughout. The two calls
+has ended, and a step reads one current result throughout. For a
+continuation joined in case (d), whose part after $e_C$ runs in the
+evaluations of $\kappa$, a growth of $C$ open at $q$ around the call of
+one side only is opened by a call $D$ at $q$; it can be so only for
+$q = s_C = s_a = e_C$, where $C$ matched nothing, and then $D$ left-reaches
+the rule of $C$, which left-reaches the shared call, which left-reaches $D$,
+so the rule of $C$ is a rule of the cycle, and the joined continuation
+reaches the call after leaving its body, which the definition of a shared
+call excludes. The two calls
 then have one key and one context, the growths of $C$ open at $q$ with
 their current results. Their evaluations in $\mathcal{R}$ take the same
 steps by the comparison in the proof of [Lemma 4 of the memoization
@@ -2919,7 +2933,12 @@ end at the same positions in $w$ and in $\kappa$ (*Alike calls end alike*). Thos
 before $p_0$ lie in the match of $X$ in $\kappa$, so they end at or before
 $p_0$.
 
-$T$ does not start at or after the end $u$ of the alike calls in $w$. If it
+Below, the symbols that the comparison of a decided unit passes by the
+characters that they have in common (a literal that is a prefix of the
+other, literals equal up to case, overlapping classes, a literal and a class
+that contains its first character) count among the alike calls, each
+character as one: $\kappa$ succeeds, so both sides consume those characters
+at the same positions. $T$ does not start at or after the end $u$ of the alike calls in $w$. If it
 did, $w$ would examine, after the alike calls, the character at $u$, on its
 way to $T$ or in $T$, which consumes the input from its start to $p_0$, and
 $\kappa$, which reaches $p_0 > u$ after the alike calls, would consume that
@@ -2966,16 +2985,23 @@ alike call $S$ that ends at $p_0$ exists and starts before $p_0$:
   at $s_C$, goes on from $e_C$ to $p_0$. Together they are a continuation
   $\kappa'$ of $a$ by the grammar, through the end of the body of the rule
   of $C$ and the call of that rule in $\kappa$, and $\kappa'$ consumes the
-  input from $s_a$ to $p_0$. Everything above from the start of $w$ on holds
+  input from $s_a$ to $p_0$, since $s_a \le e_C$: the evaluations from $C$
+  down to the one that holds $a$ are kept, so $a$ starts in the match of $C$.
+  It returns to no position before $s_a$ apart from the restarts of the
+  growths on the path from $X$ to $a$: those between $C$ and $a$ in its first
+  part, and those between $X$ and $w$, which go back before $s \le s_a$, in
+  its second. Everything above from the start of $w$ on holds
   with $a$ and $\kappa'$ in the place of $w$ and $\kappa$, and gives case
   (a), (b), (c) or (d) for them. No alike call of the two straddles $e_C$,
   since $\kappa'$ makes none there, so their $S$, which ends at $p_0$,
   starts at or after $e_C$, and $\kappa'$ evaluates it in the part that
   $\kappa$ evaluates: the call $K$ and the calls $Q_i$ below are those
-  through which $\kappa$ reaches it, and the rule of $K$ is in $E_t$ by the
+  through which $\kappa$ reaches it, and the rule of $K$ is in $E_t$, when
+  $a$ and $\kappa'$ give case (a) or (b), by the
   third case of the definition for the unit $a$, in its form for a
   continuation that left the body of the unit, whose evaluation, inside
-  that of $K$, contains that of $a$. Case (d) for $a$ and $\kappa'$ gives a
+  that of $K$, contains that of $a$, and when they give case (c), by the
+  second case through the $Q_i$, as below. Case (d) for $a$ and $\kappa'$ gives a
   call inside $C$, on a shorter path to $T$, so it recurs a finite number of
   times.
 
@@ -5141,7 +5167,13 @@ calls in $w$ and in $\kappa$, the end of $S$ at $p_0$ and the ends of
 $K$ and of the $Q_i$, are those of the input that the parser passes,
 whether it evaluates a call there or a record covers it (3 of that
 claim). The call of case (c) holds $T$, and $K$ lies on the path from
-$X$ to $w$, so the parse evaluates both.
+$X$ to $w$, so the parse evaluates both. In case (d) the call $C$ holds
+$T$, so the parse evaluates it and the continuation of $a$ inside it,
+and $\kappa'$ joins that continuation to the part of $\kappa$ after
+$e_C$, both evaluated by the parse. The decisive symbols of a decided
+unit are applied, like the first characters and the words, to the input
+that the parser passes, which is that of $\mathcal{R}$ (3 of *Restarts in
+a parse that keeps records*).
 
 *The text after Outer links inside a memoized link.* The statement on an
 evaluated pair is treated above. That *Replayed activations* charges an
