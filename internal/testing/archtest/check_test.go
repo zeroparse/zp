@@ -156,6 +156,9 @@ func check(graphs []*graph, gens []generatedParser) *report {
 						if pa.generated {
 							add("1a", rel(a), b, "a generated parser imports no third-party package", []string{rel(a), b})
 						}
+						if pa.target == "pkg/grammar/ast" {
+							add("2", rel(a), b, "the grammar AST imports only the standard library", []string{rel(a), b})
+						}
 					}
 					continue
 				}
