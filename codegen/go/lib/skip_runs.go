@@ -1,6 +1,8 @@
 package libgo
 
 import (
+	"unsafe"
+
 	"zeroparse.dev/zp/core"
 )
 
@@ -105,7 +107,8 @@ type skipSlots struct {
 	floor int
 	// kept is the number of records after dropped ones were last removed.
 	kept int
-	// expBytes counts the expectations of the records stored, for the memory limit.
+	// expBytes counts the expectations of the records stored, the values of their keys and bindings,
+	// and the records in more, for the memory limit.
 	expBytes uint64
 }
 
@@ -176,7 +179,7 @@ func (p *Parser) putSkip(s *skipSlots, pos int, k walkKey, r skipRecord) {
 			return
 		}
 		s.recs[sk] = r
-		s.expBytes += uint64(len(r.exp)) * expIDBytes
+		s.expBytes += uint64(len(r.exp))*expIDBytes + uint64(len(r.key)+len(r.bind))*anyBytes
 	}
 }
 
@@ -195,8 +198,11 @@ func (p *Parser) putMore(s *skipSlots, sk skipKey, r skipRecord) {
 			return
 		}
 	}
+	if len(rs) == 0 {
+		s.expBytes += uint64(unsafe.Sizeof(sk) + unsafe.Sizeof(rs))
+	}
 	s.more[sk] = append(rs, r)
-	s.expBytes += uint64(len(r.exp)) * expIDBytes
+	s.expBytes += uint64(len(r.exp))*expIDBytes + uint64(len(r.key)+len(r.bind))*anyBytes + uint64(unsafe.Sizeof(skipRecord{}))
 }
 
 // drop drops the slots of the positions before pos: the words of bits wholly before it at once, and
