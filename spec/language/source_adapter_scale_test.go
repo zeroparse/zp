@@ -2,6 +2,7 @@ package language_test
 
 import (
 	"errors"
+	"math"
 	"os"
 	"runtime"
 	"strings"
@@ -124,16 +125,22 @@ func TestRecoveryScalesLinearly(t *testing.T) {
 // objects and of bytes. It is the load-independent measure of the whole source API, with the lexer, the
 // error messages and the builder of the grammar, which the compute counter of the generated parser does
 // not cover. The count of a run does not depend on its time, so another process on the machine does not
-// change it; the run is warmed up first so that one-time tables are not counted, and the test does not run
-// in parallel, so that the runtime counters hold this goroutine's work. It does not see a growth that
+// change it; the run is warmed up first so that one-time tables are not counted, and the least of five runs counts, because
+// a buffer that a collection frees is allocated again in the run after it. The test does not run in
+// parallel, so that the runtime counters hold this goroutine's work. It does not see a growth that
 // allocates nothing, such as a loop that rescans the tokens; the compute cost covers the parser.
 func allocCost(src string) (mallocs, bytes uint64) {
 	parser.Parse(src)
-	var before, after runtime.MemStats
-	runtime.ReadMemStats(&before)
-	parser.Parse(src)
-	runtime.ReadMemStats(&after)
-	return after.Mallocs - before.Mallocs, after.TotalAlloc - before.TotalAlloc
+	mallocs, bytes = math.MaxUint64, math.MaxUint64
+	for i := 0; i < 5; i++ {
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		parser.Parse(src)
+		runtime.ReadMemStats(&after)
+		mallocs = min(mallocs, after.Mallocs-before.Mallocs)
+		bytes = min(bytes, after.TotalAlloc-before.TotalAlloc)
+	}
+	return mallocs, bytes
 }
 
 // scaleAllocSources are the sources of scaleSources and valid grammars, which reach the builder of the
