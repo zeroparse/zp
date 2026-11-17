@@ -565,7 +565,7 @@ bad.zp:3:14: undefined rule unknown
 ## Grammar Representations
 
 Besides `.zp` source files, a grammar can be represented as JSON, which is
-the abstract syntax tree of the grammar (the public package `grammar`), and as
+the abstract syntax tree of the grammar (the public package `ast` under `pkg/grammar`), and as
 a compiled grammar file (`.zpc`), which holds the bytecode of one mode and
 no tree (see [Compiled Grammars](../runtime/compiled-grammars.md) and
 [File Format](../bytecode/README.md#file-format)). Source and JSON describe the same
