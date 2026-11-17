@@ -308,6 +308,48 @@ every variable that the element of a recorded site reads has finite values,
 $K_R$ is at most the product of the sizes of their value sets, the constant
 of Lemma 8.
 
+**The $K$ of a parse.** The $K$ of
+[Classification](../runtime/parsing.md#classification) is counted among the
+calls of a parse of the same text from scratch that memoizes nothing, which
+is the reference parse $\mathcal{R}$ of the [memoization
+proof](memoization.md#setting) (*Counterparts in the reference parse* in
+Lemma 4): it is the largest number of distinct combinations of the values of
+the variables that memoized rules read, among the calls of $\mathcal{R}$ at
+one position. It is a property of the grammar and the text, not of what a
+parse kept from earlier parses. The **$K$ of a parse** is the same number
+counted among the calls of that parse. Every call of a parse of the text is
+the counterpart of a call of $\mathcal{R}$ at the same position with the same
+values of the variables (*Counterparts*), so the $K$ of the parse is at most
+$K$, and so is the $K$ of every parse of the same text that a claim below
+compares with the parse: $\mathcal{X}$ of *Descent in the reference parse* in
+Lemma 4 and $\mathcal{P}$ of *Families in every parse* in Lemma 5. A count
+that such a claim makes in the other parse, at most a constant times that
+parse's $K$ at each position, is so at most a constant times $K$ at each
+position, whatever the parse answers from entries of an earlier parse,
+resumes or answers from records. So a [Document](../runtime/documents.md)
+parse is bound by the same constant as a parse of its text from scratch.
+
+$K$ is the $K$ of the parse wherever each call of $\mathcal{R}$ repeats, at
+its position and with its values, a call of the parse. It does inside a call
+that the parse answers from an entry that it stored, which by [Lemma 1 of the
+memoization proof](memoization.md#lemma-1-context) takes the steps of the
+evaluation that stored it, by induction on the order in which the parse
+completes its evaluations; inside a step or a call that it takes in a run of
+steps at once or answers from what it keeps in a context of growths, outside
+the lookaheads that the evaluation it answers from observed ([Lemma 4 of the
+memoization
+proof](memoization.md#lemma-4-answering-from-a-dependent-result)); and
+inside an iteration that a record made as (M1) and (M2) of *Covered keys
+through records* state answers, as *Descent in the reference parse* shows.
+It is not shown for the calls of $\mathcal{R}$ in an alternative that the
+parse skips by the next character, inside a lookahead that such a kept
+result observed, inside an iteration that a record that (R1) alone allows
+answers, and, in a Document parse, inside a call that the parse answers from
+an entry of an earlier parse or an iteration that a resumed walk reuses: no
+claim here bounds those by the $K$ of the parse. In the class Linear both
+are at most the constant of Lemma 8, which holds in $\mathcal{R}$ as in
+every parse.
+
 **Sites that meet the conditions.** Whether a candidate site is a recorded
 site of a parse depends on the records that the implementation keeps:
 
@@ -4590,11 +4632,13 @@ parts of step 1 for that parse, and the records add no open part of
 their own to them. Whatever bound step 1 gives for $\mathcal{X}$ is in
 terms of the evaluations of $\mathcal{X}$, whose calls at one position
 are counterparts of calls of $\mathcal{R}$ there, as those of the parse
-are. The $K$ of [Classification](../runtime/parsing.md#classification)
-counts the combinations of values among the calls at one position of a
-parse, and the records of the parse do not raise it in $\mathcal{X}$
-when they are made as (M1) and (M2) of *Covered keys through records*
-state: a record answers an iteration at a position only after a walk of
+are, so the $K$ of $\mathcal{X}$ is at most the $K$ of
+[Classification](../runtime/parsing.md#classification), counted in
+$\mathcal{R}$ ([Setting](#setting)). It is also at most the $K$ of
+the parse when the records of the parse are made as (M1) and (M2) of
+*Covered keys through records* state and the parse answers no call from
+an entry of an earlier parse and resumes no run: a record answers an
+iteration at a position only after a walk of
 the parse evaluated an iteration of the site there, under the same values
 of the variables for a site that is not free of them, and the iterations
 of a free or skip-run site read no variable from outside, so the calls of
@@ -4603,14 +4647,14 @@ of the parse with the same values; and the calls that $\mathcal{X}$
 evaluates inside a call that the parse answers there repeat, with the same
 values, calls of the evaluation of this parse that stored or kept what
 answers it ([Lemma 1 of the memoization
-proof](memoization.md#lemma-1-context)), or lie in the body of an entry of
-an earlier parse. That the $K$ of $\mathcal{X}$ is at
-most that of the parse is not shown when the parse answers calls from
-entries of an earlier parse, whose bodies $\mathcal{X}$ evaluates,
-resumes a run of a Document, or keeps records not made as (M1) and (M2),
-which (R1) alone allows. In the class Linear the $K$ of every parse is at
-most the constant of Lemma 8, so the comparison matters only for the
-class Linear given an environment bound.
+proof](memoization.md#lemma-1-context)). It can exceed the $K$ of the
+parse otherwise: a Document parse that answers a call from an entry of an
+earlier parse makes no call inside it, while $\mathcal{X}$ evaluates its
+body and makes there every combination of values that the body makes,
+and the same holds of an iteration that a resumed walk reuses and of one
+that a record which (R1) alone allows answers. The theorem needs only the
+bound by $K$; in the class Linear every such $K$ is at
+most the constant of Lemma 8.
 
 **Leaf links in a parse that keeps records.** In a parse whose records are
 exact, (R1) of the [Setting](#setting), *Growths around a leaf link*,
@@ -8900,7 +8944,10 @@ contexts, bounds the former, and the latter where a growth step or an
 evaluation in a context of growths owns them, and *Activations held by
 heads*, which rests on no bound of this lemma, where a memoized
 evaluation owns them, apart from the kinds and the parts that these
-counts leave. The constant is built from
+counts leave. Those counts are in terms of the $K$ of $\mathcal{P}$,
+which can exceed the $K$ of the parse, since $\mathcal{P}$ evaluates
+calls inside what the parse answers in contexts, takes from records or
+reuses, and is at most $K$ ([Setting](#setting)). The constant is built from
 those of (i) to (iii) and the factor $|\text{rules}|$ of the images that
 contain one activation, a function of the grammar alone. The bound gives
 the parse no credit for its records: a walk that a growth step makes is
@@ -8921,7 +8968,8 @@ $\mathcal{P}$ is the image of at most a constant number of evaluations of
 the parse. So a copying operation in the action or a predicate of $e$
 reads the values and the own spans that it reads in $\bar{e}$, and the copies
 that the parse makes cost at most a constant times those that
-$\mathcal{P}$ makes, which Lemma 6 bounds in $\mathcal{P}$.
+$\mathcal{P}$ makes, which Lemma 6 bounds in $\mathcal{P}$, with the $K$
+of $\mathcal{P}$, at most $K$ ([Setting](#setting)).
 
 *Proof.* The proof of *Images of owners* uses of $G$ only that the parse
 makes it, up to the paragraph on its kind, so it gives every body
@@ -9012,8 +9060,10 @@ elements for each of them ([Run Sites](../runtime/parsing.md#run-sites),
 So the suffix copies are counted with the iterations of the walks of
 $\mathcal{P}$, whose sites keep no record there: they are sources without
 records of $\mathcal{P}$, whose successful iterations the count of Lemma 4
-bounds, with the open parts of step 1 for $\mathcal{P}$, and whose other
-iterations are one for each walk (*Activations that do not succeed*). The
+bounds, with the open parts of step 1 for $\mathcal{P}$ and the $K$ of
+$\mathcal{P}$, at most $K$ ([Setting](#setting)), and
+whose other iterations are one for each walk (*Activations that do not
+succeed*). The
 claim needs no comparison of the walks of the parse with those of a parse
 that keeps no record of the site: the parse with records can evaluate a
 call that the parse without them answers, and the reverse, but every walk
@@ -10903,9 +10953,13 @@ parse from the start rule whose records are exact, (R1) of the
 $c \cdot K \cdot (L + 1) \cdot (n + 1)$
 for a constant $c$, where $K$ is here the greater of the $K$ of
 [Classification](../runtime/parsing.md#classification) and $K_R$ of the
-[Setting](#setting). When no variable holds a string and every binding binds a
-literal or a variable with finite values, $K$ is a constant by Lemma 8 and
-$L = 0$, so the cost is at most $c' \cdot (n + 1)$.
+[Setting](#setting). The first is counted in a parse of the same text from
+scratch and is at least the $K$ of the parse ([Setting](#setting)): it is a
+property of the grammar and the text, not of what the parse kept from earlier
+parses, so a [Document](../runtime/documents.md) parse is bound by the same
+constant as a parse of its text from scratch. When no variable holds a string and every
+binding binds a literal or a variable with finite values, $K$ is a constant by
+Lemma 8 and $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
 The theorem covers every parse whose records are exact, which the
 [Setting](#setting) shows of the records of every implementation. Its
@@ -10946,7 +11000,8 @@ walks, the recorded walks and the steps that they make outside their
 iterations other than their suffix copies. The suffix copies are at most a
 constant times the iterations of the walks of $\mathcal{P}$ (*Suffix copies
 in every parse* in Lemma 5), which the counts of Lemmas 4 and 10 in
-$\mathcal{P}$ bound in the same way. The activations that do not succeed
+$\mathcal{P}$ bound in the same way, with the $K$ of $\mathcal{P}$, which is
+at most $K$ ([Setting](#setting)). The activations that do not succeed
 follow from these and the body evaluations (*Activations that do not
 succeed* in Lemma 4). So the activations are at most a constant times $K \hat{n}$, and by Lemma 10 the
 body evaluations of the other rules are at most a constant times those two
@@ -12136,7 +12191,10 @@ theorem covers such a parse.
    which take the records would evaluate in their place, and *Suffix copies
    in every parse* in Lemma 5 counts those as iterations of walks of the
    parse $\mathcal{P}$ of *Families in every parse*, with the open parts of
-   step 1 for $\mathcal{P}$ and no part of their own; it needs no parse
+   step 1 for $\mathcal{P}$ and no part of their own, and with the $K$ of
+   $\mathcal{P}$, which can exceed the $K$ of the parse when the parse
+   answers from entries of an earlier parse, resumes a run or keeps records
+   that (R1) alone allows, and is at most $K$ ([Setting](#setting)); it needs no parse
    that keeps no record of the site and makes the same walks, which is not
    shown, since a call inside an iteration that a record answers stores
    nothing in the memo (*Sources without records* in Lemma 17).
@@ -12266,15 +12324,15 @@ theorem covers such a parse.
    records, has no entries of an earlier parse and reuses nothing kept in a
    context of growths, so the leaf reference links, which make roots of
    their own, are counted as the leaf links of step 1 in such a parse and
-   stay open with them, and the records add no open part to them; that
-   the $K$ of that parse is at most the $K$ of the parse is not shown when
-   the parse answers from entries of an earlier parse, resumes a run or
-   keeps records not made as (M1) and (M2), and matters only for the class
-   Linear given an environment bound. The
+   stay open with them, and the records add no open part to them; the
+   $K$ of that parse, which can exceed the $K$ of the parse when the parse
+   answers from entries of an earlier parse, resumes a run or keeps
+   records not made as (M1) and (M2), is at most $K$ ([Setting](#setting)). The
    activations inside the iterations that a growth step or an evaluation
    in a context of growths owns are bounded, with those outside them, by
    the count of Lemma 5 in a parse that keeps no records, resumes no run
-   and answers nothing in contexts (*Families in every parse*), so what is
+   and answers nothing in contexts (*Families in every parse*), with the
+   $K$ of that parse, at most $K$, so what is
    open of them is what is open of that count in such a parse.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
@@ -12437,7 +12495,7 @@ theorem covers such a parse.
    parse $\mathcal{P}$ of that claim, which keeps no record, resumes no
    run and answers nothing in contexts, whatever the parse stores or
    answers in contexts, subject to the open parts of the count of Lemma 5
-   in that parse. Its constant is a function of the grammar: a later call can
+   in that parse, whose $K$ is at most $K$. Its constant is a function of the grammar: a later call can
    evaluate what that parse answers from an entry stored inside an
    iteration that a resumed walk reuses, at most a constant number of
    times for each key.

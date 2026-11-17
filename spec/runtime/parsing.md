@@ -2135,7 +2135,19 @@ the results of `text`.
 
 The constant c depends only on the grammar and on the backend. K is the largest
 number of distinct combinations of the values of the variables that memoized
-rules read, among the calls at one position of the parse. L is the largest size
+rules read, among the calls at one position of a parse of the same text from
+scratch that memoizes nothing, which evaluates every call that the language
+chapters define. Every call of a parse is one of those calls, so K is at least
+the number among the calls of the parse itself, and it is a property of the
+grammar and the text, not of what a parse kept from earlier parses: a parse of
+a [Document](documents.md), which can answer calls from what its earlier parses
+kept and so make fewer combinations itself, is bound by the same constant as a
+parse of its text from scratch. For a parse that is not a Document parse, the
+two numbers are equal wherever each call of the evaluation from scratch repeats,
+at its position and with its values, a call of the parse; the [linear cost
+proof](../proofs/linear-cost.md#setting) shows where it does, and lists the
+places where that is not shown. In the class Linear both are at most the bound
+below. L is the largest size
 of a variable's value that a copying operation copies or that a memo lookup
 compares; it is zero when no variable holds a string. Under the conditions, a
 variable's value is built from literals, captures and other variables without
