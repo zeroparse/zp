@@ -830,10 +830,17 @@ and outside lookaheads ([Skip Runs](../runtime/parsing.md#skip-runs)), so
 of two such evaluations in different lookahead states the earlier can take a
 record where the later evaluates the iterations that the record answers,
 and the later then holds activations to which nothing in the earlier
-corresponds. The same holds of the iterations themselves of a candidate site
+corresponds. *Units in a parse that keeps records* in Lemma 4 compares
+instead the iterations of one site at one position that take the same
+steps, in whatever lookahead state and variant, and *Activations held by
+the heads of units* there bounds in that way the activations that a
+memoized evaluation inside such an iteration holds, under the hypotheses
+of *Activations held by heads*; for those that the iterations themselves
+hold it leaves the number of the iterations of one class that the parse
+evaluates. The same holds of the iterations themselves of a candidate site
 that keeps records and is no recorded site of the parse, which are
 activations of a source of this list: the count of Lemma 4 is not shown for
-them either. Step 8 of [Open Steps](#open-steps) lists both, as its sixth
+them. Step 8 of [Open Steps](#open-steps) lists both, as its sixth
 and seventh parts.
 
 Beside these, the suffix copies of the walks that take records and whose iterations build
@@ -1403,7 +1410,8 @@ uses the records of the [Setting](#setting): a candidate site counts here as
 any other scanning source. In a parse that keeps records, *Counterparts
 in the reference parse*, *Replays* and *Replayed activations* say what
 holds, and they leave out what lies inside the iterations of the walks of
-the sites that keep records; *Restarts in a parse that keeps records*
+the sites that keep records, which *Units in a parse that keeps records*
+and the three claims after it treat in part; *Restarts in a parse that keeps records*
 shows the claims from *Failure after a source* to *Memoized links* of such
 a parse, *Heads in a parse that keeps records* those from *Answered
 calls* to *Evaluated pairs of a shared call*, and *Leaf links in a parse
@@ -3704,6 +3712,372 @@ path followed through the records is not examined here beyond what
 evaluations* on where case (a) arises is of the paths of links and is not
 extended to the paths followed through the records.
 
+**Units in a parse that keeps records.** This claim and the three after it
+are for a parse whose records are exact, (R1) of the [Setting](#setting),
+and made as *Covered keys through records* asks, (M1) and (M2). They take
+the place of *Replays* and *Replayed activations*, and of the claims on the
+heads, for the activations inside the iterations of the kind, which those
+claims leave out. A **unit** is an evaluation of a key, or an iteration
+that the parse evaluates of a walk of a run site or of a skip-run site that
+keeps records. Two units that are iterations are of one **class** when they
+are iterations of one site, in its rule or in the twin, at one position,
+and their counterparts in $\mathcal{R}$ take the same steps up to the
+variants of their calls; a unit that is an evaluation of a key has the
+class of its key, and no class holds units of both sorts. The **head** of
+a class of units is the unit of it that the parse starts first. The
+**region** of a unit is the part of it outside the calls of rules that the
+parse memoizes and outside the iterations of the kind that lie inside it,
+and an activation is **held by a unit** when it lies in the region of that
+unit. An iteration of the kind lies in no region, so it is held by no unit;
+the claims below are about the activations of the other sources.
+
+1. An activation is held by at most one unit, and an activation that lies
+   inside an iteration of the kind and is no iteration of the kind is held
+   by exactly one. An activation that is no iteration of the kind and lies
+   inside none is held by a unit exactly when an evaluation of a key holds
+   it, as *Keys and classes* defines that, and that evaluation is the unit.
+2. Two iterations that the parse evaluates of walks of one run site or one
+   skip-run site, at one position, that begin with the same values in the
+   variables that the element reads, are of one class.
+3. The evaluations in the regions of two units of one class correspond one
+   to one, in order, apart from those inside an alternative that the parse
+   skips by the next character in one of the two and evaluates in the
+   other, which holds no activation: each is an evaluation of the same
+   expression at the same position, with the same success and end; a call
+   of a rule that the parse memoizes, evaluated or answered, corresponds to
+   a call with a key of the same class; and a walk of a site that keeps
+   records corresponds to a walk of that site, whether or not either takes
+   a record. This holds whatever the lookahead states and the variants of
+   the two units are.
+4. So an activation held by a unit corresponds to an activation of the
+   same source at the same position, which succeeds when it does, held by
+   the head of the class of that unit, and distinct activations held by one
+   unit correspond to distinct ones.
+
+*Proof.* 1\. A unit that lies strictly inside another is an evaluation of
+a key, made by a call of a rule that the parse memoizes, or an iteration
+of the kind, and either way it lies outside the region of the other; two
+units that both contain an activation nest, so at most one holds it. Let
+an activation $\alpha$ that is no iteration of the kind lie inside one.
+Among the evaluations that strictly contain $\alpha$, take the innermost
+$B$ that is an iteration of the kind or a body evaluation made by a call of
+a rule that the parse memoizes. If $B$ is an iteration of the kind, its
+site does not repeat a single character, since $B$ contains an activation
+other than itself, so the site is a run site or a skip-run site
+(*Covered keys through records*), the parse evaluates $B$, and $B$ is a
+unit whose region holds $\alpha$. Otherwise $B$ lies inside an iteration of
+the kind, so its rule is in no left-recursion cycle and its call reads no
+growth (*Growths lie outside the recorded walks*): $B$ is an evaluation of
+a key, and $\alpha$ lies in its region. If $\alpha$ lies inside no
+iteration of the kind, the units that contain it are evaluations of keys,
+and the region of such a unit holds $\alpha$ exactly when its own region
+does, since no iteration of the kind lies between the two.
+
+2\. This is the first paragraph of the proof of 1 of *Covered keys through
+records*: an iteration of $\mathcal{R}$ at a position takes steps that
+depend only on the position, on the values of the variables that the
+element reads and on the input, up to the variants of its calls.
+
+3\. For a unit $X$ let $P(X)$ be the part of $\mathcal{R}(X)$ outside its
+calls of rules that the parse memoizes and outside the iterations, inside
+$\mathcal{R}(X)$, of the walks of the sites that keep records. Whether an
+evaluation inside $\mathcal{R}(X)$ lies in $P(X)$ depends only on the
+expressions through which it is reached from $\mathcal{R}(X)$: on whether
+one of them is a call of a rule that the parse memoizes, which a rule and
+its twin are alike (Lemma 3), or the element of a site that keeps records,
+in its rule or in the twin. Let $X$ and $X_0$ be units of one class. Their
+counterparts take the same steps up to the variants of their calls: by the
+definition of the class when they are iterations, and otherwise by
+*Counterparts*, since the calls of two evaluations of keys read no growth
+open at their start in $\mathcal{R}$, as the proof of *Replays* shows. So
+$P(X)$ and $P(X_0)$ take the same steps, and correspond one to one, in
+order.
+
+The region of $X$ is made of the counterparts of the evaluations of $P(X)$
+that lie in no alternative that the parse skips inside $X$. For an
+evaluation of a key this is what the proof of *Replays* shows of the own
+region outside the iterations of the kind inside it: that proof compares
+the parts of $\mathcal{R}(M)$ and $\mathcal{R}(M_0)$ that lie in no
+iteration, inside them, of a walk of a site that keeps records, and uses of
+such an iteration only that it lies inside the evaluation compared, so it
+holds of an evaluation of a key wherever it lies, inside an iteration of
+the kind or not; for one that lies inside an iteration of the kind, the
+argument that follows applies as well, word for word. Let $X$ be an
+iteration. No call inside $X$, at any depth,
+is of a rule of a left-recursion cycle (*Growths lie outside the recorded
+walks*), so $X$ holds no growth, no step and no call that reads one. By
+*Counterparts*, the parse then evaluates inside $X$ what $\mathcal{R}(X)$
+evaluates except inside the calls that the memo answers, which are calls
+of rules that the parse memoizes, inside the alternatives that it skips,
+and inside the iterations that a record answers, which are iterations of
+walks of sites that keep records; and it nests what it evaluates as
+$\mathcal{R}$ does. So every evaluation of $P(X)$ outside the alternatives
+that the parse skips has its counterpart in $X$, outside the calls of
+rules that the parse memoizes and outside the iterations of the kind, and
+every evaluation in the region of $X$ is the counterpart of one of $P(X)$.
+
+So the regions of $X$ and $X_0$ correspond as $P(X)$ and $P(X_0)$ do,
+apart from the alternatives that the parse skips in one and evaluates in
+the other, which fail in both at the same position and hold no activation
+in $\mathcal{R}$ (*Counterparts*). Each evaluation has the success and the
+end of its counterpart (*Counterparts*), so corresponding evaluations have
+the same success and end. Corresponding calls of rules that the parse
+memoizes have keys of one class, since the two parts take the same steps
+up to the variants of their calls. A walk in $P(X)$ of a site that keeps
+records, of which $P(X)$ holds the walk and not its iterations, corresponds
+to a walk of the site in $P(X_0)$, and the two walks of the parse have the
+success and the end of their counterparts whether or not they take a
+record, by (R1). Nothing in the argument uses the lookahead state or the
+variant of a unit: the steps of $\mathcal{R}$ are the same in both states
+and, up to the variants of the calls, in both variants (*Counterparts*).
+
+4\. Let $X$ hold $\alpha$ and let $H$ be the head of its class. The
+alternatives around $\alpha$ inside $X$ hold an activation in
+$\mathcal{R}(X)$, and so do the corresponding ones in $\mathcal{R}(H)$,
+which takes the same steps, so the parse skips none of them in either
+(*Counterparts*). By 3 the region of $H$ holds the evaluation that
+corresponds to $\alpha$: an evaluation of the same expression at the same
+position, so an activation of the same source, with the same success and
+end, so one that consumes input when $\alpha$ does. The correspondence is
+one to one. $\square$
+
+The claim counts nothing. For an activation that lies inside no iteration
+of the kind, 4 is *Replayed activations*. For one inside an iteration of
+the kind it compares the unit that holds it with the head of the class of
+that unit, and not the evaluation of a key around the iteration with the
+head of its class: that head can take a record where the later evaluation
+evaluates the iteration, in another lookahead state or variant, whose
+slots are kept apart ([Skip Runs](../runtime/parsing.md#skip-runs)), and
+then nothing in it corresponds to the activation. The class of an
+iteration leaves out the lookahead state and the variant, as the class of
+a key leaves out the variant.
+
+**Covered iterations.** Let $x$ be a call or a step of a growth of the
+parse, or an iteration that the parse evaluates of a walk of a run site or
+of a skip-run site, and let $\iota$ be an iteration, inside
+$\mathcal{R}(x)$, of a walk of a run site or of a skip-run site $\tau$.
+Call an iteration of $\mathcal{R}$ **like** $\iota$ when it is an
+iteration of a walk of $\tau$, in its rule or in the twin, at the position
+of $\iota$, that takes the steps of $\iota$ up to the variants of its
+calls.
+
+1. The parse evaluates, before $x$ ends, an iteration whose counterpart is
+   like $\iota$, unless case (a) or (b) of the covered keys arises on the
+   path from $\mathcal{R}(x)$ down to $\iota$, followed through the records
+   as in 2 of *Covered keys through records*; in case (b), $\iota$ lies
+   inside a lookahead that the kept result observed. Case (c) does not
+   arise.
+2. Let a unit $X$ that is an iteration be the head of its class. Then,
+   outside cases (a) and (b) on the paths followed through the records, no
+   iteration of $\mathcal{R}$ that is like $\mathcal{R}(X)$ ends before
+   $\mathcal{R}(X)$ starts.
+
+*Proof.* An alternative that the parse skips by the next character enters
+no repetition in $\mathcal{R}$, at any depth of calls (*Counterparts*), so
+no iteration lies in one, and case (c) does not arise in what follows.
+
+1\. By induction on the order in which the parse completes its
+evaluations, as in 2 of *Covered keys through records*. The path is made
+of segments, each from $\mathcal{R}(v)$ down to an iteration $\iota'$
+like $\iota$, where $v$ is $x$ or an evaluation of the parse, a call, a
+step or an iteration of a walk of a run site or of a skip-run site, that
+ended before $x$ ends. On a segment, $\iota'$ included, take the first
+evaluation of $\mathcal{R}$ that has no counterpart in the parse. If there
+is none, the counterpart of $\iota'$ is an iteration that the parse
+evaluates inside $v$, so before $x$ ends. If it is a call or a step $y$
+that the parse answers, it is not answered with the current result of an
+open growth, whose counterpart evaluates nothing and holds no iteration,
+and the proof of *Covered keys* gives, outside cases
+(a) and (b), an evaluation $y'$ of the parse that ended before $y$ was
+answered and whose counterpart takes the steps of $\mathcal{R}(y)$ up to
+the variants of its calls, outside the lookaheads that a kept result
+observed; the evaluation at the place of $\iota'$ in $\mathcal{R}(y')$ is
+then an iteration like $\iota$, and the next segment leads from
+$\mathcal{R}(y')$ to it. Otherwise, by *Counterparts*, it is an iteration
+$\iota''$ that a record answers, $\iota'$ or one that contains it: the
+walk $W$ of the parse whose counterpart evaluates $\iota''$ is evaluated
+inside $v$, since nothing before $\iota''$ on the segment lacks a
+counterpart, and it took a record at or before the position of $\iota''$,
+before $v$ ended. The site of $\iota''$ is $\tau$ when $\iota''$ is
+$\iota'$, and otherwise $\iota''$ contains a walk, so its site repeats no
+single character and is a run site or a skip-run site. By 1 of *Covered
+keys through records* the parse evaluated, before $W$ took the record, an
+iteration $\iota_0$ of a walk of that site at the position of $\iota''$
+whose counterpart takes the steps of $\iota''$ up to the variants of its
+calls. When $\iota''$ is $\iota'$, the counterpart of $\iota_0$ is like
+$\iota$, and $\iota_0$ ended before $x$ ends. Otherwise the evaluation at
+the place of $\iota'$ in $\mathcal{R}(\iota_0)$ is an iteration like
+$\iota$, and the next segment leads from $\mathcal{R}(\iota_0)$ to it. In
+the two cases that go on, the evaluation $y'$ or $\iota_0$ completed
+before $x$ does, and the induction hypothesis for it gives an iteration
+whose counterpart is like $\iota$ before it ended, so before $x$ ends,
+unless case (a) or (b) arises further on the path.
+
+2\. Let $\iota$ be an iteration of $\mathcal{R}$ like $\mathcal{R}(X)$
+that ends before $\mathcal{R}(X)$ starts. An iteration that the parse
+evaluates and whose counterpart is like $\iota$ is a unit of the class of
+$X$: an iteration of a walk of the site of $X$, which keeps records, at
+the position of $X$, whose counterpart takes the steps of
+$\mathcal{R}(X)$. It is shown that the parse starts one before $X$, so
+that $X$ is not the head. Follow the path from the evaluation where
+$\mathcal{R}$ begins down to $\iota$, and take the first evaluation on it,
+$\iota$ included, that has no counterpart in the parse. If there is none,
+the parse evaluates the counterpart of $\iota$, which ends before $X$
+starts, as in *Heads in the reference parse*. If it is a call or a step $y$ that
+the parse answers, $\mathcal{R}(y)$ contains $\iota$ and not
+$\mathcal{R}(X)$, which has a counterpart, so $\mathcal{R}(y)$ ends before
+$\mathcal{R}(X)$ starts and the parse answers $y$ before $X$ starts; 1
+with $x = y$ gives the iteration before $y$ was answered. Otherwise it is
+an iteration $\iota''$ that a record answers, $\iota$ or one that contains
+it, of a walk $W$ that the parse evaluates and that took the record at or
+before the position of $\iota''$. $\mathcal{R}(W)$ does not contain
+$\mathcal{R}(X)$: $\iota$ ends before $\mathcal{R}(X)$ starts, so inside
+$\mathcal{R}(W)$ the evaluation $\mathcal{R}(X)$ would be, or lie in,
+$\iota''$ or an iteration after it, each of which a record answers, and
+such an iteration, and an evaluation inside one, is the counterpart of no
+evaluation of the parse (*Heads in a parse that keeps records*). And
+$\mathcal{R}(X)$, which starts after $\mathcal{R}(W)$ does, does not
+contain it. So $\mathcal{R}(W)$ ends before $\mathcal{R}(X)$ starts, and
+$W$ took its record before $X$ started. By 1 of *Covered keys through
+records* the parse evaluated before that an iteration $\iota_0$ of the
+site of $\iota''$ at its position whose counterpart takes the steps of
+$\iota''$. When $\iota''$ is $\iota$, that is the iteration; otherwise 1
+with $x = \iota_0$ and the iteration at the place of $\iota$ in
+$\mathcal{R}(\iota_0)$ gives it before $\iota_0$ ended. $\square$
+
+**Links to the heads of units.** Let $\alpha_1, \alpha_2, \ldots$ be the
+successful activations of $\sigma$ at $q$ as in *Links to heads*, and let
+a unit $X$ hold $\alpha_i$.
+
+1. Let the $i$-th link be memoized and meet the hypothesis of *Links lead
+   to repeated evaluations* on the growths at its position. Then $X$ is
+   not the head of its class, unless case (a) or (b) of the covered keys
+   arises on the path from $\mathcal{R}(e_i)$ down to the evaluation that
+   corresponds to $\mathcal{R}(X)$, followed through the records.
+2. Let $i$ be free, and let $\alpha_i$ be the counterpart of an activation
+   $\beta'$ of $\mathcal{R}$ whose reference link $(e^k, e^{k\prime})$ is
+   of a rule that the parse memoizes. Then $X$ is not the head of its
+   class, unless case (a) or (b) arises on the path of that link followed
+   through the records.
+
+Neither statement has a case (d), and both hold whether or not $\alpha_i$
+lies inside an iteration of the kind.
+
+*Proof.* 1\. As the proof of *Links lead to repeated evaluations* shows
+under that hypothesis, $\mathcal{R}(e_i)$ and $\mathcal{R}(e'_i)$ take the
+same steps up to the variants of their calls. Let $X$ be an evaluation of
+a key. That proof gives the call $z^\circ$ of $\mathcal{R}(e_i)$, or
+$\mathcal{R}(e_i)$ itself, at the place of $\mathcal{R}(X)$ in
+$\mathcal{R}(e'_i)$, with a key of the class of $X$, which reads no growth
+open at its start and holds an activation at the place of the counterpart
+of $\alpha_i$; it uses of $X$ only that it is $e'_i$ or lies inside it and
+that it holds $\alpha_i$ at some depth, which the region of $X$ does. By 2
+of *Covered keys through records* with $x = e_i$, the parse made an
+evaluation of a key of the class of $X$ before $e_i$ ended, so before
+$e'_i$ started, outside cases (a) and (b) on the path followed through the
+records.
+
+Let $X$ be an iteration. $X$ and $e'_i$ both contain $\alpha_i$, so they
+nest, and $e'_i$, the evaluation of a call of a rule that the parse
+memoizes, does not lie inside $X$, since $\alpha_i$ would then lie
+outside the region of $X$. So $X$ lies strictly inside $e'_i$, and
+$\mathcal{R}(X)$ inside $\mathcal{R}(e'_i)$. The evaluation $\iota$ at the
+same place in $\mathcal{R}(e_i)$ is an iteration of the same repetition,
+in the rule or in the twin, at the same position, that takes the steps of
+$\mathcal{R}(X)$ up to the variants of its calls. By 1 of *Covered
+iterations* with $x = e_i$, which the parse evaluates, the parse
+evaluated before $e_i$ ended an iteration whose counterpart is like
+$\iota$, which is a unit of the class of $X$, outside cases (a) and (b).
+It started before $e'_i$ did, which is made after the unit that contains
+$e_i$ is abandoned (*Repeats*), and so before $X$.
+
+2\. For an evaluation of a key this is 3 of *Covered keys through
+records*. Let $X$ be an iteration. $\mathcal{R}(X)$ contains $\beta'$
+outside its calls of rules that the parse memoizes, and $e^{k\prime}$ is
+made by such a call and contains $\beta'$, so $\mathcal{R}(X)$ lies
+strictly inside $e^{k\prime}$. $e^k$ takes the steps of $e^{k\prime}$ up
+to the variants of its calls (*Reference links*), so the evaluation at
+the same place in $e^k$ is an iteration like $\mathcal{R}(X)$, and it ends
+before $e^{k\prime}$ starts, which the continuation makes after the unit
+that holds $e^k$ ends, so before $\mathcal{R}(X)$ starts. By 2 of
+*Covered iterations* $X$ is not the head of its class. $\square$
+
+**Activations held by the heads of units.** Let the rule of $\sigma$ call
+a rule or be memoized at its calls, let every link of $\sigma$ at $q$ be
+memoized and meet the hypothesis of *Links lead to repeated evaluations*
+on the growths at its position, with neither case (a) nor (b) on its path
+followed through the records, and let every free $\alpha_i$ other than
+$\alpha_1$ be the counterpart of an activation of $\mathcal{R}$ that has a
+reference link of a rule that the parse memoizes with neither case on its
+path followed through the records, or that a dropped step at the position
+of its growth or a path that enters a growth again of $\mathcal{R}$ leads
+to. Then:
+
+1. the successful activations of $\sigma$ at $q$ that the heads of the
+   classes of units hold are among $\alpha_1$, those that case 5 or a dropped
+   step at the position of its growth repeats, and the free ones that a
+   dropped step at the position of its growth or a path that enters a
+   growth again of $\mathcal{R}$ leads to, as in *Activations held by
+   heads*;
+2. every successful activation of $\sigma$ at $q$ that a unit holds lies
+   in a unit of the class of a head that holds one of those of 1, at the
+   place in its region where that head holds it;
+3. so the successful activations of $\sigma$ at $q$ held by the units of
+   a set that has at most $m$ units of each class are at most $m$ times
+   those that the heads hold, which are among those of 1.
+
+*Proof.* 1 is *Links to the heads of units*: a linked $\alpha_i$ and a
+free one whose counterpart has a reference link are held by no head. 2
+is 4 of *Units in a parse that keeps records*: the activation that
+corresponds, in the head of the class, to a successful activation of
+$\sigma$ at $q$ is one. 3 follows: the correspondence of 4 is one to one for each unit,
+so the units of the set in one class hold at most $m$ times what the head
+of that class holds. $\square$
+
+For the set of the memoized evaluations $m$ is six, as in *Activations
+held by heads*, so 3 extends that claim to the activations in the region
+of a memoized evaluation that lies inside an iteration of the kind: those
+of a source in a rule that the parse memoizes and that the element of a
+run site or of a skip-run site calls, directly or indirectly, outside the
+iterations of the kind inside that evaluation. The hypotheses are those of *Activations held by heads*, with
+the paths followed through the records, and what that claim leaves to
+step 1 of [Open Steps](#open-steps), the leaf links among it, it leaves
+here.
+
+For the units that are iterations no $m$ is shown. The activations that
+they hold are those of a source in the element of a run site or of a
+skip-run site that keeps records, or in a rule that the element calls
+through rules that the parse does not memoize: among them a `#recover`
+whose skip is not reused, a candidate site that keeps no record in the
+parse and, in such a rule, a repetition that is no candidate site or the
+operators of an Operators Rule. The units of a copying operation and the
+tries of an Operators Rule there are no activations of this count and stay
+as the sixth part of step 8 of [Open Steps](#open-steps) states them. By 2
+the activations that the iterations hold lie, at one position $q$, in the
+iterations of the classes of the heads that hold those of 1, at one place
+for each of those; so when $\alpha_1$ is the only one of 1, they lie in
+the iterations of one class, one in each, and their number at $q$ is at
+most the number of the iterations of that class that the parse
+evaluates. The
+records bound the iterations that are evaluated at one position because of
+the state of its slot: for each lookahead state the element is evaluated
+at a position at most once while its slot is fresh and once more before it
+is recorded ([Skip Runs](../runtime/parsing.md#skip-runs), and cases 1
+and 2 of [Lemma 2](run-sites.md#lemma-2-cost-once-hot) of the Run Sites
+proof, for the records of one key). They do not bound the iterations that
+a walk evaluates whatever the slot holds, which those lemmas count for
+each walk and not for each position: its first iterations up to the
+minimum of the repetition, the last iteration of a walk that ends plain,
+whose position the walk does not mark, and the iterations of a walk made
+before the site keeps records
+([Lemma 3](run-sites.md#lemma-3-cost-before-hot) of that proof). Nor do
+they bound the iterations of one class at a site whose records are kept
+under the environment as an object, where equal environments that are
+distinct share no record. So, under the hypotheses of this claim, what remains of the sixth part
+of step 8 for the activations that the iterations hold is the number of
+the iterations of these four sorts that the parse evaluates in one
+class.
+
 **Leaf links in a parse that keeps records.** In a parse whose records are
 exact, (R1) of the [Setting](#setting), *Growths around a leaf link*,
 *Calls that call no rule* and *Outer links across runs* hold as stated,
@@ -4090,7 +4464,10 @@ hypothesis on the free ones is then read with those paths. The activations of a 
 iteration, and the
 iterations themselves of a site that keeps records and is no recorded site
 of the parse, are not bounded here
-(step 8 of [Open Steps](#open-steps)).
+(step 8 of [Open Steps](#open-steps)); *Activations held by the heads of
+units* above bounds, of the first, those that a memoized evaluation
+inside the iteration holds, and reduces the others to a count of the
+iterations of one class.
 
 This gives the case that the comparison misses without the classes: in
 `main = (-r "x" / r "y")* $$; r = [a-c]* t?; t = "d"` on `abcy`, the first
@@ -9731,7 +10108,29 @@ theorem covers such a parse.
    that rule (*Sources without records* in Lemma 17). *Replayed activations* does not hold of its
    activations inside the iterations of the walks of that site, where one
    evaluation of a class can take a record and another evaluate, so
-   *Activations held by heads* does not bound them, and no other claim does.
+   *Activations held by heads* does not bound them. *Units in a parse
+   that keeps records* compares instead the units of one class, the
+   evaluations of a key and the iterations that the parse evaluates of one
+   run site or skip-run site at one position that take the same steps,
+   whatever their lookahead states and variants; *Covered iterations* and
+   *Links to the heads of units* show, for records made as (M1) and (M2)
+   of *Covered keys through records* state, that an activation of a
+   memoized link, or a free one with a reference link, is held by no head
+   of a class of units, with no case (d); and *Activations held by the
+   heads of units* bounds by six times those that the heads hold the
+   activations that a memoized evaluation inside such an iteration holds,
+   under the hypotheses of *Activations held by heads* with the paths
+   followed through the records. For the activations that an iteration
+   itself holds, those of a source in the element or in a rule that the
+   element calls through rules that the parse does not memoize, the same
+   claims show that at one position they lie in the iterations of the
+   classes of those heads, one in each iteration, and what is open is the
+   number of the iterations of one class that the parse evaluates whatever
+   the slot holds: the first iterations of a walk up to the minimum, the
+   last iteration of a walk that ends plain, the iterations of a walk made
+   before the site keeps records, and the iterations at a site whose
+   records are kept under the environment as an object. No claim bounds
+   those at one position, and the leaf links stay as in step 1.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
    calls, which Lemma 6 counts through the count of Lemma 4, and of the
@@ -9761,7 +10160,8 @@ theorem covers such a parse.
    and a walk made before the site keeps records all of its iterations
    ([Skip Runs](../runtime/parsing.md#skip-runs),
    [Run Sites](../runtime/parsing.md#run-sites)). So neither the records
-   nor what is proved of Lemma 4 gives a count at one position. Seventh, a
+   nor what is proved of Lemma 4 gives a count at one position of the
+   activations that the iterations hold. Seventh, a
    candidate site that keeps records and is no recorded site of the parse,
    as a run site that is not free of the environment in the engine and a
    scan site in every implementation: its iterations are iterations of a
