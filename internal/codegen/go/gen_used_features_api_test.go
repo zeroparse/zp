@@ -16,6 +16,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compiletest"
@@ -31,49 +32,65 @@ func TestUsedFeaturesKeepUserAPI(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	src, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "grammars", "csv", "csv.zp"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	g, err := compiletest.Parse(string(src))
-	if err != nil {
-		t.Fatal(err)
-	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	for _, c := range []struct {
+	// csv takes every configuration, since it streams; json and python, which do not, guard the
+	// typed and Document surfaces of larger grammars.
+	type config struct {
 		name string
 		opts codegen.GenOptions
-	}{
+	}
+	common := []config{
 		{"plain", codegen.GenOptions{}},
 		{"types-document", codegen.GenOptions{Types: true, Document: true}},
+	}
+	streaming := []config{
 		{"stream", codegen.GenOptions{Stream: true}},
 		{"types-stream", codegen.GenOptions{Types: true, Stream: true}},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-			surface := func(off bool) []string {
-				o := c.opts
-				o.Package, o.Start, o.Lib, o.Module = "p", "main", codegen.LibEmbed, "example.com/p"
-				if off {
-					o.NoOpt = []string{codegen.UsedFeatures}
-				}
-				files, err := codegentest.Generate(t, g, o)
-				if err != nil {
-					t.Fatal(err)
-				}
-				dir := t.TempDir()
-				codegentest.WriteGenerated(t, dir, o.Module, files)
-				if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod(o.Module)), 0o644); err != nil {
-					t.Fatal(err)
-				}
-				return userMethods(t, goBin, dir, o.Module)
-			}
-			on, off := surface(false), surface(true)
-			if missing := subtract(off, on); len(missing) > 0 {
-				t.Errorf("the narrowed copy lacks user API that the whole library has:\n%s", strings.Join(missing, "\n"))
-			}
-		})
 	}
+	for _, gr := range []struct {
+		name    string
+		configs []config
+	}{{"csv", append(common, streaming...)}, {"json", common}, {"python", common}} {
+		src, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "grammars", gr.name, gr.name+".zp"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		g, err := compiletest.Parse(string(src))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, c := range gr.configs {
+			testUserAPI(t, goBin, gr.name+"/"+c.name, g, c.opts)
+		}
+	}
+}
+
+// testUserAPI runs the subtest name of TestUsedFeaturesKeepUserAPI for grammar g and options opts.
+func testUserAPI(t *testing.T, goBin, name string, g *grammar.Grammar, opts codegen.GenOptions) {
+	t.Run(name, func(t *testing.T) {
+		t.Parallel()
+		surface := func(off bool) []string {
+			o := opts
+			o.Package, o.Start, o.Lib, o.Module = "p", "main", codegen.LibEmbed, "example.com/p"
+			if off {
+				o.NoOpt = []string{codegen.UsedFeatures}
+			}
+			files, err := codegentest.Generate(t, g, o)
+			if err != nil {
+				t.Fatal(err)
+			}
+			dir := t.TempDir()
+			codegentest.WriteGenerated(t, dir, o.Module, files)
+			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod(o.Module)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			return userMethods(t, goBin, dir, o.Module)
+		}
+		on, off := surface(false), surface(true)
+		if missing := subtract(off, on); len(missing) > 0 {
+			t.Errorf("the narrowed copy lacks user API that the whole library has:\n%s", strings.Join(missing, "\n"))
+		}
+	})
 }
 
 // subtract returns the elements of a that b lacks.
