@@ -7885,15 +7885,11 @@ parse keeps comes from an earlier growth of the key in the same way. The other
 cases of the induction lead, as there, to an earlier evaluation that holds a
 call with the key of $z$ that reads no growth open at its start. $\square$
 
-**Heads hold what later growths hold.** Let the parse answer no call in a
-context of growths from the memo, as a parse that answers nothing in contexts
-does (*Reuse in a context*), and let a growth $g$ of a key hold, in its
+**Heads hold what later growths hold.** Let the parse answer nothing in
+contexts (*Reuse in a context*), and let a growth $g$ of a key hold, in its
 family region, a successful activation of a source $\sigma$ at $q$. Then the
 head of its key holds a successful activation of $\sigma$ at $q$ in its family
-region, unless a result or a step that the parse reuses inside the head was
-kept in a smaller lookahead state, or holds the place of the activation inside
-a lookahead that it observed, which the open gap stated with (D) of the
-memoization proof leaves out.
+region.
 
 *Proof.* The calls of $g$ and of the head $h$ read no growth open at their
 start and have one key, so $\mathcal{R}(g)$ and $\mathcal{R}(h)$ take the same
@@ -7902,30 +7898,20 @@ counterpart of one in $\mathcal{R}(g)$, which corresponds to one of the same
 source at the same position, which succeeds, in $\mathcal{R}(h)$, at a place
 that lies, as in $\mathcal{R}(g)$, at $p$ in a step, in a context of growths
 or in a call of a rule that the parse does not memoize. Follow the path from
-$\mathcal{R}(h)$ down to that place. If the parse evaluates every call and
-step on it, $h$ holds the activation there. Otherwise let $y$ be the first
-call or step on it that the parse does not evaluate. The parse does not skip
-an alternative on the path, which encloses an activation (*Counterparts*), and
-does not answer $y$ with the current result of an open growth, since
-$\mathcal{R}(y)$ would then make no call. The calls on the path are made at
-$p$, where $h$ is in their context, or are calls of rules that the parse does
-not memoize, which it never answers (in a Document as *Transient calls of a
-Document* in Lemma 3 reads it), and it answers no call in a context from the
-memo. So it answers $y$ from a result or a step
-computed while at least the growths of the context of $y$ were in progress, or
-takes $y$ in a run of such steps ([Evaluations of
-Rules](../runtime/parsing.md#evaluations-of-rules)), and that result or step is
-that of an evaluation $y'$ made earlier inside $h$. By the argument of [Lemma
-4 of the memoization
-proof](memoization.md#lemma-4-answering-from-a-dependent-result), as in the
-covered keys, $\mathcal{R}(y)$ and $\mathcal{R}(y')$ take the same steps
-outside the lookaheads that $y'$ observed, so outside the gap above the path
-goes on to the same place in $\mathcal{R}(y')$, which lies in the family region
-of $h$ as well. By induction on the order of the evaluations, $h$ holds a
-successful activation of $\sigma$ at $q$ there. $\square$
+$\mathcal{R}(h)$ down to that place. The parse evaluates every call and
+step on it: it does not skip an alternative on the path, which encloses an
+activation (*Counterparts*); it does not answer a call on it with the current
+result of an open growth, since the counterpart would then make no call; the
+calls on the path are made at $p$, where $h$ is in their context, or are
+calls of rules that the parse does not memoize, which it never answers (in a
+Document as *Transient calls of a Document* in Lemma 3 reads it); and,
+answering nothing in contexts, it answers no call in a context, reuses no
+kept result or step and takes no run of steps at once. So $h$ holds the
+activation there. $\square$
 
-The claim maps no activation of $g$ to one of $h$ one to one. Two growths of a
-key take the same steps in $\mathcal{R}$, but the parse can reuse a result or
+The claim maps no activation of $g$ to one of $h$ one to one, and the count
+below does not ask for it. Two growths of a key take the same steps in
+$\mathcal{R}$, but a parse that answers in contexts can reuse a result or
 a step in a context of growths in one of them and evaluate it again in the
 other, since it takes results that it has not shown equal as different
 (*Reuse in a context*): the activations that $g$ then evaluates again are
@@ -8096,8 +8082,8 @@ each step of the family when $q$ is at most a constant after $p$, the
 activations inside calls of rules that call no rule, case 5 and the dropped
 steps.
 
-**First activations of heads.** Let the parse answer no call in a context of
-growths from the memo, as in *Heads hold what later growths hold*, and let
+**First activations of heads.** Let the parse answer nothing in contexts,
+as in *Heads hold what later growths hold*, and let
 $h$ be the head of a key whose family
 region holds a successful activation of $\sigma$ at $q$ of the sequence
 $\alpha_1, \alpha_2, \ldots$, and let $\alpha_j$ be the first one there. Then
@@ -8105,8 +8091,7 @@ $\alpha_j$ is $\alpha_1$; or it lies in a call of a rule that calls no rule;
 or it follows a link, or is free with a reference link, with case (a) or (b)
 of the covered keys on its path; or it is free and the counterpart of an
 activation of $\mathcal{R}$ that a dropped step or a path that enters a growth
-again of $\mathcal{R}$ leads to; or a result or a step that the parse reuses
-inside $h$ meets the gap of *Heads hold what later growths hold*.
+again of $\mathcal{R}$ leads to.
 
 *Proof.* Let $\alpha_j$ be none of these, so $j \ge 2$. If it is linked, the
 link is memoized, since $\alpha_j$ lies in no call of a rule that calls no
@@ -8129,10 +8114,7 @@ Either way, the place of $\alpha_j$ inside the later evaluation, or of its
 counterpart, corresponds to a place inside the earlier one, which is evaluated
 first, at $q$, in the family region of $h$ or of $\mathcal{R}(h)$. Follow the
 path from $h$ down to that place as in the proof of *Heads hold what later
-growths hold*: the parse evaluates every call and step on it, or answers the
-first one $y$ that it does not evaluate from an evaluation $y'$ made earlier
-inside $h$ in the family region, whose path goes on to the same place outside
-the gap. By induction on the order of the evaluations, $h$ holds a successful
+growths hold*: the parse evaluates every call and step on it, so $h$ holds a successful
 activation of $\sigma$ at $q$ in its family region before $\alpha_j$, which
 lies outside case 5 and the dropped steps as $\alpha_j$ does, or one that
 *Repeats inside a growth* leaves out of the sequence and that follows an
@@ -8143,8 +8125,8 @@ So for each position $q$, the heads whose family regions hold an activation
 of the sequence are at most as many as the cycle has leaders for $\alpha_1$,
 since the growths at one position that enclose one another have distinct
 leaders, and as many for each activation of the kinds that the claim lists.
-Those kinds are the open parts of step 1 of [Open Steps](#open-steps), the
-gap stated with (D) of the memoization proof, the activations that a dropped
+Those kinds are the open parts of step 1 of [Open Steps](#open-steps) and
+the activations that a dropped
 step or a path that enters a growth again of $\mathcal{R}$ leads to, which
 step 1 leaves to count too. With the at most two outer growths of each
 key and the constant of *Consecutive repeats inside a family* for each family,
@@ -8615,8 +8597,7 @@ context; and it answers fewer calls than the memo could, which the
 memoized parse of the [memoization proof](memoization.md#setting) may do,
 since it may answer a call from an entry but need not. So Lemmas 1 to 4
 and the claims of this lemma hold of it as of any parse of the Setting,
-those that ask a parse to answer nothing in contexts, or no call in a
-context from the memo, included. The two parses differ in two directions.
+those that ask a parse to answer nothing in contexts included. The two parses differ in two directions.
 Where the parse answers a call, in a context or outside, that
 $\mathcal{P}$ evaluates, $\mathcal{P}$ evaluates more, and the images
 below follow what $\mathcal{P}$ evaluates there. Where $\mathcal{P}$
@@ -11623,11 +11604,7 @@ theorem covers such a parse.
    whose first activation at a position is of a kind that *First activations
    of heads* lists: the open parts of step 1, the activations that a dropped step at the position of its growth
    or a path that enters a growth again of the
-   reference parse leads to,
-   and the activations
-   that *Heads hold what later growths hold* leaves out, through a result or
-   step kept in a smaller lookahead state or the lookaheads that it observed,
-   with the open gap stated with (D) of the memoization proof. Third, the growths that start at many positions, each at
+   reference parse leads to. Third, the growths that start at many positions, each at
    a call of a rule of the cycle that is not a left call or at a call of a
    leader in the body of another rule, as the repetitions of a scanning
    source. *Growths at many positions* bounds the steps of the outer growths
