@@ -3096,7 +3096,7 @@ sequence $\alpha_1, \alpha_2, \ldots$ leaves out: of case 5, of the third
 case of *Dropped steps*, or a repeat at the position of a growth that
 *Repeats inside a growth* of Lemma 5 leaves out. The same holds for
 $\mathcal{R}(e_{i+1})$ and $e_{i+1}$ in place of $\mathcal{R}(e'_i)$ and
-$e'_i$.
+$e'_i$ when $e_{i+1}$ is an evaluation of a key.
 
 *Proof.* By 1 of *Iterations at one scan* applied to $it_{k'}$ and
 $it_{k''}$, $\alpha_i$ is the first activation in $it_{k'}$, and by the
@@ -3298,6 +3298,111 @@ context of growths, the hypothesis of this claim. The links that are not
 plain are those that *Consecutive restarts through frames* leaves open, in
 either form, with two variants or with two lookahead states, and a bound on
 their number in a run is not shown here.
+
+**Units below the earlier evaluations.** Under the hypotheses of *Positions
+of the holders*, let $I$ be the iteration of $T$ that holds $e'_{k+1}$. Then
+an evaluation below $e_{k+1}$ on the way to $\alpha_k$ is abandoned; let
+$v_k$ be the first, and $v'_k$ the evaluation at its place in
+$\mathcal{R}(e'_{k+1})$, and let no growth lie on the way in $\mathcal{R}$
+from $\mathcal{R}(T)$ down to $v'_k$. Then $v_k$ is a committing unit that
+starts at a position $s_k$ with $t_{k+1} \le s_k \le \mathrm{end}(e'_{k+1})$,
+and $v'_k$ is an evaluation of the same unit at $s_k$ that takes the same
+steps up to the variants of its calls. Let $\kappa$ be the continuation
+that $\mathcal{R}$ evaluates from $s_k$ the last time after $v'_k$ before
+$\mathcal{R}(T)$ ends, let the calls that $v_k$ and $\kappa$
+share, $j_k$ of them, end in $v_k$ at $r_k$, let $\alpha_k$ lie in $v_k$
+outside the evaluations of those calls, and let $v_k$ be committing for
+$\kappa$ because their first characters after those calls are disjoint, or
+because its words exclude $\kappa$, with $|W_k|$ the length of the word of
+its path that holds $\alpha_k$; let $|W_k| = 0$ in the first case. Then
+$T$ ends at or before $r_k + |W_k|$, and $T$ has at most $j_k + |W_k|$ iterations after $I$. So the run has at
+most $j_k + |W_k|$ links after $k + 1$.
+
+*Proof.* As in the proof of *Positions of the holders*, $e_{k+1}$ and
+$e'_{k+1}$ are evaluations of keys of one class, so $\mathcal{R}(e_{k+1})$
+and $\mathcal{R}(e'_{k+1})$ take the same steps up to the variants of their
+calls, and each evaluation of the parse has the outcome of its counterpart
+(*Counterparts*). So $e_{k+1}$ succeeds and ends where $e'_{k+1}$ does, at or
+before $q$, since $e'_{k+1}$ is a $q$-frame by the hypotheses of *Restarts
+through a frame* for $k + 1$. $\alpha_k$
+consumes input from $q$, so, as in the proof of *Restarts*, an evaluation
+from $e_{k+1}$ down to $\alpha_k$ is abandoned; it is not $e_{k+1}$, which
+succeeds and is no expression of a lookahead. No evaluation on that way is a
+step of a growth, so $v_k$ is no dropped step: its parent goes on after it,
+and $v_k$ is a unit. It contains $\alpha_k$, so, as in the proof of
+*Restarts*, it is the expression of a lookahead or fails after $\alpha_k$
+has examined input, and condition 2 makes it committing. It lies inside
+$e_{k+1}$, so $s_k \ge t_{k+1}$; its parent goes on from $s_k$, and every
+evaluation from $e_{k+1}$ down to that parent is not abandoned, so each ends
+at or after the end of its child on that way, and $\mathrm{end}(e_{k+1}) \ge
+s_k$.
+
+$v'_k$ is at the place of $v_k$, so it evaluates the same unit at $s_k$, is
+abandoned as $v_k$ is, and evaluates the calls that it shares with $\kappa$
+with the results that $v_k$ has, ending at $r_k$. As in the proof of
+*Direct activations*, the input from $r_k$ to the end of $\alpha_k$ is
+consumed in $v_k$ after those calls, so $r_k \le q$ and the character at
+$r_k$ is a first character of $v_k$ after them; and when $v_k$ commits by
+its word $W$, its path that holds $\alpha_k$ begins after them with $W$, so
+the input at $r_k$ begins with $W$. No evaluation from $\mathcal{R}(e'_{k+1})$
+down to the parent of $v'_k$ is abandoned, since none from $e_{k+1}$ down to
+the parent of $v_k$ is, and none from $\mathcal{R}(I)$ down to
+$\mathcal{R}(e'_{k+1})$, since none from $I$ down to $e'_{k+1}$ is, by the
+hypotheses of *Restarts through a frame* for $k + 1$. So from the end of $v'_k$ to the end of
+$\mathcal{R}(T)$, $\mathcal{R}$ returns to no position before $s_k$: it
+would do so only by abandoning an evaluation that encloses $v'_k$ and starts
+before $s_k$, or by a later step of a growth that encloses $v'_k$
+(*Restarts*), and the evaluations that enclose $v'_k$ up to
+$\mathcal{R}(T)$ are not abandoned and are no growths. So $\kappa$ goes on
+from $s_k$ through the rest of $\mathcal{R}(e'_{k+1})$ and of
+$\mathcal{R}(I)$ and through the later iterations of $\mathcal{R}(T)$, and
+consumes the input from $s_k$ to $\mathrm{end}(T)$, which is at least
+$\mathrm{end}(e'_{k+1}) \ge s_k$.
+
+Every path of $\kappa$ that examines the input begins with the shared calls,
+each with the result that it has in $v'_k$ (*Direct activations*), so
+$\kappa$ consumes the input from $s_k$ to $r_k$ inside their evaluations,
+and if $T$ ended after $r_k$, $\kappa$ would consume the character at $r_k$
+after them, and it would be a first character of $\kappa$ after them. When
+the first characters are disjoint, this is a contradiction, since that
+character is a first character of $v_k$ after them. When the words exclude
+$\kappa$, every path
+of $\kappa$ on that input fails, examines nothing more or evaluates a
+negative lookahead that is known to match before it reaches the end of $W$,
+and $\kappa$ goes on without failing to $\mathrm{end}(T)$, so $T$ does not
+end after $r_k + |W_k|$.
+
+The iterations of $T$ after $I$ start at or after $\mathrm{end}(I) \ge
+s_k$, end at or before $\mathrm{end}(T) \le r_k + |W_k|$, and each consumes
+input, since a repetition stops at the first iteration that consumes none.
+Let such an iteration start at $x < r_k$. The character at $x$ is consumed
+in the evaluation of a shared call that $\kappa$ makes. That evaluation is
+made after $v'_k$; one made while $\mathcal{R}(I)$ is in progress lies inside
+it and ends at or before $\mathrm{end}(I) \le x$, so it is made after
+$\mathcal{R}(I)$ ends, while $\mathcal{R}(T)$ is in progress, and lies inside
+the iteration that consumes $x$. These evaluations are distinct for
+distinct iterations, so at most $j_k$ iterations start before $r_k$, and at most $|W_k|$ start at or
+after it, each consuming a character before $r_k + |W_k|$. Each link of the
+run after $k + 1$ has its later evaluation in a later reaching iteration of
+$T$ (1 and 2 of *Iterations at one scan*), so there are at most
+$j_k + |W_k|$ such links. $\square$
+
+The claim does not depend on whether the link is plain: it applies
+condition 2 to the first abandoned unit below $e_{k+1}$, which lies inside
+the evaluation of a call that $w_{k+1}$ shares, where condition 2 on
+$w_{k+1}$ says nothing about it, and it transfers that unit to $\mathcal{R}(e'_{k+1})$, whose
+continuation goes on through the later iterations of $T$. So in a run whose
+links meet its hypotheses, a link $k + 1$ followed by more than
+$j_k + |W_k|$ links has $\alpha_k$ inside the evaluation, in $v_k$, of a
+call that $v_k$ shares with $\kappa$, or $v_k$ commits against $\kappa$ in
+another way: it decides $\kappa$, or it is committing for a path that enters
+the growth again. In the first case $\kappa$ evaluates that call again at
+the same position with the same result (*Direct activations*), inside the
+rest of $\mathcal{R}(I)$ or in one of the next $j_k$ iterations of $T$, by
+the count above. Where that evaluation lies relative to the next
+frames, and whether a bound on the links that are not plain follows, is not
+shown here, and the cases in which $v_k$ decides $\kappa$ or commits through
+a path that enters the growth again are not treated.
 
 ## Lemma 5 (Growth)
 
@@ -7056,7 +7161,14 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    other restart has a link that is not plain unless a step of a growth or an
    activation that the sequence leaves out lies on the way to the place of
    the next activation, so that $m$ is at most six times one more than the
-   number of such links and restarts in the run. Refinements,
+   number of such links and restarts in the run. *Units below the earlier
+   evaluations* shows that when the first abandoned unit below the earlier
+   evaluation of a link holds the activation outside the calls that it shares
+   with its continuation in the reference parse, and is committing for it by
+   first characters or by its word, at most as many links follow as those
+   calls and the length of the word, so in a longer run the activation lies
+   inside a call that the unit shares, or the unit commits in another way.
+   Refinements,
    the links that are not plain, the number of
    runs in one evaluation $T$ of a repetition, the number of repetition
    evaluations $T$ that reach $q$, the number of $q$-frame positions,
