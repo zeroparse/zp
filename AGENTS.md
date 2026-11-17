@@ -1,84 +1,68 @@
 # ZeroParse
 
-ZeroParse is a Go parser framework using an extended PEG grammar language. Keep this
-file concise; put contracts, design rationale, measurements and workflow detail
-in the linked project documents.
+A Go parser framework with an extended PEG grammar language (Go 1.27.1). Read on every task:
+contracts, rationale and measurements belong in the linked documents. Start with the
+`onboarding` skill; use `documentation`, `performance`, `backlog`, `zerosite` and
+`team-workflow` when they apply.
 
-At the start of every development session, use the `onboarding` skill in
-`.agents/skills/onboarding/` to locate current sources and choose relevant checks.
+## Layout
 
-## Documentation map
+A test (`internal/testing/archtest`) fails when a path in backticks here does not exist.
 
-- `README.md`: project overview and documentation index.
-- `spec/`: normative specifications: `language/` (grammar), `runtime/` (parser and runtime),
-  `core-ir/` and `bytecode/`.
-- `docs/tutorial/`, `docs/guide/`, `docs/cookbook/`: learning and usage.
-- `docs/design/`: architecture and internal representations as implemented;
-  `docs/design/records/`: decisions; `docs/optimizations/`: measured mechanisms.
-- `docs/development.md`, `docs/site.md`, `docs/performance.md`: development,
-  site maintenance and performance method/status.
-- `docs/why-zeroparse.md`, `docs/strategy.md`: positioning, comparison and project
-  strategy, including performance targets.
-- `site/`: ZeroSite configuration and wrapper; `bench/`: benchmark sources.
+- `spec/` normative specs; `docs/` guides, `docs/design/` (as implemented) and
+  `docs/design/records/` (decisions), `docs/optimizations/`, `docs/development.md`.
+- Public packages: `core/`, `engine/`, `codegen/`, `schema/`, `query/`, `lint/`, `grammar/`,
+  `sample/`, `editfuzz/`. Their release layout: `internal/testing/archtest/layout_test.go`.
+- `internal/` implementation (frontend, compile, ir, bytecode, runtime engine, generators);
+  `cmd/zp/` CLI; `testdata/grammars/` grammar corpus; `bench/`; `site/` (own Go module);
+  `hack/` developer scripts; `.agents/scripts/` agent scripts. Ready-made parsers live in the
+  separate alpha-parsers repository.
 
-Use the `documentation`, `performance`, `backlog`, `zerosite` and `team-workflow`
-skills when relevant.
-Keep reader-facing docs independent of chat history and backlog labels. Write
-repository docs and comments in English. Update affected contracts and guides
-with implementation changes; regenerate generated files.
+## Work
 
-## Development and checks
+- Work in a git worktree on a `feat/*`, `fix/*`, `perf/*` or `docs/*` branch, never in the root
+  checkout. Scratch goes in untracked `.scratch/`.
+- Generated files (`go generate` output, benchmark reports) come only from their generators.
+- Update affected specs and guides with the code, and `spec/bytecode/README.md` for VM changes.
+  Docs and comments are English; reader-facing docs carry no chat history, backlog labels or
+  issue numbers.
+- Unspecified language semantics: check `docs/design/records/` and the issues, then ask the
+  owner with alternatives and a recommendation; wait before dependent work.
+- High-impact changes need review by a reviewer whose context is independent of the worker.
 
-- Public APIs: `core/` (shared result types), `engine/` (which joins the runtime to the output schema),
-  `codegen/` (code generation), `schema/`, `query/`, `lint/`, `grammar/`, `sample/`, `editfuzz/`; parser/compiler: `internal/frontend/parser/`,
-  `internal/compile/`; runtime: `internal/engine/`; generators:
-  `internal/codegen/`; grammars: `testdata/grammars/`; ready-made parsers: the separate
-  `alpha-parsers` repository.
-- Use Go 1.27.1. Choose checks by what a change touches. Light gate (changes
-  only to docs, spec, site, skills or test files, no non-test Go code):
-  `go vet ./...`, `cd site && go test -count=1 ./...` and the tests of the
-  packages whose files changed. Code: `go vet` and the tests of the changed
-  packages and their dependents; budget-control code: also the reference build
-  in `docs/development.md`. A work branch does not run `go generate ./internal/codegen/... ./bench`
-  or `hack/test-alpha-parsers.sh`: the landing gate does (the latter fails
-  without an alpha-parsers checkout; `hack/sync-alpha-parsers.sh` updates one).
-  When the generator changed, diff the `zp gen` output of the affected grammars
-  against main instead. The default root `go test ./...` takes
-  minutes; run it on the final commit of each landing batch, and when the
-  batch touches the engine, generator or runtime run it with `-tags zp_long` (the
-  long tier in `docs/development.md`) instead,
-  which includes the default tier. New slow tests go to the long tier.
-- Keep generated benchmark reports/results unedited by hand and align
-  `spec/bytecode/README.md` with VM changes.
-- GitHub Actions are temporarily paused: do not trigger, rerun, cancel, poll or
-  enable workflows. Keep 32-bit and ready-made parser work deferred.
-  Required local validation still applies.
-- Ask the owner about unspecified language semantics, with alternatives,
-  tradeoffs and a recommendation; wait for answers before dependent work.
-- Roles: a developer working alone does every role. A multi-lane session uses
-  the roles of the `team-workflow` skill (leader, members, integrator,
-  independent reviewers, backlog writer); only its integrator pushes main,
-  through the landing train or the fast lane.
+## Checks
 
-- For high-impact changes, request critical review from a reviewer whose context
-  is independent of the worker; reuse existing reviewers. Share requirements,
-  diffs and validation evidence, and resolve material findings before completion.
+`hack/gate.sh [--base REV] [--keep-going] LEVEL` stops at the first failing step; commit first,
+it checks `REV..HEAD` (default `origin/main`). Levels: `docs` (docs, spec, site, skills);
+`code` (build, vet, tests of affected packages); `engine` (engine, generator or runtime: long
+tier, generation without diff, alpha-parsers, reference build); `full` (whole tree, long
+tier). A lane runs `docs` or `code`; the landing batch runs `engine` or `full` on its last
+commit. New slow tests go to the long tier (`zp_long`).
 
-## Backlog, commits and branches
+## Agent scripts
 
-- The backlog is one issue per item in this repository, tracked in the public
-  [ZeroParse backlog project](https://github.com/orgs/zeroparse/projects/2)
-  (Category, Tier, Status, Priority); use the `backlog` skill. Issue
-  [#1](https://github.com/zeroparse/zp/issues/1) is the live work status page.
-  The body states the current truth, comments log decisions and measurements as
-  the work happens, and an issue closes by hand only after verified
-  integration. Issue numbers do not appear in reader-facing docs.
-- Write commits, issues and PRs in the owner's voice: omit references to agents,
-  AI assistance, the owner/user, requests, delegation or work history; cite
-  the backlog issue as `Refs #N`, never `Closes`. Follow
-  `docs/commit-messages.md`; include a body explaining the problem and rationale.
-  Do not add agent signatures.
-- Branch prefixes: `feat/`, `fix/`, `perf/`, `docs/`; do not use `codex/` or
-  `claude/`. Standing permission allows pushes to main and work branches, but
-  follow the current task's scope and authorization. Remove remote branches
-  only after verifying integration.
+Run `-h` for usage. State is in `$ZP_AGENT_STATE`. Heavy runs go through the queue only.
+
+- `.agents/scripts/lane-new.sh <name> <branch>`: start a lane worktree from fresh `origin/main`.
+- `.agents/scripts/run-gate.sh [-t tag] LEVEL...`: run the gate in the right run class, logged.
+- `.agents/scripts/testslot.sh <cmd...>`: targeted `go test` while developing.
+- `.agents/scripts/benchlock.sh <tag> <cmd...>`: any other heavy or timed run, one at a time.
+- `.agents/scripts/benchstop.sh <tag>`: stop your own job; never kill other processes.
+- `.agents/scripts/queue-status.sh`: queue state; exit 1 when stuck.
+- `.agents/scripts/alpha-check.sh [-c]`: sync and test alpha-parsers (`-c`: private clone).
+- `.agents/scripts/push-branch.sh [branch...]`: check commits, push without force.
+- `.agents/scripts/ready.sh "<scope>" "<checks>"`: append your READY line to the landing train.
+- `.agents/scripts/train.sh stack|gate|land <name>`: integrator only.
+- `hack/check-commits.sh [base]`: commit rules over `base..HEAD`; run before any push.
+
+## Git and backlog
+
+- Stage files by name; never `git add -A` or `git add .`; never force-push. Only the
+  integrator pushes main. Remove a remote branch only after verifying it is integrated.
+- Commits, issues and PRs: the owner's voice, English, with a body (`docs/commit-messages.md`),
+  `Refs #N` never `Closes`, no mention of agents or work history, and no AI attribution.
+- One issue per backlog item; [#1](https://github.com/zeroparse/zp/issues/1) is the live status
+  page (categories B, O, F, Q, I, D, M). Close an issue by hand after verified integration.
+
+GitHub Actions are paused: do not trigger, rerun, cancel, poll or enable workflows. 32-bit and
+ready-made parser work are deferred.
