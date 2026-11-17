@@ -456,8 +456,8 @@ func (p *Parser) skipTable() *skipSlots {
 }
 
 // walkKey returns the key of the walk at the current position: the values of the variables of the
-// key and their hash for a site keyed by them, none otherwise. Reading the values charges as a memo
-// key does, and hashing them one unit and the bytes of their strings, as the hash of a memo key.
+// key and their hash for a site keyed by them, none otherwise. Reading the values and hashing them
+// charge as for a memo key (hashMemoKey).
 func (p *Parser) walkKey() walkKey {
 	k := p.walk().key
 	if k == nil || SkipRecordMutation == SkipIgnoreEnv {
@@ -465,17 +465,11 @@ func (p *Parser) walkKey() walkKey {
 	}
 	p.ChargeValueBytes(len(k.vars) * int(anyBytes))
 	vals := p.EnvValues(k.vars)
-	h, bytes := memoKeyHash(0, 0, false, vals)
+	h := p.hashMemoKey(0, 0, false, vals)
 	if SkipRecordMutation == SkipKeyEnvObject {
 		// The object is compared by identity (rawValueEqual) and hashed by its address.
 		vals = append(vals, p.Env)
 		h ^= uint64(uintptr(unsafe.Pointer(p.Env))) * 0x9e3779b97f4a7c15
-	}
-	if BudgetControlsEnabled && p.Control != nil {
-		p.Spend()
-		if bytes > 0 {
-			p.SpendValue(bytes)
-		}
 	}
 	return walkKey{vals, h}
 }
