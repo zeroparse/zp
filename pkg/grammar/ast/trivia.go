@@ -104,19 +104,19 @@ func (g *Grammar) allComments(control *metadataControl) []*Comment {
 			addLayout(e)
 		}
 	}
-	var term func(Term)
+	var term func(ActionExpr)
 	var typ func(TypeExpr)
-	term = func(t Term) {
+	term = func(t ActionExpr) {
 		control.poll()
 		if n, ok := t.(SourceNode); ok {
 			addLayout(n.Source().Layout)
 		}
 		switch t := t.(type) {
-		case *TermGroup:
+		case *ActionGroup:
 			add(t.OpenBreak)
 			add(t.BodyBreak)
 			add(t.CloseBreak)
-			term(t.Term)
+			term(t.Action)
 		case *Block:
 			add(t.OpenBreak)
 			addAll(t.Breaks)
@@ -263,12 +263,12 @@ func (g *Grammar) allComments(control *metadataControl) []*Comment {
 			expr(e.Expr)
 			term(e.Action)
 		case *Predicate:
-			if _, block := e.Term.(*Block); !block {
+			if _, block := e.Action.(*Block); !block {
 				add(e.OpenBreak)
 				addAll(e.Breaks)
 				add(e.CloseBreak)
 			}
-			term(e.Term)
+			term(e.Action)
 		case *Repeat:
 			add(e.PragmaBreak)
 			if e.Spelling != nil {

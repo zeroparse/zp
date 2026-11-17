@@ -597,7 +597,7 @@ func (a *analysis) walkExpr(e ast.Expr, control *renderControl) {
 		a.mark(e.Diagnostic(), semVariable, modDeclaration)
 		a.walkExpr(e.Expr, control)
 	case *ast.Predicate:
-		a.walkTerm(e.Term, control)
+		a.walkTerm(e.Action, control)
 	case *ast.Attributed:
 		a.walkExpr(e.Expr, control)
 		for _, at := range e.Attrs {
@@ -644,11 +644,11 @@ func (a *analysis) walkExpr(e ast.Expr, control *renderControl) {
 	}
 }
 
-func (a *analysis) walkTerm(t ast.Term, control *renderControl) {
+func (a *analysis) walkTerm(t ast.ActionExpr, control *renderControl) {
 	control.poll()
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		a.walkTerm(t.Term, control)
+	case *ast.ActionGroup:
+		a.walkTerm(t.Action, control)
 	case *ast.Block:
 		for _, stmt := range t.Statements {
 			control.poll()

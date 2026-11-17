@@ -94,9 +94,9 @@ func NodeFrameOK(r *compile.Rule, cr *core.Rule) bool {
 
 // capRefs calls f with the name of each capture the term t refers to outside lambdas that bind the
 // name.
-func capRefs(t ast.Term, f func(name string)) {
-	var walk func(t ast.Term, shadow map[string]bool)
-	walk = func(t ast.Term, shadow map[string]bool) {
+func capRefs(t ast.ActionExpr, f func(name string)) {
+	var walk func(t ast.ActionExpr, shadow map[string]bool)
+	walk = func(t ast.ActionExpr, shadow map[string]bool) {
 		switch t := t.(type) {
 		case *ast.CaptureRef:
 			if !shadow[t.Name] {
@@ -112,14 +112,14 @@ func capRefs(t ast.Term, f func(name string)) {
 			}
 			walk(t.Body, inner)
 		default:
-			termChildren(t, func(x ast.Term) { walk(x, shadow) })
+			termChildren(t, func(x ast.ActionExpr) { walk(x, shadow) })
 		}
 	}
 	walk(t, map[string]bool{})
 }
 
 // termChildren calls f with the direct subterms of t.
-func termChildren(t ast.Term, f func(ast.Term)) {
+func termChildren(t ast.ActionExpr, f func(ast.ActionExpr)) {
 	switch t := t.(type) {
 	case *ast.Member:
 		f(t.X)

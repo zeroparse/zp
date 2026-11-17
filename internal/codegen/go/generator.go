@@ -1431,7 +1431,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *ast.OperatorsRule) {
 
 // operatorsRuleLine returns the line of an Operators Rule with the expression e and the action;
 // l is its Core IR if it is printed from Flow IR, or nil.
-func (g *Generator) operatorsRuleLine(e ast.Expr, action ast.Term, operator bool, l *core.OpLine) string {
+func (g *Generator) operatorsRuleLine(e ast.Expr, action ast.ActionExpr, operator bool, l *core.OpLine) string {
 	s := check.NewScope()
 	var locals []string
 	if operator {

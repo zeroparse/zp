@@ -334,8 +334,8 @@ func (r *layoutReplay) primary(e ast.Expr) {
 	case *ast.Group:
 		r.group(x)
 	case *ast.Predicate:
-		x.OpenBreak, x.Breaks, x.CloseBreak, x.OneLine = r.actionBlock(x.Term)
-		if b, ok := x.Term.(*ast.Block); ok {
+		x.OpenBreak, x.Breaks, x.CloseBreak, x.OneLine = r.actionBlock(x.Action)
+		if b, ok := x.Action.(*ast.Block); ok {
 			b.OpenBreak, b.Breaks, b.CloseBreak, b.OneLine = x.OpenBreak, x.Breaks, x.CloseBreak, x.OneLine
 		}
 	default:
@@ -397,7 +397,7 @@ func (r *layoutReplay) attributeValue(v any) {
 
 // actionTerm replays the action of a rule, an inline action or an item of an
 // Operators Rule, from its first token.
-func (r *layoutReplay) actionTerm(t ast.Term, defaultAction bool) {
+func (r *layoutReplay) actionTerm(t ast.ActionExpr, defaultAction bool) {
 	p := r.p
 	b, block := t.(*ast.Block)
 	switch {
@@ -413,9 +413,9 @@ func (r *layoutReplay) actionTerm(t ast.Term, defaultAction bool) {
 // actionBlock replays the braces and statements of a block. t is the block, or
 // its one statement, which a predicate holds instead (a statement never starts
 // with "{", so a Block is always the block itself).
-func (r *layoutReplay) actionBlock(t ast.Term) (openBreak *ast.LineBreak, breaks []*ast.LineBreak, closeBreak *ast.LineBreak, oneLine bool) {
+func (r *layoutReplay) actionBlock(t ast.ActionExpr) (openBreak *ast.LineBreak, breaks []*ast.LineBreak, closeBreak *ast.LineBreak, oneLine bool) {
 	p := r.p
-	statements := []ast.Term{t}
+	statements := []ast.ActionExpr{t}
 	if b, ok := t.(*ast.Block); ok {
 		statements = b.Statements
 	}
@@ -465,7 +465,7 @@ func (r *layoutReplay) actionBlock(t ast.Term) (openBreak *ast.LineBreak, breaks
 	}
 }
 
-func (r *layoutReplay) term(t ast.Term) {
+func (r *layoutReplay) term(t ast.ActionExpr) {
 	if l, ok := t.(*ast.Lambda); ok {
 		r.lambda(l)
 		return
@@ -514,7 +514,7 @@ func (r *layoutReplay) lambda(l *ast.Lambda) {
 }
 
 // binary replays t as an operand of the operators of level and above.
-func (r *layoutReplay) binary(level int, t ast.Term) {
+func (r *layoutReplay) binary(level int, t ast.ActionExpr) {
 	p := r.p
 	if level == len(binaryLevels) {
 		r.unary(t)
@@ -542,17 +542,17 @@ func (r *layoutReplay) binary(level int, t ast.Term) {
 	}
 }
 
-func (r *layoutReplay) unary(t ast.Term) {
+func (r *layoutReplay) unary(t ast.ActionExpr) {
 	p := r.p
 	layout := p.takeTermLayout()
 	if u, ok := t.(*ast.Unary); ok {
 		p.next() // - or !
 		r.unary(u.X)
 	} else {
-		var chain []ast.Term
+		var chain []ast.ActionExpr
 		inner := t
 		for {
-			var x ast.Term
+			var x ast.ActionExpr
 			switch n := inner.(type) {
 			case *ast.Binary:
 				if n.Op == "[]" {
@@ -601,7 +601,7 @@ func (r *layoutReplay) unary(t ast.Term) {
 	}
 }
 
-func (r *layoutReplay) termPrimary(t ast.Term) {
+func (r *layoutReplay) termPrimary(t ast.ActionExpr) {
 	p := r.p
 	switch x := t.(type) {
 	case *ast.New:
@@ -623,7 +623,7 @@ func (r *layoutReplay) termPrimary(t ast.Term) {
 		x.TrailingComma = r.listItems(x.Items, "}")
 		x.CloseBreak = p.lineBreak()
 		p.next() // }
-	case *ast.TermGroup:
+	case *ast.ActionGroup:
 		open := p.i
 		p.next() // (
 		outer := p.cur
@@ -631,7 +631,7 @@ func (r *layoutReplay) termPrimary(t ast.Term) {
 		x.OpenBreak = &ast.LineBreak{}
 		p.cur = x.OpenBreak
 		x.BodyBreak = p.lineBreak()
-		r.term(x.Term)
+		r.term(x.Action)
 		x.CloseBreak = p.lineBreak()
 		x.OneLine = !p.multiline(open, p.i)
 		p.next() // )
@@ -701,7 +701,7 @@ func (r *layoutReplay) newTerm(n *ast.New) {
 
 // listItems replays the comma-separated items up to closer, and reports
 // whether a trailing comma follows them.
-func (r *layoutReplay) listItems(items []ast.Term, closer string) (trailing bool) {
+func (r *layoutReplay) listItems(items []ast.ActionExpr, closer string) (trailing bool) {
 	p := r.p
 	for _, item := range items {
 		r.term(item)

@@ -887,7 +887,7 @@ func same(x, y ast.Expr, caps bool, control *lintControl) bool {
 		return ok && x.Name == y.Name && same(x.Expr, y.Expr, caps, control)
 	case *ast.Predicate:
 		y, ok := y.(*ast.Predicate)
-		return ok && control.formatTerm(x.Term) == control.formatTerm(y.Term)
+		return ok && control.formatTerm(x.Action) == control.formatTerm(y.Action)
 	case *ast.Attributed:
 		y, ok := y.(*ast.Attributed)
 		return ok && control.formatExpr(x) == control.formatExpr(y) && same(x.Expr, y.Expr, caps, control)
@@ -1020,14 +1020,14 @@ func walkExprControlled(e ast.Expr, f func(ast.Expr), control *lintControl) {
 }
 
 // walkTerm visits the value expression and its subexpressions in preorder.
-func walkTerm(t ast.Term, f func(ast.Term)) {
+func walkTerm(t ast.ActionExpr, f func(ast.ActionExpr)) {
 	if t == nil {
 		return
 	}
 	f(t)
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		walkTerm(t.Term, f)
+	case *ast.ActionGroup:
+		walkTerm(t.Action, f)
 	case *ast.Block:
 		for _, stmt := range t.Statements {
 			walkTerm(stmt, f)

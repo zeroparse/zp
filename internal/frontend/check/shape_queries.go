@@ -29,7 +29,7 @@ func predicatesReadCaptures(e ast.Expr, control *cancel.Control) bool {
 	found := false
 	walkExprControlled(e, func(x ast.Expr) {
 		if p, ok := x.(*ast.Predicate); ok {
-			astfacts.WalkTerm(p.Term, func(t ast.Term) {
+			astfacts.WalkTerm(p.Action, func(t ast.ActionExpr) {
 				control.Poll()
 				if _, ok := t.(*ast.CaptureRef); ok {
 					found = true
@@ -159,7 +159,7 @@ func LookKeepsState(e ast.Expr) bool {
 		case *ast.Capture:
 			found = true
 		case *ast.Predicate:
-			astfacts.WalkTerm(x.Term, func(t ast.Term) {
+			astfacts.WalkTerm(x.Action, func(t ast.ActionExpr) {
 				if _, ok := t.(*ast.Bind); ok {
 					found = true
 				}
@@ -172,6 +172,6 @@ func LookKeepsState(e ast.Expr) bool {
 // LeanLine reports whether the value of an Operators Rule line is unused: the line is an operand
 // line with an action, which reads captures only. An operator line's value is $op or its element.
 // The bytecode compiler uses the same test.
-func LeanLine(action ast.Term, locals []string) bool {
+func LeanLine(action ast.ActionExpr, locals []string) bool {
 	return action != nil && locals == nil
 }

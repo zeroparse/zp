@@ -9,10 +9,10 @@ import (
 
 // constantValue returns the value of an initializer: an int, a string or a bool literal, or an
 // int literal with a minus sign. ok is false for any other expression.
-func constantValue(t ast.Term) (v any, ok bool) {
+func constantValue(t ast.ActionExpr) (v any, ok bool) {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return constantValue(t.Term)
+	case *ast.ActionGroup:
+		return constantValue(t.Action)
 	case *ast.IntLit:
 		return t.Value, true
 	case *ast.StringLit:

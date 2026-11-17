@@ -6,15 +6,15 @@ import (
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func cast(x ast.Term, t ast.TypeExpr) ast.Term { return &ast.Cast{X: x, Type: t} }
-func tref(n string) ast.TypeExpr               { return &ast.TypeRef{Name: n} }
+func cast(x ast.ActionExpr, t ast.TypeExpr) ast.ActionExpr { return &ast.Cast{X: x, Type: t} }
+func tref(n string) ast.TypeExpr                           { return &ast.TypeRef{Name: n} }
 func nodeOf(t ast.TypeExpr) ast.TypeExpr {
 	return &ast.TypeApp{Name: "node", Args: []ast.TypeExpr{t}}
 }
 
 // partialTerms read the node p, whose value, type and captures the tests leave unknown (UnknownShape,
 // nil Caps), and the node q, whose captures are known.
-var partialTerms = map[string]ast.Term{
+var partialTerms = map[string]ast.ActionExpr{
 	"p.Start":                mem(capt("p"), "Start"),
 	"p.End":                  mem(capt("p"), "End"),
 	"text(p)":                fn("text", capt("p")),
@@ -33,9 +33,9 @@ var partialTerms = map[string]ast.Term{
 	"p.(int)":                cast(capt("p"), tref("int")),
 	"foldl over p":           fn("foldl", ilit(0), capt("p"), lam(param("a"), "a", "s")),
 	"map over p":             fn("map", capt("p"), lam(param("s"), "s")),
-	"N{p}.(N)":               cast(&ast.New{Type: "N", Args: []ast.Term{capt("p")}}, tref("N")),
-	"A{s}.(N)":               cast(&ast.New{Type: "A", Args: []ast.Term{capt("s")}}, tref("N")),
-	"A{s}.(A)":               cast(&ast.New{Type: "A", Args: []ast.Term{capt("s")}}, tref("A")),
+	"N{p}.(N)":               cast(&ast.New{Type: "N", Args: []ast.ActionExpr{capt("p")}}, tref("N")),
+	"A{s}.(N)":               cast(&ast.New{Type: "A", Args: []ast.ActionExpr{capt("s")}}, tref("N")),
+	"A{s}.(A)":               cast(&ast.New{Type: "A", Args: []ast.ActionExpr{capt("s")}}, tref("A")),
 	"s.(B)":                  cast(capt("s"), tref("B")),
 	"s.(A)":                  cast(capt("s"), tref("A")),
 	"s.(node[string])":       cast(capt("s"), nodeOf(tref("string"))),

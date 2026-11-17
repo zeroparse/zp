@@ -46,7 +46,7 @@ func TestCompileMetadataCollectionCancellation(t *testing.T) {
 
 func TestProjectionMetadataCancellation(t *testing.T) {
 	var expr ast.Expr = &ast.Literal{Value: "a"}
-	var term ast.Term = &ast.StringLit{Value: "a"}
+	var term ast.ActionExpr = &ast.StringLit{Value: "a"}
 	for range 1024 {
 		expr = &ast.Optional{Expr: expr}
 		term = &ast.Member{Name: "field", X: term}

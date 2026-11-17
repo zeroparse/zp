@@ -257,7 +257,7 @@ func exprPos(e ast.Expr) ast.Pos {
 }
 
 // termPos returns where t begins in the source, if known.
-func termPos(t ast.Term) ast.Pos {
+func termPos(t ast.ActionExpr) ast.Pos {
 	if n, ok := t.(ast.SourceNode); ok {
 		return n.Source().Pos
 	}
@@ -1643,10 +1643,10 @@ func formatExprNode(e ast.Expr, outer int, control *formatControl) string {
 	case *ast.EndLine:
 		return finishFormat("$", control)
 	case *ast.Predicate:
-		if block, ok := e.Term.(*ast.Block); ok {
+		if block, ok := e.Action.(*ast.Block); ok {
 			return finishFormat(formatTerm(block, 0, control), control)
 		}
-		return finishFormat(formatTerm(&ast.Block{Statements: []ast.Term{e.Term}, OpenBreak: e.OpenBreak, Breaks: e.Breaks, CloseBreak: e.CloseBreak, OneLine: e.OneLine || len(e.Breaks) == 0 && e.CloseBreak == nil}, 0, control), control)
+		return finishFormat(formatTerm(&ast.Block{Statements: []ast.ActionExpr{e.Action}, OpenBreak: e.OpenBreak, Breaks: e.Breaks, CloseBreak: e.CloseBreak, OneLine: e.OneLine || len(e.Breaks) == 0 && e.CloseBreak == nil}, 0, control), control)
 	case *ast.OperatorsRule:
 		p := &printer{control: control}
 		p.operatorsRule(e, "")
@@ -1711,14 +1711,14 @@ func operatorSpace(e ast.Expr) string {
 // joinsStatement reports whether the statement s of a block stays on the line
 // of the semicolon before it: it has comments there, and nothing else precedes
 // it on the line.
-func joinsStatement(s ast.Term, b *ast.LineBreak) bool {
+func joinsStatement(s ast.ActionExpr, b *ast.LineBreak) bool {
 	l := termLayout(s)
 	return l != nil && len(l.Before) > 0 && l.PreviousLine == l.NextLine && noComments(b)
 }
 
 // endsStatementGap reports whether the semicolon of the block statement s
 // follows comments on its line, so that the semicolon stays after them.
-func endsStatementGap(s ast.Term) bool {
+func endsStatementGap(s ast.ActionExpr) bool {
 	l := termLayout(s)
 	return l != nil && len(l.After) > 0
 }
@@ -2212,10 +2212,10 @@ var termPrec = map[string]int{
 	"*": 5, "/": 5, "%": 5,
 }
 
-// FormatTerm returns the value expression t in ZeroParse syntax.
-func FormatTerm(t ast.Term) string { return formatTerm(t, 0, nil) }
+// FormatActionExpr returns the action expression t in ZeroParse syntax.
+func FormatActionExpr(t ast.ActionExpr) string { return formatTerm(t, 0, nil) }
 
-func formatTerm(t ast.Term, outer int, control *formatControl) string {
+func formatTerm(t ast.ActionExpr, outer int, control *formatControl) string {
 	pollFormat(control)
 	return formatSourceLayout(termLayout(t), formatTermNode(t, outer, control), control)
 }
@@ -2223,7 +2223,7 @@ func formatTerm(t ast.Term, outer int, control *formatControl) string {
 // leadingComments returns the layout of the first term along the left spine of
 // t that holds comments before it. An index, a call or a binary expression
 // starts where its left operand does, but the comments may sit on any of them.
-func leadingComments(t ast.Term) *ast.SourceLayout {
+func leadingComments(t ast.ActionExpr) *ast.SourceLayout {
 	for {
 		if layout := termLayout(t); layout != nil && len(layout.Before) > 0 {
 			return layout
@@ -2242,7 +2242,7 @@ func leadingComments(t ast.Term) *ast.SourceLayout {
 }
 
 // termLayout returns the comments around t.
-func termLayout(t ast.Term) *ast.SourceLayout { return nodeLayout(t) }
+func termLayout(t ast.ActionExpr) *ast.SourceLayout { return nodeLayout(t) }
 
 // nodeLayout returns the comments around n, an element of a list.
 func nodeLayout(n any) *ast.SourceLayout {
@@ -2254,7 +2254,7 @@ func nodeLayout(n any) *ast.SourceLayout {
 
 // formatListElem formats a list element without the comments after it, which
 // the list places itself.
-func formatListElem(t ast.Term, control *formatControl) listElem {
+func formatListElem(t ast.ActionExpr, control *formatControl) listElem {
 	return layoutElem(termLayout(t), formatTermNode(t, 0, control), control)
 }
 
@@ -2269,11 +2269,11 @@ func layoutElem(layout *ast.SourceLayout, body string, control *formatControl) l
 }
 
 // formatTermNode formats t without the comments around it.
-func formatTermNode(t ast.Term, outer int, control *formatControl) string {
+func formatTermNode(t ast.ActionExpr, outer int, control *formatControl) string {
 	pollFormat(control)
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return formatSourceGroup(formatTerm(t.Term, 0, control), t.OpenBreak, t.BodyBreak, t.CloseBreak, t.OneLine, control)
+	case *ast.ActionGroup:
+		return formatSourceGroup(formatTerm(t.Action, 0, control), t.OpenBreak, t.BodyBreak, t.CloseBreak, t.OneLine, control)
 	case *ast.Block:
 		p := &printer{control: control}
 		parts := make([]string, len(t.Statements))

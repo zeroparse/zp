@@ -117,7 +117,7 @@ func TestMetadataTraversalStopsWithinCollection(t *testing.T) {
 	rules, types := &Grammar{}, &Grammar{}
 	comments := &Grammar{File: File{Pkg: Pkg{Break: &LineBreak{}}}}
 	attrs := &Attribute{KwArgs: map[string]any{}}
-	var term Term = &IntLit{}
+	var term ActionExpr = &IntLit{}
 	var typ TypeExpr = &TypeRef{Name: "A"}
 	var expr Expr = &Literal{}
 	for i := range 1024 {
@@ -127,7 +127,7 @@ func TestMetadataTraversalStopsWithinCollection(t *testing.T) {
 		comments.File.Pkg.Break.Comments = append(comments.File.Pkg.Break.Comments, &Comment{})
 		attrs.Args = append(attrs.Args, i)
 		attrs.KwArgs[fmt.Sprintf("key%04d", 1024-i)] = i
-		term = &TermGroup{Term: term}
+		term = &ActionGroup{Action: term}
 		typ = &TypeGroup{Type: typ}
 		expr = &Group{Expr: expr}
 	}

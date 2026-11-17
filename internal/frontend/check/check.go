@@ -206,10 +206,10 @@ func concreteListElement(t Ty) bool {
 }
 
 // TermPos returns the position of term t for a diagnostic, or def if it has none.
-func TermPos(t ast.Term, def ast.Pos) ast.Pos {
+func TermPos(t ast.ActionExpr, def ast.Pos) ast.Pos {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return TermPos(t.Term, def)
+	case *ast.ActionGroup:
+		return TermPos(t.Action, def)
 	case *ast.CaptureRef:
 		return t.Diagnostic()
 	case *ast.VarRef:

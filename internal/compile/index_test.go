@@ -71,7 +71,7 @@ rule item = [a-z]`)
 		t.Fatalf("formatted:\n%s", got)
 	}
 	// Parentheses that the source does not keep are added where "[" would not index.
-	for _, x := range []ast.Term{&ast.IntLit{Value: 1}, &ast.StringLit{Value: "a"}, &ast.New{Type: "T"}} {
+	for _, x := range []ast.ActionExpr{&ast.IntLit{Value: 1}, &ast.StringLit{Value: "a"}, &ast.New{Type: "T"}} {
 		formatted := fmt.Format(&ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Any{}, Action: &ast.Binary{Op: "[]", L: x, R: &ast.IntLit{Value: 0}}}}}})
 		if !strings.Contains(formatted, ")[0]") {
 			t.Errorf("formatted %T index: %s", x, formatted)

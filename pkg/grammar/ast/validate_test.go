@@ -10,7 +10,7 @@ import (
 func expressionGrammar(e Expr) *Grammar {
 	return &Grammar{File: File{Decls: []Decl{&RuleDef{Name: "p", Expr: e}}}}
 }
-func termGrammar(t Term) *Grammar {
+func termGrammar(t ActionExpr) *Grammar {
 	return &Grammar{File: File{Decls: []Decl{&RuleDef{Name: "p", Expr: &Literal{Value: "a"}, Action: t}}}}
 }
 func typeGrammar(t TypeExpr) *Grammar {
@@ -30,7 +30,7 @@ func TestValidateRequiredChildren(t *testing.T) {
 		{"field type", &Grammar{File: File{Decls: []Decl{&TypeDef{Name: "T", Type: &StructType{Fields: []*Field{{Name: "F"}}}}}}}, "$.file.decls[0].type.fields[0].type"},
 		{"alias", typeGrammar(nil), "$.file.decls[0].type"},
 		{"type group", typeGrammar(&TypeGroup{}), "$.file.decls[0].type.type"},
-		{"term group", termGrammar(&TermGroup{}), "$.file.decls[0].action.term"},
+		{"term group", termGrammar(&ActionGroup{}), "$.file.decls[0].action.action"},
 		{"list", typeGrammar(&ListType{}), "$.file.decls[0].type.elem"},
 		{"optional type", typeGrammar(&OptionalType{}), "$.file.decls[0].type.elem"},
 		{"join", typeGrammar(&JoinType{Types: []TypeExpr{nil}}), "$.file.decls[0].type.types[0]"},
@@ -43,7 +43,7 @@ func TestValidateRequiredChildren(t *testing.T) {
 		{"atomic", expressionGrammar(&Atomic{}), "$.file.decls[0].expr.expr"},
 		{"discard", expressionGrammar(&Discard{}), "$.file.decls[0].expr.expr"},
 		{"capture", expressionGrammar(&Capture{Name: "value"}), "$.file.decls[0].expr.expr"},
-		{"predicate", expressionGrammar(&Predicate{}), "$.file.decls[0].expr.term"},
+		{"predicate", expressionGrammar(&Predicate{}), "$.file.decls[0].expr.action"},
 		{"attributed expression", expressionGrammar(&Attributed{}), "$.file.decls[0].expr.expr"},
 		{"attribute", expressionGrammar(&Attributed{Expr: &Top{}, Attrs: []*Attribute{nil}}), "$.file.decls[0].expr.attrs[0]"},
 		{"attribute argument", expressionGrammar(&Attributed{Expr: &Top{}, Attrs: []*Attribute{{Name: "error", Args: []any{&Repeat{}}}}}), "$.file.decls[0].expr.attrs[0].args[0].expr"},
@@ -56,13 +56,13 @@ func TestValidateRequiredChildren(t *testing.T) {
 		{"member", termGrammar(&Member{Name: "Value"}), "$.file.decls[0].action.x"},
 		{"field initializer", termGrammar(&New{Type: "T", Fields: []*FieldInit{nil}}), "$.file.decls[0].action.fields[0]"},
 		{"field value", termGrammar(&New{Type: "T", Fields: []*FieldInit{{Name: "F"}}}), "$.file.decls[0].action.fields[0].value"},
-		{"call", termGrammar(&Call{Func: "len", Args: []Term{nil}}), "$.file.decls[0].action.args[0]"},
-		{"tuple literal", termGrammar(&TupleLit{Elems: []Term{nil}}), "$.file.decls[0].action.elems[0]"},
+		{"call", termGrammar(&Call{Func: "len", Args: []ActionExpr{nil}}), "$.file.decls[0].action.args[0]"},
+		{"tuple literal", termGrammar(&TupleLit{Elems: []ActionExpr{nil}}), "$.file.decls[0].action.elems[0]"},
 		{"lambda", termGrammar(&Lambda{}), "$.file.decls[0].action.body"},
 		{"binary left", termGrammar(&Binary{Op: "+", R: &IntLit{Value: 1}}), "$.file.decls[0].action.l"},
 		{"binary right", termGrammar(&Binary{Op: "+", L: &IntLit{Value: 1}}), "$.file.decls[0].action.r"},
 		{"unary", termGrammar(&Unary{Op: "-"}), "$.file.decls[0].action.x"},
-		{"bind", expressionGrammar(&Predicate{Term: &Bind{Name: "x"}}), "$.file.decls[0].expr.term.value"},
+		{"bind", expressionGrammar(&Predicate{Action: &Bind{Name: "x"}}), "$.file.decls[0].expr.action.value"},
 		{"conflicting rule default", &Grammar{File: File{Decls: []Decl{&RuleDef{Name: "main", Expr: &Top{}, DefaultAction: true, Action: &NilLit{}}}}}, "$.file.decls[0].action"},
 		{"conflicting operand default", expressionGrammar(&OperatorsRule{Operands: []*OperatorsRuleOperand{{Expr: &Top{}, DefaultAction: true, Action: &NilLit{}}}}), "$.file.decls[0].expr.operands[0].action"},
 		{"conflicting operator default", expressionGrammar(&OperatorsRule{Levels: []*OperatorsRuleLevel{{Operators: []*OperatorsRuleOperator{{Expr: &Top{}, DefaultAction: true, Action: &NilLit{}}}}}}), "$.file.decls[0].expr.levels[0].operators[0].action"},
@@ -108,7 +108,7 @@ func TestValidateTypedNil(t *testing.T) {
 			g = typeGrammar(n)
 		case Expr:
 			g = expressionGrammar(n)
-		case Term:
+		case ActionExpr:
 			g = termGrammar(n)
 		default:
 			t.Fatalf("uncovered node type %s", name)
@@ -148,9 +148,9 @@ func TestValidateCyclesAndSharing(t *testing.T) {
 	groupType := &TypeGroup{}
 	groupType.Type = groupType
 	assertValidationError(t, Validate(typeGrammar(groupType)), "$.file.decls[0].type.type")
-	groupTerm := &TermGroup{}
-	groupTerm.Term = groupTerm
-	assertValidationError(t, Validate(termGrammar(groupTerm)), "$.file.decls[0].action.term")
+	groupTerm := &ActionGroup{}
+	groupTerm.Action = groupTerm
+	assertValidationError(t, Validate(termGrammar(groupTerm)), "$.file.decls[0].action.action")
 	shared := &Optional{Expr: &Literal{Value: "a"}}
 	g := expressionGrammar(&Seq{Items: []Expr{shared, shared}})
 	before, err := MarshalJSON(g)

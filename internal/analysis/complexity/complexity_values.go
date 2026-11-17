@@ -189,14 +189,14 @@ var scalarOps = map[string]bool{"==": true, "!=": true, "<": true, "<=": true, "
 // is a range of the input, which costs a constant, though its size counts where it is copied.
 var copyFuncs = map[string]bool{"concat": true, "map": true, "filter": true, "len": true}
 
-func (k *classifier) walkTerm(t ast.Term, tc termCtx) {
+func (k *classifier) walkTerm(t ast.ActionExpr, tc termCtx) {
 	if t == nil {
 		return
 	}
 	k.control.Poll()
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		k.walkTerm(t.Term, tc)
+	case *ast.ActionGroup:
+		k.walkTerm(t.Action, tc)
 	case *ast.Block:
 		for _, s := range t.Statements {
 			k.walkTerm(s, tc.part(false))
@@ -311,7 +311,7 @@ func heldArg(fn string, i int) bool {
 
 // mayBeString reports whether the value of t may be a string value rather than a node, a list or
 // a tuple. Without the type of t it may.
-func (k *classifier) mayBeString(t ast.Term) bool {
+func (k *classifier) mayBeString(t ast.ActionExpr) bool {
 	if k.types == nil {
 		return true
 	}
@@ -364,7 +364,7 @@ func (k *classifier) lambdaCtx(call *ast.Call, i int, lam *ast.Lambda, tc termCt
 	if fold {
 		list = 1
 	}
-	var listArg ast.Term
+	var listArg ast.ActionExpr
 	if len(call.Args) > list {
 		listArg = call.Args[list]
 	}
@@ -475,12 +475,12 @@ func (k *classifier) ownExprs(exprs []ast.Expr, rule string) bool {
 // list in the context tc: the degree of the number of elements of the list of each lambda around
 // it over a list that is not bounded, but without the innermost of them when list reads only its
 // elements and they are own, since their sizes add up to at most the input over its evaluations.
-func (k *classifier) foldRuns(list ast.Term, tc termCtx) int {
+func (k *classifier) foldRuns(list ast.ActionExpr, tc termCtx) int {
 	if tc.runs == 0 || list == nil {
 		return tc.runs
 	}
 	own := len(tc.elems) > 0
-	astfacts.WalkTerm(list, func(x ast.Term) {
+	astfacts.WalkTerm(list, func(x ast.ActionExpr) {
 		switch x := x.(type) {
 		case *ast.CaptureRef:
 			if !slices.Contains(tc.elems, x.Name) {
@@ -499,7 +499,7 @@ func (k *classifier) foldRuns(list ast.Term, tc termCtx) int {
 
 // elemSize describes what the size of an element of the list t can depend on: anything that the
 // captures and variables that t reads can hold.
-func (k *classifier) elemSize(t ast.Term, tc termCtx) content {
+func (k *classifier) elemSize(t ast.ActionExpr, tc termCtx) content {
 	saved, savedRepeat := tc.lambda, tc.repeat
 	tc.lambda, tc.repeat = false, false
 	c := k.sizeOf(&ast.Member{X: t}, tc, textSize)
@@ -509,10 +509,10 @@ func (k *classifier) elemSize(t ast.Term, tc termCtx) content {
 }
 
 // joined flattens a join of strings with + into its operands.
-func (k *classifier) joined(t ast.Term, acc []ast.Term) []ast.Term {
+func (k *classifier) joined(t ast.ActionExpr, acc []ast.ActionExpr) []ast.ActionExpr {
 	switch x := t.(type) {
-	case *ast.TermGroup:
-		return k.joined(x.Term, acc)
+	case *ast.ActionGroup:
+		return k.joined(x.Action, acc)
 	case *ast.Binary:
 		if x.Op == "+" {
 			return k.joined(x.R, k.joined(x.L, acc))
@@ -522,12 +522,12 @@ func (k *classifier) joined(t ast.Term, acc []ast.Term) []ast.Term {
 }
 
 // isInt reports whether t is known to be an int.
-func (k *classifier) isInt(t ast.Term, tc termCtx) bool {
+func (k *classifier) isInt(t ast.ActionExpr, tc termCtx) bool {
 	switch t := t.(type) {
 	case *ast.IntLit:
 		return true
-	case *ast.TermGroup:
-		return k.isInt(t.Term, tc)
+	case *ast.ActionGroup:
+		return k.isInt(t.Action, tc)
 	case *ast.Unary:
 		return t.Op == "-"
 	case *ast.Binary:
@@ -563,15 +563,15 @@ const (
 )
 
 // sizeOf describes what the size of the value of t, measured in mode, can depend on.
-func (k *classifier) sizeOf(t ast.Term, tc termCtx, mode sizeMode) content {
+func (k *classifier) sizeOf(t ast.ActionExpr, tc termCtx, mode sizeMode) content {
 	var c content
 	switch t := t.(type) {
 	case nil, *ast.IntLit, *ast.BoolLit, *ast.NilLit, *ast.StringLit, *ast.Unary, *ast.Lambda,
 		*ast.New, *ast.TupleLit, *ast.ListConstructor:
 		// Numbers, Booleans and structs are not strings or lists; a list literal has as many
 		// elements as it has items.
-	case *ast.TermGroup:
-		return k.sizeOf(t.Term, tc, mode)
+	case *ast.ActionGroup:
+		return k.sizeOf(t.Action, tc, mode)
 	case *ast.Cast:
 		return k.sizeOf(t.X, tc, mode)
 	case *ast.VarRef:
@@ -671,7 +671,7 @@ func (k *classifier) varBinds(v string) []varBind {
 	if k.varBinding == nil {
 		k.varBinding = map[string][]varBind{}
 		for _, r := range k.rules {
-			compile.WalkRuleTerms(r, func(t ast.Term) {
+			compile.WalkRuleTerms(r, func(t ast.ActionExpr) {
 				if b, ok := t.(*ast.Bind); ok {
 					k.varBinding[b.Name] = append(k.varBinding[b.Name], varBind{r.Name, b})
 				}
@@ -716,11 +716,11 @@ func (k *classifier) holder(rule string) string {
 
 // sizeOfAny describes the size of the value of t without looking at how it is built: anything
 // that the captures and variables it reads can hold.
-func (k *classifier) sizeOfAny(t ast.Term, tc termCtx) content {
+func (k *classifier) sizeOfAny(t ast.ActionExpr, tc termCtx) content {
 	var c content
 	outer := false
 	{
-		astfacts.WalkTerm(t, func(x ast.Term) {
+		astfacts.WalkTerm(t, func(x ast.ActionExpr) {
 			switch x := x.(type) {
 			case *ast.CaptureRef:
 				if p, ok := tc.params[x.Name]; ok && (x.Param || tc.lambda) {
@@ -756,10 +756,10 @@ func (k *classifier) sizeOfAny(t ast.Term, tc termCtx) content {
 // termExprs returns the captured expressions whose values t can be: a capture, a member $y of
 // such a value, which is the value of a capture y inside it, or an element of a list whose
 // elements are known. param reports a value that comes from a lambda parameter.
-func (k *classifier) termExprs(t ast.Term, tc termCtx) (exprs []ast.Expr, param, ok bool) {
+func (k *classifier) termExprs(t ast.ActionExpr, tc termCtx) (exprs []ast.Expr, param, ok bool) {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return k.termExprs(t.Term, tc)
+	case *ast.ActionGroup:
+		return k.termExprs(t.Action, tc)
 	case *ast.CaptureRef:
 		if p, isParam := tc.params[t.Name]; isParam && (t.Param || tc.lambda) {
 			return p.elems, true, p.elems != nil && !p.acc
@@ -803,10 +803,10 @@ func (k *classifier) termExprs(t ast.Term, tc termCtx) (exprs []ast.Expr, param,
 // inLook reports whether the value of t can be captured in a positive lookahead, or be a part of
 // a value captured in one, so that it holds input that the match does not consume. A capture that
 // a rule returns is the size of that rule, which sizeOf follows.
-func (k *classifier) inLook(t ast.Term, tc termCtx) bool {
+func (k *classifier) inLook(t ast.ActionExpr, tc termCtx) bool {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return k.inLook(t.Term, tc)
+	case *ast.ActionGroup:
+		return k.inLook(t.Action, tc)
 	case *ast.CaptureRef:
 		if p, isParam := tc.params[t.Name]; isParam && (t.Param || tc.lambda) {
 			return p.look
@@ -845,7 +845,7 @@ func (k *classifier) inLook(t ast.Term, tc termCtx) bool {
 
 // elemExprs returns the expressions whose values are the elements of the list t, or nil when
 // they are not known: t is the value of repetitions.
-func (k *classifier) elemExprs(t ast.Term, tc termCtx) []ast.Expr {
+func (k *classifier) elemExprs(t ast.ActionExpr, tc termCtx) []ast.Expr {
 	exprs, _, ok := k.termExprs(t, tc)
 	if !ok {
 		return nil
@@ -999,12 +999,12 @@ type sizeKey struct {
 
 // copyOp checks a copying operation (condition 4) and records it as a scanning source when an
 // operand can be larger than a constant of the grammar.
-func (k *classifier) copyOp(t ast.Term, pos ast.Pos, tc termCtx) {
+func (k *classifier) copyOp(t ast.ActionExpr, pos ast.Pos, tc termCtx) {
 	k.copied(t, pos, tc, k.sizeOf(t, tc, textSize))
 }
 
 // copied checks the copying operation t, which copies a value of the size all.
-func (k *classifier) copied(t ast.Term, pos ast.Pos, tc termCtx, all content) {
+func (k *classifier) copied(t ast.ActionExpr, pos ast.Pos, tc termCtx, all content) {
 	text := k.showTerm(t)
 	worst := func(m map[string]int) (string, int) {
 		names := make([]string, 0, len(m))
@@ -1099,7 +1099,7 @@ func times(n int) string {
 
 // termVars returns the variables that the value of t can depend on: those it reads, and those
 // that the rules called in the captures it reads read.
-func (k *classifier) termVars(t ast.Term, rule string) map[string]bool {
+func (k *classifier) termVars(t ast.ActionExpr, rule string) map[string]bool {
 	out := map[string]bool{}
 	ruleVars := func(e ast.Expr) {
 		astfacts.WalkExpr(e, func(x ast.Expr) {
@@ -1110,7 +1110,7 @@ func (k *classifier) termVars(t ast.Term, rule string) map[string]bool {
 			}
 		})
 	}
-	astfacts.WalkTerm(t, func(x ast.Term) {
+	astfacts.WalkTerm(t, func(x ast.ActionExpr) {
 		switch x := x.(type) {
 		case *ast.VarRef:
 			out[x.Name] = true
@@ -1126,9 +1126,9 @@ func (k *classifier) termVars(t ast.Term, rule string) map[string]bool {
 }
 
 // constant reports whether t reads nothing that the input can change.
-func constant(t ast.Term) bool {
+func constant(t ast.ActionExpr) bool {
 	ok := true
-	astfacts.WalkTerm(t, func(x ast.Term) {
+	astfacts.WalkTerm(t, func(x ast.ActionExpr) {
 		switch x.(type) {
 		case *ast.VarRef, *ast.CaptureRef, *ast.Member:
 			ok = false
@@ -1295,7 +1295,7 @@ func (k *classifier) growingBindings() []GrowingBinding {
 		if _, ok := k.reaches(b, true); !ok || !k.canHoldNonEmpty(b) {
 			continue
 		}
-		out = append(out, GrowingBinding{Rule: b.rule, Pos: termPosOf(b.b), Var: b.b.Name, Text: syntaxfmt.FormatTerm(b.b)})
+		out = append(out, GrowingBinding{Rule: b.rule, Pos: termPosOf(b.b), Var: b.b.Name, Text: syntaxfmt.FormatActionExpr(b.b)})
 	}
 	return out
 }
@@ -1354,7 +1354,7 @@ func (k *classifier) bindsNonEmpty(e ast.Expr, v string) bool {
 	found := false
 	astfacts.WalkExpr(e, func(x ast.Expr) {
 		if p, ok := x.(*ast.Predicate); ok {
-			astfacts.WalkTerm(p.Term, func(t ast.Term) {
+			astfacts.WalkTerm(p.Action, func(t ast.ActionExpr) {
 				if bd, ok := t.(*ast.Bind); ok && bd.Name == v && k.canBeNonEmpty(bd.Value, v) {
 					found = true
 				}
@@ -1365,7 +1365,7 @@ func (k *classifier) bindsNonEmpty(e ast.Expr, v string) bool {
 }
 
 // canBeNonEmpty reports whether t can be a non-empty string when v is empty.
-func (k *classifier) canBeNonEmpty(t ast.Term, v string) bool {
+func (k *classifier) canBeNonEmpty(t ast.ActionExpr, v string) bool {
 	for _, x := range k.joined(t, nil) {
 		switch x := check.UngroupTerm(x).(type) {
 		case *ast.StringLit:

@@ -56,7 +56,7 @@ func TestBindingErrorsMatchCompile(t *testing.T) {
 			f := facts.Compute(m, nil)
 			var got []string
 			for _, e := range f.Errors(m, true) {
-				p := origin[e.Node].(*ast.Predicate).Term.(*ast.Bind).Diagnostic()
+				p := origin[e.Node].(*ast.Predicate).Action.(*ast.Bind).Diagnostic()
 				got = append(got, fmt.Sprintf("%d:%d: %s", p.Line, p.Col, e.Msg))
 			}
 			if len(want) > 0 {

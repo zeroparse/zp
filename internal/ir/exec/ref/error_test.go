@@ -61,7 +61,7 @@ func TestErrorValueTerms(t *testing.T) {
 	env := &TermEnv{Captures: map[string]V{"e": ErrorValue("b;", 1, 3, "1:2: syntax error"), "m": MissingToken(3, ";", `1:4: syntax error: expected ";"`)}}
 	for _, c := range []struct {
 		name string
-		term ast.Term
+		term ast.ActionExpr
 		want string
 	}{
 		{"e != nil", bin("!=", capt("e"), &ast.NilLit{}), "true"},
@@ -104,7 +104,7 @@ func TestErrorValueTerms(t *testing.T) {
 					t.Errorf("N{%s}: panic %q, want a term that does not type-check", name, s)
 				}
 			}()
-			env.Eval(&ast.New{Type: "N", Args: []ast.Term{capt(name)}})
+			env.Eval(&ast.New{Type: "N", Args: []ast.ActionExpr{capt(name)}})
 		}()
 	}
 }

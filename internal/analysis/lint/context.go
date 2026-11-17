@@ -114,12 +114,12 @@ func (c *lintControl) formatExpr(e ast.Expr) string {
 	return result
 }
 
-func (c *lintControl) formatTerm(t ast.Term) string {
+func (c *lintControl) formatTerm(t ast.ActionExpr) string {
 	if c == nil {
-		return fmt.FormatTerm(astfacts.UngroupTerm(t))
+		return fmt.FormatActionExpr(astfacts.UngroupTerm(t))
 	}
 	t = astfacts.UngroupTermWithPoll(t, c.poll)
-	result, err := fmt.FormatTermContext(c.ctx, t)
+	result, err := fmt.FormatActionExprContext(c.ctx, t)
 	if err != nil {
 		panic(lintCancellation{err})
 	}

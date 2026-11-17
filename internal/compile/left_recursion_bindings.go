@@ -52,7 +52,7 @@ func (a *Analysis) leftBindings(e ast.Expr, in []*ast.Bind, visit func(string, [
 	case *ast.Ref:
 		visit(e.Name, in)
 	case *ast.Predicate:
-		WalkTerm(e.Term, func(t ast.Term) {
+		WalkTerm(e.Action, func(t ast.ActionExpr) {
 			if b, ok := t.(*ast.Bind); ok {
 				in = append(slices.Clip(in), b)
 			}

@@ -3,7 +3,7 @@
 // A grammar file (File) is a package clause and a list of declarations (Decl):
 // type definitions (TypeDef), type aliases (TypeAlias), variable definitions
 // (VarDef) and rule definitions (RuleDef). A rule body is a parser expression (Expr),
-// and actions and predicates are value expressions (Term).
+// and actions and predicates are action expressions (ActionExpr).
 //
 // Package grammar loads a grammar source into this AST (grammar.Load), and grammar.Format is the
 // inverse on this AST: the printed text parses back to the same grammar. The AST also has a JSON
@@ -192,7 +192,7 @@ type RuleDef struct {
 	Name   string       `json:"name"`
 	Type   TypeExpr     `json:"type,omitempty"`
 	Expr   Expr         `json:"expr"`
-	Action Term         `json:"action,omitempty"`
+	Action ActionExpr   `json:"action,omitempty"`
 	// DefaultAction preserves an explicit => ...; it has the same value
 	// semantics as an omitted action.
 	DefaultAction bool `json:"defaultAction,omitempty"`
@@ -235,9 +235,9 @@ type RuleDef struct {
 // initial value is the zero value of the type.
 type VarDef struct {
 	SourceInfo `json:"source,omitempty"`
-	Name       string   `json:"name"`
-	Type       TypeExpr `json:"type,omitempty"`
-	Value      Term     `json:"value,omitempty"`
+	Name       string     `json:"name"`
+	Type       TypeExpr   `json:"type,omitempty"`
+	Value      ActionExpr `json:"value,omitempty"`
 
 	// HeaderComments are the normalized contents of the comments inside the
 	// declaration header, between the keyword and the end of the header, in
@@ -475,9 +475,9 @@ type Group struct {
 // implemented. DefaultAction denotes an explicit => ... instead of Action.
 type InlineAction struct {
 	SourceInfo    `json:"source,omitempty"`
-	Expr          Expr `json:"expr"`
-	Action        Term `json:"action,omitempty"`
-	DefaultAction bool `json:"defaultAction,omitempty"`
+	Expr          Expr       `json:"expr"`
+	Action        ActionExpr `json:"action,omitempty"`
+	DefaultAction bool       `json:"defaultAction,omitempty"`
 }
 
 // Repeat is a repetition a #repeat(Min,Max). A negative Max means no upper
@@ -612,12 +612,12 @@ type EndLine struct {
 	SourceInfo `json:"source,omitempty"`
 }
 
-// Predicate is a predicate action { Term }. A nonempty Block lowers to adjacent
+// Predicate is a predicate action { expr }. A nonempty Block lowers to adjacent
 // predicate actions in a sequence, or their grouped sequence in a single
 // expression position, without a new variable or capture scope.
 type Predicate struct {
 	SourceInfo `json:"source,omitempty"`
-	Term       Term         `json:"term"`
+	Action     ActionExpr   `json:"action"`
 	OpenBreak  *LineBreak   `json:"-"`
 	Breaks     []*LineBreak `json:"-"`
 	CloseBreak *LineBreak   `json:"-"`
@@ -741,9 +741,9 @@ type OperatorsRule struct {
 // OperatorsRuleOperand is an operand line.
 type OperatorsRuleOperand struct {
 	SourceInfo    `json:"source,omitempty"`
-	Expr          Expr `json:"expr"`
-	Action        Term `json:"action,omitempty"`
-	DefaultAction bool `json:"defaultAction,omitempty"`
+	Expr          Expr       `json:"expr"`
+	Action        ActionExpr `json:"action,omitempty"`
+	DefaultAction bool       `json:"defaultAction,omitempty"`
 
 	Break *LineBreak `json:"-"`
 }
@@ -779,11 +779,11 @@ const (
 // OperatorsRuleOperator is a declaration of an operator.
 type OperatorsRuleOperator struct {
 	SourceInfo    `json:"source,omitempty"`
-	Kind          string `json:"kind"`
-	Assoc         string `json:"assoc,omitempty"`
-	Expr          Expr   `json:"expr"`
-	Action        Term   `json:"action,omitempty"`
-	DefaultAction bool   `json:"defaultAction,omitempty"`
+	Kind          string     `json:"kind"`
+	Assoc         string     `json:"assoc,omitempty"`
+	Expr          Expr       `json:"expr"`
+	Action        ActionExpr `json:"action,omitempty"`
+	DefaultAction bool       `json:"defaultAction,omitempty"`
 
 	Break *LineBreak `json:"-"`
 }
@@ -816,23 +816,23 @@ func (*Predicate) expr()     {}
 func (*Attributed) expr()    {}
 func (*OperatorsRule) expr() {}
 
-// --- Value expressions (actions and predicates) ---
+// --- Action expressions (actions and predicates) ---
 
-// Term is a value expression used in actions and predicates.
-type Term interface{ term() }
+// ActionExpr is an action expression used in actions and predicates.
+type ActionExpr interface{ actionExpr() }
 
-// TermGroup preserves parentheses and source layout in an action expression.
+// ActionGroup preserves parentheses and source layout in an action expression.
 // It is transparent to value construction and predicate evaluation.
-type TermGroup struct {
+type ActionGroup struct {
 	SourceInfo `json:"source,omitempty"`
-	Term       Term       `json:"term"`
+	Action     ActionExpr `json:"action"`
 	OpenBreak  *LineBreak `json:"-"`
 	BodyBreak  *LineBreak `json:"-"`
 	CloseBreak *LineBreak `json:"-"`
 	OneLine    bool       `json:"-"`
 }
 
-func (*TermGroup) term() {}
+func (*ActionGroup) actionExpr() {}
 
 // IntLit is an integer literal.
 type IntLit struct {
@@ -877,8 +877,8 @@ type VarRef struct {
 // access x.$y, which reads capture y of the node x.
 type Member struct {
 	SourceInfo `json:"source,omitempty"`
-	X          Term   `json:"x"`
-	Name       string `json:"name"`
+	X          ActionExpr `json:"x"`
+	Name       string     `json:"name"`
 }
 
 // New creates a value of a defined type. A struct constructor names its
@@ -889,7 +889,7 @@ type New struct {
 	SourceInfo `json:"source,omitempty"`
 	Type       string       `json:"type"`
 	Fields     []*FieldInit `json:"fields,omitempty"`
-	Args       []Term       `json:"args,omitempty"`
+	Args       []ActionExpr `json:"args,omitempty"`
 
 	// The braces keep their comments like a TupleLit's parentheses.
 	OpenBreak  *LineBreak `json:"-"`
@@ -901,13 +901,13 @@ type New struct {
 }
 
 // TupleLit is a tuple value: () is the unit, (x,) has one element and (x, y) two. Its
-// parentheses keep their source comments like a TermGroup's.
+// parentheses keep their source comments like a ActionGroup's.
 type TupleLit struct {
 	SourceInfo `json:"source,omitempty"`
-	Elems      []Term     `json:"elems"`
-	OpenBreak  *LineBreak `json:"-"`
-	BodyBreak  *LineBreak `json:"-"`
-	CloseBreak *LineBreak `json:"-"`
+	Elems      []ActionExpr `json:"elems"`
+	OpenBreak  *LineBreak   `json:"-"`
+	BodyBreak  *LineBreak   `json:"-"`
+	CloseBreak *LineBreak   `json:"-"`
 	// TrailingComma records a comma after the last element. Format puts the
 	// elements of a tuple of two or more on separate lines when it is set; the
 	// comma of a one-element tuple is part of the syntax and does not count.
@@ -917,8 +917,8 @@ type TupleLit struct {
 // ListConstructor builds a node list with an explicit element type: []T{...}.
 type ListConstructor struct {
 	SourceInfo `json:"source,omitempty"`
-	Elem       TypeExpr `json:"elem"`
-	Items      []Term   `json:"items"`
+	Elem       TypeExpr     `json:"elem"`
+	Items      []ActionExpr `json:"items"`
 
 	// The braces keep their comments like a TupleLit's parentheses.
 	OpenBreak  *LineBreak `json:"-"`
@@ -932,15 +932,15 @@ type ListConstructor struct {
 // FieldInit initializes a field of a struct value.
 type FieldInit struct {
 	SourceInfo `json:"source,omitempty"`
-	Name       string `json:"name"`
-	Value      Term   `json:"value"`
+	Name       string     `json:"name"`
+	Value      ActionExpr `json:"value"`
 }
 
 // Call is a call of a built-in function f(args...).
 type Call struct {
 	SourceInfo `json:"source,omitempty"`
-	Func       string `json:"func"`
-	Args       []Term `json:"args"`
+	Func       string       `json:"func"`
+	Args       []ActionExpr `json:"args"`
 
 	// The parentheses keep their comments like a TupleLit's.
 	OpenBreak  *LineBreak `json:"-"`
@@ -954,8 +954,8 @@ type Call struct {
 // Lambda is a function (a, b) => body.
 type Lambda struct {
 	SourceInfo `json:"source,omitempty"`
-	Params     []string `json:"params"`
-	Body       Term     `json:"body"`
+	Params     []string   `json:"params"`
+	Body       ActionExpr `json:"body"`
 
 	// TrailingComma records a comma after the last parameter. Format puts the
 	// parameters on separate lines when it is set.
@@ -965,13 +965,13 @@ type Lambda struct {
 }
 
 // Binary is a binary operation l op r. The operator "[]" is indexing, l[r],
-// which keeps the layout of its brackets like a TermGroup keeps that of its
+// which keeps the layout of its brackets like a ActionGroup keeps that of its
 // parentheses.
 type Binary struct {
 	SourceInfo `json:"source,omitempty"`
 	Op         string     `json:"op"`
-	L          Term       `json:"l"`
-	R          Term       `json:"r"`
+	L          ActionExpr `json:"l"`
+	R          ActionExpr `json:"r"`
 	OpenBreak  *LineBreak `json:"-"`
 	BodyBreak  *LineBreak `json:"-"`
 	CloseBreak *LineBreak `json:"-"`
@@ -980,55 +980,55 @@ type Binary struct {
 // Unary is a unary operation op x.
 type Unary struct {
 	SourceInfo `json:"source,omitempty"`
-	Op         string `json:"op"`
-	X          Term   `json:"x"`
+	Op         string     `json:"op"`
+	X          ActionExpr `json:"x"`
 }
 
 // Cast is a type assertion x.(Type): its value is x, which must be a Type.
 type Cast struct {
 	SourceInfo `json:"source,omitempty"`
-	X          Term     `json:"x"`
-	Type       TypeExpr `json:"type"`
+	X          ActionExpr `json:"x"`
+	Type       TypeExpr   `json:"type"`
 }
 
 // Bind binds a variable in a predicate action: name := value.
 type Bind struct {
 	SourceInfo `json:"source,omitempty"`
-	Name       string `json:"name"`
-	Value      Term   `json:"value"`
+	Name       string     `json:"name"`
+	Value      ActionExpr `json:"value"`
 }
 
 // Block is a braced action statement list. Nonempty predicate blocks lower to
 // adjacent predicate actions. Value-action and empty predicate blocks remain
 // unsupported by compilation.
-// Single-statement predicate actions use Predicate.Term directly.
+// Single-statement predicate actions use Predicate.Action directly.
 type Block struct {
 	SourceInfo `json:"source,omitempty"`
-	Statements []Term       `json:"statements"`
+	Statements []ActionExpr `json:"statements"`
 	OpenBreak  *LineBreak   `json:"-"`
 	Breaks     []*LineBreak `json:"-"`
 	CloseBreak *LineBreak   `json:"-"`
 	OneLine    bool         `json:"-"`
 }
 
-func (*Block) term() {}
+func (*Block) actionExpr() {}
 
-func (*IntLit) term()          {}
-func (*StringLit) term()       {}
-func (*BoolLit) term()         {}
-func (*NilLit) term()          {}
-func (*CaptureRef) term()      {}
-func (*VarRef) term()          {}
-func (*Member) term()          {}
-func (*New) term()             {}
-func (*ListConstructor) term() {}
-func (*TupleLit) term()        {}
-func (*Call) term()            {}
-func (*Lambda) term()          {}
-func (*Binary) term()          {}
-func (*Unary) term()           {}
-func (*Cast) term()            {}
-func (*Bind) term()            {}
+func (*IntLit) actionExpr()          {}
+func (*StringLit) actionExpr()       {}
+func (*BoolLit) actionExpr()         {}
+func (*NilLit) actionExpr()          {}
+func (*CaptureRef) actionExpr()      {}
+func (*VarRef) actionExpr()          {}
+func (*Member) actionExpr()          {}
+func (*New) actionExpr()             {}
+func (*ListConstructor) actionExpr() {}
+func (*TupleLit) actionExpr()        {}
+func (*Call) actionExpr()            {}
+func (*Lambda) actionExpr()          {}
+func (*Binary) actionExpr()          {}
+func (*Unary) actionExpr()           {}
+func (*Cast) actionExpr()            {}
+func (*Bind) actionExpr()            {}
 
 // RuleOperators returns the Operators Rule that e is, or that e holds when the
 // pragma #ignorecase follows its block. It returns nil for any other

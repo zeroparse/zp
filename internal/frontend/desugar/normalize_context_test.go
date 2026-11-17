@@ -17,10 +17,10 @@ func TestNormalizationContextCancellation(t *testing.T) {
 	sequence := &ast.Seq{Items: make([]ast.Expr, size)}
 	args := make([]any, size)
 	keywords := make(map[string]any, size)
-	block := &ast.Block{Statements: make([]ast.Term, size)}
+	block := &ast.Block{Statements: make([]ast.ActionExpr, size)}
 	fields := make([]*ast.Field, size)
 	var groupedType ast.TypeExpr = &ast.TypeRef{Name: "Match"}
-	var groupedTerm ast.Term = &ast.IntLit{Value: 1}
+	var groupedTerm ast.ActionExpr = &ast.IntLit{Value: 1}
 	for i := 0; i < size; i++ {
 		sequence.Items[i] = &ast.Literal{Value: "a"}
 		args[i] = i
@@ -28,14 +28,14 @@ func TestNormalizationContextCancellation(t *testing.T) {
 		block.Statements[i] = &ast.BoolLit{Value: true}
 		fields[i] = &ast.Field{Name: fmt.Sprintf("Field%d", i), Type: &ast.TypeGroup{Type: &ast.TypeRef{Name: "Match"}}}
 		groupedType = &ast.TypeGroup{Type: groupedType}
-		groupedTerm = &ast.TermGroup{Term: groupedTerm}
+		groupedTerm = &ast.ActionGroup{Action: groupedTerm}
 	}
 	fixtures := map[string]*ast.Grammar{}
 	for name, expr := range map[string]ast.Expr{
 		"sequence":             sequence,
 		"positional-arguments": &ast.Attributed{Expr: &ast.Literal{Value: "a"}, Attrs: []*ast.Attribute{{Name: "custom", Args: args}}},
 		"keyword-arguments":    &ast.Attributed{Expr: &ast.Literal{Value: "a"}, Attrs: []*ast.Attribute{{Name: "custom", Args: []any{}, KwArgs: keywords}}},
-		"predicate-block":      &ast.Predicate{Term: block},
+		"predicate-block":      &ast.Predicate{Action: block},
 	} {
 		fixtures[name] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: expr}}}}
 	}
@@ -43,13 +43,13 @@ func TestNormalizationContextCancellation(t *testing.T) {
 	fixtures["action-groups"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Literal{Value: "a"}, Action: groupedTerm}}}}
 	fixtures["struct-fields"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.TypeDef{Name: "T", Type: &ast.StructType{Fields: fields}}}}}
 	union := &ast.JoinType{Types: make([]ast.TypeExpr, size)}
-	action := &ast.Call{Func: "list", Args: make([]ast.Term, size)}
+	action := &ast.Call{Func: "list", Args: make([]ast.ActionExpr, size)}
 	for i := 0; i < size; i++ {
 		union.Types[i] = &ast.TypeRef{Name: "Match"}
 		action.Args[i] = &ast.BoolLit{Value: true}
 	}
 	union.Types[0] = &ast.TypeGroup{Type: union.Types[0]}
-	action.Args[0] = &ast.TermGroup{Term: action.Args[0]}
+	action.Args[0] = &ast.ActionGroup{Action: action.Args[0]}
 	fixtures["grouped-type-copy"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Type: union, Expr: &ast.Literal{Value: "a"}}}}}
 	fixtures["grouped-action-copy"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Literal{Value: "a"}, Action: action}}}}
 	for name, g := range fixtures {
@@ -89,14 +89,14 @@ func TestNormalizationCopiesObserveCancellation(t *testing.T) {
 	values := make([]int, size)
 	keywords := make(map[string]any, size)
 	attrs := make([]*ast.Attribute, size)
-	terms := make([]ast.Term, size)
+	terms := make([]ast.ActionExpr, size)
 	expressions := make([]ast.Expr, size)
 	for i := range values {
 		values[i] = i
 		keywords[fmt.Sprint(i)] = i
 		attrs[i] = &ast.Attribute{Name: "custom"}
 		terms[i] = &ast.BoolLit{Value: true}
-		expressions[i] = &ast.Predicate{Term: terms[i]}
+		expressions[i] = &ast.Predicate{Action: terms[i]}
 	}
 	for _, phase := range []string{"slice", "keywords", "attribute-append", "predicate-flatten"} {
 		t.Run(phase, func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestNormalizationCopiesObserveCancellation(t *testing.T) {
 			case "attribute-append":
 				appendNormalizedAttribute(attrs, &ast.Attribute{Name: "other"}, control)
 			case "predicate-flatten":
-				source := []ast.Expr{&ast.Predicate{Term: &ast.Block{Statements: terms}}}
+				source := []ast.Expr{&ast.Predicate{Action: &ast.Block{Statements: terms}}}
 				normalized := []ast.Expr{&ast.Seq{Items: expressions}}
 				expandPredicateBlocks(source, normalized, control)
 			}

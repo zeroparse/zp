@@ -11,7 +11,7 @@ func TestReservedASTIdentifiers(t *testing.T) {
 		{File: File{Decls: []Decl{&TypeDef{Name: "_Type"}}}},
 		{File: File{Decls: []Decl{&VarDef{Name: "_var", Type: &TypeRef{Name: "int"}}}}},
 		{File: File{Decls: []Decl{&RuleDef{Name: "main", Expr: &Capture{Name: "_capture", Expr: &Top{}}}}}},
-		{File: File{Decls: []Decl{&RuleDef{Name: "main", Expr: &Predicate{Term: &Bind{Name: "_var", Value: &IntLit{Value: 0}}}}}}},
+		{File: File{Decls: []Decl{&RuleDef{Name: "main", Expr: &Predicate{Action: &Bind{Name: "_var", Value: &IntLit{Value: 0}}}}}}},
 		{File: File{Decls: []Decl{&RuleDef{Name: "main", Expr: &Top{}, Action: &Lambda{Params: []string{"_arg"}, Body: &NilLit{}}}}}},
 		{File: File{Decls: []Decl{&RuleDef{Name: "main", Expr: &Attributed{Expr: &Top{}, Attrs: []*Attribute{{Name: "error", KwArgs: map[string]any{"_b": "x", "_a": "y"}}}}}}}},
 	}

@@ -124,7 +124,7 @@ type coreBuilder struct {
 	// proj holds the projected repetition captures of the rule being built (ruleProjections).
 	proj map[string]string
 	// final is the action whose value is the result of the rule or line being built.
-	final ast.Term
+	final ast.ActionExpr
 	// origin, if not nil, records the expression each node is built from.
 	origin map[core.Node]ast.Expr
 	// rec holds the checked types of the program, nil if it has none.
@@ -341,7 +341,7 @@ func (b *coreBuilder) operatorsRule(e *ast.OperatorsRule) (*core.OperatorsRule, 
 
 // opLine builds an Operators Rule line, the skip line if skip. Lines whose value is unused are
 // matched without values, as are the skip line and all lines of a value-free rule.
-func (b *coreBuilder) opLine(e ast.Expr, action ast.Term, operator, skip bool) (*core.OpLine, error) {
+func (b *coreBuilder) opLine(e ast.Expr, action ast.ActionExpr, operator, skip bool) (*core.OpLine, error) {
 	var locals []string
 	if operator {
 		locals = []string{"lhs", "rhs", "op"}
@@ -588,14 +588,14 @@ func (b *coreBuilder) node(e ast.Expr, s *coreScope, build bool) (core.Node, err
 	case *ast.EndLine:
 		return b.set(&core.Anchor{Kind: core.EndLine}, e, build), nil
 	case *ast.Predicate:
-		if a, ok := e.Term.(*ast.Bind); ok {
+		if a, ok := e.Action.(*ast.Bind); ok {
 			t, err := b.term(a.Value, s, nil)
 			if err != nil {
 				return nil, err
 			}
 			return b.set(&core.BindNode{Var: a.Name, Term: t}, e, build), nil
 		}
-		t, err := b.term(e.Term, s, nil)
+		t, err := b.term(e.Action, s, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -757,9 +757,9 @@ func singleChar(e ast.Expr) bool {
 
 // term builds the term t in the scope s, with its checked type; env maps the names of lambda
 // parameters and Operators Rule locals in scope to their locals.
-func (b *coreBuilder) term(t ast.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
-	if g, ok := t.(*ast.TermGroup); ok {
-		return b.term(g.Term, s, env)
+func (b *coreBuilder) term(t ast.ActionExpr, s *coreScope, env map[string]*core.Local) (core.Term, error) {
+	if g, ok := t.(*ast.ActionGroup); ok {
+		return b.term(g.Action, s, env)
 	}
 	x, err := b.termNode(t, s, env)
 	if err != nil {
@@ -773,8 +773,8 @@ func (b *coreBuilder) term(t ast.Term, s *coreScope, env map[string]*core.Local)
 	return x, nil
 }
 
-func (b *coreBuilder) termNode(t ast.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
-	sub := func(x ast.Term) (core.Term, error) { return b.term(x, s, env) }
+func (b *coreBuilder) termNode(t ast.ActionExpr, s *coreScope, env map[string]*core.Local) (core.Term, error) {
+	sub := func(x ast.ActionExpr) (core.Term, error) { return b.term(x, s, env) }
 	switch t := t.(type) {
 	case *ast.IntLit:
 		return &core.Const{Value: t.Value}, nil
@@ -824,7 +824,7 @@ func (b *coreBuilder) termNode(t ast.Term, s *coreScope, env map[string]*core.Lo
 		if b.chk != nil {
 			name, spec = b.chk.StructType(t.Type)
 		}
-		n := &core.New{Type: name, Final: ast.Term(t) == b.final}
+		n := &core.New{Type: name, Final: ast.ActionExpr(t) == b.final}
 		if b.chk != nil {
 			for _, f := range check.DefFields(spec) {
 				n.Declared = append(n.Declared, f.Name)

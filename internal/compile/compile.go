@@ -142,7 +142,7 @@ type Rule struct {
 	Name   string
 	Def    *ast.RuleDef
 	Scope  *check.Scope
-	Action ast.Term
+	Action ast.ActionExpr
 	// NodeType, if not "", is the named node type the rule's value is converted to
 	// (Program.ruleNodeType).
 	NodeType string
@@ -351,8 +351,8 @@ func Canonicalize(g *ast.Grammar, opts Options, names desugar.InlineNames, contr
 		control.Poll()
 		unsupported = append(unsupported, &diagnostic.Error{Pos: comment.Pos, Msg: "comments are not allowed inside statement headers"})
 	}
-	checkBlocks := func(term ast.Term) {
-		WalkTerm(term, func(t ast.Term) {
+	checkBlocks := func(term ast.ActionExpr) {
+		WalkTerm(term, func(t ast.ActionExpr) {
 			control.Poll()
 			if block, ok := t.(*ast.Block); ok {
 				unsupported = append(unsupported, &diagnostic.Error{Pos: block.Diagnostic(), Msg: "action statement blocks are not implemented"})
@@ -366,13 +366,13 @@ func Canonicalize(g *ast.Grammar, opts Options, names desugar.InlineNames, contr
 			control.Poll()
 			switch e := e.(type) {
 			case *ast.Predicate:
-				if block, ok := e.Term.(*ast.Block); ok && len(block.Statements) > 0 {
+				if block, ok := e.Action.(*ast.Block); ok && len(block.Statements) > 0 {
 					for _, statement := range block.Statements {
 						control.Poll()
 						checkBlocks(statement)
 					}
 				} else {
-					checkBlocks(e.Term)
+					checkBlocks(e.Action)
 				}
 			case *ast.InlineAction:
 				checkBlocks(e.Action)

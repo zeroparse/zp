@@ -88,7 +88,7 @@ func (k *classifier) heldBy(x sizeKey) []sizeKey {
 	case r == nil:
 	case isOperators(r.Expr):
 		ops := r.Expr.(*ast.OperatorsRule)
-		var actions []ast.Term
+		var actions []ast.ActionExpr
 		for _, o := range ops.Operands {
 			if o.Action != nil && !o.DefaultAction {
 				actions = append(actions, o.Action)
@@ -115,10 +115,10 @@ func (k *classifier) heldBy(x sizeKey) []sizeKey {
 
 // heldCalls returns the values of calls on a recursion with the rule of tc that the value of t,
 // measured in mode, holds.
-func (k *classifier) heldCalls(t ast.Term, tc termCtx, mode sizeMode) []sizeKey {
+func (k *classifier) heldCalls(t ast.ActionExpr, tc termCtx, mode sizeMode) []sizeKey {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return k.heldCalls(t.Term, tc, mode)
+	case *ast.ActionGroup:
+		return k.heldCalls(t.Action, tc, mode)
 	case *ast.Cast:
 		return k.heldCalls(t.X, tc, mode)
 	case *ast.CaptureRef:

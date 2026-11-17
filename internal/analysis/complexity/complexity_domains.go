@@ -92,13 +92,13 @@ func constantValues(v *ast.VarDef, binds []*binding) (int, bool) {
 	if v.Value == nil {
 		terms[""] = true
 	} else {
-		terms[fmt.FormatTerm(check.UngroupTerm(v.Value))] = true
+		terms[fmt.FormatActionExpr(check.UngroupTerm(v.Value))] = true
 	}
 	for _, b := range binds {
 		if !constant(b.b.Value) {
 			return 0, false
 		}
-		terms[fmt.FormatTerm(check.UngroupTerm(b.b.Value))] = true
+		terms[fmt.FormatActionExpr(check.UngroupTerm(b.b.Value))] = true
 	}
 	return len(terms), true
 }
@@ -344,20 +344,20 @@ func (d *intDomain) inputs(b *binding) valueSet {
 
 // blockBefore returns the statements before the binding b in the block of the predicate in e that
 // holds it as a statement or as its term, and whether e has such a predicate.
-func blockBefore(e ast.Expr, b *ast.Bind) ([]ast.Term, bool) {
-	var out []ast.Term
+func blockBefore(e ast.Expr, b *ast.Bind) ([]ast.ActionExpr, bool) {
+	var out []ast.ActionExpr
 	found := false
 	astfacts.WalkExpr(e, func(x ast.Expr) {
 		p, ok := x.(*ast.Predicate)
 		if !ok || found {
 			return
 		}
-		if p.Term == ast.Term(b) {
+		if p.Action == ast.ActionExpr(b) {
 			found = true
 			return
 		}
-		if blk, ok := p.Term.(*ast.Block); ok {
-			if i := slices.Index(blk.Statements, ast.Term(b)); i >= 0 {
+		if blk, ok := p.Action.(*ast.Block); ok {
+			if i := slices.Index(blk.Statements, ast.ActionExpr(b)); i >= 0 {
 				out, found = blk.Statements[:i], true
 			}
 		}
@@ -373,7 +373,7 @@ func blockBefore(e ast.Expr, b *ast.Bind) ([]ast.Term, bool) {
 func (d *intDomain) after(e ast.Expr, x valueSet) valueSet {
 	switch e := e.(type) {
 	case *ast.Predicate:
-		return d.afterTerm(e.Term, x)
+		return d.afterTerm(e.Action, x)
 	case *ast.Group:
 		return d.after(e.Expr, x)
 	case *ast.Capture:
@@ -416,7 +416,7 @@ func (d *intDomain) bindsVar(e ast.Expr) bool {
 	found := false
 	astfacts.WalkExpr(e, func(x ast.Expr) {
 		if p, ok := x.(*ast.Predicate); ok {
-			astfacts.WalkTerm(p.Term, func(t ast.Term) {
+			astfacts.WalkTerm(p.Action, func(t ast.ActionExpr) {
 				if bd, ok := t.(*ast.Bind); ok && bd.Name == d.v {
 					found = true
 				}
@@ -427,7 +427,7 @@ func (d *intDomain) bindsVar(e ast.Expr) bool {
 }
 
 // afterTerm returns the values that the variable can hold after the predicate term t succeeds.
-func (d *intDomain) afterTerm(t ast.Term, x valueSet) valueSet {
+func (d *intDomain) afterTerm(t ast.ActionExpr, x valueSet) valueSet {
 	switch t := t.(type) {
 	case *ast.Block:
 		for _, s := range t.Statements {
@@ -583,10 +583,10 @@ func (k *classifier) spliceBody(name string) (ast.Expr, bool) {
 }
 
 // termLen bounds what len gives for the value of the action term t of rule.
-func (k *classifier) termLen(t ast.Term, rule string, seen map[string]bool) (int, bool) {
+func (k *classifier) termLen(t ast.ActionExpr, rule string, seen map[string]bool) (int, bool) {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return k.termLen(t.Term, rule, seen)
+	case *ast.ActionGroup:
+		return k.termLen(t.Action, rule, seen)
 	case *ast.StringLit:
 		return len(t.Value), true
 	case *ast.NilLit:
@@ -676,14 +676,14 @@ func textLen(e ast.Expr, k *classifier, seen map[string]bool) (int, bool) {
 
 // readsOnly reports whether t is built from the variable v, int and bool literals, the operators
 // that eval knows, and the calls of len that operand accepts (none when operand is nil).
-func readsOnly(t ast.Term, v string, operand func(*ast.Call) bool) bool {
+func readsOnly(t ast.ActionExpr, v string, operand func(*ast.Call) bool) bool {
 	switch t := t.(type) {
 	case *ast.IntLit, *ast.BoolLit:
 		return true
 	case *ast.VarRef:
 		return t.Name == v
-	case *ast.TermGroup:
-		return readsOnly(t.Term, v, operand)
+	case *ast.ActionGroup:
+		return readsOnly(t.Action, v, operand)
 	case *ast.Unary:
 		return (t.Op == "-" || t.Op == "!") && readsOnly(t.X, v, operand)
 	case *ast.Binary:
@@ -719,7 +719,7 @@ const maxExact = 1 << 53
 // eval evaluates t, which readsOnly accepts, in env, by the rules of the action
 // language: division truncates toward zero, the remainder has the sign of the dividend, and
 // dividing by zero is an error.
-func eval(t ast.Term, env domainEnv) (any, evalResult) {
+func eval(t ast.ActionExpr, env domainEnv) (any, evalResult) {
 	switch t := t.(type) {
 	case *ast.IntLit:
 		return exact(t.Value)
@@ -733,8 +733,8 @@ func eval(t ast.Term, env domainEnv) (any, evalResult) {
 		if n, ok := env.lens[t]; ok {
 			return n, evalOK
 		}
-	case *ast.TermGroup:
-		return eval(t.Term, env)
+	case *ast.ActionGroup:
+		return eval(t.Action, env)
 	case *ast.Unary:
 		r, res := eval(t.X, env)
 		if res != evalOK {

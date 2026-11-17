@@ -582,7 +582,7 @@ func exprPos(e ast.Expr) ast.Pos {
 	return ast.Pos{}
 }
 
-func termPosOf(t ast.Term) ast.Pos {
+func termPosOf(t ast.ActionExpr) ast.Pos {
 	if s, ok := t.(interface{ Source() *ast.SourceInfo }); ok && s.Source() != nil {
 		return s.Source().Diagnostic()
 	}
@@ -604,8 +604,8 @@ func (k *classifier) show(e ast.Expr) string {
 	return abbreviate(syntaxfmt.FormatExpr(e))
 }
 
-func (k *classifier) showTerm(t ast.Term) string {
-	return abbreviate(syntaxfmt.FormatTerm(t))
+func (k *classifier) showTerm(t ast.ActionExpr) string {
+	return abbreviate(syntaxfmt.FormatActionExpr(t))
 }
 
 // abbreviate collapses the white space of the source text s and shortens it to at most 40 bytes,

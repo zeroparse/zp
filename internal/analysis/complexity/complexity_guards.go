@@ -14,7 +14,7 @@ import (
 // binding, so a value that the guard rejects reaches no call and no later binding.
 type guard struct {
 	// tests are the tests after the binding that read only its variable and literals.
-	tests []ast.Term
+	tests []ast.ActionExpr
 	// bounds holds every value that passes the tests after the binding and the tests before it.
 	bounds valueRange
 }
@@ -51,12 +51,12 @@ func (g guard) passes(v string, y int) bool {
 func guardOf(b *binding) guard {
 	g := guard{bounds: fullRange}
 	v, e := b.b.Name, check.UngroupTerm(b.b.Value)
-	isVar := func(t ast.Term) bool {
+	isVar := func(t ast.ActionExpr) bool {
 		r, ok := check.UngroupTerm(t).(*ast.VarRef)
 		return ok && r.Name == v
 	}
-	text := fmt.FormatTerm(e)
-	isValue := func(t ast.Term) bool { return fmt.FormatTerm(check.UngroupTerm(t)) == text }
+	text := fmt.FormatActionExpr(e)
+	isValue := func(t ast.ActionExpr) bool { return fmt.FormatActionExpr(check.UngroupTerm(t)) == text }
 	after, before := adjacentStatements(b)
 	for _, s := range after {
 		if bd, ok := s.(*ast.Bind); ok && bd.Name == v {
@@ -81,12 +81,12 @@ func guardOf(b *binding) guard {
 // its block, then those of the predicates next to the predicate of b in the sequence that holds
 // it, up to the first element on either side that is not a predicate. A predicate with attributes
 // counts when they are all @ attributes, which do not change matching.
-func adjacentStatements(b *binding) (after, before []ast.Term) {
+func adjacentStatements(b *binding) (after, before []ast.ActionExpr) {
 	if b.p == nil {
 		return nil, nil
 	}
-	own := statements(b.p.Term)
-	i := slices.Index(own, ast.Term(b.b))
+	own := statements(b.p.Action)
+	i := slices.Index(own, ast.ActionExpr(b.b))
 	if i < 0 {
 		return nil, nil
 	}
@@ -106,14 +106,14 @@ func adjacentStatements(b *binding) (after, before []ast.Term) {
 		if q == nil {
 			break
 		}
-		after = append(after, statements(q.Term)...)
+		after = append(after, statements(q.Action)...)
 	}
 	for j := f.index - 1; j >= 0; j-- {
 		q := predicateOf(f.seq.Items[j])
 		if q == nil {
 			break
 		}
-		s := statements(q.Term)
+		s := statements(q.Action)
 		for m := len(s) - 1; m >= 0; m-- {
 			before = append(before, s[m])
 		}
@@ -150,11 +150,11 @@ func labelsOnly(e *ast.Attributed) bool {
 }
 
 // statements returns the statements of a predicate term: those of a block, or the term itself.
-func statements(t ast.Term) []ast.Term {
+func statements(t ast.ActionExpr) []ast.ActionExpr {
 	if blk, ok := t.(*ast.Block); ok {
 		return blk.Statements
 	}
-	return []ast.Term{t}
+	return []ast.ActionExpr{t}
 }
 
 // valueRange is an inclusive range of ints. A bound beyond maxExact in magnitude stands for no
@@ -194,7 +194,7 @@ func rangeOf(lo, hi int) valueRange {
 // termBounds returns the range that t bounds the subject to when t is true: t is a comparison
 // with <, <=, >, >= or == of the subject with a constant int (see constInt), on either side, or a
 // conjunction with && of such tests and others, which do not bound it.
-func termBounds(t ast.Term, subject func(ast.Term) bool) valueRange {
+func termBounds(t ast.ActionExpr, subject func(ast.ActionExpr) bool) valueRange {
 	bin, ok := check.UngroupTerm(t).(*ast.Binary)
 	if !ok {
 		return fullRange
@@ -227,7 +227,7 @@ func termBounds(t ast.Term, subject func(ast.Term) bool) valueRange {
 }
 
 // constInt returns the value of t when t is a constant int expression that eval knows.
-func constInt(t ast.Term) (int, bool) {
+func constInt(t ast.ActionExpr) (int, bool) {
 	if !constant(t) {
 		return 0, false
 	}
@@ -239,10 +239,10 @@ func constInt(t ast.Term) (int, bool) {
 // termRange returns a range that holds every int that t can give when the variable v holds a
 // value of xs: a literal is its value, v ranges over xs, len gives at least 0, unary -, + and *
 // combine the ranges of their operands, and any other term has no bound.
-func termRange(t ast.Term, v string, xs valueSet) valueRange {
+func termRange(t ast.ActionExpr, v string, xs valueSet) valueRange {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return termRange(t.Term, v, xs)
+	case *ast.ActionGroup:
+		return termRange(t.Action, v, xs)
 	case *ast.IntLit:
 		if n, ok := constInt(t); ok {
 			return valueRange{n, n}

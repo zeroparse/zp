@@ -7,26 +7,26 @@ import (
 )
 
 // Terms built by hand: the package cannot depend on a grammar parser.
-func capt(n string) ast.Term  { return &ast.CaptureRef{Name: n} }
-func param(n string) ast.Term { return &ast.CaptureRef{Name: n, Param: true} }
-func vr(n string) ast.Term    { return &ast.VarRef{Name: n} }
-func ilit(i int) ast.Term     { return &ast.IntLit{Value: i} }
-func blit(b bool) ast.Term    { return &ast.BoolLit{Value: b} }
-func bin(op string, l, r ast.Term) ast.Term {
+func capt(n string) ast.ActionExpr  { return &ast.CaptureRef{Name: n} }
+func param(n string) ast.ActionExpr { return &ast.CaptureRef{Name: n, Param: true} }
+func vr(n string) ast.ActionExpr    { return &ast.VarRef{Name: n} }
+func ilit(i int) ast.ActionExpr     { return &ast.IntLit{Value: i} }
+func blit(b bool) ast.ActionExpr    { return &ast.BoolLit{Value: b} }
+func bin(op string, l, r ast.ActionExpr) ast.ActionExpr {
 	return &ast.Binary{Op: op, L: l, R: r}
 }
-func un(op string, x ast.Term) ast.Term { return &ast.Unary{Op: op, X: x} }
-func fn(name string, args ...ast.Term) ast.Term {
+func un(op string, x ast.ActionExpr) ast.ActionExpr { return &ast.Unary{Op: op, X: x} }
+func fn(name string, args ...ast.ActionExpr) ast.ActionExpr {
 	return &ast.Call{Func: name, Args: args}
 }
-func lam(body ast.Term, params ...string) ast.Term {
+func lam(body ast.ActionExpr, params ...string) ast.ActionExpr {
 	return &ast.Lambda{Params: params, Body: body}
 }
-func mem(x ast.Term, name string) ast.Term { return &ast.Member{X: x, Name: name} }
+func mem(x ast.ActionExpr, name string) ast.ActionExpr { return &ast.Member{X: x, Name: name} }
 
 // unknownTerms read the capture x, which the tests make unknown, the known capture xs (a list node
 // holding x and an int) and the variables v (unknown) and n (known).
-var unknownTerms = map[string]ast.Term{
+var unknownTerms = map[string]ast.ActionExpr{
 	"x.Start":           mem(capt("x"), "Start"),
 	"x.$c":              mem(capt("x"), "$c"),
 	"len(x)":            fn("len", capt("x")),

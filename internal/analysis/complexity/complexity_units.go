@@ -364,7 +364,7 @@ func (k *classifier) walk(e ast.Expr, c wctx) {
 			k.walkTerm(e.Action, termCtx{rule: c.rule, c: c, action: true, holder: e, value: k.ruleValue(c.rule, e)})
 		}
 	case *ast.Predicate:
-		k.walkTerm(e.Term, termCtx{rule: c.rule, c: c, pred: e})
+		k.walkTerm(e.Action, termCtx{rule: c.rule, c: c, pred: e})
 	case *ast.OperatorsRule:
 		k.walkOperators(e, c)
 	}

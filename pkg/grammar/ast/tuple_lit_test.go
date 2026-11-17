@@ -9,10 +9,10 @@ import (
 func tupleGrammar() *Grammar {
 	return &Grammar{File: File{Decls: []Decl{&RuleDef{
 		Name: "p", Expr: &Literal{Value: "a"},
-		Action: &Call{Func: "list", Args: []Term{
-			&TupleLit{Elems: []Term{}},
-			&TupleLit{Elems: []Term{&IntLit{Value: 1}}},
-			&TupleLit{Elems: []Term{&IntLit{Value: 1}, &TupleLit{Elems: []Term{&StringLit{Value: "x"}, &NilLit{}}}}},
+		Action: &Call{Func: "list", Args: []ActionExpr{
+			&TupleLit{Elems: []ActionExpr{}},
+			&TupleLit{Elems: []ActionExpr{&IntLit{Value: 1}}},
+			&TupleLit{Elems: []ActionExpr{&IntLit{Value: 1}, &TupleLit{Elems: []ActionExpr{&StringLit{Value: "x"}, &NilLit{}}}}},
 		}},
 	}}}}
 }

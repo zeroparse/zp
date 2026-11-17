@@ -340,7 +340,7 @@ func validate(g *Grammar, control *validationControl) error {
 		case *Capture:
 			push(n.Expr, "expr", -1, false)
 		case *Predicate:
-			push(n.Term, "term", -1, false)
+			push(n.Action, "action", -1, false)
 		case *Attributed:
 			for i := len(n.Attrs) - 1; i >= 0; i-- {
 				push(n.Attrs[i], "attrs", i, false)
@@ -403,8 +403,8 @@ func validate(g *Grammar, control *validationControl) error {
 			}
 		case *Member:
 			push(n.X, "x", -1, false)
-		case *TermGroup:
-			push(n.Term, "term", -1, false)
+		case *ActionGroup:
+			push(n.Action, "action", -1, false)
 		case *New:
 			for i := len(n.Args) - 1; i >= 0; i-- {
 				push(n.Args[i], "args", i, false)

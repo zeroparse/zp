@@ -499,7 +499,7 @@ func (prog *Checker) convertsResult(key any, rd *ast.RuleDef) (NodeTy, bool) {
 }
 
 // term returns the type of the value expression t.
-func (v *ValueInference) term(t ast.Term, env *valueEnv) Ty {
+func (v *ValueInference) term(t ast.ActionExpr, env *valueEnv) Ty {
 	r := v.termType(t, env)
 	if v.rec != nil && !v.Quiet {
 		v.rec.Terms[t] = r
@@ -507,11 +507,11 @@ func (v *ValueInference) term(t ast.Term, env *valueEnv) Ty {
 	return r
 }
 
-func (v *ValueInference) termType(t ast.Term, env *valueEnv) Ty {
+func (v *ValueInference) termType(t ast.ActionExpr, env *valueEnv) Ty {
 	v.control.Poll()
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return v.term(t.Term, env)
+	case *ast.ActionGroup:
+		return v.term(t.Action, env)
 	case *ast.IntLit:
 		return TyInt
 	case *ast.StringLit:
@@ -779,13 +779,13 @@ func (v *ValueInference) index(x, i Ty, t *ast.Binary) Ty {
 	return Vjoin(out...)
 }
 
-func UngroupTerm(t ast.Term) ast.Term {
+func UngroupTerm(t ast.ActionExpr) ast.ActionExpr {
 	for {
-		g, ok := t.(*ast.TermGroup)
+		g, ok := t.(*ast.ActionGroup)
 		if !ok {
 			return t
 		}
-		t = g.Term
+		t = g.Action
 	}
 }
 

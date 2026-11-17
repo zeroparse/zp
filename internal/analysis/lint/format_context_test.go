@@ -27,7 +27,7 @@ func TestLintFormattingCancelsWithinDiagnostics(t *testing.T) {
 			case "show":
 				show(expr, c)
 			case "predicate-comparison":
-				same(&ast.Predicate{Term: term}, &ast.Predicate{Term: term}, false, c)
+				same(&ast.Predicate{Action: term}, &ast.Predicate{Action: term}, false, c)
 			case "attribute-comparison":
 				attr := &ast.Attribute{Name: "recover", Pragma: true, KwArgs: map[string]any{"skip": expr}}
 				e := &ast.Attributed{Expr: expr, Attrs: []*ast.Attribute{attr}}

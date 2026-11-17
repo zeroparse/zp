@@ -19,7 +19,7 @@ func ruleVariablesDFS(rules []*ast.RuleDef) map[string][]string {
 	calls := map[string][]string{}
 	for _, r := range rules {
 		set := map[string]bool{}
-		WalkRuleTerms(r, func(t ast.Term) {
+		WalkRuleTerms(r, func(t ast.ActionExpr) {
 			if v, ok := t.(*ast.VarRef); ok {
 				set[v.Name] = true
 			}

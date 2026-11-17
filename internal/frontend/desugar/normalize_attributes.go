@@ -259,16 +259,16 @@ func (n *attributeNormalizer) expr(expr ast.Expr) ast.Expr {
 		copy.Expr, copy.Action = child, term
 		return &copy
 	case *ast.Predicate:
-		term := e.Term
+		term := e.Action
 		if block, ok := term.(*ast.Block); ok && len(block.Statements) > 0 {
 			return predicateBlock(e, block, n.control)
 		}
 		term = astfacts.UngroupTermWithPoll(term, n.poll)
-		if !n.eager && term == e.Term {
+		if !n.eager && term == e.Action {
 			return e
 		}
 		copy := *e
-		copy.Term = term
+		copy.Action = term
 		return &copy
 	case *ast.Seq:
 		items, changed := normalizeItems(e.Items, n.eager, n.expr, n.control)

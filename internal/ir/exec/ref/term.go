@@ -43,7 +43,7 @@ type failure string
 
 // Eval evaluates the term t and returns its value and the text of the error that stopped it, "" if
 // none did.
-func (e *TermEnv) Eval(t ast.Term) (v V, err string) {
+func (e *TermEnv) Eval(t ast.ActionExpr) (v V, err string) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, ok := x.(unknownSignal); ok {
@@ -75,10 +75,10 @@ func (p params) with(names []string, vals ...V) params {
 
 func fail(format string, args ...any) { panic(failure(fmt.Sprintf(format, args...))) }
 
-func (e *TermEnv) eval(t ast.Term, p params) V {
+func (e *TermEnv) eval(t ast.ActionExpr, p params) V {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return e.eval(t.Term, p)
+	case *ast.ActionGroup:
+		return e.eval(t.Action, p)
 	case *ast.IntLit:
 		return Int(int64(t.Value))
 	case *ast.StringLit:
@@ -139,7 +139,7 @@ func (e *TermEnv) eval(t ast.Term, p params) V {
 	panic(fmt.Sprintf("ref: unsupported term %T", t))
 }
 
-func (e *TermEnv) terms(ts []ast.Term, p params) []V {
+func (e *TermEnv) terms(ts []ast.ActionExpr, p params) []V {
 	out := make([]V, len(ts))
 	for i, t := range ts {
 		out[i] = e.eval(t, p)

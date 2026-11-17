@@ -142,8 +142,8 @@ func TestInteriorLayoutJSONAndClone(t *testing.T) {
 	if original.Before[0].Text != "/* argument */" {
 		t.Fatal("clone changed original layout")
 	}
-	programmatic := &ast.Call{Func: "int", Args: []ast.Term{&ast.StringLit{Value: "1"}}}
-	if got := fmt.FormatTerm(programmatic); got != `int("1")` {
+	programmatic := &ast.Call{Func: "int", Args: []ast.ActionExpr{&ast.StringLit{Value: "1"}}}
+	if got := fmt.FormatActionExpr(programmatic); got != `int("1")` {
 		t.Fatal("nil-layout canonical fallback", got)
 	}
 }

@@ -547,7 +547,7 @@ func (s *shaper) action(n *core.Node) {
 		s.span("TupleLit", n)
 	case "ActionGroup":
 		s.action(fieldNode(n, "Expr"))
-		s.span("TermGroup", n)
+		s.span("ActionGroup", n)
 	case "Lambda":
 		s.action(fieldNode(n, "Body"))
 		s.span("Lambda", n)

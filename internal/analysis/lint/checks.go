@@ -637,7 +637,7 @@ func (l *linter) unusedCaptures() {
 // scopeCaptures reports the captures of a rule body (or an Operators Rule line) that are never read: the
 // body's own captures that neither action nor predicates refer to, and the captures inside
 // repetitions whose values are discarded.
-func (l *linter) scopeCaptures(body ast.Expr, action ast.Term, why string) {
+func (l *linter) scopeCaptures(body ast.Expr, action ast.ActionExpr, why string) {
 	control := l.control
 	control.poll()
 
@@ -734,7 +734,7 @@ func scopePredicateRefsControlled(e ast.Expr, refs map[string]bool, control *lin
 
 	switch e := analysisExpr(e, control).(type) {
 	case *ast.Predicate:
-		captureRefsControlled(e.Term, nil, refs, control)
+		captureRefsControlled(e.Action, nil, refs, control)
 	case *ast.Repeat:
 	default:
 		forChildren(e, func(c ast.Expr) { control.poll(); scopePredicateRefsControlled(c, refs, control) }, control)
@@ -743,16 +743,16 @@ func scopePredicateRefsControlled(e ast.Expr, refs map[string]bool, control *lin
 
 // captureRefs adds the names of the captures that t refers to ($name, not counting function
 // parameters) to refs.
-func captureRefs(t ast.Term, params []string, refs map[string]bool) {
+func captureRefs(t ast.ActionExpr, params []string, refs map[string]bool) {
 	captureRefsControlled(t, params, refs, nil)
 }
 
-func captureRefsControlled(t ast.Term, params []string, refs map[string]bool, control *lintControl) {
+func captureRefsControlled(t ast.ActionExpr, params []string, refs map[string]bool, control *lintControl) {
 	control.poll()
 
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		captureRefsControlled(t.Term, params, refs, control)
+	case *ast.ActionGroup:
+		captureRefsControlled(t.Action, params, refs, control)
 	case *ast.CaptureRef:
 		if !slices.Contains(params, t.Name) {
 			refs[t.Name] = true
@@ -1126,7 +1126,7 @@ func reachesControlled(from, to string, edges map[string][]string, control *lint
 // positionRead returns the position of the first .Start or .End that the rule's actions or
 // predicates read (the zero Pos if it is unknown), and whether there is one.
 func positionRead(r *ast.RuleDef, control *lintControl) (ast.Pos, bool) {
-	var terms []ast.Term
+	var terms []ast.ActionExpr
 	if r.Action != nil {
 		terms = append(terms, r.Action)
 	}
@@ -1134,7 +1134,7 @@ func positionRead(r *ast.RuleDef, control *lintControl) (ast.Pos, bool) {
 		control.poll()
 		switch e := analysisExpr(e, control).(type) {
 		case *ast.Predicate:
-			terms = append(terms, e.Term)
+			terms = append(terms, e.Action)
 		case *ast.OperatorsRule:
 			for _, o := range e.Operands {
 				control.poll()
@@ -1156,7 +1156,7 @@ func positionRead(r *ast.RuleDef, control *lintControl) (ast.Pos, bool) {
 	for _, t := range terms {
 		control.poll()
 		var found *ast.Member
-		walkTerm(t, func(x ast.Term) {
+		walkTerm(t, func(x ast.ActionExpr) {
 			control.poll()
 			if m, ok := x.(*ast.Member); ok && (m.Name == "Start" || m.Name == "End") && found == nil {
 				found = m
