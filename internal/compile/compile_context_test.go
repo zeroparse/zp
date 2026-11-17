@@ -5,18 +5,18 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestCompileContextCancelsDuringGrammarValidation(t *testing.T) {
 	t.Parallel()
-	items := make([]grammar.Expr, 1024)
+	items := make([]ast.Expr, 1024)
 	for i := range items {
-		items[i] = &grammar.Literal{Value: "a"}
+		items[i] = &ast.Literal{Value: "a"}
 	}
 	items[len(items)-1] = nil
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{
-		&grammar.RuleDef{Name: "main", Expr: &grammar.Seq{Items: items}},
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{
+		&ast.RuleDef{Name: "main", Expr: &ast.Seq{Items: items}},
 	}}}
 	if _, err := compileStatic(g, Options{}, nil); err == nil {
 		t.Fatal("fixture must fail ordinary grammar validation")

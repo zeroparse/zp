@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-var normalizationBenchmarkGrammar *grammar.Grammar
+var normalizationBenchmarkGrammar *ast.Grammar
 
 var normalizationBenchmarkProgram *Program
 
@@ -64,11 +64,11 @@ func BenchmarkAttributeNormalization(b *testing.B) {
 			b.Run(name+"/"+mode+"/source-prepare", func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					ast, err := parseTest(source)
+					tree, err := parseTest(source)
 					if err != nil {
 						b.Fatal(err)
 					}
-					normalizationBenchmarkProgram, err = compileStatic(ast, Options{EagerAttributeCopies: eager}, nil)
+					normalizationBenchmarkProgram, err = compileStatic(tree, Options{EagerAttributeCopies: eager}, nil)
 					if err != nil {
 						b.Fatal(err)
 					}

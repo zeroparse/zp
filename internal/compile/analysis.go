@@ -5,8 +5,8 @@ import (
 	"sort"
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Analysis is the result of static analysis across rules.
@@ -36,14 +36,14 @@ type Analysis struct {
 }
 
 // analyze computes the Analysis of rules without a compilation control (AnalyzeControlled).
-func analyze(rules []*grammar.RuleDef) *Analysis {
+func analyze(rules []*ast.RuleDef) *Analysis {
 	return AnalyzeControlled(rules, nil)
 }
 
 // AnalyzeControlled computes the Analysis of rules: the nullable and always-succeeding rules,
 // the left-recursion cycles and their leaders, and the rules that read positions. A non-nil
 // control polls for cancellation.
-func AnalyzeControlled(rules []*grammar.RuleDef, control *cancel.Control) *Analysis {
+func AnalyzeControlled(rules []*ast.RuleDef, control *cancel.Control) *Analysis {
 	return analyzeMode(rules, control, false)
 }
 
@@ -51,11 +51,11 @@ func AnalyzeControlled(rules []*grammar.RuleDef, control *cancel.Control) *Analy
 // expression with #missing is nullable, so its rule may call the rules after it before consuming
 // input, and left recursion through an insertion forms a cycle. The proofs of success are those
 // without insertion, which only adds left calls.
-func AnalyzeInsertion(rules []*grammar.RuleDef, control *cancel.Control) *Analysis {
+func AnalyzeInsertion(rules []*ast.RuleDef, control *cancel.Control) *Analysis {
 	return analyzeMode(rules, control, true)
 }
 
-func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bool) *Analysis {
+func analyzeMode(rules []*ast.RuleDef, control *cancel.Control, insertion bool) *Analysis {
 	a := &Analysis{
 		insertion:  insertion,
 		Control:    control,
@@ -65,7 +65,7 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 		Cycle:      map[string]int{},
 		Positional: map[string]bool{},
 	}
-	byName := map[string]*grammar.RuleDef{}
+	byName := map[string]*ast.RuleDef{}
 	for _, r := range rules {
 		control.Poll()
 		byName[r.Name] = r
@@ -192,40 +192,40 @@ func contains(xs []string, x string) bool {
 	return false
 }
 
-func (a *Analysis) isNullable(e grammar.Expr) bool {
+func (a *Analysis) isNullable(e ast.Expr) bool {
 	a.Control.Poll()
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		return a.Nullable[e.Name]
-	case *grammar.Literal:
+	case *ast.Literal:
 		return e.Value == ""
-	case *grammar.CharClass, *grammar.Any, *grammar.Bottom:
+	case *ast.CharClass, *ast.Any, *ast.Bottom:
 		return false
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !a.isNullable(it) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			if a.isNullable(alt) {
 				return true
 			}
 		}
 		return false
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return e.Min == 0 || e.Min == 1 && a.isNullable(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return a.isNullable(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return a.isNullable(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return a.isNullable(e.Expr)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return a.insertion && HasPragma(e, "missing") || a.isNullable(e.Expr)
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		for _, o := range e.Operands {
 			if a.isNullable(o.Expr) {
 				return true
@@ -239,42 +239,42 @@ func (a *Analysis) isNullable(e grammar.Expr) bool {
 }
 
 // LeftCalls returns the rules that may be called before any input is consumed.
-func (a *Analysis) LeftCalls(e grammar.Expr, acc []string) []string {
+func (a *Analysis) LeftCalls(e ast.Expr, acc []string) []string {
 	a.Control.Poll()
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		return append(acc, e.Name)
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			acc = a.LeftCalls(it, acc)
 			if !a.isNullable(it) {
 				break
 			}
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			acc = a.LeftCalls(alt, acc)
 			if a.AlwaysSucceeds(alt) {
 				break
 			}
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max != 0 {
 			acc = a.LeftCalls(e.Expr, acc)
 		}
-	case *grammar.Optional:
+	case *ast.Optional:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.And:
+	case *ast.And:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Not:
+	case *ast.Not:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Discard:
+	case *ast.Discard:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Capture:
+	case *ast.Capture:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		acc = a.LeftCalls(e.Expr, acc)
 		if !a.AlwaysSucceeds(e.Expr) {
 			for _, at := range e.Attrs {
@@ -285,7 +285,7 @@ func (a *Analysis) LeftCalls(e grammar.Expr, acc []string) []string {
 				}
 			}
 		}
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		if e.Skip != nil {
 			acc = a.LeftCalls(e.Skip, acc)
 		}
@@ -297,7 +297,7 @@ func (a *Analysis) LeftCalls(e grammar.Expr, acc []string) []string {
 		}
 		for _, l := range e.Levels {
 			for _, op := range l.Operators {
-				if op.Kind == grammar.Prefix {
+				if op.Kind == ast.Prefix {
 					acc = a.LeftCalls(op.Expr, acc)
 				}
 			}
@@ -307,14 +307,14 @@ func (a *Analysis) LeftCalls(e grammar.Expr, acc []string) []string {
 }
 
 // AllCalls returns every rule called in the expression.
-func AllCalls(e grammar.Expr, acc []string) []string {
+func AllCalls(e ast.Expr, acc []string) []string {
 	return AllCallsControlled(e, acc, nil)
 }
 
-func AllCallsControlled(e grammar.Expr, acc []string, control *cancel.Control) []string {
-	walkExprControlled(e, func(x grammar.Expr) {
+func AllCallsControlled(e ast.Expr, acc []string, control *cancel.Control) []string {
+	walkExprControlled(e, func(x ast.Expr) {
 		control.Poll()
-		if r, ok := x.(*grammar.Ref); ok {
+		if r, ok := x.(*ast.Ref); ok {
 			acc = append(acc, r.Name)
 		}
 	}, control)
@@ -326,18 +326,18 @@ func AllCallsControlled(e grammar.Expr, acc []string, control *cancel.Control) [
 // indirectly. A rule's result depends on the environment
 // only through the values of these variables at the call: definitions made inside a rule are
 // undone when it returns.
-func RuleVariables(rules []*grammar.RuleDef) map[string][]string {
+func RuleVariables(rules []*ast.RuleDef) map[string][]string {
 	return ruleVariablesControlled(rules, nil)
 }
 
-func ruleVariablesControlled(rules []*grammar.RuleDef, control *cancel.Control) map[string][]string {
+func ruleVariablesControlled(rules []*ast.RuleDef, control *cancel.Control) map[string][]string {
 	direct := map[string]map[string]bool{}
 	for _, r := range rules {
 		control.Poll()
 		var set map[string]bool
-		walkRuleTermsControlled(r, func(t grammar.Term) {
+		walkRuleTermsControlled(r, func(t ast.Term) {
 			control.Poll()
-			if v, ok := t.(*grammar.VarRef); ok {
+			if v, ok := t.(*ast.VarRef); ok {
 				if set == nil {
 					set = map[string]bool{}
 				}
@@ -404,7 +404,7 @@ func ruleVariablesControlled(rules []*grammar.RuleDef, control *cancel.Control) 
 }
 
 // walkExprControlled is astfacts.WalkExprWithPoll polling control.
-func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *cancel.Control) {
+func walkExprControlled(e ast.Expr, f func(ast.Expr), control *cancel.Control) {
 	if control == nil {
 		astfacts.WalkExpr(e, f)
 		return
@@ -413,12 +413,12 @@ func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *cancel.Co
 }
 
 // WalkTerm is astfacts.WalkTerm.
-func WalkTerm(t grammar.Term, f func(grammar.Term)) { astfacts.WalkTerm(t, f) }
+func WalkTerm(t ast.Term, f func(ast.Term)) { astfacts.WalkTerm(t, f) }
 
 // Tarjan returns the strongly connected components of the graph of edges, starting from the
 // rules in order. A component comes after every component it reaches, so callees come before
 // their callers. A non-nil control polls for cancellation.
-func Tarjan(rules []*grammar.RuleDef, edges map[string][]string, control *cancel.Control) [][]string {
+func Tarjan(rules []*ast.RuleDef, edges map[string][]string, control *cancel.Control) [][]string {
 	index := map[string]int{}
 	low := map[string]int{}
 	onStack := map[string]bool{}
@@ -511,7 +511,7 @@ func findCycle(scc []string, edges map[string][]string, in, leaders map[string]b
 // Recoveries and calls inside lookaheads and Operators Rule skips do not count, since their values
 // do not reach the rule's value and their ends discard the recovered errors; nor does #missing,
 // which a lookahead disables.
-func recoveringRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]string {
+func recoveringRules(rules []*ast.RuleDef, control *cancel.Control) map[string]string {
 	witness := map[string]string{}
 	calls := map[string][]string{}
 	for _, r := range rules {
@@ -544,40 +544,40 @@ func recoveringRules(rules []*grammar.RuleDef, control *cancel.Control) map[stri
 
 // valueRecovery reports whether e has a #recover outside lookaheads and Operators Rule skips, and
 // returns the rules that it calls outside them (recoveringRules).
-func valueRecovery(e grammar.Expr, control *cancel.Control) (bool, []string) {
-	silent := map[grammar.Expr]bool{}
-	mark := func(x grammar.Expr) {
-		walkExprControlled(x, func(y grammar.Expr) { silent[y] = true }, control)
+func valueRecovery(e ast.Expr, control *cancel.Control) (bool, []string) {
+	silent := map[ast.Expr]bool{}
+	mark := func(x ast.Expr) {
+		walkExprControlled(x, func(y ast.Expr) { silent[y] = true }, control)
 	}
-	walkExprControlled(e, func(x grammar.Expr) {
+	walkExprControlled(e, func(x ast.Expr) {
 		switch x := x.(type) {
-		case *grammar.And:
+		case *ast.And:
 			mark(x.Expr)
-		case *grammar.Not:
+		case *ast.Not:
 			mark(x.Expr)
-		case *grammar.OperatorsRule:
+		case *ast.OperatorsRule:
 			mark(x.Skip)
 		}
 	}, control)
 	found := false
 	var calls []string
-	walkExprControlled(e, func(x grammar.Expr) {
+	walkExprControlled(e, func(x ast.Expr) {
 		if silent[x] {
 			return
 		}
 		switch x := x.(type) {
-		case *grammar.Ref:
+		case *ast.Ref:
 			calls = append(calls, x.Name)
-		case *grammar.Recovery:
+		case *ast.Recovery:
 			found = true
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			found = found || hasRecover(x.Attrs)
 		}
 	}, control)
 	return found, calls
 }
 
-func propagate(rules []*grammar.RuleDef, calls map[string][]string, set map[string]bool, control *cancel.Control) {
+func propagate(rules []*ast.RuleDef, calls map[string][]string, set map[string]bool, control *cancel.Control) {
 	for changed := true; changed; {
 		control.Poll()
 		changed = false
@@ -599,14 +599,14 @@ func propagate(rules []*grammar.RuleDef, calls map[string][]string, set map[stri
 }
 
 // walkRuleTermsControlled is WalkRuleTerms polling control for cancellation.
-func walkRuleTermsControlled(r *grammar.RuleDef, f func(grammar.Term), control *cancel.Control) {
+func walkRuleTermsControlled(r *ast.RuleDef, f func(ast.Term), control *cancel.Control) {
 	control.Poll()
 	WalkTerm(r.Action, f)
-	walkExprControlled(r.Expr, func(e grammar.Expr) {
+	walkExprControlled(r.Expr, func(e ast.Expr) {
 		switch e := e.(type) {
-		case *grammar.Predicate:
+		case *ast.Predicate:
 			WalkTerm(e.Term, f)
-		case *grammar.OperatorsRule:
+		case *ast.OperatorsRule:
 			for _, o := range e.Operands {
 				control.Poll()
 				WalkTerm(o.Action, f)
@@ -622,11 +622,11 @@ func walkRuleTermsControlled(r *grammar.RuleDef, f func(grammar.Term), control *
 	}, control)
 }
 
-func ruleUsesPositions(r *grammar.RuleDef, control *cancel.Control) bool {
+func ruleUsesPositions(r *ast.RuleDef, control *cancel.Control) bool {
 	found := false
-	walkRuleTermsControlled(r, func(x grammar.Term) {
+	walkRuleTermsControlled(r, func(x ast.Term) {
 		control.Poll()
-		if m, ok := x.(*grammar.Member); ok && (m.Name == "Start" || m.Name == "End") {
+		if m, ok := x.(*ast.Member); ok && (m.Name == "Start" || m.Name == "End") {
 			found = true
 		}
 	}, control)
@@ -634,7 +634,7 @@ func ruleUsesPositions(r *grammar.RuleDef, control *cancel.Control) bool {
 }
 
 // AlwaysSucceeds preserves the ordinary proof and shares the invocation control.
-func (a *Analysis) AlwaysSucceeds(e grammar.Expr) bool {
+func (a *Analysis) AlwaysSucceeds(e ast.Expr) bool {
 	if a.Control == nil {
 		return astfacts.AlwaysSucceeds(e, a.Succeeding)
 	}
@@ -642,14 +642,14 @@ func (a *Analysis) AlwaysSucceeds(e grammar.Expr) bool {
 }
 
 // WalkExpr is astfacts.WalkExpr.
-func WalkExpr(e grammar.Expr, f func(grammar.Expr)) { astfacts.WalkExpr(e, f) }
+func WalkExpr(e ast.Expr, f func(ast.Expr)) { astfacts.WalkExpr(e, f) }
 
 // WalkRuleTerms visits every term in a rule's action and predicates, including Operators Rule
 // operand and operator actions.
-func WalkRuleTerms(r *grammar.RuleDef, f func(grammar.Term)) { walkRuleTermsControlled(r, f, nil) }
+func WalkRuleTerms(r *ast.RuleDef, f func(ast.Term)) { walkRuleTermsControlled(r, f, nil) }
 
 // HasPragma reports whether e carries the pragma or attribute name.
-func HasPragma(e *grammar.Attributed, name string) bool {
+func HasPragma(e *ast.Attributed, name string) bool {
 	for _, a := range e.Attrs {
 		if a.Name == name {
 			return true
@@ -659,7 +659,7 @@ func HasPragma(e *grammar.Attributed, name string) bool {
 }
 
 // hasRecover reports whether attrs has #recover.
-func hasRecover(attrs []*grammar.Attribute) bool {
+func hasRecover(attrs []*ast.Attribute) bool {
 	for _, a := range attrs {
 		if a.Name == "recover" {
 			return true

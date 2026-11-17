@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // listGen writes random comma-separated lists with comments in every place a
@@ -188,12 +188,12 @@ func TestFormatRandomLists(t *testing.T) {
 			for seed := uint64(0); seed < seeds && failures < 3; seed++ {
 				g := &listGen{r: rand.New(rand.NewPCG(seed, 7)), inline: seed%4 == 0}
 				src := w.wrap(g.term(3))
-				ast, err := Parse(src)
+				tree, err := Parse(src)
 				if err != nil {
 					continue
 				}
 				parsed++
-				if problem := checkRandomFormat(src, ast); problem != "" {
+				if problem := checkRandomFormat(src, tree); problem != "" {
 					failures++
 					t.Errorf("seed %d\nsource:\n%s\n%s", seed, src, problem)
 				}
@@ -228,12 +228,12 @@ func TestFormatRandomTypes(t *testing.T) {
 			for seed := uint64(0); seed < seeds && failures < 3; seed++ {
 				g := &listGen{r: rand.New(rand.NewPCG(seed, 11)), inline: seed%4 == 0}
 				src := w.wrap(g)
-				ast, err := Parse(src)
+				tree, err := Parse(src)
 				if err != nil {
 					continue
 				}
 				parsed++
-				if problem := checkRandomFormat(src, ast); problem != "" {
+				if problem := checkRandomFormat(src, tree); problem != "" {
 					failures++
 					t.Errorf("seed %d\nsource:\n%s\n%s", seed, src, problem)
 				}
@@ -276,12 +276,12 @@ func TestFormatRandomOpeners(t *testing.T) {
 				// in these constructs, and next to a semicolon, are not kept in place.
 				g := &listGen{r: rand.New(rand.NewPCG(seed, 17)), inline: true}
 				src := w.wrap(g)
-				ast, err := Parse(src)
+				tree, err := Parse(src)
 				if err != nil {
 					continue
 				}
 				parsed++
-				if problem := checkRandomFormat(src, ast); problem != "" {
+				if problem := checkRandomFormat(src, tree); problem != "" {
 					failures++
 					t.Errorf("seed %d\nsource:\n%s\n%s", seed, src, problem)
 				}
@@ -324,17 +324,17 @@ func TestFormatRandomRepeat(t *testing.T) {
 		}
 		b.WriteString(g.slot() + ")")
 		src := "rule r = \"a\" #repeat" + b.String() + " \"b\"\n"
-		ast, err := Parse(src)
+		tree, err := Parse(src)
 		if err != nil {
 			continue
 		}
 		parsed++
-		problem := checkRandomFormat(src, ast)
+		problem := checkRandomFormat(src, tree)
 		if problem == "" {
-			again, err := Parse(grammar.Format(ast))
+			again, err := Parse(ast.Format(tree))
 			if err != nil {
 				problem = err.Error()
-			} else if want, got := repeatSlots(ast, true), repeatSlots(again, false); want != got {
+			} else if want, got := repeatSlots(tree, true), repeatSlots(again, false); want != got {
 				problem = fmt.Sprintf("the comments moved\nwant %s\ngot  %s", want, got)
 			}
 		}
@@ -353,8 +353,8 @@ func TestFormatRandomRepeat(t *testing.T) {
 // parenthesis). With canonical, it maps the slots of the source to the slots of
 // the canonical spelling of the bounds: the first token of it that is not before
 // the written one.
-func repeatSlots(g *grammar.Grammar, canonical bool) string {
-	rep := g.Rules()[0].Expr.(*grammar.Seq).Items[0].(*grammar.Repeat)
+func repeatSlots(g *ast.Grammar, canonical bool) string {
+	rep := g.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.Repeat)
 	names := []string{"min", "comma", "max"}
 	var kinds []int
 	switch {
@@ -400,33 +400,33 @@ func repeatSlots(g *grammar.Grammar, canonical bool) string {
 	return b.String()
 }
 
-// checkRandomFormat returns a description of what formatting changes in ast,
+// checkRandomFormat returns a description of what formatting changes in tree,
 // parsed from src.
-func checkRandomFormat(src string, ast *grammar.Grammar) string {
-	return checkRandomFormatOwners(src, ast, true)
+func checkRandomFormat(src string, tree *ast.Grammar) string {
+	return checkRandomFormatOwners(src, tree, true)
 }
 
 // checkRandomFormatOwners is checkRandomFormat that checks the owners of the
 // comments only when owners is set.
-func checkRandomFormatOwners(src string, ast *grammar.Grammar, owners bool) string {
-	out := grammar.Format(ast)
+func checkRandomFormatOwners(src string, tree *ast.Grammar, owners bool) string {
+	out := ast.Format(tree)
 	again, err := Parse(out)
 	if err != nil {
 		return fmt.Sprintf("the result does not parse: %v\n%s", err, out)
 	}
-	if a, b := jsonOf(ast), jsonOf(again); a != b {
+	if a, b := jsonOf(tree), jsonOf(again); a != b {
 		return "the result is a different grammar\n" + out
 	}
-	if a, b := commentTexts(ast), commentTexts(again); !slices.Equal(a, b) {
+	if a, b := commentTexts(tree), commentTexts(again); !slices.Equal(a, b) {
 		return fmt.Sprintf("the comments changed\n%q\n%q\n%s", a, b, out)
 	}
-	if second := grammar.Format(again); second != out {
+	if second := ast.Format(again); second != out {
 		return "formatting is not idempotent\nfirst:\n" + out + "\nsecond:\n" + second
 	}
-	if diffs := ownerDiffs(ast, again); owners && len(diffs) > 0 {
+	if diffs := ownerDiffs(tree, again); owners && len(diffs) > 0 {
 		return "the owners changed\n" + strings.Join(diffs, "\n") + "\n" + out
 	}
-	if diffs := argHomeDiffs(ast, again); len(diffs) > 0 {
+	if diffs := argHomeDiffs(tree, again); len(diffs) > 0 {
 		return "comments left their arguments\n" + strings.Join(diffs, "\n") + "\n" + out
 	}
 	return ""
@@ -436,7 +436,7 @@ func checkRandomFormatOwners(src string, ast *grammar.Grammar, owners bool) stri
 // a lambda or a #repeat to the path of that node. No owner claims these
 // comments and JSON omits them, so only their place in the tree shows whether
 // formatting kept them where they were.
-func argHomes(g *grammar.Grammar) map[string]string {
+func argHomes(g *ast.Grammar) map[string]string {
 	homes := map[string][]string{}
 	var all func(v reflect.Value, path string)
 	all = func(v reflect.Value, path string) {
@@ -445,7 +445,7 @@ func argHomes(g *grammar.Grammar) map[string]string {
 			if v.IsNil() {
 				return
 			}
-			if c, ok := v.Interface().(*grammar.Comment); ok {
+			if c, ok := v.Interface().(*ast.Comment); ok {
 				homes[c.Text] = append(homes[c.Text], path)
 				return
 			}
@@ -503,7 +503,7 @@ func argHomes(g *grammar.Grammar) map[string]string {
 	return out
 }
 
-func argHomeDiffs(a, b *grammar.Grammar) []string {
+func argHomeDiffs(a, b *ast.Grammar) []string {
 	x, y := argHomes(a), argHomes(b)
 	var diffs []string
 	for text, home := range x {
@@ -520,17 +520,17 @@ func argHomeDiffs(a, b *grammar.Grammar) []string {
 	return diffs
 }
 
-func jsonOf(g *grammar.Grammar) string {
+func jsonOf(g *ast.Grammar) string {
 	c := g.Clone()
 	stripSource(reflect.ValueOf(c))
-	data, err := grammar.MarshalJSON(c)
+	data, err := ast.MarshalJSON(c)
 	if err != nil {
 		panic(err)
 	}
 	return string(data)
 }
 
-func commentTexts(g *grammar.Grammar) []string {
+func commentTexts(g *ast.Grammar) []string {
 	var out []string
 	for _, c := range g.AllComments() {
 		out = append(out, c.Text)

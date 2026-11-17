@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // viewOf returns the view of the body of rule main of src with opts, and the rewrites of each
@@ -31,7 +31,7 @@ func viewBodies(t *testing.T, src string, opts Options) (map[string]string, map[
 	v, _, rules, _ := testView(t, src, opts)
 	bodies := map[string]string{}
 	for _, r := range rules {
-		bodies[r.Name] = grammar.FormatExpr(r.Expr)
+		bodies[r.Name] = ast.FormatExpr(r.Expr)
 	}
 	return bodies, v.Applied
 }
@@ -41,18 +41,18 @@ func viewBodies(t *testing.T, src string, opts Options) (map[string]string, map[
 func builtTexts(t *testing.T, src string, opts Options) map[string]string {
 	t.Helper()
 	_, source, rules, text := testView(t, src, opts)
-	orig := map[grammar.Expr]bool{}
+	orig := map[ast.Expr]bool{}
 	got := map[string]string{}
 	for _, r := range source {
-		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) { orig[x] = true })
+		astfacts.WalkExpr(r.Expr, func(x ast.Expr) { orig[x] = true })
 	}
 	for _, r := range rules {
 		if r.Name != "main" {
 			continue
 		}
-		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
 			if !orig[x] {
-				got[grammar.FormatExpr(x)] = text[x]
+				got[ast.FormatExpr(x)] = text[x]
 			}
 		})
 	}
@@ -62,7 +62,7 @@ func builtTexts(t *testing.T, src string, opts Options) map[string]string {
 // testView returns the cost view of the grammar src with opts, the rules it is built from, its
 // rules written as grammar rules and the source text of each expression of them that the view
 // builds.
-func testView(t *testing.T, src string, opts Options) (*View, []*grammar.RuleDef, []*grammar.RuleDef, map[grammar.Expr]string) {
+func testView(t *testing.T, src string, opts Options) (*View, []*ast.RuleDef, []*ast.RuleDef, map[ast.Expr]string) {
 	t.Helper()
 	g, err := parser.Parse(src)
 	if err != nil {
@@ -173,22 +173,22 @@ func TestNormalViewText(t *testing.T) {
 	for _, c := range textCases {
 		t.Run(c.body, func(t *testing.T) {
 			_, source, rules, text := testView(t, "rule main = "+c.body+"\n", Options{})
-			orig := map[grammar.Expr]bool{}
-			astfacts.WalkExpr(source[0].Expr, func(x grammar.Expr) { orig[x] = true })
+			orig := map[ast.Expr]bool{}
+			astfacts.WalkExpr(source[0].Expr, func(x ast.Expr) { orig[x] = true })
 			got := map[string]string{}
-			astfacts.WalkExpr(rules[0].Expr, func(x grammar.Expr) {
+			astfacts.WalkExpr(rules[0].Expr, func(x ast.Expr) {
 				if orig[x] {
 					return
 				}
 				text, ok := text[x]
 				if !ok {
-					t.Errorf("%s, built by the view, stands for no text of the grammar", grammar.FormatExpr(x))
+					t.Errorf("%s, built by the view, stands for no text of the grammar", ast.FormatExpr(x))
 				}
-				got[grammar.FormatExpr(x)] = text
+				got[ast.FormatExpr(x)] = text
 			})
 			for spelling, text := range c.want {
 				if got[spelling] != text {
-					t.Errorf("%s stands for %q, want %q (view %s)", spelling, got[spelling], text, grammar.FormatExpr(rules[0].Expr))
+					t.Errorf("%s stands for %q, want %q (view %s)", spelling, got[spelling], text, ast.FormatExpr(rules[0].Expr))
 				}
 			}
 		})
@@ -205,8 +205,8 @@ func TestNormalViewCutKeepsTuple(t *testing.T) {
 			_, _, rules, _ := testView(t, c.src, Options{})
 			got := 0
 			for _, r := range rules {
-				astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
-					if s, ok := x.(*grammar.Seq); ok && len(s.Items) == 1 {
+				astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
+					if s, ok := x.(*ast.Seq); ok && len(s.Items) == 1 {
 						got++
 					}
 				})
@@ -255,7 +255,7 @@ func TestNormalViewLawSwitch(t *testing.T) {
 					src = factstest.Read(t, path)
 				}
 				for _, matching := range []bool{false, true} {
-					view := func(laws []Law) (*View, []*grammar.RuleDef, []*grammar.RuleDef) {
+					view := func(laws []Law) (*View, []*ast.RuleDef, []*ast.RuleDef) {
 						v, source, rules, _ := testView(t, src, Options{Labels: matching, Inline: matching, Laws: laws})
 						return v, source, rules
 					}
@@ -270,7 +270,7 @@ func TestNormalViewLawSwitch(t *testing.T) {
 						t.Errorf("matching %v, no law: %v", matching, none.Applied)
 					}
 					for i, r := range rules {
-						if got, want := grammar.FormatExpr(r.Expr), grammar.FormatExpr(source[i].Expr); got != want {
+						if got, want := ast.FormatExpr(r.Expr), ast.FormatExpr(source[i].Expr); got != want {
 							t.Errorf("matching %v, no law: rule %s is %s, want %s", matching, r.Name, got, want)
 						}
 					}

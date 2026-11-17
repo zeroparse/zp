@@ -7,16 +7,16 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestClassRangeContextCancellation(t *testing.T) {
-	rs := make([]grammar.CharRange, 4096)
+	rs := make([]ast.CharRange, 4096)
 	for i := range rs {
-		rs[i] = grammar.CharRange{Lo: rune(256 + (len(rs)-i)*2), Hi: rune(256 + (len(rs)-i)*2)}
+		rs[i] = ast.CharRange{Lo: rune(256 + (len(rs)-i)*2), Hi: rune(256 + (len(rs)-i)*2)}
 	}
-	before := append([]grammar.CharRange(nil), rs...)
-	cl := &grammar.CharClass{Ranges: rs}
+	before := append([]ast.CharRange(nil), rs...)
+	cl := &ast.CharClass{Ranges: rs}
 	for _, p := range []struct {
 		name string
 		at   int
@@ -30,7 +30,7 @@ func TestClassRangeContextCancellation(t *testing.T) {
 		{"structure-comparison", 1, func(c *lintControl) { same(cl, cl, false, c) }},
 		{"prefix", 1, func(c *lintControl) { (&analysis{control: c}).matchPrefix(cl, "a") }},
 		{"failure", 1, func(c *lintControl) { (&analysis{control: c}).fails(cl, "a") }},
-		{"any-character", 1, func(c *lintControl) { consumesAny(&grammar.CharClass{Negated: true, Ranges: rs}, c) }},
+		{"any-character", 1, func(c *lintControl) { consumesAny(&ast.CharClass{Negated: true, Ranges: rs}, c) }},
 		{"class-lint", 1, func(c *lintControl) { (&linter{control: c}).charClass(cl) }},
 	} {
 		t.Run(p.name, func(t *testing.T) {
@@ -54,14 +54,14 @@ func TestClassRangeContextCancellation(t *testing.T) {
 }
 
 func TestClassRangeContextFacts(t *testing.T) {
-	cases := []struct{ in, want []grammar.CharRange }{
+	cases := []struct{ in, want []ast.CharRange }{
 		{nil, nil},
-		{[]grammar.CharRange{{Lo: 'z', Hi: 'z'}, {Lo: 'a', Hi: 'f'}, {Lo: 'd', Hi: 'j'}, {Lo: 'k', Hi: 'k'}, {Lo: 'a', Hi: 'f'}}, []grammar.CharRange{{Lo: 'a', Hi: 'k'}, {Lo: 'z', Hi: 'z'}}},
-		{[]grammar.CharRange{{Lo: 'β', Hi: 'β'}, {Lo: 'a', Hi: 'a'}}, []grammar.CharRange{{Lo: 'a', Hi: 'a'}, {Lo: 'β', Hi: 'β'}}},
+		{[]ast.CharRange{{Lo: 'z', Hi: 'z'}, {Lo: 'a', Hi: 'f'}, {Lo: 'd', Hi: 'j'}, {Lo: 'k', Hi: 'k'}, {Lo: 'a', Hi: 'f'}}, []ast.CharRange{{Lo: 'a', Hi: 'k'}, {Lo: 'z', Hi: 'z'}}},
+		{[]ast.CharRange{{Lo: 'β', Hi: 'β'}, {Lo: 'a', Hi: 'a'}}, []ast.CharRange{{Lo: 'a', Hi: 'a'}, {Lo: 'β', Hi: 'β'}}},
 	}
 	for _, tc := range cases {
 		c := &lintControl{ctx: context.Background()}
-		before := append([]grammar.CharRange(nil), tc.in...)
+		before := append([]ast.CharRange(nil), tc.in...)
 		for _, control := range []*lintControl{nil, c} {
 			got := normalizeControlled(tc.in, control)
 			if !reflect.DeepEqual(got, tc.want) || !sameRangesControlled(got, normalize(tc.in), control) {
@@ -71,12 +71,12 @@ func TestClassRangeContextFacts(t *testing.T) {
 				t.Fatal("normalization mutated input")
 			}
 			if len(got) > 0 {
-				got[0] = grammar.CharRange{}
+				got[0] = ast.CharRange{}
 				if !reflect.DeepEqual(tc.in, before) {
 					t.Fatal("normalization exposed input storage")
 				}
 			}
-			if sameRangesControlled(tc.want, append(tc.want, grammar.CharRange{}), control) {
+			if sameRangesControlled(tc.want, append(tc.want, ast.CharRange{}), control) {
 				t.Fatal("comparison ignored length")
 			}
 		}

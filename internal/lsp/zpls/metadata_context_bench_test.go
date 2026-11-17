@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func metadataWideSource(n int, invalid bool) string {
@@ -82,13 +82,13 @@ func metadataFingerprint(tb testing.TB, a *analysis) []byte {
 		Token      parser.Token
 		Start, End int
 	}
-	ruleStatements := map[*grammar.RuleDef]int{}
-	typeStatements := map[grammar.TypeDecl]int{}
+	ruleStatements := map[*ast.RuleDef]int{}
+	typeStatements := map[ast.TypeDecl]int{}
 	for i, stmt := range a.g.File.Decls {
 		switch stmt := stmt.(type) {
-		case *grammar.RuleDef:
+		case *ast.RuleDef:
 			ruleStatements[stmt] = i
-		case grammar.TypeDecl:
+		case ast.TypeDecl:
 			typeStatements[stmt] = i
 		}
 	}

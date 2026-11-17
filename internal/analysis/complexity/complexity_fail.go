@@ -1,9 +1,9 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A unit restarts the input that a scanning source inside it examined only when it fails after
@@ -13,12 +13,12 @@ import (
 // conditions bound.
 
 // containsSource reports whether e contains a scanning source, in itself or in a rule it calls.
-func (k *classifier) containsSource(e grammar.Expr) bool {
+func (k *classifier) containsSource(e ast.Expr) bool {
 	if v, ok := k.srcMemo[e]; ok {
 		return v
 	}
 	found := false
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x ast.Expr) {
 		if found {
 			return
 		}
@@ -26,7 +26,7 @@ func (k *classifier) containsSource(e grammar.Expr) bool {
 			found = true
 			return
 		}
-		if r, ok := x.(*grammar.Ref); ok && k.ruleSrc[r.Name] != nil {
+		if r, ok := x.(*ast.Ref); ok && k.ruleSrc[r.Name] != nil {
 			found = true
 		}
 	})
@@ -55,11 +55,11 @@ func (k *classifier) computeFailRules() {
 }
 
 // failsAfterSource reports whether e can fail after a scanning source in it examined input.
-func (k *classifier) failsAfterSource(e grammar.Expr) bool {
+func (k *classifier) failsAfterSource(e ast.Expr) bool {
 	switch x := e.(type) {
 	case nil:
 		return false
-	case *grammar.Seq:
+	case *ast.Seq:
 		for i, it := range x.Items {
 			if k.failsAfterSource(it) {
 				return true
@@ -73,52 +73,52 @@ func (k *classifier) failsAfterSource(e grammar.Expr) bool {
 			}
 		}
 		return false
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range x.Alts {
 			if k.failsAfterSource(alt) {
 				return true
 			}
 		}
 		return false
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if x.Min == 0 || x.Max == 0 {
 			return false
 		}
 		// A repetition ends at its first empty iteration, so one with a minimum above one can
 		// fail after an iteration ran a source even when its expression always succeeds.
 		return k.failsAfterSource(x.Expr) || x.Min > 1 && k.containsSource(x.Expr) && !k.an.AlwaysSucceeds(x)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return false
-	case *grammar.And:
+	case *ast.And:
 		return k.failsAfterSource(x.Expr)
-	case *grammar.Not:
+	case *ast.Not:
 		return k.containsSource(x.Expr)
-	case *grammar.Group:
+	case *ast.Group:
 		return k.failsAfterSource(x.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.failsAfterSource(x.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.failsAfterSource(x.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.failsAfterSource(x.Expr)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return k.failsAfterSource(x.Expr)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		return k.failsAfterSource(x.Expr)
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.srcExprs[x] {
 			return true
 		}
 		return k.failRule[x.Name]
-	case *grammar.Predicate:
+	case *ast.Predicate:
 		return k.srcExprs[x]
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		if compile.RecoverSkip(x) != nil || compile.HasPragma(x, "missing") {
 			return k.containsSource(x)
 		}
 		return k.failsAfterSource(x.Expr)
-	case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Cut, *grammar.Top, *grammar.Bottom,
-		*grammar.BeginInput, *grammar.EndInput, *grammar.BeginLine, *grammar.EndLine:
+	case *ast.Literal, *ast.CharClass, *ast.Any, *ast.Cut, *ast.Top, *ast.Bottom,
+		*ast.BeginInput, *ast.EndInput, *ast.BeginLine, *ast.EndLine:
 		return false
 	}
 	return k.containsSource(e)
@@ -135,9 +135,9 @@ func (k *classifier) unitFailsAfterSource(u *unit) bool {
 		}
 		return k.failsAfterSource(u.expr)
 	case unitIteration:
-		return k.failsAfterSource(u.expr.(*grammar.Repeat).Expr)
+		return k.failsAfterSource(u.expr.(*ast.Repeat).Expr)
 	case unitOption:
-		return k.failsAfterSource(u.expr.(*grammar.Optional).Expr)
+		return k.failsAfterSource(u.expr.(*ast.Optional).Expr)
 	}
 	return true
 }

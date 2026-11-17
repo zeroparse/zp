@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Error is an error at a position in the grammar source.
 type Error struct {
-	Pos grammar.Pos
+	Pos ast.Pos
 	Msg string
 }
 

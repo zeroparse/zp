@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // jsonRoundTripForms hold comments in the places where a declaration, a field or
@@ -42,27 +42,27 @@ func expandLineHoles(form string, g *listGen) string {
 // jsonRoundTripProblem formats the grammar that its JSON form decodes to: the
 // result must parse to the same JSON, with every comment owned by the same
 // node, and formatting it again must change nothing.
-func jsonRoundTripProblem(ast *grammar.Grammar) string {
-	data, err := grammar.MarshalJSON(ast)
+func jsonRoundTripProblem(tree *ast.Grammar) string {
+	data, err := ast.MarshalJSON(tree)
 	if err != nil {
 		return "marshal: " + err.Error()
 	}
-	decoded, err := grammar.UnmarshalJSON(data)
+	decoded, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		return "unmarshal: " + err.Error()
 	}
-	out := grammar.Format(decoded)
+	out := ast.Format(decoded)
 	again, err := Parse(out)
 	if err != nil {
 		return fmt.Sprintf("the result does not parse: %v\n%s", err, out)
 	}
-	if a, b := jsonOf(ast), jsonOf(again); a != b {
+	if a, b := jsonOf(tree), jsonOf(again); a != b {
 		return "the result is a different grammar\n" + out
 	}
-	if diffs := ownerDiffs(ast, again); len(diffs) > 0 {
+	if diffs := ownerDiffs(tree, again); len(diffs) > 0 {
 		return "the owners changed\n" + strings.Join(diffs, "\n") + "\n" + out
 	}
-	if second := grammar.Format(again); second != out {
+	if second := ast.Format(again); second != out {
 		return "formatting is not idempotent\nfirst:\n" + out + "\nsecond:\n" + second
 	}
 	return ""
@@ -72,17 +72,17 @@ func jsonRoundTripProblem(ast *grammar.Grammar) string {
 var commentLabel = regexp.MustCompile(`(?:/\*|//) ([a-z][0-9]+)`)
 
 // lostComments returns the label of a comment of src that the grammar decoded
-// from the JSON of ast does not write, or "".
-func lostComments(src string, ast *grammar.Grammar) string {
-	data, err := grammar.MarshalJSON(ast)
+// from the JSON of tree does not write, or "".
+func lostComments(src string, tree *ast.Grammar) string {
+	data, err := ast.MarshalJSON(tree)
 	if err != nil {
 		return err.Error()
 	}
-	decoded, err := grammar.UnmarshalJSON(data)
+	decoded, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		return err.Error()
 	}
-	out := grammar.Format(decoded)
+	out := ast.Format(decoded)
 	for _, m := range commentLabel.FindAllStringSubmatch(src, -1) {
 		if !regexp.MustCompile(`\b` + m[1] + `\b`).MatchString(out) {
 			return m[1]
@@ -101,16 +101,16 @@ func TestFormatRandomJSONRoundTrip(t *testing.T) {
 			for seed := uint64(0); seed < seeds && failures < 2; seed++ {
 				g := &listGen{r: rand.New(rand.NewPCG(seed, 77))}
 				src := expandLineHoles(f.form, g)
-				ast, err := Parse(src)
+				tree, err := Parse(src)
 				if err != nil {
 					continue
 				}
 				parsed++
-				if problem := jsonRoundTripProblem(ast); problem != "" {
+				if problem := jsonRoundTripProblem(tree); problem != "" {
 					failures++
 					t.Errorf("seed %d\nsource:\n%s\n%s", seed, src, problem)
 				} else if f.keepsAll {
-					if lost := lostComments(src, ast); lost != "" {
+					if lost := lostComments(src, tree); lost != "" {
 						failures++
 						t.Errorf("seed %d\nsource:\n%s\nlost comment %s", seed, src, lost)
 					}
@@ -135,11 +135,11 @@ func TestFormatJSONKeepsBlockContinuation(t *testing.T) {
 		{"trailing of a field", "package p\ntype T = {\n    A int /* x\n     *   y */\n}\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ast, err := Parse(tc.src)
+			tree, err := Parse(tc.src)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if problem := jsonRoundTripProblem(ast); problem != "" {
+			if problem := jsonRoundTripProblem(tree); problem != "" {
 				t.Fatalf("%s\n%s", tc.src, problem)
 			}
 		})

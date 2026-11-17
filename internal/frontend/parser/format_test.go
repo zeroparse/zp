@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // format parses src and formats it.
@@ -21,7 +21,7 @@ func format(t *testing.T, src string) string {
 	if err != nil {
 		t.Fatalf("%v\n%s", err, src)
 	}
-	return grammar.Format(g)
+	return ast.Format(g)
 }
 
 // lexComments returns the texts of the comments in src, sorted.
@@ -67,7 +67,7 @@ func checkFormatOwners(t *testing.T, src string) string {
 	if !slices.Equal(kept, want) {
 		t.Errorf("comments in the AST\n got %q\nwant %q", kept, want)
 	}
-	out := grammar.Format(g)
+	out := ast.Format(g)
 	g2, err := Parse(out)
 	if err != nil {
 		t.Fatalf("formatted source does not parse: %v\n%s", err, out)
@@ -78,7 +78,7 @@ func checkFormatOwners(t *testing.T, src string) string {
 	if got := lexComments(t, out); !slices.Equal(got, want) {
 		t.Errorf("comments after formatting\n got %q\nwant %q\n%s", got, want, out)
 	}
-	if again := grammar.Format(g2); again != out {
+	if again := ast.Format(g2); again != out {
 		t.Errorf("formatting is not idempotent\nfirst:\n%s\nsecond:\n%s", out, again)
 	}
 	if diffs := ownerDiffs(g, g2); len(diffs) > 0 {
@@ -89,9 +89,9 @@ func checkFormatOwners(t *testing.T, src string) string {
 
 // ownerMap maps the path of each node that owns comments to the comments it
 // owns: the leading, trailing and detached comments of its source information.
-func ownerMap(g *grammar.Grammar) map[string]string {
+func ownerMap(g *ast.Grammar) map[string]string {
 	out := map[string]string{}
-	info := reflect.TypeOf(grammar.SourceInfo{})
+	info := reflect.TypeOf(ast.SourceInfo{})
 	var walk func(v reflect.Value, path string)
 	walk = func(v reflect.Value, path string) {
 		switch v.Kind() {
@@ -109,7 +109,7 @@ func ownerMap(g *grammar.Grammar) map[string]string {
 			}
 		case reflect.Struct:
 			if v.Type() == info {
-				s := v.Interface().(grammar.SourceInfo)
+				s := v.Interface().(ast.SourceInfo)
 				if s.LeadingComments != "" || len(s.TrailingComments) != 0 || len(s.LeadingDetachedComments) > 0 {
 					out[path] = fmt.Sprintf("leading %q trailing %q detached %q", s.LeadingComments, s.TrailingComments, s.LeadingDetachedComments)
 				}
@@ -128,7 +128,7 @@ func ownerMap(g *grammar.Grammar) map[string]string {
 
 // ownerDiffs describes the nodes whose comments differ between two grammars of
 // the same shape.
-func ownerDiffs(a, b *grammar.Grammar) []string {
+func ownerDiffs(a, b *ast.Grammar) []string {
 	x, y := ownerMap(a), ownerMap(b)
 	var diffs []string
 	for path, owned := range x {
@@ -145,11 +145,11 @@ func ownerDiffs(a, b *grammar.Grammar) []string {
 	return diffs
 }
 
-func mustJSON(t *testing.T, g *grammar.Grammar) string {
+func mustJSON(t *testing.T, g *ast.Grammar) string {
 	t.Helper()
 	copy := g.Clone()
 	stripSource(reflect.ValueOf(copy))
-	data, err := grammar.MarshalJSON(copy)
+	data, err := ast.MarshalJSON(copy)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func BenchmarkFormatGrammar(b *testing.B) {
 			b.SetBytes(int64(len(data)))
 			b.ReportAllocs()
 			for b.Loop() {
-				formattedGrammarSink = grammar.Format(g)
+				formattedGrammarSink = ast.Format(g)
 			}
 		})
 	}
@@ -379,7 +379,7 @@ func TestCommentsAndSourceInfoInJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,7 +389,7 @@ func TestCommentsAndSourceInfoInJSON(t *testing.T) {
 	if strings.Contains(string(data), "// file") || strings.Contains(string(data), "PackageBreak") {
 		t.Fatalf("formatter trivia serialized: %s", data)
 	}
-	decoded, err := grammar.UnmarshalJSON(data)
+	decoded, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -403,7 +403,7 @@ func stripSource(v reflect.Value) {
 	if !v.IsValid() {
 		return
 	}
-	if v.Type() == reflect.TypeFor[grammar.SourceInfo]() {
+	if v.Type() == reflect.TypeFor[ast.SourceInfo]() {
 		v.SetZero()
 		return
 	}
@@ -463,15 +463,15 @@ func TestFormatWithoutLayout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bare, err := grammar.UnmarshalJSON(data)
+	bare, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := grammar.Format(bare)
+	out := ast.Format(bare)
 	if out2 := format(t, out); out2 != out {
 		t.Errorf("not stable:\n%s\n---\n%s", out, out2)
 	}

@@ -3,7 +3,7 @@ package sourceast
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Gap is the canonical record of the trivia between two tokens when it holds a
@@ -56,7 +56,7 @@ type Node struct {
 //
 // No group moves between boundaries and none is copied: a group a node does not
 // end up owning belongs to nobody. The result has one entry per node.
-func (p *Positions) Claim(gaps []Gap, nodes []Node) ([]grammar.SourceInfo, error) {
+func (p *Positions) Claim(gaps []Gap, nodes []Node) ([]ast.SourceInfo, error) {
 	byEnd := make(map[int]int, len(gaps))   // gap index by the offset where it ends
 	byStart := make(map[int]int, len(gaps)) // gap index by the offset where it starts
 	for i, g := range gaps {
@@ -67,8 +67,8 @@ func (p *Positions) Claim(gaps []Gap, nodes []Node) ([]grammar.SourceInfo, error
 	for i := range gaps {
 		lead[i], trail[i] = -1, -1
 	}
-	out := make([]grammar.SourceInfo, len(nodes))
-	at := func(off int) grammar.Pos { return p.boundaries[off] }
+	out := make([]ast.SourceInfo, len(nodes))
+	at := func(off int) ast.Pos { return p.boundaries[off] }
 	parts := make([][]int, len(nodes)) // the gaps whose trailing groups a node owns, in order
 	render := func(n int) {
 		out[n].TrailingComments = nil
@@ -117,7 +117,7 @@ func (p *Positions) Claim(gaps []Gap, nodes []Node) ([]grammar.SourceInfo, error
 			}
 			pos = ev.Start
 			out[n].Pos, out[n].End = s.Pos, s.End
-			out[n].DiagnosticPos = grammar.Pos{}
+			out[n].DiagnosticPos = ast.Pos{}
 			if diag != Unset {
 				out[n].DiagnosticPos = at(diag)
 			}

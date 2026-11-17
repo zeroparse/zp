@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Package ownership is compared at the public metadata boundary. The adapter
@@ -42,7 +42,7 @@ func TestCanonicalPackageMetadataParity(t *testing.T) {
 					detached = append(detached, comment.Field("Text").(string))
 				}
 				m := sourceast.Metadata{Start: int(span.Start()), End: int(span.End()), Leading: metadata.Field("Leading").(string), Trailing: stringList(metadata, "Trailing"), Detached: detached}
-				adapted := &grammar.Grammar{}
+				adapted := &ast.Grammar{}
 				if err := sourceast.NewPositions(src).PackageClause(adapted, sourceText(t, pkg, "Name"), m); err != nil {
 					t.Fatal(err)
 				}

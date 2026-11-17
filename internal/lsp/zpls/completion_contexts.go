@@ -1,9 +1,9 @@
 package zpls
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // contextualItems recognizes unfinished syntax without requiring the containing
@@ -43,7 +43,7 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 			if a.isPunct(comma, ",") && comma <= prev {
 				var items []protocol.CompletionItem
 				if d := a.rules[a.toks[first].Text]; d != nil {
-					if op, _ := grammar.RuleOperators(d.rule.Expr); op != nil {
+					if op, _ := ast.RuleOperators(d.rule.Expr); op != nil {
 						for _, level := range op.Levels {
 							control.poll()
 							if level.Name != "" {
@@ -81,7 +81,7 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 	if d == nil {
 		return nil, false
 	}
-	st, ok := d.typ.(*grammar.TypeDef)
+	st, ok := d.typ.(*ast.TypeDef)
 	if !ok {
 		return nil, false
 	}

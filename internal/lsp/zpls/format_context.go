@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Formatting has two potentially large phases: AST printing and deriving a
@@ -25,7 +25,7 @@ func formatEditsContext(ctx context.Context, a *analysis) ([]protocol.TextEdit, 
 		}
 		return []protocol.TextEdit{}, nil
 	}
-	out, err := grammar.FormatContext(ctx, a.g)
+	out, err := ast.FormatContext(ctx, a.g)
 	if err != nil {
 		return nil, err
 	}

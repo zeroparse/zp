@@ -11,9 +11,9 @@ import (
 	"testing"
 	"unicode"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // errorAt is an error of a frontend: its place in the source as a code point offset, and its message.
@@ -29,7 +29,7 @@ func errorsOf(src string, err error) []errorAt {
 		return nil
 	}
 	pos := sourceast.NewPositions(src)
-	offsets := map[grammar.Pos]int{}
+	offsets := map[ast.Pos]int{}
 	for i := len([]rune(src)); i >= 0; i-- {
 		offsets[pos.At(i)] = i
 	}

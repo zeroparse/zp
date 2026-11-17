@@ -1,9 +1,9 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Reused skips.
@@ -22,19 +22,19 @@ import (
 // nor the rest of the skip calls a rule, has a predicate, a #recover or an Operators Rule, or, in
 // an element, an unbounded repetition. Without calls and predicates the other conditions of a
 // skip-run site hold.
-func reusedSkip(skip grammar.Expr) ([]*grammar.Repeat, bool) {
-	var sites []*grammar.Repeat
-	ok, inside := true, map[grammar.Expr]bool{}
-	astfacts.WalkExpr(skip, func(x grammar.Expr) {
+func reusedSkip(skip ast.Expr) ([]*ast.Repeat, bool) {
+	var sites []*ast.Repeat
+	ok, inside := true, map[ast.Expr]bool{}
+	astfacts.WalkExpr(skip, func(x ast.Expr) {
 		if inside[x] {
 			return
 		}
 		switch x := x.(type) {
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			if x.Max < 0 {
 				sites = append(sites, x)
 				ok = ok && constantInput(x.Expr) && !astfacts.HasLooseCut(x.Expr)
-				astfacts.WalkExpr(x.Expr, func(y grammar.Expr) { inside[y] = true })
+				astfacts.WalkExpr(x.Expr, func(y ast.Expr) { inside[y] = true })
 			}
 		default:
 			ok = ok && !costly(x)
@@ -45,10 +45,10 @@ func reusedSkip(skip grammar.Expr) ([]*grammar.Repeat, bool) {
 
 // constantInput reports whether every evaluation of e examines at most a constant amount of the
 // input: e has no unbounded repetition and nothing that costly reports.
-func constantInput(e grammar.Expr) bool {
+func constantInput(e ast.Expr) bool {
 	ok := true
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
-		if r, isRep := x.(*grammar.Repeat); isRep {
+	astfacts.WalkExpr(e, func(x ast.Expr) {
+		if r, isRep := x.(*ast.Repeat); isRep {
 			ok = ok && r.Max >= 0
 			return
 		}
@@ -60,18 +60,18 @@ func constantInput(e grammar.Expr) bool {
 // costly reports whether the expression x, without its parts, can cost more than a constant in a
 // skip expression: a call, which can examine any amount of the input, a predicate, whose terms can
 // build values of any size, a #recover or an Operators Rule.
-func costly(x grammar.Expr) bool {
+func costly(x ast.Expr) bool {
 	switch x := x.(type) {
-	case *grammar.Ref, *grammar.Predicate, *grammar.Recovery, *grammar.OperatorsRule:
+	case *ast.Ref, *ast.Predicate, *ast.Recovery, *ast.OperatorsRule:
 		return true
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return compile.RecoverSkip(x) != nil
 	}
 	return false
 }
 
 // reused reports whether skip is a reused skip.
-func reused(skip grammar.Expr) bool {
+func reused(skip ast.Expr) bool {
 	_, ok := reusedSkip(skip)
 	return ok
 }

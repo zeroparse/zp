@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestDeclarationAttributesParse(t *testing.T) {
@@ -28,14 +28,14 @@ func TestDeclarationAttributesParse(t *testing.T) {
 	if got := strings.Join(names, " "); got != "start foo bar" {
 		t.Fatalf("attributes %q", got)
 	}
-	if ref, ok := b.Attrs[0].Args[0].(*grammar.Ref); !ok || ref.Name != "default" || len(b.Attrs[0].Args) != 1 {
+	if ref, ok := b.Attrs[0].Args[0].(*ast.Ref); !ok || ref.Name != "default" || len(b.Attrs[0].Args) != 1 {
 		t.Errorf("@start(default) arguments %#v", b.Attrs[0].Args)
 	}
 	// The declaration starts at its first attribute; its diagnostics point at "rule".
-	if b.Pos != (grammar.Pos{Line: 3, Col: 1}) || b.Diagnostic() != (grammar.Pos{Line: 5, Col: 1}) {
+	if b.Pos != (ast.Pos{Line: 3, Col: 1}) || b.Diagnostic() != (ast.Pos{Line: 5, Col: 1}) {
 		t.Errorf("pos %v diagnostic %v", b.Pos, b.Diagnostic())
 	}
-	if b.Attrs[2].Pos != (grammar.Pos{Line: 4, Col: 1}) {
+	if b.Attrs[2].Pos != (ast.Pos{Line: 4, Col: 1}) {
 		t.Errorf("@bar at %v", b.Attrs[2].Pos)
 	}
 	if len(b.AttrBreaks) != 3 || b.AttrBreaks[1] != nil || b.AttrBreaks[2] == nil || b.KeywordBreak == nil {
@@ -59,11 +59,11 @@ func TestDeclarationAttributesAfterExpressionAttribute(t *testing.T) {
 		}
 		var expr []string
 		e := rd.Expr
-		if grp, ok := e.(*grammar.Group); ok {
+		if grp, ok := e.(*ast.Group); ok {
 			// Inside parentheses, attributes still continue on the next line.
 			e = grp.Expr
 		}
-		if a, ok := e.(*grammar.Attributed); ok {
+		if a, ok := e.(*ast.Attributed); ok {
 			for _, x := range a.Attrs {
 				expr = append(expr, x.Name)
 			}
@@ -138,7 +138,7 @@ func TestDeclarationAttributesFormat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got := grammar.Format(g)
+			got := ast.Format(g)
 			if got != tc.want {
 				t.Fatalf("got\n%s\nwant\n%s", got, tc.want)
 			}
@@ -162,15 +162,15 @@ func TestDeclarationAttributesJSONRoundTrip(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		data, err := grammar.MarshalJSON(g)
+		data, err := ast.MarshalJSON(g)
 		if err != nil {
 			t.Fatal(err)
 		}
-		decoded, err := grammar.UnmarshalJSON(data)
+		decoded, err := ast.UnmarshalJSON(data)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := grammar.Format(decoded); got != src {
+		if got := ast.Format(decoded); got != src {
 			t.Errorf("got\n%s\nwant\n%s", got, src)
 		}
 	}
@@ -179,19 +179,19 @@ func TestDeclarationAttributesJSONRoundTrip(t *testing.T) {
 // A grammar built without source layout writes each attribute on the line of
 // the one before, and "rule" on a line of its own.
 func TestDeclarationAttributesFormatWithoutLayout(t *testing.T) {
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{
-		Attrs: []*grammar.Attribute{{Name: "start", Args: []any{&grammar.Ref{Name: "default"}}}, {Name: "foo"}},
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{
+		Attrs: []*ast.Attribute{{Name: "start", Args: []any{&ast.Ref{Name: "default"}}}, {Name: "foo"}},
 		Name:  "a",
-		Expr:  &grammar.Literal{Value: "x"},
+		Expr:  &ast.Literal{Value: "x"},
 	}}}}
-	if got, want := grammar.Format(g), "@start(default) @foo\nrule a = \"x\"\n"; got != want {
+	if got, want := ast.Format(g), "@start(default) @foo\nrule a = \"x\"\n"; got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
-	if err := grammar.Validate(g); err != nil {
+	if err := ast.Validate(g); err != nil {
 		t.Error(err)
 	}
 	g.Rules()[0].Attrs[1].Name = "1x"
-	if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), "attrs[1]") {
+	if err := ast.Validate(g); err == nil || !strings.Contains(err.Error(), "attrs[1]") {
 		t.Errorf("an invalid attribute name: %v", err)
 	}
 }
@@ -213,7 +213,7 @@ func TestPackageAttributesParse(t *testing.T) {
 		t.Fatalf("package %q attributes %q", pkg.Name, got)
 	}
 	// The clause starts at its first attribute; its diagnostics point at "package".
-	if pkg.Pos != (grammar.Pos{Line: 2, Col: 1}) || pkg.Diagnostic() != (grammar.Pos{Line: 4, Col: 1}) {
+	if pkg.Pos != (ast.Pos{Line: 2, Col: 1}) || pkg.Diagnostic() != (ast.Pos{Line: 4, Col: 1}) {
 		t.Errorf("pos %v diagnostic %v", pkg.Pos, pkg.Diagnostic())
 	}
 	if len(pkg.AttrBreaks) != 3 || pkg.AttrBreaks[1] != nil || pkg.AttrBreaks[2] == nil || pkg.KeywordBreak == nil {
@@ -275,17 +275,17 @@ func TestPackageAttributesFormat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := grammar.Format(g); got != tc.want {
+			if got := ast.Format(g); got != tc.want {
 				t.Fatalf("got\n%s\nwant\n%s", got, tc.want)
 			}
 			if problem := checkRandomFormat(tc.src, g); problem != "" {
 				t.Error(problem)
 			}
-			data, err := grammar.MarshalJSON(g)
+			data, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, err := grammar.UnmarshalJSON(data)
+			decoded, err := ast.UnmarshalJSON(data)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -297,18 +297,18 @@ func TestPackageAttributesFormat(t *testing.T) {
 		})
 	}
 	// Without source layout, the attributes share a line before "package".
-	g := &grammar.Grammar{File: grammar.File{
-		Pkg:   grammar.Pkg{Attrs: []*grammar.Attribute{{Name: "linear"}, {Name: "foo"}}, Name: "p"},
-		Decls: []grammar.Decl{&grammar.RuleDef{Name: "a", Expr: &grammar.Literal{Value: "x"}}},
+	g := &ast.Grammar{File: ast.File{
+		Pkg:   ast.Pkg{Attrs: []*ast.Attribute{{Name: "linear"}, {Name: "foo"}}, Name: "p"},
+		Decls: []ast.Decl{&ast.RuleDef{Name: "a", Expr: &ast.Literal{Value: "x"}}},
 	}}
-	if got, want := grammar.Format(g), "@linear @foo\npackage p\n\nrule a = \"x\"\n"; got != want {
+	if got, want := ast.Format(g), "@linear @foo\npackage p\n\nrule a = \"x\"\n"; got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
-	if err := grammar.Validate(g); err != nil {
+	if err := ast.Validate(g); err != nil {
 		t.Error(err)
 	}
 	g.File.Pkg.Name = ""
-	if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), "file.pkg.attrs") {
+	if err := ast.Validate(g); err == nil || !strings.Contains(err.Error(), "file.pkg.attrs") {
 		t.Errorf("attributes without a package name: %v", err)
 	}
 }

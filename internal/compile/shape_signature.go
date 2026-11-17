@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ShapeSignature is ShapeSignature.
@@ -22,23 +22,23 @@ func (p *Program) ShapeSignature(name string, poll func()) (string, bool) {
 		}
 	}
 	// The subexpressions of lookaheads are left out.
-	inside := map[grammar.Expr]bool{}
-	WalkExpr(r.Def.Expr, func(e grammar.Expr) {
+	inside := map[ast.Expr]bool{}
+	WalkExpr(r.Def.Expr, func(e ast.Expr) {
 		step()
-		var body grammar.Expr
+		var body ast.Expr
 		switch x := e.(type) {
-		case *grammar.And:
+		case *ast.And:
 			body = x.Expr
-		case *grammar.Not:
+		case *ast.Not:
 			body = x.Expr
 		}
 		if body != nil {
 			inside[e] = true
-			WalkExpr(body, func(x grammar.Expr) { step(); inside[x] = true })
+			WalkExpr(body, func(x ast.Expr) { step(); inside[x] = true })
 		}
 	})
 	var b strings.Builder
-	WalkExpr(r.Def.Expr, func(e grammar.Expr) {
+	WalkExpr(r.Def.Expr, func(e ast.Expr) {
 		step()
 		if inside[e] {
 			return

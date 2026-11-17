@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A comment before a value on the same line brings its own space, so the separator before it
@@ -20,7 +20,7 @@ func TestFormatCommentAfterSeparator(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%q: %v", tc.src, err)
 		}
-		got := grammar.Format(g)
+		got := ast.Format(g)
 		if got != tc.want {
 			t.Errorf("%q: got %q; want %q", tc.src, got, tc.want)
 		}
@@ -28,7 +28,7 @@ func TestFormatCommentAfterSeparator(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%q: %v", got, err)
 		}
-		if second := grammar.Format(again); second != got {
+		if second := ast.Format(again); second != got {
 			t.Errorf("%q: formatting is not idempotent: %q", got, second)
 		}
 	}

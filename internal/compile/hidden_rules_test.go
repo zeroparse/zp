@@ -5,8 +5,8 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/frontend/check"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A grammar that default-value mode accepts because it drops the actions is accepted with inline
@@ -23,13 +23,13 @@ func TestDefaultValueAcceptsWhatItDropsWithInlineActions(t *testing.T) {
 			t.Fatal(err)
 		}
 		// An action that validation rejects, since an AST may hold what the syntax does not allow.
-		bad := &grammar.Lambda{Params: []string{"_arg"}, Body: &grammar.NilLit{}}
+		bad := &ast.Lambda{Params: []string{"_arg"}, Body: &ast.NilLit{}}
 		for _, rd := range g.Rules() {
 			if rd.Action != nil {
 				rd.Action = bad
 			}
-			WalkExpr(rd.Expr, func(e grammar.Expr) {
-				if a, ok := e.(*grammar.InlineAction); ok {
+			WalkExpr(rd.Expr, func(e ast.Expr) {
+				if a, ok := e.(*ast.InlineAction); ok {
 					a.Action = bad
 				}
 			})
@@ -67,8 +67,8 @@ func TestDefaultValueValidationReportsTheGrammarAsWritten(t *testing.T) {
 			rules := g.Rules()
 			repeats := 0
 			for _, rd := range rules {
-				WalkExpr(rd.Expr, func(e grammar.Expr) {
-					if r, ok := e.(*grammar.Repeat); ok {
+				WalkExpr(rd.Expr, func(e ast.Expr) {
+					if r, ok := e.(*ast.Repeat); ok {
 						r.Min = -1
 						repeats++
 					}

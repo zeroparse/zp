@@ -5,17 +5,17 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // hasCut reports a cut in e.
-func hasCut(e grammar.Expr) (found bool) {
-	compile.WalkExpr(e, func(e grammar.Expr) {
-		if _, ok := e.(*grammar.Cut); ok {
+func hasCut(e ast.Expr) (found bool) {
+	compile.WalkExpr(e, func(e ast.Expr) {
+		if _, ok := e.(*ast.Cut); ok {
 			found = true
 		}
 	})

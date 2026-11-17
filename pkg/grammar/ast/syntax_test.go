@@ -1,0 +1,169 @@
+package ast_test
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
+)
+
+func TestFormatSyntax(t *testing.T) {
+	const src = `// grammar documentation
+package sample
+
+type Node = { Text node[string] }
+rule main Node = {count:=0} x:((v1:"a" => Node{Text: $v1}) #repeat(2, 3) #atomic @error(message="a") #recover(skip=";")) #stream => Node{Text: $x}
+rule expr Node = #operators {
+ skip " "*
+ operand "x" @error(message="x") => Node{}
+ level { infix left "+" => Node{} }
+} => ...
+`
+	g, err := engine.ParseGrammar(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := ast.MarshalJSON(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeText := ast.Format(g)
+	out := ast.FormatSyntax(g)
+	for _, gone := range []string{"type Node", "rule main Node", "=>", "@error", "#recover", "x:"} {
+		if strings.Contains(out, gone) {
+			t.Errorf("kept %q:\n%s", gone, out)
+		}
+	}
+	for _, kept := range []string{"package sample", "// grammar documentation", "count := 0", "#repeat(2, 3)", "#atomic", "#stream", "operators", "infix left"} {
+		if !strings.Contains(out, kept) {
+			t.Errorf("lost %q:\n%s", kept, out)
+		}
+	}
+	after, _ := ast.MarshalJSON(g)
+	if !bytes.Equal(before, after) || ast.Format(g) != beforeText {
+		t.Fatal("input AST mutated")
+	}
+	projected, err := engine.ParseGrammar(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again := ast.FormatSyntax(projected); again != out {
+		t.Fatalf("projection not stable:\n%s\n%s", out, again)
+	}
+}
+
+func TestFormatSyntaxNormalizedPragmas(t *testing.T) {
+	g, err := engine.ParseGrammar(`rule main = "a"* #stream`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := engine.Compile(starttest.MarkAll(g), "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	normalized := p.Grammar()
+	before, _ := ast.MarshalJSON(normalized)
+	if out := ast.FormatSyntax(normalized); !strings.Contains(out, "#stream") {
+		t.Fatalf("normalized #stream lost: %s", out)
+	}
+	after, _ := ast.MarshalJSON(normalized)
+	if !bytes.Equal(before, after) {
+		t.Fatal("normalized input AST mutated")
+	}
+}
+
+func TestFormatSyntaxValueDependentPredicate(t *testing.T) {
+	g, err := engine.ParseGrammar(`type T = { N int }
+rule main = x:value {$x.N == 1}
+rule value T = "x" => T{N: 1}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := ast.FormatSyntax(g)
+	if !strings.Contains(out, "{$x.N == 1}") {
+		t.Fatalf("predicate lost: %s", out)
+	}
+	if strings.Contains(out, "x:value") {
+		t.Fatalf("capture retained: %s", out)
+	}
+	proj, err := engine.ParseGrammar(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := engine.Compile(starttest.MarkAll(proj), "main"); err == nil {
+		t.Fatal("expected value-dependent projection to require the full grammar")
+	}
+}
+
+func TestFormatSyntaxGrouping(t *testing.T) {
+	for _, tc := range []struct{ source, want string }{
+		{`rule main = cap:((("a" => A{})))`, `rule main = "a"`},
+		{`rule main = (("a" / "b")) "c"`, `rule main = ("a" / "b") "c"`},
+		{`rule main = (("a" "b"))*`, `rule main = ("a" "b")*`},
+		{`rule main = (("a" / "b")) #atomic`, `rule main = ("a" / "b") #atomic`},
+		{`rule main = !(("a" / "b")) "c"`, `rule main = !("a" / "b") "c"`},
+		{"rule main = (\n \"a\"\n \"b\"\n)", "rule main = (\n    \"a\"\n    \"b\"\n)"},
+	} {
+		t.Run(tc.source, func(t *testing.T) {
+			g, err := engine.ParseGrammar(tc.source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			out := ast.FormatSyntax(g)
+			if strings.TrimSpace(out) != tc.want {
+				t.Fatalf("got:\n%s\nwant:\n%s", out, tc.want)
+			}
+			projected, err := engine.ParseGrammar(out)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if ast.FormatSyntax(projected) != out {
+				t.Fatal("projection not idempotent")
+			}
+			p, err := engine.Compile(starttest.MarkAll(projected), "main")
+			if err != nil {
+				t.Fatal(err)
+			}
+			// The corresponding full grammar has identical matching behavior
+			// whenever it does not require an unimplemented inline action.
+			full, err := engine.Compile(starttest.MarkAll(g), "main")
+			if err != nil {
+				return
+			}
+			for _, input := range []string{"", "a", "b", "c", "ab", "ac", "bc", "abab"} {
+				_, originalErr := full.Parse(input, engine.RecognizeOnly())
+				_, projectedErr := p.Parse(input, engine.RecognizeOnly())
+				if (originalErr == nil) != (projectedErr == nil) {
+					t.Fatalf("matching changed for %q: %v / %v", input, originalErr, projectedErr)
+				}
+			}
+		})
+	}
+}
+
+func TestFormatSyntaxGroupComments(t *testing.T) {
+	for _, source := range []string{
+		"rule main = (\n \"a\" // keep\n)",
+		"rule main = (\n // keep\n \"a\"\n)",
+		"rule main = (\n \"a\"\n /* keep */\n)",
+	} {
+		g, err := engine.ParseGrammar(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := ast.FormatSyntax(g)
+		if strings.Count(out, "keep") != 1 {
+			t.Fatalf("group comment lost or duplicated: %s", out)
+		}
+		projected, err := engine.ParseGrammar(out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if again := ast.FormatSyntax(projected); again != out {
+			t.Fatalf("comment layout unstable:\n%s\n%s", out, again)
+		}
+	}
+}

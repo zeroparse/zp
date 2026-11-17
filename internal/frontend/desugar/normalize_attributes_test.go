@@ -4,32 +4,32 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestNormalizationContainerShapes(t *testing.T) {
 	t.Parallel()
-	literal := &grammar.Literal{Value: "a"}
-	for _, expr := range []grammar.Expr{
-		&grammar.Seq{}, &grammar.Seq{Items: []grammar.Expr{}},
-		&grammar.Choice{}, &grammar.Choice{Alts: []grammar.Expr{}},
-		&grammar.OperatorsRule{},
-		&grammar.OperatorsRule{Operands: []*grammar.OperatorsRuleOperand{}, Levels: []*grammar.OperatorsRuleLevel{{}}},
-		&grammar.Attributed{Expr: literal},
-		&grammar.Attributed{Expr: literal, Attrs: []*grammar.Attribute{{Name: "custom"}}},
-		&grammar.Attributed{Expr: literal, Attrs: []*grammar.Attribute{{Name: "custom", Args: []any{}, KwArgs: map[string]any{}, KeywordOrder: []string{}}}},
-		&grammar.Attributed{Expr: literal, Attrs: []*grammar.Attribute{{Name: "custom", Args: []any{nil, map[string]any{"x": []int{1, 2}}}, KwArgs: map[string]any{"x": []int{3}}}}},
+	literal := &ast.Literal{Value: "a"}
+	for _, expr := range []ast.Expr{
+		&ast.Seq{}, &ast.Seq{Items: []ast.Expr{}},
+		&ast.Choice{}, &ast.Choice{Alts: []ast.Expr{}},
+		&ast.OperatorsRule{},
+		&ast.OperatorsRule{Operands: []*ast.OperatorsRuleOperand{}, Levels: []*ast.OperatorsRuleLevel{{}}},
+		&ast.Attributed{Expr: literal},
+		&ast.Attributed{Expr: literal, Attrs: []*ast.Attribute{{Name: "custom"}}},
+		&ast.Attributed{Expr: literal, Attrs: []*ast.Attribute{{Name: "custom", Args: []any{}, KwArgs: map[string]any{}, KeywordOrder: []string{}}}},
+		&ast.Attributed{Expr: literal, Attrs: []*ast.Attribute{{Name: "custom", Args: []any{nil, map[string]any{"x": []int{1, 2}}}, KwArgs: map[string]any{"x": []int{3}}}}},
 	} {
-		g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: expr}}}}
+		g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: expr}}}}
 		got, gotErr := NormalizeAttributesWithCopies(g, false)
 		want, wantErr := NormalizeAttributesWithCopies(g, true)
 		if !reflect.DeepEqual(gotErr, wantErr) || !reflect.DeepEqual(got, want) {
 			t.Fatalf("%T: normalized shape differs", expr)
 		}
 	}
-	for _, statements := range [][]grammar.Decl{nil, {}} {
-		g := &grammar.Grammar{File: grammar.File{Decls: statements}}
+	for _, statements := range [][]ast.Decl{nil, {}} {
+		g := &ast.Grammar{File: ast.File{Decls: statements}}
 		got, _ := NormalizeAttributesWithCopies(g, false)
 		want, _ := NormalizeAttributesWithCopies(g, true)
 		if !reflect.DeepEqual(got, want) {
@@ -45,7 +45,7 @@ func TestNormalizationAttributeBindingDoesNotMutate(t *testing.T) {
 		if name == "recover" {
 			key = "skip"
 		}
-		a := &grammar.Attribute{Name: name, Pragma: name == "recover", Args: []any{&grammar.Literal{Value: "x"}}, KwArgs: map[string]any{"custom": []int{1, 2}}}
+		a := &ast.Attribute{Name: name, Pragma: name == "recover", Args: []any{&ast.Literal{Value: "x"}}, KwArgs: map[string]any{"custom": []int{1, 2}}}
 		n := &attributeNormalizer{}
 		bound := n.bind(n.attribute(a), key)
 		if len(a.Args) != 1 || len(a.KwArgs) != 1 || len(bound.Args) != 0 || len(bound.KwArgs) != 2 {
@@ -81,7 +81,7 @@ func TestNormalizationSharesUnchangedNodes(t *testing.T) {
 	if normalized == g || normalized.Rules()[0] == g.Rules()[0] || normalized.Rules()[1] != g.Rules()[1] {
 		t.Fatal("changed path sharing differs")
 	}
-	if normalized.Rules()[0].Expr.(*grammar.Seq).Items[1] != g.Rules()[0].Expr.(*grammar.Seq).Items[1] {
+	if normalized.Rules()[0].Expr.(*ast.Seq).Items[1] != g.Rules()[0].Expr.(*ast.Seq).Items[1] {
 		t.Fatal("unchanged sibling copied")
 	}
 }

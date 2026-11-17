@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sort"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A rule of the Node table (rules), the recognizer table (recRules) or the typed table (trules) has
@@ -110,7 +110,7 @@ func (g *Generator) slotReached(r *compile.Rule) bool {
 // callWrapper reports whether a call of the rule r of the table is printed as a call of its wrapper
 // function, which does not run the Body of its table entry, rather than through the entry (ruleCall).
 func (g *Generator) callWrapper(table string, r *compile.Rule) bool {
-	_, operatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
+	_, operatorsRule := r.Def.Expr.(*ast.OperatorsRule)
 	switch {
 	case g.Document && table == "rules":
 		return false

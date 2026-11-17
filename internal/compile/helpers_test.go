@@ -5,10 +5,10 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The helpers of the tests that check the compile phase: they compile ZeroParse source with
@@ -16,7 +16,7 @@ import (
 // the engine's program.
 
 // mustParse parses ZeroParse source with parseTest, panicking on a syntax error.
-func mustParse(src string) *grammar.Grammar {
+func mustParse(src string) *ast.Grammar {
 	g, err := parseTest(src)
 	if err != nil {
 		panic(err)
@@ -110,22 +110,22 @@ func inferredType(p *Program, name string) (string, bool) {
 }
 
 // contextClassRanges returns 4096 single-code-point ranges, enough for the class compiler to poll.
-func contextClassRanges() []grammar.CharRange {
-	rs := make([]grammar.CharRange, 4096)
+func contextClassRanges() []ast.CharRange {
+	rs := make([]ast.CharRange, 4096)
 	for i := range rs {
-		rs[i] = grammar.CharRange{Lo: rune(256 + i*2), Hi: rune(256 + i*2)}
+		rs[i] = ast.CharRange{Lo: rune(256 + i*2), Hi: rune(256 + i*2)}
 	}
 	return rs
 }
 
 // jsonActionBlockGrammar returns g after a round trip through its JSON form.
-func jsonActionBlockGrammar(t *testing.T, g *grammar.Grammar) *grammar.Grammar {
+func jsonActionBlockGrammar(t *testing.T, g *ast.Grammar) *ast.Grammar {
 	t.Helper()
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := grammar.UnmarshalJSON(data)
+	result, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func jsonActionBlockGrammar(t *testing.T, g *grammar.Grammar) *grammar.Grammar {
 
 // compileContext is compileStatic under ctx, as the engine's CompileContext is: cancellation
 // discards the program and returns the context's error.
-func compileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog *Program, err error) {
+func compileContext(ctx context.Context, g *ast.Grammar, opts Options) (prog *Program, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

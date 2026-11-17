@@ -10,10 +10,10 @@ import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/core"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Program is what the compiler found out about a grammar: its rules with their static facts,
@@ -29,7 +29,7 @@ type Program struct {
 	checkerOnce sync.Once
 	// unsupportedSeen holds the type syntax reported as not supported yet while compiling, so that
 	// an alias resolved from several places, by several checkers, is reported once.
-	unsupportedSeen map[grammar.TypeExpr]bool
+	unsupportedSeen map[ast.TypeExpr]bool
 	RuleList        []*Rule
 	DescTable       []string        // expectation table (starting with fixedDescs)
 	Twins           []*Rule         // value-free twins (Rule.Twin); ids start at len(RuleList)
@@ -66,17 +66,17 @@ type Program struct {
 	NodeKinds map[string]*value.NodeTypeKinds
 	// skipSites numbers the skip-run sites (skip_sites.go), NumSkipSites of them; inSite holds,
 	// while they are marked, the repetitions inside a site.
-	skipSites    map[*grammar.Repeat]int
-	inSite       map[*grammar.Repeat]bool
+	skipSites    map[*ast.Repeat]int
+	inSite       map[*ast.Repeat]bool
 	NumSkipSites int
 	// runSites numbers the run sites (run_sites.go) after the skip-run sites, NumRunSites of them.
-	runSites    map[*grammar.Repeat]int
+	runSites    map[*ast.Repeat]int
 	NumRunSites int
 	// envFree[site] reports that the records of the site are not keyed by the environment (EnvFree).
 	envFree []bool
 	// scanRepeats numbers the scan sites (scan_sites.go) after the run sites: NumScanSites of them,
 	// two numbers each, one for the walks that build a value and one for those that do not.
-	scanRepeats  map[*grammar.Repeat]int
+	scanRepeats  map[*ast.Repeat]int
 	NumScanSites int
 	// InsertionFlags are the rule flags of the parses with missing-token insertion enabled, in
 	// which left recursion through an insertion forms cycles of its own (AnalyzeInsertion), when
@@ -140,9 +140,9 @@ type Rule struct {
 	Splice bool
 	ID     int
 	Name   string
-	Def    *grammar.RuleDef
+	Def    *ast.RuleDef
 	Scope  *check.Scope
-	Action grammar.Term
+	Action ast.Term
 	// NodeType, if not "", is the named node type the rule's value is converted to
 	// (Program.ruleNodeType).
 	NodeType string
@@ -246,7 +246,7 @@ func (c *Compiler) desc(s string) ExpID {
 	return id
 }
 
-func (c *Compiler) errorf(pos grammar.Pos, format string, args ...any) {
+func (c *Compiler) errorf(pos ast.Pos, format string, args ...any) {
 	c.errs = append(c.errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
@@ -284,7 +284,7 @@ func insertionFlags(prog *Program, ins *Analysis, opts Options, control *cancel.
 			f.Cycle = ins.Cycle[r.Name] + 1
 		}
 		f.Memo = !opts.DisableMemo && !f.Leader
-		_, isOperatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
+		_, isOperatorsRule := r.Def.Expr.(*ast.OperatorsRule)
 		f.Twin = r.Action == nil && !isOperatorsRule && !ins.Cyclic[r.Name] && !hasStream(r.Def.Expr, control)
 		out[i] = f
 		differ = differ || f != (RuleFlags{Memo: r.Memo, Leader: r.Leader, Member: r.Member, Positional: r.Positional, Cycle: r.Cycle, Twin: r.TwinOK})
@@ -299,9 +299,9 @@ func insertionFlags(prog *Program, ins *Analysis, opts Options, control *cancel.
 // are lowered, its default-value form (if the options ask for it) and its attributes are normalized.
 type Canonical struct {
 	// Grammar is the grammar the program runs.
-	Grammar *grammar.Grammar
+	Grammar *ast.Grammar
 	// Source is the grammar as written, normalized, or nil if Grammar is the one as written.
-	Source *grammar.Grammar
+	Source *ast.Grammar
 	// Starts are the start rules in order, and DefaultStart is the one used when none is named.
 	Starts       []string
 	DefaultStart string
@@ -311,7 +311,7 @@ type Canonical struct {
 
 // Canonicalize validates the grammar and returns the canonical form that Check checks.
 // names receives the hidden rules that the lowering of inline actions generates.
-func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, control *cancel.Control) (*Canonical, error) {
+func Canonicalize(g *ast.Grammar, opts Options, names desugar.InlineNames, control *cancel.Control) (*Canonical, error) {
 	control.Check()
 	if !opts.DefaultValue {
 		if err := validateGrammar(g, control); err != nil {
@@ -351,10 +351,10 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 		control.Poll()
 		unsupported = append(unsupported, &diagnostic.Error{Pos: comment.Pos, Msg: "comments are not allowed inside statement headers"})
 	}
-	checkBlocks := func(term grammar.Term) {
-		WalkTerm(term, func(t grammar.Term) {
+	checkBlocks := func(term ast.Term) {
+		WalkTerm(term, func(t ast.Term) {
 			control.Poll()
-			if block, ok := t.(*grammar.Block); ok {
+			if block, ok := t.(*ast.Block); ok {
 				unsupported = append(unsupported, &diagnostic.Error{Pos: block.Diagnostic(), Msg: "action statement blocks are not implemented"})
 			}
 		})
@@ -362,11 +362,11 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 	for _, rd := range control.Rules(g) {
 		control.Poll()
 		checkBlocks(rd.Action)
-		walkExprControlled(rd.Expr, func(e grammar.Expr) {
+		walkExprControlled(rd.Expr, func(e ast.Expr) {
 			control.Poll()
 			switch e := e.(type) {
-			case *grammar.Predicate:
-				if block, ok := e.Term.(*grammar.Block); ok && len(block.Statements) > 0 {
+			case *ast.Predicate:
+				if block, ok := e.Term.(*ast.Block); ok && len(block.Statements) > 0 {
 					for _, statement := range block.Statements {
 						control.Poll()
 						checkBlocks(statement)
@@ -374,9 +374,9 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 				} else {
 					checkBlocks(e.Term)
 				}
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				checkBlocks(e.Action)
-			case *grammar.OperatorsRule:
+			case *ast.OperatorsRule:
 				for _, operand := range e.Operands {
 					control.Poll()
 					checkBlocks(operand.Action)
@@ -420,7 +420,7 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 // generator reads, without building any backend's form (the front end's Result holds it). names
 // receives the hidden rules that the lowering of inline actions generates. If flags is not nil,
 // it skips static analysis and type checking and uses flags instead.
-func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control) (*Program, error) {
+func Check(g *ast.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control) (*Program, error) {
 	canon, err := Canonicalize(g, opts, names, control)
 	if err != nil {
 		return nil, err
@@ -511,7 +511,7 @@ func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.In
 		r.Rec = recursive[r.Name] != nil
 		r.Vars = vars[r.Name]
 		if flags == nil {
-			_, isOperatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
+			_, isOperatorsRule := r.Def.Expr.(*ast.OperatorsRule)
 			twin = r.Action == nil && !isOperatorsRule && !c.an.Cyclic[r.Name] && !hasStream(r.Def.Expr, control)
 		}
 		r.TwinOK = twin
@@ -525,7 +525,7 @@ func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.In
 	if flags == nil && !opts.LeftRecursionBindings {
 		// A grammar must be valid whether or not insertion is enabled, so the bindings are checked
 		// against the cycles of both analyses.
-		reported := map[*grammar.Bind]bool{}
+		reported := map[*ast.Bind]bool{}
 		c.checkLeftRecursionBindings(c.an, rules, vars, reported)
 		if ins != nil {
 			c.checkLeftRecursionBindings(ins, rules, vars, reported)
@@ -574,8 +574,8 @@ func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.In
 			continue
 		}
 		canonical := name
-		if _, alias := spec.(*grammar.TypeAlias); alias {
-			if resolved, concrete := prog.concreteType(&grammar.TypeRef{Name: name}); concrete != nil {
+		if _, alias := spec.(*ast.TypeAlias); alias {
+			if resolved, concrete := prog.concreteType(&ast.TypeRef{Name: name}); concrete != nil {
 				canonical = resolved
 			}
 		}
@@ -616,23 +616,23 @@ func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.In
 }
 
 // validateGrammar returns the validation error of g as a compile error.
-func validateGrammar(g *grammar.Grammar, control *cancel.Control) error {
+func validateGrammar(g *ast.Grammar, control *cancel.Control) error {
 	var validationError error
 	if control == nil {
-		validationError = grammar.Validate(g)
+		validationError = ast.Validate(g)
 	} else {
-		validationError = grammar.ValidateContext(control.Ctx, g)
+		validationError = ast.ValidateContext(control.Ctx, g)
 	}
 	control.Check()
 	if validationError != nil {
-		e := validationError.(*grammar.ValidationError)
+		e := validationError.(*ast.ValidationError)
 		return diagnostic.ErrorList{&diagnostic.Error{Pos: e.Pos, Msg: e.Path + ": " + e.Msg}}
 	}
 	return nil
 }
 
 // BodyExpr returns the expression the rule's body matches.
-func (r *Rule) BodyExpr() grammar.Expr {
+func (r *Rule) BodyExpr() ast.Expr {
 	return r.Def.Expr
 }
 
@@ -693,8 +693,8 @@ func (r *Rule) EntryDepth() int {
 }
 
 // defsByName returns the rule definitions of the program by name.
-func (p *Program) defsByName() map[string]*grammar.RuleDef {
-	m := make(map[string]*grammar.RuleDef, len(p.RuleList))
+func (p *Program) defsByName() map[string]*ast.RuleDef {
+	m := make(map[string]*ast.RuleDef, len(p.RuleList))
 	for _, r := range p.RuleList {
 		m[r.Name] = r.Def
 	}
@@ -716,7 +716,7 @@ func (c *Compiler) twinOf(r *Rule) *Rule {
 // and those called from at most one place, except a start rule on a cycle of calls whose rules are
 // each called from one place. A parse can enter such a start rule without a call, and its body
 // calls it again, so it is memoized; no rule outside the cycle calls a rule of it.
-func TransientRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]bool {
+func TransientRules(rules []*ast.RuleDef, control *cancel.Control) map[string]bool {
 	refs := map[string]int{}
 	caller := map[string]string{}
 	for _, rd := range rules {
@@ -750,9 +750,9 @@ func TransientRules(rules []*grammar.RuleDef, control *cancel.Control) map[strin
 // valueNeededRules returns the rules that must build values even in a program that builds no
 // tree: the rules called within captures that predicates can read, and every rule they call. With
 // streams, also the rules with a #stream repetition (see Program.ParseStream) and every rule they call.
-func valueNeededRules(rules []*grammar.RuleDef, control *cancel.Control, streams bool) map[string]bool {
+func valueNeededRules(rules []*ast.RuleDef, control *cancel.Control, streams bool) map[string]bool {
 	control.Poll()
-	byName := map[string]*grammar.RuleDef{}
+	byName := map[string]*ast.RuleDef{}
 	for _, rd := range rules {
 		control.Poll()
 		byName[rd.Name] = rd
@@ -785,10 +785,10 @@ func valueNeededRules(rules []*grammar.RuleDef, control *cancel.Control, streams
 }
 
 // hasStream reports whether the expression contains #stream.
-func hasStream(e grammar.Expr, control *cancel.Control) bool {
+func hasStream(e ast.Expr, control *cancel.Control) bool {
 	control.Poll()
 	found := false
-	walkExprControlled(e, func(x grammar.Expr) {
+	walkExprControlled(e, func(x ast.Expr) {
 		if IsStream(x) {
 			found = true
 		}
@@ -797,11 +797,11 @@ func hasStream(e grammar.Expr, control *cancel.Control) bool {
 }
 
 // noCaptures reports captures inside value-free expressions (#atomic, -, !, skip) as errors.
-func (c *Compiler) noCaptures(e grammar.Expr) {
+func (c *Compiler) noCaptures(e ast.Expr) {
 	control := c.Control
 	c.Control.Poll()
-	walkExprControlled(e, func(x grammar.Expr) {
-		if cp, ok := x.(*grammar.Capture); ok {
+	walkExprControlled(e, func(x ast.Expr) {
+		if cp, ok := x.(*ast.Capture); ok {
 			c.errorf(cp.Diagnostic(), "capture %s inside #atomic, -, or ! has no effect", cp.Name)
 		}
 	}, control)
@@ -812,21 +812,21 @@ func (c *Compiler) noCaptures(e grammar.Expr) {
 // errors but keeps the captures, and an error value made inside a lookahead has no expected items
 // and no farthest failure, so its position and message would differ from those of the same call
 // outside one, and memoization could not answer both alike.
-func (c *Compiler) noRecoveringCaptures(e grammar.Expr) {
+func (c *Compiler) noRecoveringCaptures(e ast.Expr) {
 	if c.an == nil {
 		return // a compiled grammar, checked when it was compiled
 	}
 	control := c.Control
 	c.Control.Poll()
 	// A nested positive lookahead checks its own captures.
-	nested := map[grammar.Expr]bool{}
-	walkExprControlled(e, func(x grammar.Expr) {
-		if a, ok := x.(*grammar.And); ok {
-			walkExprControlled(a.Expr, func(y grammar.Expr) { nested[y] = true }, control)
+	nested := map[ast.Expr]bool{}
+	walkExprControlled(e, func(x ast.Expr) {
+		if a, ok := x.(*ast.And); ok {
+			walkExprControlled(a.Expr, func(y ast.Expr) { nested[y] = true }, control)
 		}
 	}, control)
-	walkExprControlled(e, func(x grammar.Expr) {
-		cp, ok := x.(*grammar.Capture)
+	walkExprControlled(e, func(x ast.Expr) {
+		cp, ok := x.(*ast.Capture)
 		if !ok || nested[x] {
 			return
 		}
@@ -851,17 +851,17 @@ func (c *Compiler) noRecoveringCaptures(e grammar.Expr) {
 }
 
 // elementScopedControlled is check.ElementScopedControlled.
-func elementScopedControlled(e grammar.Expr, control *cancel.Control) bool {
+func elementScopedControlled(e ast.Expr, control *cancel.Control) bool {
 	return check.ElementScopedControlled(e, control)
 }
 
 // hasCapturesControlled is check.HasCapturesControlled.
-func hasCapturesControlled(e grammar.Expr, control *cancel.Control) bool {
+func hasCapturesControlled(e ast.Expr, control *cancel.Control) bool {
 	return check.HasCapturesControlled(e, control)
 }
 
 // LiteralDesc is core.LiteralDesc.
-func LiteralDesc(e *grammar.Literal) string { return core.LiteralDesc(e) }
+func LiteralDesc(e *ast.Literal) string { return core.LiteralDesc(e) }
 
 // FoldASCIIRune maps A-Z to a-z and leaves every other rune as it is: the folding of #ignorecase
 // and of the suffix i, which is ASCII only.
@@ -882,11 +882,11 @@ func FoldedRunes(rs []rune) []rune {
 }
 
 // CharClassString is core.CharClassString.
-func CharClassString(e *grammar.CharClass) string { return core.CharClassString(e) }
+func CharClassString(e *ast.CharClass) string { return core.CharClassString(e) }
 
 // levelMin returns the minimum binding level of a call with a binding level.
-func (c *Compiler) levelMin(e *grammar.Ref, r *Rule) int {
-	pr, ok := r.Def.Expr.(*grammar.OperatorsRule)
+func (c *Compiler) levelMin(e *ast.Ref, r *Rule) int {
+	pr, ok := r.Def.Expr.(*ast.OperatorsRule)
 	if !ok {
 		c.errorf(e.Diagnostic(), "rule %s has no Operators Rule levels", e.Name)
 		return 0
@@ -901,21 +901,21 @@ func (c *Compiler) levelMin(e *grammar.Ref, r *Rule) int {
 }
 
 // IsStream is check.IsStream.
-func IsStream(e grammar.Expr) bool { return check.IsStream(e) }
+func IsStream(e ast.Expr) bool { return check.IsStream(e) }
 
 // checkStream checks that #stream appears only at the top level of a rule body (the body itself
 // or an element of a sequence) of a rule outside every left-recursion cycle and reports whether it
 // is present.
-func (c *Compiler) checkStream(body grammar.Expr) bool {
+func (c *Compiler) checkStream(body ast.Expr) bool {
 	control := c.Control
 	top := StreamTops(body)
 	n := 0
-	walkExprControlled(body, func(e grammar.Expr) {
+	walkExprControlled(body, func(e ast.Expr) {
 		if !IsStream(e) {
 			return
 		}
 		n++
-		a := e.(*grammar.Attributed)
+		a := e.(*ast.Attributed)
 		for _, attr := range a.Attrs {
 			if attr.Name == "recover" {
 				c.errorf(attr.Diagnostic(), "#recover cannot wrap a #stream repetition; recover inside each element instead")
@@ -935,10 +935,10 @@ func (c *Compiler) checkStream(body grammar.Expr) bool {
 }
 
 // StreamTops is check.StreamTops.
-func StreamTops(body grammar.Expr) map[grammar.Expr]bool { return check.StreamTops(body) }
+func StreamTops(body ast.Expr) map[ast.Expr]bool { return check.StreamTops(body) }
 
 // SeeThrough is check.SeeThrough.
-func SeeThrough(e grammar.Expr) grammar.Expr { return check.SeeThrough(e) }
+func SeeThrough(e ast.Expr) ast.Expr { return check.SeeThrough(e) }
 
 // WhereName returns the text that names the rule in the message of a failed action.
 func (r *Rule) WhereName() string {
@@ -951,18 +951,18 @@ func (r *Rule) WhereName() string {
 // SpliceRule reports whether the rule rd makes no node of its own: it is hidden and has no action
 // (not even => ...), and its body is not an Operators Rule. A call of it contributes the elements
 // of its body, as a group does.
-func SpliceRule(rd *grammar.RuleDef) bool {
+func SpliceRule(rd *ast.RuleDef) bool {
 	if !desugar.HiddenRule(rd.Name) || rd.Action != nil || rd.DefaultAction {
 		return false
 	}
-	_, operators := rd.Expr.(*grammar.OperatorsRule)
+	_, operators := rd.Expr.(*ast.OperatorsRule)
 	return !operators
 }
 
 // checkSpliceCycles reports a splice rule whose elements include its own: it calls itself in the
 // sequence of its elements, so that its elements would be infinite in number. A call in a choice,
 // an option, a repetition or a capture is one element of its own, and may recur.
-func (c *Compiler) checkSpliceCycles(rules []*grammar.RuleDef) {
+func (c *Compiler) checkSpliceCycles(rules []*ast.RuleDef) {
 	flat := map[string][]string{}
 	for _, rd := range rules {
 		if r := c.Prog.ByName[rd.Name]; r != nil && r.Splice && r.Def == rd {
@@ -997,19 +997,19 @@ func (c *Compiler) checkSpliceCycles(rules []*grammar.RuleDef) {
 }
 
 // flatRefs appends to out the rules e calls where their elements are elements of e.
-func (c *Compiler) flatRefs(e grammar.Expr, out []string) []string {
+func (c *Compiler) flatRefs(e ast.Expr, out []string) []string {
 	switch e := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		return c.flatRefs(e.Expr, out)
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			out = c.flatRefs(it, out)
 		}
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		if !check.Recovers(e) {
 			out = c.flatRefs(e.Expr, out)
 		}
-	case *grammar.Ref:
+	case *ast.Ref:
 		out = append(out, e.Name)
 	}
 	return out

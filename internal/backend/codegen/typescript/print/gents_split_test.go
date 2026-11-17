@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	tsprint "zeroparse.dev/zp/internal/backend/codegen/typescript/print"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // tsStrictFlags are the strictest checks there are, so that generated code compiles in any project;
@@ -153,7 +153,7 @@ process.stdout.write("ok\n");
 			t.Fatal(err)
 		}
 		for _, gr := range []struct {
-			g    *grammar.Grammar
+			g    *ast.Grammar
 			opts common.GenOptions
 		}{{g, common.GenOptions{Start: "main", Types: true, NoOpt: []string{common.UsedFeatures}}}, {g2, common.GenOptions{Start: "main", Observability: true, NoOpt: []string{common.UsedFeatures}}}} {
 			files, err := codegentest.GenerateTSRaw(gr.g, gr.opts)

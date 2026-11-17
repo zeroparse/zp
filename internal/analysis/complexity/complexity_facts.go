@@ -1,9 +1,9 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ruleFacts are the rule facts that the classifier reads, by rule name. They are the facts of the
@@ -29,7 +29,7 @@ type ruleFacts struct {
 }
 
 // classifierFacts returns the rule facts of rules, the unique rules of g.
-func classifierFacts(g *grammar.Grammar, rules []*grammar.RuleDef, control *cancel.Control) (*ruleFacts, error) {
+func classifierFacts(g *ast.Grammar, rules []*ast.RuleDef, control *cancel.Control) (*ruleFacts, error) {
 	src, err := costSource(g, rules, control)
 	if err != nil {
 		return nil, err

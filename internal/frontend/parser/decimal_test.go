@@ -6,7 +6,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func invalidDecimalSpellings() []string {
@@ -35,7 +35,7 @@ func TestDecimalTokenErrors(t *testing.T) {
 			if strings.HasSuffix(prefix, "$") {
 				col--
 			}
-			if len(errs) != 1 || errs[0].Pos != (grammar.Pos{Line: 1, Col: col}) || errs[0].End != (grammar.Pos{Line: 1, Col: utf8.RuneCountInString(prefix+digits) + 1}) {
+			if len(errs) != 1 || errs[0].Pos != (ast.Pos{Line: 1, Col: col}) || errs[0].End != (ast.Pos{Line: 1, Col: utf8.RuneCountInString(prefix+digits) + 1}) {
 				t.Fatalf("%q: wrong numeric diagnostic: %v", source, errs)
 			}
 			if rules := g.Rules(); len(rules) == 0 || rules[len(rules)-1].Name != "after" {
@@ -75,7 +75,7 @@ func TestDecimalTokenBoundaries(t *testing.T) {
 func BenchmarkDecimalSource(b *testing.B) {
 	for _, tc := range []struct {
 		name, source string
-		parse        func(string) (*grammar.Grammar, error)
+		parse        func(string) (*ast.Grammar, error)
 	}{
 		{"Plain", `rule main = "a"`, Parse},
 		{"Integers", "rule main = \"a\" => " + strings.Repeat("123 + ", 100) + "0", Parse},

@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // An inline action (e => A) is an anonymous rule embedded at its position: it behaves exactly as a
@@ -39,7 +39,7 @@ func EntryError(name string) error {
 type inlineSite struct {
 	rule string // the rule that holds the inline action
 	n    int    // its number among the inline actions of the rule, from 1
-	node *grammar.InlineAction
+	node *ast.InlineAction
 }
 
 // InlineNames maps the name of each hidden rule that the lowering generated to the inline action
@@ -146,15 +146,15 @@ func isNameByte(c byte) bool {
 // UndeclaredRules reports the references of g to a rule it does not declare. The lowering adds
 // hidden rules, so a reference is checked against the grammar as written: a generated name can
 // never satisfy one.
-func UndeclaredRules(g *grammar.Grammar, control *cancel.Control) diagnostic.ErrorList {
+func UndeclaredRules(g *ast.Grammar, control *cancel.Control) diagnostic.ErrorList {
 	declared := map[string]bool{}
 	for _, rd := range control.Rules(g) {
 		declared[rd.Name] = true
 	}
 	var errs diagnostic.ErrorList
 	for _, rd := range control.Rules(g) {
-		walkExpr(rd.Expr, func(e grammar.Expr) {
-			if ref, ok := e.(*grammar.Ref); ok && !declared[ref.Name] {
+		walkExpr(rd.Expr, func(e ast.Expr) {
+			if ref, ok := e.(*ast.Ref); ok && !declared[ref.Name] {
 				errs = append(errs, &diagnostic.Error{Pos: ref.Diagnostic(), Msg: "undefined rule " + ref.Name})
 			}
 		}, control)
@@ -163,14 +163,14 @@ func UndeclaredRules(g *grammar.Grammar, control *cancel.Control) diagnostic.Err
 }
 
 // HasInlineAction reports whether g holds an inline action.
-func HasInlineAction(g *grammar.Grammar, control *cancel.Control) bool {
+func HasInlineAction(g *ast.Grammar, control *cancel.Control) bool {
 	if g == nil {
 		return false
 	}
 	found := false
 	for _, rd := range control.Rules(g) {
-		walkExpr(rd.Expr, func(e grammar.Expr) {
-			if _, ok := e.(*grammar.InlineAction); ok {
+		walkExpr(rd.Expr, func(e ast.Expr) {
+			if _, ok := e.(*ast.InlineAction); ok {
 				found = true
 			}
 		}, control)
@@ -186,27 +186,27 @@ type inlineLowerer struct {
 	count   int
 	taken   map[string]bool
 	names   InlineNames
-	hidden  []grammar.Decl
+	hidden  []ast.Decl
 	unused  int // depth of the expressions whose value is not used: lookaheads and discards
 	errs    diagnostic.ErrorList
 	control *cancel.Control
 	// keepInline, when set, makes the walk keep the inline actions: it returns the inline action e
 	// whose expression is now inner, as it should stay in the result.
-	keepInline func(e *grammar.InlineAction, inner grammar.Expr) grammar.Expr
+	keepInline func(e *ast.InlineAction, inner ast.Expr) ast.Expr
 }
 
 // LowerInlineActionsControlled returns g with every inline action replaced by a reference to a hidden rule.
 // g itself does not change. Errors report inline actions in expressions that make no value.
-func LowerInlineActionsControlled(g *grammar.Grammar, names InlineNames, control *cancel.Control) (*grammar.Grammar, diagnostic.ErrorList) {
+func LowerInlineActionsControlled(g *ast.Grammar, names InlineNames, control *cancel.Control) (*ast.Grammar, diagnostic.ErrorList) {
 	var errs diagnostic.ErrorList
 	taken := map[string]bool{}
 	for _, rd := range control.Rules(g) {
 		taken[rd.Name] = true
 	}
-	decls := make([]grammar.Decl, 0, len(g.File.Decls))
+	decls := make([]ast.Decl, 0, len(g.File.Decls))
 	for _, d := range g.File.Decls {
 		control.Poll()
-		rd, ok := d.(*grammar.RuleDef)
+		rd, ok := d.(*ast.RuleDef)
 		if !ok {
 			decls = append(decls, d)
 			continue
@@ -231,12 +231,12 @@ func LowerInlineActionsControlled(g *grammar.Grammar, names InlineNames, control
 	return &lowered, nil
 }
 
-func (l *inlineLowerer) exprs(items []grammar.Expr) []grammar.Expr {
-	var out []grammar.Expr
+func (l *inlineLowerer) exprs(items []ast.Expr) []ast.Expr {
+	var out []ast.Expr
 	for i, it := range items {
 		child := l.expr(it)
 		if child != it && out == nil {
-			out = append([]grammar.Expr(nil), items...)
+			out = append([]ast.Expr(nil), items...)
 		}
 		if out != nil {
 			out[i] = child
@@ -249,16 +249,16 @@ func (l *inlineLowerer) exprs(items []grammar.Expr) []grammar.Expr {
 }
 
 // quiet lowers e where its value is not used.
-func (l *inlineLowerer) quiet(e grammar.Expr) grammar.Expr {
+func (l *inlineLowerer) quiet(e ast.Expr) ast.Expr {
 	l.unused++
 	defer func() { l.unused-- }()
 	return l.expr(e)
 }
 
-func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
+func (l *inlineLowerer) expr(e ast.Expr) ast.Expr {
 	l.control.Poll()
 	switch e := e.(type) {
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		if l.keepInline != nil {
 			return l.keepInline(e, l.expr(e.Expr))
 		}
@@ -271,11 +271,11 @@ func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
 		if l.names != nil {
 			l.names[name] = inlineSite{rule: l.rule, n: l.count, node: e}
 		}
-		l.hidden = append(l.hidden, &grammar.RuleDef{SourceInfo: e.SourceInfo, Name: name, Expr: inner, Action: e.Action, DefaultAction: e.DefaultAction})
-		return &grammar.Ref{SourceInfo: e.SourceInfo, Name: name}
-	case *grammar.Group:
-		return rewrap(e, e.Expr, l.expr(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.Seq:
+		l.hidden = append(l.hidden, &ast.RuleDef{SourceInfo: e.SourceInfo, Name: name, Expr: inner, Action: e.Action, DefaultAction: e.DefaultAction})
+		return &ast.Ref{SourceInfo: e.SourceInfo, Name: name}
+	case *ast.Group:
+		return rewrap(e, e.Expr, l.expr(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.Seq:
 		items := l.exprs(e.Items)
 		if len(items) > 0 && len(e.Items) > 0 && &items[0] == &e.Items[0] {
 			return e
@@ -283,7 +283,7 @@ func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
 		copy := *e
 		copy.Items = items
 		return &copy
-	case *grammar.Choice:
+	case *ast.Choice:
 		alts := l.exprs(e.Alts)
 		if len(alts) > 0 && &alts[0] == &e.Alts[0] {
 			return e
@@ -291,23 +291,23 @@ func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
 		copy := *e
 		copy.Alts = alts
 		return &copy
-	case *grammar.Repeat:
-		return rewrap(e, e.Expr, l.expr(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.Optional:
-		return rewrap(e, e.Expr, l.expr(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.And:
-		return rewrap(e, e.Expr, l.quiet(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.Not:
-		return rewrap(e, e.Expr, l.quiet(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.Discard:
-		return rewrap(e, e.Expr, l.quiet(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.Atomic:
-		return rewrap(e, e.Expr, l.expr(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.Stream:
-		return rewrap(e, e.Expr, l.expr(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.Capture:
-		return rewrap(e, e.Expr, l.expr(e.Expr), func(c grammar.Expr) grammar.Expr { copy := *e; copy.Expr = c; return &copy })
-	case *grammar.Recovery:
+	case *ast.Repeat:
+		return rewrap(e, e.Expr, l.expr(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.Optional:
+		return rewrap(e, e.Expr, l.expr(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.And:
+		return rewrap(e, e.Expr, l.quiet(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.Not:
+		return rewrap(e, e.Expr, l.quiet(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.Discard:
+		return rewrap(e, e.Expr, l.quiet(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.Atomic:
+		return rewrap(e, e.Expr, l.expr(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.Stream:
+		return rewrap(e, e.Expr, l.expr(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.Capture:
+		return rewrap(e, e.Expr, l.expr(e.Expr), func(c ast.Expr) ast.Expr { copy := *e; copy.Expr = c; return &copy })
+	case *ast.Recovery:
 		x, skip := l.expr(e.Expr), l.expr(e.Skip)
 		if x == e.Expr && skip == e.Skip {
 			return e
@@ -315,7 +315,7 @@ func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
 		copy := *e
 		copy.Expr, copy.Skip = x, skip
 		return &copy
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		x := l.expr(e.Expr)
 		attrs, changed := l.attributes(e.Attrs)
 		if x == e.Expr && !changed {
@@ -324,10 +324,10 @@ func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
 		copy := *e
 		copy.Expr, copy.Attrs = x, attrs
 		return &copy
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		skip := l.expr(e.Skip)
 		changed := skip != e.Skip
-		operands := make([]*grammar.OperatorsRuleOperand, len(e.Operands))
+		operands := make([]*ast.OperatorsRuleOperand, len(e.Operands))
 		for i, o := range e.Operands {
 			x := l.expr(o.Expr)
 			operands[i] = o
@@ -337,10 +337,10 @@ func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
 				operands[i], changed = &copy, true
 			}
 		}
-		levels := make([]*grammar.OperatorsRuleLevel, len(e.Levels))
+		levels := make([]*ast.OperatorsRuleLevel, len(e.Levels))
 		for i, lv := range e.Levels {
 			levels[i] = lv
-			ops := make([]*grammar.OperatorsRuleOperator, len(lv.Operators))
+			ops := make([]*ast.OperatorsRuleOperator, len(lv.Operators))
 			levelChanged := false
 			for j, o := range lv.Operators {
 				x := l.expr(o.Expr)
@@ -367,12 +367,12 @@ func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
 	return e
 }
 
-func (l *inlineLowerer) attributes(attrs []*grammar.Attribute) ([]*grammar.Attribute, bool) {
-	var out []*grammar.Attribute
+func (l *inlineLowerer) attributes(attrs []*ast.Attribute) ([]*ast.Attribute, bool) {
+	var out []*ast.Attribute
 	for i, a := range attrs {
 		var args []any
 		for j, v := range a.Args {
-			if x, ok := v.(grammar.Expr); ok {
+			if x, ok := v.(ast.Expr); ok {
 				if c := l.expr(x); c != x {
 					if args == nil {
 						args = append([]any(nil), a.Args...)
@@ -383,7 +383,7 @@ func (l *inlineLowerer) attributes(attrs []*grammar.Attribute) ([]*grammar.Attri
 		}
 		var kw map[string]any
 		for name, v := range a.KwArgs {
-			if x, ok := v.(grammar.Expr); ok {
+			if x, ok := v.(ast.Expr); ok {
 				if c := l.expr(x); c != x {
 					if kw == nil {
 						kw = make(map[string]any, len(a.KwArgs))
@@ -399,7 +399,7 @@ func (l *inlineLowerer) attributes(attrs []*grammar.Attribute) ([]*grammar.Attri
 			continue
 		}
 		if out == nil {
-			out = append([]*grammar.Attribute(nil), attrs...)
+			out = append([]*ast.Attribute(nil), attrs...)
 		}
 		copy := *a
 		if args != nil {
@@ -417,7 +417,7 @@ func (l *inlineLowerer) attributes(attrs []*grammar.Attribute) ([]*grammar.Attri
 }
 
 // rewrap returns old if child is unchanged, and make(child) otherwise.
-func rewrap(self, old, child grammar.Expr, make func(grammar.Expr) grammar.Expr) grammar.Expr {
+func rewrap(self, old, child ast.Expr, make func(ast.Expr) ast.Expr) ast.Expr {
 	if child == old {
 		return self
 	}
@@ -428,7 +428,7 @@ func rewrap(self, old, child grammar.Expr, make func(grammar.Expr) grammar.Expr)
 // that the compiler runs in its place, so that a tool working on the rules of a grammar, such as the
 // input sampler, sees the rules the parser executes. g is not changed. The names tell the generated
 // rules from the declared ones, so that a tool reports an inline action as written.
-func LowerInlineActions(g *grammar.Grammar) (*grammar.Grammar, *InlineActionNames, error) {
+func LowerInlineActions(g *ast.Grammar) (*ast.Grammar, *InlineActionNames, error) {
 	if g == nil || !HasInlineAction(g, nil) {
 		return g, nil, nil
 	}
@@ -475,7 +475,7 @@ func (n *InlineActionNames) Expr(text string) string {
 		return text
 	}
 	return n.names.substitute(text, false, func(name string) string {
-		return grammar.FormatExpr(n.names[name].node)
+		return ast.FormatExpr(n.names[name].node)
 	})
 }
 

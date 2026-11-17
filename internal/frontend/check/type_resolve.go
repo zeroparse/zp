@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/types"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TypeResolver turns the type expressions of a grammar into types. It reports undefined names,
@@ -28,10 +28,10 @@ type TypeResolver struct {
 	// in it resolve to their names only.
 	inNode bool
 	// rule is the rule being checked, whose position stands in for a missing one.
-	rule *grammar.RuleDef
+	rule *ast.RuleDef
 }
 
-func (k *TypeResolver) errorf(pos grammar.Pos, format string, args ...any) {
+func (k *TypeResolver) errorf(pos ast.Pos, format string, args ...any) {
 	if !k.report {
 		return
 	}
@@ -42,26 +42,26 @@ func (k *TypeResolver) errorf(pos grammar.Pos, format string, args ...any) {
 }
 
 // Resolve turns a type expression into a value type.
-func (k *TypeResolver) Resolve(t grammar.TypeExpr) Ty {
+func (k *TypeResolver) Resolve(t ast.TypeExpr) Ty {
 	k.control.Poll()
 	switch t := t.(type) {
-	case *grammar.TypeRef:
+	case *ast.TypeRef:
 		return k.ResolveNamed(t.Name, t.Diagnostic())
-	case *grammar.TypeGroup:
+	case *ast.TypeGroup:
 		return k.Resolve(t.Type)
-	case *grammar.ListType:
+	case *ast.ListType:
 		// []_|_ is the list type whose only value is the empty list.
 		return ListTy{Elem: k.Resolve(t.Elem)}
-	case *grammar.OptionalType:
+	case *ast.OptionalType:
 		// *_|_ is nil, the optional type whose only value is nil.
 		return types.Vopt(k.Resolve(t.Elem))
-	case *grammar.JoinType:
+	case *ast.JoinType:
 		ts := make([]Ty, len(t.Types))
 		for i, x := range t.Types {
 			ts[i] = k.Resolve(x)
 		}
 		return Vjoin(ts...)
-	case *grammar.TupleType:
+	case *ast.TupleType:
 		elems := make([]Ty, len(t.Types))
 		for i, x := range t.Types {
 			if elems[i] = k.Resolve(x); elems[i] == TyBottom {
@@ -69,10 +69,10 @@ func (k *TypeResolver) Resolve(t grammar.TypeExpr) Ty {
 			}
 		}
 		return TupleTy{Elems: elems}
-	case *grammar.StructType:
+	case *ast.StructType:
 		k.unsupported(t, t.Diagnostic(), "unnamed struct types are not supported yet; define one with type T = {...}")
 		return TyAny
-	case *grammar.TypeApp:
+	case *ast.TypeApp:
 		if t.Name == "node" {
 			if len(t.Args) != 1 {
 				// Reported like unsupported syntax.
@@ -91,7 +91,7 @@ func (k *TypeResolver) Resolve(t grammar.TypeExpr) Ty {
 			k.unsupported(t, t.Diagnostic(), "undefined type %s", t.Name)
 		}
 		return TyAny
-	case *grammar.MeetType:
+	case *ast.MeetType:
 		m := Ty(TyTop) // the meet of no types
 		for _, x := range t.Types {
 			m = vmeet(m, k.Resolve(x))
@@ -180,7 +180,7 @@ func valueAlternatives(t Ty) []Ty {
 }
 
 // unsupported reports type syntax t that is not supported yet, once.
-func (k *TypeResolver) unsupported(t grammar.TypeExpr, pos grammar.Pos, format string, args ...any) {
+func (k *TypeResolver) unsupported(t ast.TypeExpr, pos ast.Pos, format string, args ...any) {
 	k.sawUnsupported = true
 	if !k.report || !k.Prog.MarkUnsupported(t) {
 		return
@@ -197,13 +197,13 @@ func (k *TypeResolver) defined(name string) bool {
 		return true
 	}
 	r := &TypeResolver{Prog: k.Prog, errs: &diagnostic.ErrorList{}, report: true}
-	r.ResolveNamed(name, grammar.Pos{})
+	r.ResolveNamed(name, ast.Pos{})
 	return len(*r.errs) == 0
 }
 
 // resolveLocation resolves the type of a location: a field, a rule, a list element or a cast.
 // No value has the type _|_, so a location of that type is an error.
-func (k *TypeResolver) resolveLocation(t grammar.TypeExpr, pos grammar.Pos, what string) Ty {
+func (k *TypeResolver) resolveLocation(t ast.TypeExpr, pos ast.Pos, what string) Ty {
 	r := k.Resolve(t)
 	if r == TyBottom {
 		k.errorf(pos, "%s has type _|_, which has no values", what)
@@ -214,7 +214,7 @@ func (k *TypeResolver) resolveLocation(t grammar.TypeExpr, pos grammar.Pos, what
 
 // ResolveNamed resolves the type name written at pos: a built-in type, a reserved node kind or a
 // declared type, reporting names that are undefined or used without a required argument.
-func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
+func (k *TypeResolver) ResolveNamed(name string, pos ast.Pos) Ty {
 	k.control.Poll()
 	switch name {
 	case "int":
@@ -236,7 +236,7 @@ func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
 		return TyErr
 	}
 	switch spec := k.Prog.TypeDecls()[name].(type) {
-	case *grammar.TypeDef:
+	case *ast.TypeDef:
 		val := spec.NodeValue()
 		if val == nil {
 			return NamedTy{Name: name, Kind: 's'}
@@ -257,7 +257,7 @@ func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
 			return TyBottom // node[_|_] has no values
 		}
 		return NodeTy{Value: v, Name: name}
-	case *grammar.TypeAlias:
+	case *ast.TypeAlias:
 		if k.resolving == nil {
 			k.resolving = map[string]bool{}
 		}
@@ -291,7 +291,7 @@ var RetiredTypeNames = map[string]string{
 }
 
 // DefFields returns the fields of the struct type that spec defines, and nil for a named node type.
-func DefFields(spec *grammar.TypeDef) []*grammar.Field {
+func DefFields(spec *ast.TypeDef) []*ast.Field {
 	if st := spec.Struct(); st != nil {
 		return st.Fields
 	}
@@ -305,7 +305,7 @@ func (k *TypeResolver) checkTypeDefinitions() {
 	for _, td := range k.control.Types(k.Prog.Grammar()) {
 		k.control.Poll()
 		switch spec := td.(type) {
-		case *grammar.TypeDef:
+		case *ast.TypeDef:
 			if val := spec.NodeValue(); val != nil {
 				k.resolveLocation(val, spec.Diagnostic(), "the value of node type "+td.DeclName())
 				continue
@@ -322,7 +322,7 @@ func (k *TypeResolver) checkTypeDefinitions() {
 				seen[f.Name] = true
 				k.resolveLocation(f.Type, f.Diagnostic(), "field "+f.Name+" of "+td.DeclName())
 			}
-		case *grammar.TypeAlias:
+		case *ast.TypeAlias:
 			k.ResolveNamed(td.DeclName(), td.Diagnostic())
 		}
 	}

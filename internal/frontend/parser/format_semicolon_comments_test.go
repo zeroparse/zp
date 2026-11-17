@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // commentOwners lists, for every node of g that owns comments, its path in the
 // JSON form and the comments it owns.
-func commentOwners(t *testing.T, g *grammar.Grammar) []string {
+func commentOwners(t *testing.T, g *ast.Grammar) []string {
 	t.Helper()
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,12 +73,12 @@ func TestFormatKeepsOwnersOfSharedLines(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			out := grammar.Format(g)
+			out := ast.Format(g)
 			again, err := Parse(out)
 			if err != nil {
 				t.Fatalf("output does not parse: %v\n%s", err, out)
 			}
-			if got := grammar.Format(again); got != out {
+			if got := ast.Format(again); got != out {
 				t.Errorf("Format is not idempotent\nfirst:\n%s\nsecond:\n%s", out, got)
 			}
 			want, got := commentOwners(t, g), commentOwners(t, again)
@@ -96,7 +96,7 @@ func TestFormatKeepsFieldGaps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := grammar.Format(g)
+	out := ast.Format(g)
 	for _, want := range []string{"A /* x */ /* y */ int", "B /* z */ string"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q\n%s", want, out)

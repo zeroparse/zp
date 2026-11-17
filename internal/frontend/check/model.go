@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Model is the semantic model of a checked grammar: the grammar the checker read, its type
@@ -13,12 +13,12 @@ import (
 // rules with their static facts; a program loaded from a compiled grammar has a model without a
 // grammar.
 type Model struct {
-	Grammar *grammar.Grammar
+	Grammar *ast.Grammar
 	// Source is the grammar as written when Grammar is its lowering (inline actions replaced by
 	// hidden rules); nil when Grammar is the grammar itself.
-	Source *grammar.Grammar
+	Source *ast.Grammar
 	// Types holds the type declarations by name.
-	Types map[string]grammar.TypeDecl
+	Types map[string]ast.TypeDecl
 	// Vars holds the declared variables (nil if there are none).
 	Vars *VarTable
 	// StartRules holds the start rules in declaration order and DefaultStartRule the default one
@@ -29,8 +29,8 @@ type Model struct {
 
 // NewModel returns a model of the grammar g, whose lowering of source it is (nil if g is the
 // grammar as written), with no type declarations yet.
-func NewModel(g, source *grammar.Grammar) *Model {
-	return &Model{Grammar: g, Source: source, Types: map[string]grammar.TypeDecl{}}
+func NewModel(g, source *ast.Grammar) *Model {
+	return &Model{Grammar: g, Source: source, Types: map[string]ast.TypeDecl{}}
 }
 
 // ResolveStart returns the rule name selects: name, or the default start rule when name is

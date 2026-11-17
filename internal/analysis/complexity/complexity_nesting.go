@@ -3,7 +3,7 @@ package complexity
 import (
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // --- Nesting at one end ---
@@ -49,8 +49,8 @@ var restartsAhead = true
 // continuation can reach the end of the body of rule without consuming input (E3).
 type restart struct {
 	rule string
-	call *grammar.Ref // the call in the unit
-	via  *refList     // the calls that the unit looked through before it
+	call *ast.Ref // the call in the unit
+	via  *refList // the calls that the unit looked through before it
 }
 
 // nestsAt reports whether the call s nests at one end: its callee is in E_s.
@@ -237,7 +237,7 @@ func (k *classifier) nestSet(rs []restart) map[*site]bool {
 		}
 	}
 	// byRef[c] are the restarts through the call c itself or through its body.
-	byRef := map[*grammar.Ref][]*restart{}
+	byRef := map[*ast.Ref][]*restart{}
 	for i := range rs {
 		r := &rs[i]
 		byRef[r.call] = append(byRef[r.call], r)

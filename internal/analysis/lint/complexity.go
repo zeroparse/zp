@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // complexity runs the checks that come from the classification of the cost of the grammar g as
 // written from start: growing-variable, and super-linear when the classification is requested.
 // The classification lowers inline actions itself and describes its findings as written.
-func (l *linter) complexity(g *grammar.Grammar, start string) {
+func (l *linter) complexity(g *ast.Grammar, start string) {
 	growing := !l.opts.Disable[CheckGrowingVariable]
 	superLinear := l.opts.Classify && !l.opts.Disable[CheckSuperLinear]
 	if !growing && !superLinear {
@@ -35,11 +35,11 @@ func (l *linter) complexity(g *grammar.Grammar, start string) {
 		l.control.check()
 		return // a grammar that does not compile is not classified
 	}
-	defs := map[string]*grammar.RuleDef{}
+	defs := map[string]*ast.RuleDef{}
 	for _, r := range l.control.rules(g) {
 		defs[r.Name] = r
 	}
-	add := func(check string, sev Severity, rule string, pos grammar.Pos, msg string) {
+	add := func(check string, sev Severity, rule string, pos ast.Pos, msg string) {
 		l.control.poll()
 		if r := defs[rule]; r != nil && !pos.IsValid() {
 			pos = r.Diagnostic()
@@ -64,7 +64,7 @@ func (l *linter) complexity(g *grammar.Grammar, start string) {
 // start rule) after it checks g with the front end, so that a grammar that does not compile, or a
 // start that is not a start rule of g, is an error and not a precondition. Cancellation of ctx
 // discards the result.
-func Classify(ctx context.Context, g *grammar.Grammar, start string) (*complexity.Complexity, error) {
+func Classify(ctx context.Context, g *ast.Grammar, start string) (*complexity.Complexity, error) {
 	res, err := checkGrammar(ctx, g)
 	if err != nil {
 		return nil, err

@@ -6,9 +6,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Values of actions and predicates are *Node, int, string, bool or nil.
@@ -116,7 +116,7 @@ func (c *EvalCtx) Member(x any, name string) (any, error) {
 // struct n, and false if its type declares no such field. Under budget controls it charges for the
 // declared fields it scans, and for the values it makes.
 func (p *Parser) memberZero(c *EvalCtx, n *core.Node, name string) (any, bool) {
-	if !p.HasValueField(p.Prog.Types[n.Type()].(*grammar.TypeDef), name) {
+	if !p.HasValueField(p.Prog.Types[n.Type()].(*ast.TypeDef), name) {
 		return nil, false
 	}
 	v, err := c.zeroValue(p.Prog.StructZeroOf(n.Type()).Zeros[name])

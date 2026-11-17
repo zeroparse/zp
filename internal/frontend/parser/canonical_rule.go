@@ -1,31 +1,31 @@
 package parser
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Parser expressions. The nodes of the AST are built, and recorded for source
 // information, in the order the hand-written parser completes them.
 
-func (c *canonical) rule(n types.RuleExpr) grammar.Expr {
+func (c *canonical) rule(n types.RuleExpr) ast.Expr {
 	switch n := n.(type) {
 	case *types.RuleRef:
-		e := &grammar.Ref{Name: c.name(n.Name)}
+		e := &ast.Ref{Name: c.name(n.Name)}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.LevelCall:
-		e := &grammar.Ref{Name: c.name(n.Rule), Level: c.name(n.Level)}
+		e := &ast.Ref{Name: c.name(n.Rule), Level: c.name(n.Level)}
 		c.created(c.span(&e.SourceInfo, n), n.Rule.Start)
 		return e
 	case *types.RuleGroup:
-		e := &grammar.Group{}
+		e := &ast.Group{}
 		e.Expr = c.rule(n.Expr)
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.InlineAction:
-		e := &grammar.InlineAction{}
+		e := &ast.InlineAction{}
 		e.Expr = c.rule(n.Expr)
 		if !isNil(n.Action) {
 			e.Action, e.DefaultAction = c.actionOrDefault(n.Action)
@@ -33,69 +33,69 @@ func (c *canonical) rule(n types.RuleExpr) grammar.Expr {
 		c.created(c.span(&e.SourceInfo, n), c.nextToken(end(n.Expr.(ranged))))
 		return e
 	case *types.Sequence:
-		e := &grammar.Seq{}
+		e := &ast.Seq{}
 		for _, o := range flattenSeq(n) {
 			e.Items = append(e.Items, c.rule(o))
 		}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Choice:
-		e := &grammar.Choice{}
+		e := &ast.Choice{}
 		for _, o := range flattenChoice(n) {
 			e.Alts = append(e.Alts, c.rule(o))
 		}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Discard:
-		e := &grammar.Discard{}
+		e := &ast.Discard{}
 		e.Expr = c.rule(n.X)
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Lookahead:
 		x := c.rule(n.X)
 		if n.Op == "&" {
-			e := &grammar.And{Expr: x}
+			e := &ast.And{Expr: x}
 			c.span(&e.SourceInfo, n)
 			return e
 		}
-		e := &grammar.Not{Expr: x}
+		e := &ast.Not{Expr: x}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Capture:
-		e := &grammar.Capture{Name: c.name(n.Name)}
+		e := &ast.Capture{Name: c.name(n.Name)}
 		e.Expr = c.rule(n.Expr)
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Top:
-		e := &grammar.Top{}
+		e := &ast.Top{}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Bottom:
-		e := &grammar.Bottom{}
+		e := &ast.Bottom{}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.BeginLine:
-		e := &grammar.BeginLine{}
+		e := &ast.BeginLine{}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.BeginInput:
-		e := &grammar.BeginInput{}
+		e := &ast.BeginInput{}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.EndLine:
-		e := &grammar.EndLine{}
+		e := &ast.EndLine{}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.EndInput:
-		e := &grammar.EndInput{}
+		e := &ast.EndInput{}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Any:
-		e := &grammar.Any{}
+		e := &ast.Any{}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Cut:
-		e := &grammar.Cut{}
+		e := &ast.Cut{}
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.CharClass:
@@ -110,22 +110,22 @@ func (c *canonical) rule(n types.RuleExpr) grammar.Expr {
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Optional:
-		e := &grammar.Optional{}
+		e := &ast.Optional{}
 		e.Expr = c.rule(n.X)
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.ZeroOrMore:
-		e := &grammar.Repeat{Min: 0, Max: -1}
+		e := &ast.Repeat{Min: 0, Max: -1}
 		e.Expr = c.rule(n.X)
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.OneOrMore:
-		e := &grammar.Repeat{Min: 1, Max: -1}
+		e := &ast.Repeat{Min: 1, Max: -1}
 		e.Expr = c.rule(n.X)
 		c.span(&e.SourceInfo, n)
 		return e
 	case *types.Repeat:
-		e := &grammar.Repeat{}
+		e := &ast.Repeat{}
 		e.Expr = c.rule(n.X)
 		if !n.Range_ {
 			e.Min = c.integer(n.Min)
@@ -142,17 +142,17 @@ func (c *canonical) rule(n types.RuleExpr) grammar.Expr {
 		c.pragma(&e.SourceInfo, "Repeat", n, n.X)
 		return e
 	case *types.Atomic:
-		e := &grammar.Atomic{}
+		e := &ast.Atomic{}
 		e.Expr = c.rule(n.X)
 		c.pragma(&e.SourceInfo, "Atomic", n, n.X)
 		return e
 	case *types.Stream:
-		e := &grammar.Stream{}
+		e := &ast.Stream{}
 		e.Expr = c.rule(n.X)
 		c.pragma(&e.SourceInfo, "Stream", n, n.X)
 		return e
 	case *types.Recover:
-		e := &grammar.Recovery{}
+		e := &ast.Recovery{}
 		e.Expr = c.rule(n.X)
 		e.Skip = c.rule(n.Skip)
 		c.pragma(&e.SourceInfo, "Recovery", n, n.X)
@@ -221,15 +221,15 @@ func (c *canonical) bracketBefore(off int) bool {
 }
 
 // charClass builds a character class from its source.
-func (c *canonical) charClass(n *types.CharClass) *grammar.CharClass {
-	var cc *grammar.CharClass
+func (c *canonical) charClass(n *types.CharClass) *ast.CharClass {
+	var cc *ast.CharClass
 	c.decode(n, func(l *lexer) { cc = l.charClass() })
-	return &grammar.CharClass{Ranges: cc.Ranges, Negated: cc.Negated}
+	return &ast.CharClass{Ranges: cc.Ranges, Negated: cc.Negated}
 }
 
 // pragma records a node that a pragma completes twice: at the "#" and then,
 // once the suffix loop has it, from the start of its operand.
-func (c *canonical) pragma(target *grammar.SourceInfo, label string, n ranged, operand types.RuleExpr) int {
+func (c *canonical) pragma(target *ast.SourceInfo, label string, n ranged, operand types.RuleExpr) int {
 	if isNil(operand) {
 		c.fail("the source tree has no operand of a pragma")
 	}
@@ -261,7 +261,7 @@ func layer(n types.RuleExpr) (types.RuleExpr, bool) {
 
 // attributed builds the one node that a run of attributes and bare pragmas
 // becomes. It is completed again by every suffix after the first.
-func (c *canonical) attributed(n types.RuleExpr) *grammar.Attributed {
+func (c *canonical) attributed(n types.RuleExpr) *ast.Attributed {
 	var layers []types.RuleExpr // outermost first
 	base := n
 	for {
@@ -276,7 +276,7 @@ func (c *canonical) attributed(n types.RuleExpr) *grammar.Attributed {
 		c.fail("the source tree has no operand of an attribute")
 	}
 	baseStart := start(base.(ranged))
-	a := &grammar.Attributed{}
+	a := &ast.Attributed{}
 	a.Expr = c.rule(base)
 	var events []sourceast.Event
 	for i := len(layers) - 1; i >= 0; i-- {
@@ -284,7 +284,7 @@ func (c *canonical) attributed(n types.RuleExpr) *grammar.Attributed {
 		if _, attr := l.(*types.Attributed); !attr {
 			x, _ := layer(l)
 			hash := c.nextToken(end(x.(ranged)))
-			pragma := &grammar.Attribute{Name: "missing", Pragma: true}
+			pragma := &ast.Attribute{Name: "missing", Pragma: true}
 			if _, ok := l.(*types.IgnoreCase); ok {
 				pragma.Name = "ignorecase"
 			}
@@ -312,11 +312,11 @@ func (c *canonical) attributed(n types.RuleExpr) *grammar.Attributed {
 	return a
 }
 
-func (c *canonical) attr(n *types.Attr) *grammar.Attribute {
+func (c *canonical) attr(n *types.Attr) *ast.Attribute {
 	if n == nil {
 		c.fail("the source tree has a syntax error in an attribute")
 	}
-	a := &grammar.Attribute{Name: c.name(n.Name)}
+	a := &ast.Attribute{Name: c.name(n.Name)}
 	for _, v := range n.Args {
 		a.Args = append(a.Args, c.attrValue(v))
 	}
@@ -373,8 +373,8 @@ func (c *canonical) attrValue(v types.AttrValue) any {
 	return c.rule(x)
 }
 
-func (c *canonical) operators(n *types.OperatorsRule) *grammar.OperatorsRule {
-	r := &grammar.OperatorsRule{}
+func (c *canonical) operators(n *types.OperatorsRule) *ast.OperatorsRule {
+	r := &ast.OperatorsRule{}
 	for _, it := range n.Items {
 		switch it := it.(type) {
 		case *types.OperatorsSkip:
@@ -387,7 +387,7 @@ func (c *canonical) operators(n *types.OperatorsRule) *grammar.OperatorsRule {
 			c.statement(&r.SkipSource, it.SourceSpan, sep, false)
 		case *types.OperatorsOperand:
 			sep := c.semicolons(it.SourceSpan)
-			o := &grammar.OperatorsRuleOperand{}
+			o := &ast.OperatorsRuleOperand{}
 			o.Expr = c.rule(it.Expr)
 			if !isNil(it.Action) {
 				o.Action, o.DefaultAction = c.actionOrDefault(it.Action)
@@ -396,22 +396,22 @@ func (c *canonical) operators(n *types.OperatorsRule) *grammar.OperatorsRule {
 			r.Operands = append(r.Operands, o)
 		case *types.OperatorsLevel:
 			sep := c.semicolons(it.SourceSpan)
-			l := &grammar.OperatorsRuleLevel{}
+			l := &ast.OperatorsRuleLevel{}
 			if it.Name != nil {
 				l.Name = it.Name.Value // a level may have no name
 			}
 			for _, op := range it.Operators {
-				o := &grammar.OperatorsRuleOperator{}
+				o := &ast.OperatorsRuleOperator{}
 				var body *types.OperatorsOperatorBody
 				var expr types.RuleExpr
 				var action types.Action
 				switch op := op.(type) {
 				case *types.Prefix:
-					o.Kind, body, expr, action = grammar.Prefix, op.SourceSpan, op.Expr, op.Action
+					o.Kind, body, expr, action = ast.Prefix, op.SourceSpan, op.Expr, op.Action
 				case *types.Postfix:
-					o.Kind, body, expr, action = grammar.Postfix, op.SourceSpan, op.Expr, op.Action
+					o.Kind, body, expr, action = ast.Postfix, op.SourceSpan, op.Expr, op.Action
 				case *types.Infix:
-					o.Kind, body, expr, action = grammar.Infix, op.SourceSpan, op.Expr, op.Action
+					o.Kind, body, expr, action = ast.Infix, op.SourceSpan, op.Expr, op.Action
 					o.Assoc = op.Assoc
 				}
 				if body == nil {

@@ -1,9 +1,9 @@
 package compile
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Skip-run sites.
@@ -35,7 +35,7 @@ import (
 // markSkipSites numbers the skip-run sites of the program from 1, in the order of the rules and of
 // the expressions in them.
 func (prog *Program) markSkipSites(control *cancel.Control) {
-	defs := make([]*grammar.RuleDef, 0, len(prog.RuleList))
+	defs := make([]*ast.RuleDef, 0, len(prog.RuleList))
 	calls := map[string][]string{}
 	recovers, recursive := map[string]bool{}, map[string]bool{}
 	for _, r := range prog.RuleList {
@@ -45,7 +45,7 @@ func (prog *Program) markSkipSites(control *cancel.Control) {
 		if r.Leader || r.Member {
 			recursive[r.Name] = true
 		}
-		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
+		walkExprControlled(r.Def.Expr, func(x ast.Expr) {
 			if isRecover(x) {
 				recovers[r.Name] = true
 			}
@@ -53,18 +53,18 @@ func (prog *Program) markSkipSites(control *cancel.Control) {
 	}
 	propagate(defs, calls, recovers, control)
 	propagate(defs, calls, recursive, control)
-	eligible := func(e *grammar.Repeat) bool {
+	eligible := func(e *ast.Repeat) bool {
 		if e.Max >= 0 || escapingCut(e.Expr) {
 			return false
 		}
 		ok := true
-		walkExprControlled(e.Expr, func(x grammar.Expr) {
+		walkExprControlled(e.Expr, func(x ast.Expr) {
 			switch x := x.(type) {
-			case *grammar.Predicate:
+			case *ast.Predicate:
 				if readsOrBindsVariable(x.Term) {
 					ok = false
 				}
-			case *grammar.Ref:
+			case *ast.Ref:
 				r := prog.ByName[x.Name]
 				if r == nil || len(r.Vars) > 0 || recovers[x.Name] || recursive[x.Name] {
 					ok = false
@@ -78,28 +78,28 @@ func (prog *Program) markSkipSites(control *cancel.Control) {
 		return ok
 	}
 	// mark marks the outermost eligible repetitions of the skip expression e.
-	var mark func(e grammar.Expr)
-	mark = func(e grammar.Expr) {
-		walkExprControlled(e, func(x grammar.Expr) {
-			if rep, ok := x.(*grammar.Repeat); ok && prog.skipSites[rep] == 0 && !prog.inSite[rep] && eligible(rep) {
+	var mark func(e ast.Expr)
+	mark = func(e ast.Expr) {
+		walkExprControlled(e, func(x ast.Expr) {
+			if rep, ok := x.(*ast.Repeat); ok && prog.skipSites[rep] == 0 && !prog.inSite[rep] && eligible(rep) {
 				prog.NumSkipSites++
 				prog.skipSites[rep] = prog.NumSkipSites
 				// Its element reads and binds no variable (eligible), so it is free of the
 				// environment.
 				prog.markEnvFree(prog.NumSkipSites)
 				// Nothing inside a site is one.
-				walkExprControlled(rep.Expr, func(y grammar.Expr) {
-					if r, ok := y.(*grammar.Repeat); ok {
+				walkExprControlled(rep.Expr, func(y ast.Expr) {
+					if r, ok := y.(*ast.Repeat); ok {
 						prog.inSite[r] = true
 					}
 				}, control)
 			}
 		}, control)
 	}
-	prog.skipSites, prog.inSite = map[*grammar.Repeat]int{}, map[*grammar.Repeat]bool{}
+	prog.skipSites, prog.inSite = map[*ast.Repeat]int{}, map[*ast.Repeat]bool{}
 	for _, r := range prog.RuleList {
 		control.Poll()
-		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
+		walkExprControlled(r.Def.Expr, func(x ast.Expr) {
 			if skip := skipOf(x); skip != nil {
 				mark(skip)
 			}
@@ -110,17 +110,17 @@ func (prog *Program) markSkipSites(control *cancel.Control) {
 }
 
 // SkipSite returns the number of the skip-run site e (from 1), or 0 if e is not one.
-func (prog *Program) SkipSite(e *grammar.Repeat) int { return prog.skipSites[e] }
+func (prog *Program) SkipSite(e *ast.Repeat) int { return prog.skipSites[e] }
 
 // isRecover reports whether e is an expression with #recover.
-func isRecover(e grammar.Expr) bool { return skipOf(e) != nil }
+func isRecover(e ast.Expr) bool { return skipOf(e) != nil }
 
 // skipOf returns the skip expression of e if e is an expression with #recover, or nil.
-func skipOf(e grammar.Expr) grammar.Expr {
+func skipOf(e ast.Expr) ast.Expr {
 	switch e := e.(type) {
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return e.Skip
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return RecoverSkip(e)
 	}
 	return nil
@@ -129,14 +129,14 @@ func skipOf(e grammar.Expr) grammar.Expr {
 // escapingCut reports whether e has a #cut outside every choice, option, repetition and lookahead
 // in it: one that applies to the choice, option or repetition around e. The skip of a #recover runs
 // in the scope of the #recover, so a cut in it counts.
-func escapingCut(e grammar.Expr) bool { return astfacts.HasLooseCut(e) }
+func escapingCut(e ast.Expr) bool { return astfacts.HasLooseCut(e) }
 
 // readsOrBindsVariable reports whether the predicate term t reads or binds a variable.
-func readsOrBindsVariable(t grammar.Term) bool {
+func readsOrBindsVariable(t ast.Term) bool {
 	found := false
-	WalkTerm(t, func(x grammar.Term) {
+	WalkTerm(t, func(x ast.Term) {
 		switch x.(type) {
-		case *grammar.VarRef, *grammar.Bind:
+		case *ast.VarRef, *ast.Bind:
 			found = true
 		}
 	})
@@ -144,7 +144,7 @@ func readsOrBindsVariable(t grammar.Term) bool {
 }
 
 // RecoverSkip returns the skip expression of a #recover on e, if it has one.
-func RecoverSkip(e *grammar.Attributed) grammar.Expr {
+func RecoverSkip(e *ast.Attributed) ast.Expr {
 	for _, a := range e.Attrs {
 		if a.Name == "recover" {
 			if skip, ok := a.Arg("skip"); ok {

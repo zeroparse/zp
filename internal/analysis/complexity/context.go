@@ -3,8 +3,8 @@ package complexity
 import (
 	"context"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // complexitySinkKey is the context key of the function that WithComplexitySink installs.
@@ -21,7 +21,7 @@ func WithComplexitySink(ctx context.Context, sink func(*Complexity)) context.Con
 // ClassifyComplexity is ClassifyComplexityControlled under ctx: it returns ctx's error, and no
 // classification, if ctx ends. It passes the classification to the sink of ctx, if any (see
 // WithComplexitySink).
-func ClassifyComplexity(ctx context.Context, g *grammar.Grammar, start string) (*Complexity, error) {
+func ClassifyComplexity(ctx context.Context, g *ast.Grammar, start string) (*Complexity, error) {
 	c, err := classifyComplexity(ctx, g, start)
 	if sink, ok := ctx.Value(complexitySinkKey{}).(func(*Complexity)); ok && err == nil {
 		sink(c)
@@ -29,7 +29,7 @@ func ClassifyComplexity(ctx context.Context, g *grammar.Grammar, start string) (
 	return c, err
 }
 
-func classifyComplexity(ctx context.Context, g *grammar.Grammar, start string) (c *Complexity, err error) {
+func classifyComplexity(ctx context.Context, g *ast.Grammar, start string) (c *Complexity, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func classifyComplexity(ctx context.Context, g *grammar.Grammar, start string) (
 
 // GrowingBindings is GrowingBindingsControlled under ctx: it returns the Growing member of
 // ClassifyComplexity(ctx, g, start) at a lower cost.
-func GrowingBindings(ctx context.Context, g *grammar.Grammar, start string) (b []GrowingBinding, err error) {
+func GrowingBindings(ctx context.Context, g *ast.Grammar, start string) (b []GrowingBinding, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // checks returns how many context checks ctx has seen, for a context from compileTestContext
@@ -66,7 +66,7 @@ func TestRuleCyclesPollsContext(t *testing.T) {
 		t.Fatal(err)
 	}
 	defs := g.Rules()
-	byName := map[string]*grammar.RuleDef{}
+	byName := map[string]*ast.RuleDef{}
 	for _, rd := range defs {
 		byName[rd.Name] = rd
 	}

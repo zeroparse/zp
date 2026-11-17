@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The tests of this package check grammars to their static programs (Check), which builds no
@@ -15,14 +15,14 @@ import (
 
 // parseTest parses ZeroParse source for a test whose subject is not start rules: unless the source has
 // declaration attributes, every rule becomes a start rule, the first one the default.
-func parseTest(src string) (*grammar.Grammar, error) {
+func parseTest(src string) (*ast.Grammar, error) {
 	g, err := parser.Parse(src)
 	return starttest.MarkAll(g), err
 }
 
 // compileStatic compiles g as the engine does, without building matchers; flags, if not nil,
 // replace static analysis and type checking.
-func compileStatic(g *grammar.Grammar, opts Options, flags []RuleFlags) (*Program, error) {
+func compileStatic(g *ast.Grammar, opts Options, flags []RuleFlags) (*Program, error) {
 	names := desugar.InlineNames{}
 	p, err := Check(g, opts, flags, names, nil)
 	if err != nil {
