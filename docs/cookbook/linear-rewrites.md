@@ -26,9 +26,12 @@ measured on the closure backend; the bytecode backends give the same orders. The
 
 The closure and bytecode backends keep [run records](../../spec/runtime/parsing.md#run-sites) for a repetition that a
 parse walks again from a position inside an earlier walk, so the first two patterns, which restart such a repetition,
-cost linear steps there even before the rewrite. The linter classifies a grammar from the grammar alone and does not
-count those records, and generated Go parsers keep none, so the class reported and the cost of a generated parser are
-those of the rewrite's original. The rewrites also cost fewer steps on the interpreting backends.
+cost linear steps there even before the rewrite. Every backend, generated parsers included, keeps the runs of
+[scan sites](../../spec/runtime/parsing.md#scan-sites), repetitions of one character class or any character, so the
+third pattern, whose skip reaches such a repetition through a rule, costs linear steps on all of them. The linter
+classifies a grammar from the grammar alone and counts neither, and generated parsers keep no run records, so the class
+reported is that of the rewrite's original, and so is the cost of a generated parser in the first two patterns. The
+rewrites also cost fewer steps on the interpreting backends.
 
 ## A Repetition Restarted After Backtracking
 
@@ -100,8 +103,9 @@ nodes keeps its lookahead, bounded to what it must see, a literal or one charact
 ## A Recovery Skip Followed by Failure
 
 A [`#recover` skip](../../spec/runtime/parsing.md#skip-runs) that is a repetition written in the skip expression is
-already linear: the walks of the skip share the rest of the input they have walked. Only a repetition that a skip
-reaches through a rule is not shared.
+already linear: the walks of the skip share the rest of the input they have walked. A repetition that a skip reaches
+through a rule is shared only when it is a [scan site](../../spec/runtime/parsing.md#scan-sites), a repetition of one
+character class or any character, as `[a]+` is here; any other is walked again from each position.
 
 ```zp
 // skip.zp
@@ -116,7 +120,9 @@ rule s = [a]+
 ```
 
 Each `x` fails at `y`, skips the rest of the run of `a`, then fails at `"c"`, and the recovery is abandoned; the next
-iteration starts one character later and walks the run again. Write the repetition in the skip expression:
+iteration starts one character later and walks the run again. The runs of the scan site answer those walks, so the
+steps grow linearly, but the linter does not count them, and a repetition that is not a scan site has no runs. Write
+the repetition in the skip expression:
 
 ```zp
 // skip-fast.zp
@@ -130,8 +136,8 @@ rule y = "b"
 
 | `n` | 100 | 200 | 400 |
 |:--|--:|--:|--:|
-| `skip.zp` | 13,648 | 47,392 | 174,976 |
-| `skip-fast.zp` | 4,504 | 9,112 | 18,304 |
+| `skip.zp` | 7,130 | 14,730 | 29,930 |
+| `skip-fast.zp` | 4,497 | 9,097 | 18,297 |
 
 **What changes.** Nothing: the skip matches the same text, so the tree, the errors and the extent of the recovery
 are the same. The linter reports polynomial (n^2) for `skip.zp` and linear for `skip-fast.zp`. The repetition must have
@@ -330,7 +336,9 @@ scan-fast.zp: the cost from start rule main is linear
   (see [Classifying the Parse Cost](../guide/linting.md#classifying-the-parse-cost)).
 - A rewrite changes only what the section says. Compare the trees of the old and the new grammar on real inputs
   before replacing one with the other; the [testing guide](../guide/testing-grammars.md) shows how.
-- The runtime does not share the scan of a repetition between positions, so the first two patterns need the rewrite.
+- Generated parsers share the walks of a repetition between positions only at skip runs and scan sites, so the first
+  two patterns need the rewrite there, and the linter counts no sharing, so it reports all three patterns until they
+  are rewritten.
   Recovery skips written in the skip expression, a left-recursive rule called once at a position, and right recursion
   are already linear and need none.
 - To find which rule spends the steps in a real grammar, use `zp profile`; see
