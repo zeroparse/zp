@@ -614,7 +614,7 @@ stored*), whereas the parse of $V$ takes the memoized rules of a parse of $G$
 from scratch ([Cost View](../runtime/parsing.md#cost-view)). Split the cost
 of $P$ by the decisions of a parse from scratch: its keyed evaluations and
 growth runs are those of the rules that a parse from scratch memoizes, and a
-call of a rule that only a Document memoizes counts, in the own cost of its
+call of a transient rule, whose results only a Document stores, counts, in the own cost of its
 caller, as a call of a rule that is not memoized: the call, and the evaluation
 of the body when $P$ makes it. Let $D$ be the lookups and stores of these calls,
 which a parse from scratch does not make.
