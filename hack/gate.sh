@@ -7,12 +7,12 @@
 #   docs    go vet ./..., the tests of the site module, and a site build with its link check (without the WebAssembly
 #           binary, which the playground checks cover).
 #   code    go build ./..., go vet ./..., and go test of the packages that changed since REV and of every package that
-#           depends on them (hack/affected-tests.sh, which uses go list).
+#           depends on them (hack/affected-tests.sh, which uses go list), the longest packages first.
 #   engine  code, with the default-tier tests replaced by the same packages in the long tier (-tags zp_long, which
 #           includes the default tier), then go generate ./internal/codegen/... ./bench ./internal/frontend/parser
 #           ./spec/language with a check that it changed nothing, hack/test-alpha-parsers.sh and
 #           hack/test-reference-tags.sh.
-#   full    go test -tags zp_long ./... (the whole tree, in the long tier).
+#   full    go test -tags zp_long ./... (the whole tree, in the long tier), with the longest packages named first.
 #
 # REV is the base of the change (default origin/main); the changed packages are those of REV..HEAD, so commit before
 # running. Steps run in order and the gate stops at the first failure, so that a heavy step does not run after a
@@ -69,13 +69,23 @@ step() {
 	cmds+=("$3")
 }
 
-# affected_cmd GO-TEST-ARGS: go test over the packages of the changes since $GATE_BASE and their reverse dependencies.
+# The packages whose tests take longest, longest first. go test starts the test runs of its packages in the order of
+# its arguments, at most -p (GOMAXPROCS) at a time, so a long package named late starts after the short ones and ends
+# the run alone; naming these first lets them overlap with each other and with the rest. Only the order changes: the
+# same packages run with the same flags. A package that no longer exists makes go test fail, so the list cannot go
+# stale silently.
+export GATE_HEAVY='zeroparse.dev/zp/internal/codegen/go zeroparse.dev/zp/internal/codegen zeroparse.dev/zp/internal/engine zeroparse.dev/zp/internal/codegen/ts zeroparse.dev/zp/spec/language zeroparse.dev/zp/codegen/go/lib zeroparse.dev/zp/internal/testing/complexitytest'
+
+# affected_cmd GO-TEST-ARGS: go test over the packages of the changes since $GATE_BASE and their reverse dependencies,
+# those of $GATE_HEAVY first.
 affected_cmd() {
 	echo 'raw=$("${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$GATE_BASE" HEAD) || { echo "gate: the affected packages could not be computed" >&2; exit 1; }
 pkgs=$(printf "%s\n" "$raw" | grep -v "^#" || true)
 [ -n "$pkgs" ] || { echo "gate: no package affected since $GATE_BASE"; exit 0; }
 echo "$pkgs" | sed "s/^/gate: affected /"
-go test -count=1 '"$1"' $pkgs'
+first=$(for h in $GATE_HEAVY; do printf "%s\n" "$pkgs" | grep -Fx "$h" || true; done)
+rest=$(printf "%s\n" "$pkgs" | grep -Fvx -f <(printf "%s\n" $GATE_HEAVY) || true)
+go test -count=1 '"$1"' $first $rest'
 }
 # snap hashes the tracked changes and the untracked files, to see that a step left the tree as it found it.
 snap_def='snap() { { git diff HEAD --binary; git ls-files -o --exclude-standard -z | xargs -0 shasum 2>/dev/null || true; } | shasum; }'
@@ -106,7 +116,7 @@ go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/lan
 	step reference-tags 'hack/test-reference-tags.sh' hack/test-reference-tags.sh
 fi
 if want full; then
-	step test-full 'go test -tags zp_long ./...' 'go test -count=1 -tags zp_long -timeout 90m ./...'
+	step test-full 'go test -tags zp_long ./... (the longest packages first)' 'go test -count=1 -tags zp_long -timeout 90m $GATE_HEAVY ./...'
 fi
 
 if [ "$dry" = 1 ]; then
