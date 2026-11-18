@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -86,7 +87,7 @@ func (g *Generator) typedTS(start *compile.Rule) (typesSrc, parser string, err e
 			b.WriteString("}\n\n")
 			t.recipe(types.NamedTy{Name: name, Kind: 's'})
 		case *ast.TypeAlias:
-			fmt.Fprintf(&b, "/** Grammar alias %s = %s. */\nexport type %s = %s;\n\n", name, ast.FormatType(spec.Type), t.names[name], t.tsType(t.info.Aliases[name]))
+			fmt.Fprintf(&b, "/** Grammar alias %s = %s. */\nexport type %s = %s;\n\n", name, syntaxfmt.FormatType(spec.Type), t.names[name], t.tsType(t.info.Aliases[name]))
 			t.recipe(t.info.Aliases[name])
 		}
 	}

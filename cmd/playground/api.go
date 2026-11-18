@@ -31,6 +31,7 @@ import (
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -290,7 +291,7 @@ func compileSource(src string) *compiled {
 		pos := r.Diagnostic()
 		ri := ruleInfo{Name: r.Name, Line: pos.Line, Col: pos.Col, Start: markedStart(r)}
 		if r.Type != nil {
-			ri.Type = ast.FormatType(r.Type)
+			ri.Type = syntaxfmt.FormatType(r.Type)
 		}
 		c.info.Rules = append(c.info.Rules, ri)
 	}
@@ -324,13 +325,13 @@ func describeType(t ast.TypeDecl) typeInfo {
 	case *ast.TypeDef:
 		if s.Struct() == nil {
 			ti.Kind = "node"
-			ti.Spec = ast.FormatType(s.Type)
+			ti.Spec = syntaxfmt.FormatType(s.Type)
 			break
 		}
 		ti.Kind = "struct"
 		fields := make([]string, len(s.Fields()))
 		for i, f := range s.Fields() {
-			fields[i] = f.Name + " " + ast.FormatType(f.Type)
+			fields[i] = f.Name + " " + syntaxfmt.FormatType(f.Type)
 		}
 		ti.Spec = "{ " + strings.Join(fields, "; ") + " }"
 		if len(fields) == 0 {
@@ -338,7 +339,7 @@ func describeType(t ast.TypeDecl) typeInfo {
 		}
 	case *ast.TypeAlias:
 		ti.Kind = "alias"
-		ti.Spec = ast.FormatType(s.Type)
+		ti.Spec = syntaxfmt.FormatType(s.Type)
 	}
 	return ti
 }
@@ -532,7 +533,7 @@ func format(src string) formatResult {
 		res.Diagnostics = diagnostics(err)
 		return res
 	}
-	res.Formatted = ast.Format(g)
+	res.Formatted = syntaxfmt.Format(g)
 	return res
 }
 

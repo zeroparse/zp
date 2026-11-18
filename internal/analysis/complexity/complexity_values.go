@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -1297,7 +1298,7 @@ func (k *classifier) growingBindings() []GrowingBinding {
 		if _, ok := k.reaches(b, true); !ok || !k.canHoldNonEmpty(b) {
 			continue
 		}
-		out = append(out, GrowingBinding{Rule: b.rule, Pos: termPosOf(b.b), Var: b.b.Name, Text: ast.FormatTerm(b.b)})
+		out = append(out, GrowingBinding{Rule: b.rule, Pos: termPosOf(b.b), Var: b.b.Name, Text: syntaxfmt.FormatTerm(b.b)})
 	}
 	return out
 }

@@ -1,4 +1,6 @@
-package ast
+package fmt
+
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // FormatSyntax renders the parsing syntax of g without modifying it. It omits
 // type declarations, result annotations, Value Actions (including inline and
@@ -11,17 +13,17 @@ package ast
 // Recovery diagnostics and returned values are intentionally not preserved.
 // Comments on retained source forms follow Format's layout rules; comments
 // attached only to removed forms may be omitted.
-func FormatSyntax(g *Grammar) string {
+func FormatSyntax(g *ast.Grammar) string {
 	view := *g
 	view.File.Decls = nil
-	p := syntaxProjection{seen: make(map[Expr]Expr)}
+	p := syntaxProjection{seen: make(map[ast.Expr]ast.Expr)}
 	for _, statement := range g.File.Decls {
-		if v, ok := statement.(*VarDef); ok {
+		if v, ok := statement.(*ast.VarDef); ok {
 			// Predicates may read and bind variables, so the view keeps them.
 			view.File.Decls = append(view.File.Decls, v)
 			continue
 		}
-		if rule, ok := statement.(*RuleDef); ok {
+		if rule, ok := statement.(*ast.RuleDef); ok {
 			r := *rule
 			r.Type, r.Action, r.DefaultAction, r.ActionBreak = nil, nil, false, nil
 			r.Expr = p.expr(rule.Expr)
@@ -31,32 +33,32 @@ func FormatSyntax(g *Grammar) string {
 	return Format(&view)
 }
 
-type syntaxProjection struct{ seen map[Expr]Expr }
+type syntaxProjection struct{ seen map[ast.Expr]ast.Expr }
 
-func (p *syntaxProjection) expr(expr Expr) Expr {
+func (p *syntaxProjection) expr(expr ast.Expr) ast.Expr {
 	if expr == nil {
 		return nil
 	}
 	if v, ok := p.seen[expr]; ok {
 		return v
 	}
-	var result Expr = expr
+	var result ast.Expr = expr
 	switch e := expr.(type) {
-	case *Seq:
+	case *ast.Seq:
 		v := *e
-		v.Items = make([]Expr, len(e.Items))
+		v.Items = make([]ast.Expr, len(e.Items))
 		for i, item := range e.Items {
 			v.Items[i] = p.expr(item)
 		}
 		result = &v
-	case *Choice:
+	case *ast.Choice:
 		v := *e
-		v.Alts = make([]Expr, len(e.Alts))
+		v.Alts = make([]ast.Expr, len(e.Alts))
 		for i, alt := range e.Alts {
 			v.Alts[i] = p.expr(alt)
 		}
 		result = &v
-	case *Group:
+	case *ast.Group:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		if syntaxGroupBoundaryEmpty(e.BodyBreak) && syntaxGroupBoundaryEmpty(e.CloseBreak) && !expressionLayout(v.Expr) {
@@ -64,9 +66,9 @@ func (p *syntaxProjection) expr(expr Expr) Expr {
 		} else {
 			result = &v
 		}
-	case *InlineAction:
+	case *ast.InlineAction:
 		result = p.expr(e.Expr)
-	case *Attributed:
+	case *ast.Attributed:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		v.Attrs, v.Breaks = nil, nil
@@ -83,52 +85,52 @@ func (p *syntaxProjection) expr(expr Expr) Expr {
 		} else {
 			result = &v
 		}
-	case *Recovery:
+	case *ast.Recovery:
 		result = p.expr(e.Expr)
-	case *Capture:
+	case *ast.Capture:
 		result = p.expr(e.Expr)
-	case *And:
+	case *ast.And:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		result = &v
-	case *Not:
+	case *ast.Not:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		result = &v
-	case *Discard:
+	case *ast.Discard:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		result = &v
-	case *Repeat:
+	case *ast.Repeat:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		result = &v
-	case *Optional:
+	case *ast.Optional:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		result = &v
-	case *Atomic:
+	case *ast.Atomic:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		result = &v
-	case *Stream:
+	case *ast.Stream:
 		v := *e
 		v.Expr = p.expr(e.Expr)
 		result = &v
-	case *OperatorsRule:
+	case *ast.OperatorsRule:
 		v := *e
 		v.Skip = p.expr(e.Skip)
-		v.Operands = make([]*OperatorsRuleOperand, len(e.Operands))
+		v.Operands = make([]*ast.OperatorsRuleOperand, len(e.Operands))
 		for i, operand := range e.Operands {
 			o := *operand
 			o.Expr = p.expr(operand.Expr)
 			o.Action, o.DefaultAction = nil, false
 			v.Operands[i] = &o
 		}
-		v.Levels = make([]*OperatorsRuleLevel, len(e.Levels))
+		v.Levels = make([]*ast.OperatorsRuleLevel, len(e.Levels))
 		for i, level := range e.Levels {
 			l := *level
-			l.Operators = make([]*OperatorsRuleOperator, len(level.Operators))
+			l.Operators = make([]*ast.OperatorsRuleOperator, len(level.Operators))
 			for j, operator := range level.Operators {
 				o := *operator
 				o.Expr = p.expr(operator.Expr)
@@ -143,6 +145,6 @@ func (p *syntaxProjection) expr(expr Expr) Expr {
 	return result
 }
 
-func syntaxGroupBoundaryEmpty(b *LineBreak) bool {
+func syntaxGroupBoundaryEmpty(b *ast.LineBreak) bool {
 	return noComments(b) && (b == nil || b.Trailing == nil && b.Last == nil)
 }

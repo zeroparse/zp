@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -27,7 +28,7 @@ func TestFormatPreservesMinusSemantics(t *testing.T) {
 		t.Run(src, func(t *testing.T) {
 			for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 				before := mustCompile(t, src, options)
-				after := mustCompile(t, ast.Format(before.Grammar), options)
+				after := mustCompile(t, fmt.Format(before.Grammar), options)
 				for _, input := range []string{"", "a", "b", "aa", "ab", "ac"} {
 					checkBackends(t, before, "main", input)
 					checkBackends(t, after, "main", input)
@@ -81,7 +82,7 @@ func TestFormatPreservesCorpus(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			formatted := ast.Format(before)
+			formatted := fmt.Format(before)
 			after, err := parser.Parse(formatted)
 			if err != nil {
 				t.Fatalf("%v\n%s", err, formatted)
@@ -89,7 +90,7 @@ func TestFormatPreservesCorpus(t *testing.T) {
 			if want, got := grammarWithoutSources(t, before), grammarWithoutSources(t, after); got != want {
 				t.Fatalf("formatting changes the grammar:\n%s\n%s\n%s", formatted, want, got)
 			}
-			if again := ast.Format(after); again != formatted {
+			if again := fmt.Format(after); again != formatted {
 				t.Errorf("formatting is not stable:\n%s\n---\n%s", formatted, again)
 			}
 			if len(s.inputs) == 0 {
