@@ -2,7 +2,6 @@ package complexity_test
 
 import (
 	"crypto/sha256"
-	"flag"
 	"fmt"
 	"maps"
 	"os"
@@ -13,10 +12,11 @@ import (
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-var update = flag.Bool("update", false, "rewrite testdata/cost-view.golden")
+var update = codegentest.UpdateGoldens // -update: enginetest links codegentest, which defines the flag
 
 // TestViewSnapshot pins the cost view of every corpus grammar: for the view that the complexity
 // classifier reads, the rewrites it counts, the rules it changes, and each expression it builds
