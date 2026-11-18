@@ -80,8 +80,8 @@ func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 	_, err := runCLI(t, "", "parse", "-g", g, "-i", "abc", "-unit", "bytes", "-max-input", "2")
 	wantLimit(t, "bytes", err, runtime.LimitInput, "limit 2, length 3")
 	// -check and -stream apply the limits as well.
-	_, err = runCLI(t, "", "parse", "-g", g, "-i", input, "-check", "-max-input", "3")
-	wantLimit(t, "-check", err, runtime.LimitInput, "length 26")
+	_, err = runCLI(t, "", "parse", "-g", g, "-i", input, "-recognize", "-max-input", "3")
+	wantLimit(t, "-recognize", err, runtime.LimitInput, "length 26")
 	st := writeFile(t, "stream.zp", "@start\nrule main = line* #stream $$\nrule line = [a-z]+ \"\\n\"")
 	_, err = runCLI(t, "", "parse", "-g", st, "-i", "ab\ncd\nef\n", "-stream", "-max-input", "4")
 	wantLimit(t, "-stream", err, runtime.LimitInput, "parse input limit exceeded: limit 4")

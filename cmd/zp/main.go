@@ -56,15 +56,16 @@ const usage = `usage: zp <command> [flags] [arguments]
 
 Commands:
 
-  parse -g <grammar> [-s <rule>] [-i <input>] [-f json|sexpr] [-stream] [-check]
+  parse -g <grammar> [-s <rule>] [-i <input>] [-f json|sexpr] [-stream] [-recognize]
         [-unit codepoints|bytes] [-backend closure|bytecode|bytecode-iterative] [-source-info]
         [-default-value] [-max-compute <n>] [-max-memory <n>] [-max-input <n>] [-max-depth <n>]
       Parse the input with a grammar and print the syntax tree. Without -i,
       the input is read from standard input. -source-info also prints the
       rule of each node and the names of captures. -default-value drops
       value actions and declared rule types (predicates still run) and
-      prints the default node tree. -max-compute, -max-memory, -max-input and
-      -max-depth bound the parse: see Limits below.
+      prints the default node tree. -recognize checks the syntax without
+      building a tree and prints ok if the input matches. -max-compute,
+      -max-memory, -max-input and -max-depth bound the parse: see Limits below.
 
   test -f <suite.json> [-format text|json] [-backend <names>] [-equivalence] [-update]
        [-max-compute <n>] [-max-memory <n>] [-max-input <n>] [-max-depth <n>]
@@ -155,7 +156,7 @@ Commands:
       Compile a grammar and save the bytecode of one mode. The result runs
       on the bytecode backends as the <grammar> of parse, trace, profile
       and explain, for the parses of its mode only: parse (the default)
-      serves parse and parse -stream; recognize serves parse -check;
+      serves parse and parse -stream; recognize serves parse -recognize;
       document serves trace, profile and explain. The commands that need
       the grammar itself (convert, gen, lint, sample, schema) take the
       source. A compiled grammar given as <grammar> is saved again only in
@@ -614,7 +615,7 @@ func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 	format := fs.String("f", "json", "output format: json or sexpr")
 	stream := fs.Bool("stream", false, "print each #stream element of the start rule on its own line as soon as it matches")
 	unitName := fs.String("unit", "codepoints", "unit of positions: codepoints or bytes")
-	check := fs.Bool("check", false, "only check that the input matches the grammar, without building a tree, and print ok if it does")
+	recognize := fs.Bool("recognize", false, "check the syntax of the input without building a tree, and print ok if it matches the grammar")
 	backendName := fs.String("backend", "", "execution backend: closure, bytecode, or bytecode-iterative (default: chosen for the grammar)")
 	sourceInfo := fs.Bool("source-info", false, "record the rule of each node and the names of captures, and print them")
 	defaultValue := fs.Bool("default-value", false, "drop value actions and declared rule types, and print the default node tree (predicates still run)")
@@ -623,8 +624,8 @@ func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *check && *stream {
-		return fmt.Errorf("-check and -stream cannot be used together")
+	if *recognize && *stream {
+		return fmt.Errorf("-recognize and -stream cannot be used together")
 	}
 	if *grammarPath == "" {
 		return fmt.Errorf("-g is required")
@@ -679,7 +680,7 @@ func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 		}
 		src = string(b)
 	}
-	if *check {
+	if *recognize {
 		if _, err := p.Parse(src, unit, backend, lim.option(), engine.WithExpectations(), engine.WithRecognize()); err != nil {
 			return err
 		}
@@ -1110,7 +1111,7 @@ func compileCmd(args []string) error {
 	grammarPath := fs.String("g", "", "grammar file (.zp, .json, or a .zpc to save again in its own mode)")
 	start := fs.String("s", "", "start rule saved as the default (default: the one saved in a .zpc, otherwise the grammar's default start rule)")
 	output := fs.String("o", "", "output file (.zpc)")
-	modeName := fs.String("mode", "parse", "the parses the result serves: parse, recognize (parse -check) or document (Documents, trace, profile)")
+	modeName := fs.String("mode", "parse", "the parses the result serves: parse, recognize (parse -recognize) or document (Documents, trace, profile)")
 	sourceInfo := fs.Bool("source-info", false, "record the rule of each node and the names of captures in parse results")
 	defaultValue := fs.Bool("default-value", false, "drop value actions and declared rule types, so parses return the default node tree")
 	if err := fs.Parse(args); err != nil {

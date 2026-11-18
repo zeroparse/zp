@@ -20,13 +20,13 @@ var lazyOverrides = map[string]lazyOverride{
 	"Recognition": {recognizer: compile.Recognize},
 }
 
-// recognitionMode returns the compile mode of a program that recognizes (RecognizeKeepStreamValues) or builds
+// recognitionMode returns the compile mode of a program that recognizes (RecognizeWithStreamValues) or builds
 // values.
 func recognitionMode(recognize bool) compile.Recognition {
 	if recognize {
-		return compile.RecognizeKeepStreamValues
+		return compile.RecognizeWithStreamValues
 	}
-	return compile.Evaluate
+	return compile.BuildValues
 }
 
 // turnOn sets the option of o named name to a value other than its zero value.

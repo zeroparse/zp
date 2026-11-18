@@ -68,7 +68,7 @@ flowchart TD
   - The utility packages (diagnostics, cancellation, command-line flags) may import the grammar AST, because diagnostics
     carry source positions. The grammar AST imports only the standard library. `pkg/grammar`, which loads, formats
     and converts grammar sources over the parser of the front end and the formatter, is in the layer of the public tool
-    packages; besides them and the AST it imports only the bytecode package, to recognize a compiled grammar file, so
+    packages; besides them and the AST it imports only the bytecode package, to detect a compiled grammar file, so
     loading or formatting a grammar does not link the compiler. The fixture package is a tool that uses `pkg/compiler`, so it belongs to the layer of the
     public tool packages.
   - The grammar language server compiles the grammars it serves and reads their checked programs, so it is above the

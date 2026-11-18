@@ -45,7 +45,7 @@ func structuralInputFacts(t *testing.T, path string) int {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, opts := range []compile.Options{{}, {Recognition: compile.RecognizeKeepStreamValues}, {NoProjections: true}, {DefaultValue: true}} {
+	for _, opts := range []compile.Options{{}, {Recognition: compile.RecognizeWithStreamValues}, {NoProjections: true}, {DefaultValue: true}} {
 		name := fmt.Sprintf("%+v", opts)
 		prog, err := compileGrammar(g, opts)
 		if err != nil {
@@ -75,7 +75,7 @@ func structuralInputFacts(t *testing.T, path string) int {
 			if got[i].Cyclic() {
 				cyclic++
 			}
-			if opts.Recognition != compile.Evaluate {
+			if opts.Recognition != compile.BuildValues {
 				got[i].Vars, got[i].Positional = nil, false
 				want[i].Vars, want[i].Positional = nil, false
 			}

@@ -82,17 +82,17 @@ type Program struct {
 type Recognition uint8
 
 const (
-	// Evaluate builds the values of the grammar (a tree, or what the actions return).
-	Evaluate Recognition = iota
+	// BuildValues builds the values of the grammar (a tree, or what the actions return).
+	BuildValues Recognition = iota
 	// Recognize only checks whether the input conforms to the grammar, without building a tree.
 	// Only the rules that predicates read, and the rules they call, build their values. It is the
 	// program of Program.Recognizer and the module of a compiled grammar in recognize mode, which
-	// serves Parse and ParsePrefix with the engine's RecognizeOnly option and no stream parse.
+	// serves Parse and ParsePrefix with the engine's WithRecognize option and no stream parse.
 	Recognize
-	// RecognizeKeepStreamValues is Recognize that also keeps the values of the rules with a
+	// RecognizeWithStreamValues is Recognize that also keeps the values of the rules with a
 	// #stream repetition and of the rules they call, as a program that hands those elements to a
 	// caller needs them.
-	RecognizeKeepStreamValues
+	RecognizeWithStreamValues
 )
 
 // Options configures compilation.
@@ -534,11 +534,11 @@ func CheckCanonical(canon *Canonical, opts Options, flags []RuleFlags, names des
 		// against the cycles of both.
 		c.errs = append(c.errs, facts.BindingErrors...)
 	}
-	if opts.Recognition != Evaluate {
+	if opts.Recognition != BuildValues {
 		// Only rules whose values are referenced by predicates, and the rules needed to build those
 		// values, are evaluated as usual; so are the rules with a #stream repetition, whose elements
 		// a stream hands to its caller, unless the program is the recognizer, which only recognizes.
-		needed := valueNeededRules(rules, control, opts.Recognition == RecognizeKeepStreamValues)
+		needed := valueNeededRules(rules, control, opts.Recognition == RecognizeWithStreamValues)
 		for _, r := range prog.RuleList {
 			control.Poll()
 			if !needed[r.Name] {

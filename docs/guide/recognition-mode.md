@@ -1,7 +1,8 @@
 # Recognition Mode
 
-`RecognizeOnly()` checks whether the input matches without building a tree. It applies to every
-[backend](backends.md). This guide shows what it returns, what it still evaluates and what it cannot be combined with.
+Recognition decides whether the input matches the grammar without building a tree. It returns the same success, failure and syntax errors as a parse, recovered errors included. Predicates, and the actions they read, run; the run-time errors of other actions and typed conversions are not checked.
+
+A parser's `Recognize` method recognizes the input; it applies to every [backend](backends.md). This guide shows what it returns, what it still evaluates and what it cannot be combined with.
 
 The example uses `pairs.zp` and a parser `p` compiled as in [Running Parsers](running-parsers.md):
 

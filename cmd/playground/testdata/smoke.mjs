@@ -100,7 +100,7 @@ for (const ex of manifest) {
   check(`${tag} sexpr`, (res.sexpr ? res.sexpr + "\n" : "") === sexpr.out, diff(res.sexpr, sexpr.out.replace(/\n$/, "")));
 
   const rec = call("parse", { grammar, input, recognize: true });
-  const wantRec = cli("parse", "-g", ex.grammar, "-check", "-i", input);
+  const wantRec = cli("parse", "-g", ex.grammar, "-recognize", "-i", input);
   check(`${tag} recognize`, (rec.matched && rec.errors === undefined) === (wantRec.out === "ok\n") && rec.json === undefined,
     `  got ${JSON.stringify(rec)}\n  want ${JSON.stringify(wantRec)}`);
 
