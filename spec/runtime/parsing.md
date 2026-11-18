@@ -858,6 +858,15 @@ shorter than the constant, so the walks of the site cost in total at most the
 input length plus the constant for each walk, however the walks alternate
 between positions. A site whose walks never go back, as a list that a parse
 reads once, keeps nothing.
+Under [compute limits](#cancellation-and-compute-limits), testing whether a
+site keeps records and noting the end of a walk at a site that does not yet
+keep them are free, as marking a slot is.
+
+A walk of a run site whose iterations have values and that ends without making
+a list, as one that fails below its minimum, drops the elements it holds and
+those of the record it took; as for a repetition that fails below its minimum,
+this specification does not fix what dropping them charges, and backends may
+charge it differently.
 
 A walk that reuses a record does not enter the calls that the recorded walk
 made, so their nesting does not count toward the [nesting limit](#limits), as

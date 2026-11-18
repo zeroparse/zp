@@ -428,13 +428,14 @@ flow.skipKids charges for it (spec/runtime/parsing.md#run-sites).`,
 		Contract: `Ends the iteration of the walk before, if any, ends the walk and records the rest of it from each
 position it visited while recording, a unit for each record stored (spec/runtime/parsing.md#skip-runs). A
 walk begun with Build lays out the values it holds for its records and drops them, at most three units for
-each value.`})
+each value: the specification leaves what dropping them charges to the backend
+(spec/runtime/parsing.md#run-sites).`})
 	withImm(op(&code.Op{Name: OpRunWalked, Params: []code.Param{P("start", i)}, Reads: pos, Writes: []string{State},
 		Contract: `Ends the walk of the run site that was not hot (flow.runHot), which began at start and ends at the
 position: a walk that began below the furthest position that the walks of the site passed, and walked
 RunHotSpan or more of the input below it, turns the site hot; the furthest position then moves to the
-position. A walk shorter than RunHotSpan changes nothing. It charges nothing
-(spec/runtime/parsing.md#run-sites).`,
+position. A walk shorter than RunHotSpan changes nothing. Noting the end of a walk at a site that is not
+hot is free (spec/runtime/parsing.md#run-sites).`,
 		Requires: "start is at most the position."}), "the site (Site)", immOf[Site]())
 	withImm(op(&code.Op{Name: OpScanEnd, Params: []code.Param{P("start", i), P("count", i)}, Reads: pos, Writes: []string{State},
 		Contract: `Ends a walk of the value-free scan site that began at start and matched count characters, at least
@@ -488,8 +489,8 @@ In a recording walk it charges a unit for the lookup and one more when the slot 
 (spec/runtime/parsing.md#skip-runs), besides the expectations and the key.`})
 	withImm(op(&code.Op{Name: OpRunHot, Results: []code.Type{b}, Laws: []string{pure},
 		Contract: `Reports whether the walks of the run site keep records, separately inside and outside lookaheads. A
-walk of a site that is not hot is an ordinary repetition, which flow.runWalked ends. It charges nothing
-(spec/runtime/parsing.md#run-sites).`}), "the site (Site)", immOf[Site]())
+walk of a site that is not hot is an ordinary repetition, which flow.runWalked ends. Testing whether the
+site is hot is free (spec/runtime/parsing.md#run-sites).`}), "the site (Site)", immOf[Site]())
 	op(&code.Op{Name: OpSkipKids, Results: []code.Type{vals}, Reads: pos, Writes: []string{State},
 		Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QVals}, {Coef: 2, Quantity: QMerge}, {Coef: 1, Quantity: QKey}, {Coef: 1, Quantity: QRecords}}},
 		Contract: `Ends the walk begun with Build as flow.skipEnd does, and returns the child list of the values of its
