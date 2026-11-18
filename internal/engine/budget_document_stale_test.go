@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/internal/runtime/limits"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // After edits that rewrite the end of the head and keep its length, the chain of each position still

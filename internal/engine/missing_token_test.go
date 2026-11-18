@@ -11,9 +11,9 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/syntax/fmt"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
@@ -74,13 +74,13 @@ func TestMissingTokensLiteralAndUnits(t *testing.T) {
 				t.Fatalf("missing nodes: %v", insertions)
 			}
 			m := insertions[0]
-			if value.D(m).Start != pos || value.D(m).End != pos || value.D(m).Text != "" || errs[0].Pos != int(pos) || errs[0].Col != int(pos)+1 {
+			if nodes.D(m).Start != pos || nodes.D(m).End != pos || nodes.D(m).Text != "" || errs[0].Pos != int(pos) || errs[0].Col != int(pos)+1 {
 				t.Fatal("fabricated source range/text or wrong unit", m, errs)
 			}
-			if expected, _ := value.D(m).Fields.Get("expected"); expected != ";" {
+			if expected, _ := nodes.D(m).Fields.Get("expected"); expected != ";" {
 				t.Fatal(expected)
 			}
-			if message, _ := value.D(m).Fields.Get("message"); message != errs[0].Error() {
+			if message, _ := nodes.D(m).Fields.Get("message"); message != errs[0].Error() {
 				t.Fatal(message, errs[0])
 			}
 			if _, err := prog.ParseWith("main", "é;", o); err != nil {
@@ -100,13 +100,13 @@ func TestMissingTokensLiteralAndUnits(t *testing.T) {
 	}
 	partial := mustCompile(t, `rule main = "ab" #missing "a" $$`)
 	n, _ := requireInsertions(t, partial, "a", ParseOptions{Expectations: true, MissingTokens: 2}, 1)
-	if m := missingNodes(t, n)[0]; value.D(m).Start != 0 || value.D(m).End != 0 {
+	if m := missingNodes(t, n)[0]; nodes.D(m).Start != 0 || nodes.D(m).End != 0 {
 		t.Fatal("partial prefix was consumed", m)
 	}
 	invalid := mustCompile(t, `rule main = . ";" #missing $$`)
 	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		n, errs := requireInsertions(t, invalid, "\xff", ParseOptions{Expectations: true, Unit: unit, MissingTokens: 2}, 1)
-		if value.D(missingNodes(t, n)[0]).Start != 1 || errs[0].Pos != 1 {
+		if nodes.D(missingNodes(t, n)[0]).Start != 1 || errs[0].Pos != 1 {
 			t.Fatal("invalid UTF-8 position")
 		}
 	}
@@ -140,7 +140,7 @@ rule token = ";" #missing`)
 	}
 	captures := mustCompile(t, `rule main = (x:(";" #missing) "a" / ";" #missing "b") $$`)
 	n, _ := requireInsertions(t, captures, "b", ParseOptions{Expectations: true, MissingTokens: 2}, 1)
-	if _, ok := value.D(n).Fields.Get("x"); ok {
+	if _, ok := nodes.D(n).Fields.Get("x"); ok {
 		t.Fatal("abandoned capture survived")
 	}
 	cut := mustCompile(t, `rule main = (";" #missing #cut "x" / "y") $$`)

@@ -35,8 +35,8 @@ Evidence records:
 [070](../070-keep-repetition-records-across-unchanged-document-parses.md).
 
 Source owners: [`Document.runGen and run-map
-publication`](../../../internal/engine/document/document.go), [`run
-replacement`](../../../internal/engine/state/resume.go).
+publication`](../../../internal/runtime/document/document.go), [`run
+replacement`](../../../internal/runtime/state/resume.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

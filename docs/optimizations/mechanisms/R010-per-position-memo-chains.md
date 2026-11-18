@@ -39,8 +39,8 @@ Evidence records: [005](../005-memo-table-with-per-position-chains-cf77e4f.md),
 [012](../012-memoizing-rules-that-read-variables.md),
 [066](../066-no-memo-key-allocated-for-variables-where-none-is-defined.md).
 
-Source owners: [`memoTable.get and put`](../../../internal/engine/state/memo.go),
-[`envValues and callBegin`](../../../internal/engine/state/runtime.go),
+Source owners: [`memoTable.get and put`](../../../internal/runtime/state/memo.go),
+[`envValues and callBegin`](../../../internal/runtime/state/runtime.go),
 [`rule variables`](../../../internal/middleend/corepass/facts.go), [`generated memo
 table`](../../../codegen/go/lib/lib.go), [`TypeScript memo
 entries`](../../../codegen/ts/lib/lib.ts).

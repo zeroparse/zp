@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func budgetStreamVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
@@ -356,17 +356,17 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 	t.Parallel()
 	// The frame scan and suffix clear are separately counted; neither touches
 	// a Node already delivered to the caller.
-	node := value.Ptr(value.Data{Text: "delivered"})
+	node := nodes.Ptr(nodes.Data{Text: "delivered"})
 	p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, core.Limits{Compute: 1})}, FrameSlab: make([]state.Frame, 258)}
 	p.Frame = &p.FrameSlab[0]
 	p.FrameSlab[1].Vals = []*core.Node{node}
 	got := catchStreamPanic(func() { p.ResetStreamFrames() })
-	if _, ok := got.(state.Fatal); !ok || len(p.FrameSlab) != 258 || p.FrameSlab[1].Vals[0] != node || value.D(node).Text != "delivered" {
+	if _, ok := got.(state.Fatal); !ok || len(p.FrameSlab) != 258 || p.FrameSlab[1].Vals[0] != node || nodes.D(node).Text != "delivered" {
 		t.Fatalf("frame interruption=%v", got)
 	}
 	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 258})
 	p.ResetStreamFrames()
-	if len(p.FrameSlab) != 1 || p.Control.Used != 258 || value.D(node).Text != "delivered" {
+	if len(p.FrameSlab) != 1 || p.Control.Used != 258 || nodes.D(node).Text != "delivered" {
 		t.Fatal("frame retry changed ownership or count")
 	}
 
@@ -403,7 +403,7 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 			p.Memo = fresh
 			p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 2000})
 			p.PruneStreamMemo(pos)
-			if fresh.Base != pos || seed.Node != node || value.D(node).Text != "delivered" || len(fresh.Slots) != max(260-pos, 0) {
+			if fresh.Base != pos || seed.Node != node || nodes.D(node).Text != "delivered" || len(fresh.Slots) != max(260-pos, 0) {
 				t.Fatal("prune ownership/base differs")
 			}
 			if !all && fresh.Slots[200-pos] != keep {

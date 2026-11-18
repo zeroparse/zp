@@ -30,9 +30,9 @@ Evidence records:
 [089](../089-isolate-stream-prefixes-and-batch-scratch-cleanup.md).
 
 Source owners: [`inactive VM value
-cleanup`](../../../internal/engine/state/stream_stack.go),
-[`vm.Machine.ClearInactive`](../../../internal/engine/vm/vm.go), [`prune-batched
-commit cleanup`](../../../internal/engine/state/input.go).
+cleanup`](../../../internal/runtime/state/stream_stack.go),
+[`vm.Machine.ClearInactive`](../../../internal/runtime/vm/vm.go), [`prune-batched
+commit cleanup`](../../../internal/runtime/state/input.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

@@ -543,10 +543,10 @@ func TestDocumentCodeReferences(t *testing.T) {
 
 func TestCodeReferencesScanner(t *testing.T) {
 	c := &repoCode{
-		goFiles:     map[string]bool{"internal/engine/state/scan.go": true, "cmd/zp/main.go": true},
+		goFiles:     map[string]bool{"internal/runtime/state/scan.go": true, "cmd/zp/main.go": true},
 		goBases:     map[string]bool{"scan.go": true, "main.go": true},
-		goDirs:      map[string]bool{"internal/engine/state": true},
-		codeDirs:    map[string]bool{"internal": true, "internal/engine": true, "internal/engine/state": true, "internal/engine/state/sub": true, "cmd": true, "cmd/zp": true},
+		goDirs:      map[string]bool{"internal/runtime/state": true},
+		codeDirs:    map[string]bool{"internal": true, "internal/engine": true, "internal/runtime/state": true, "internal/runtime/state/sub": true, "cmd": true, "cmd/zp": true},
 		declared:    map[string]bool{"scanSpan": true, "seq": true},
 		unexported:  map[string]bool{"scanSpan": true},
 		internalPkg: map[string]bool{"core": true},
@@ -555,8 +555,8 @@ func TestCodeReferencesScanner(t *testing.T) {
 		// the internal package core declares ScanHotSpan, which a qualified core name refers to
 		internalExports: map[string]map[string]bool{"core": {"ScanHotSpan": true}},
 	}
-	doc := "See [scan](internal/engine/state/scan.go) and `scanSpan` and `core.ScanHotSpan`, beside `core.Node`.\n" +
-		"The file scan.go:42 and line 7 of internal/engine/state/scan.go, in internal/engine/state and internal/engine/state/sub.\n" +
+	doc := "See [scan](internal/runtime/state/scan.go) and `scanSpan` and `core.ScanHotSpan`, beside `core.Node`.\n" +
+		"The file scan.go:42 and line 7 of internal/runtime/state/scan.go, in internal/runtime/state and internal/runtime/state/sub.\n" +
 		"A rule (`seq` 303) and a count `seq` 3.\n" +
 		"Run it as `go run main.go` and read main.go:3: error.\n" +
 		"```text\nmain.go:12:3: syntax error\n```\n" +
@@ -566,9 +566,9 @@ func TestCodeReferencesScanner(t *testing.T) {
 	for _, r := range c.codeRefsIn("README.md", []byte(doc), false) {
 		got = append(got, r.kind+" "+r.token)
 	}
-	want := []string{"codelink internal/engine/state/scan.go", "unexport scanSpan", "qualified core.ScanHotSpan",
-		"lineref scan.go:42", "lineref line 7 of internal/engine/state/scan.go", "gofile scan.go", "lineref `seq` 303", "gofile internal/engine/state/scan.go", "gofile internal/engine/state/scan.go",
-		"internal internal/engine/state", "internal internal/engine/state/sub"}
+	want := []string{"codelink internal/runtime/state/scan.go", "unexport scanSpan", "qualified core.ScanHotSpan",
+		"lineref scan.go:42", "lineref line 7 of internal/runtime/state/scan.go", "gofile scan.go", "lineref `seq` 303", "gofile internal/runtime/state/scan.go", "gofile internal/runtime/state/scan.go",
+		"internal internal/runtime/state", "internal internal/runtime/state/sub"}
 	sort.Strings(got)
 	sort.Strings(want)
 	if strings.Join(got, "|") != strings.Join(want, "|") {
@@ -579,11 +579,11 @@ func TestCodeReferencesScanner(t *testing.T) {
 		got = append(got, r.kind+" "+r.token)
 	}
 	for _, g := range got {
-		if g == "internal internal/engine/state" {
+		if g == "internal internal/runtime/state" {
 			t.Error("a package path is a violation in an internal document")
 		}
 	}
-	if !strings.Contains(strings.Join(got, "|"), "internal internal/engine/state/sub") {
+	if !strings.Contains(strings.Join(got, "|"), "internal internal/runtime/state/sub") {
 		t.Error("a path below a package is not a violation in an internal document")
 	}
 }
@@ -593,10 +593,10 @@ func TestCodeReferencesScanner(t *testing.T) {
 // it, and a reader page may not name any path under internal/.
 func TestCodeReferencesTargetPaths(t *testing.T) {
 	c := &repoCode{
-		goDirs:   map[string]bool{"internal/engine/state": true},
-		codeDirs: map[string]bool{"internal": true, "internal/engine": true, "internal/engine/state": true, "internal/bench": true, "internal/bench/parsers": true},
+		goDirs:   map[string]bool{"internal/runtime/state": true},
+		codeDirs: map[string]bool{"internal": true, "internal/engine": true, "internal/runtime/state": true, "internal/bench": true, "internal/bench/parsers": true},
 	}
-	doc := "The package `internal/engine/state`, the directory `internal/bench` and the missing `internal/absent`.\n"
+	doc := "The package `internal/runtime/state`, the directory `internal/bench` and the missing `internal/absent`.\n"
 	kinds := func(file string, internal bool) []string {
 		var got []string
 		for _, r := range c.codeRefsIn(file, []byte(doc), internal) {
@@ -610,7 +610,7 @@ func TestCodeReferencesTargetPaths(t *testing.T) {
 	if got := kinds("docs/design/x.md", true); len(got) != 0 {
 		t.Errorf("an internal document names no code directory as a violation: got %q", got)
 	}
-	want := []string{"internal/bench", "internal/engine/state"}
+	want := []string{"internal/bench", "internal/runtime/state"}
 	if got := kinds("README.md", false); strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("reader page:\n got %q\nwant %q", got, want)
 	}

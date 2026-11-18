@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // TestStreamCommitFreezesDeliveredElements holds the delivery to its contract: an element is final
@@ -26,7 +26,7 @@ func TestStreamCommitFreezesDeliveredElements(t *testing.T) {
 				elements := 0
 				err := p.ParseStreamWith("main", strings.NewReader("ababab"), func(n *core.Node) error {
 					elements++
-					if n == nil || value.D(n).Kind != coreimpl.SeqKind || value.D(n).Fresh {
+					if n == nil || nodes.D(n).Kind != coreimpl.SeqKind || nodes.D(n).Fresh {
 						t.Errorf("element %d is %+v", elements, n)
 					}
 					return nil

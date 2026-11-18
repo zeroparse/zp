@@ -14,9 +14,9 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -95,7 +95,7 @@ func TestCompiledStreamAndDocument(t *testing.T) {
 	}
 	var got []string
 	err = prog.ParseStream("main", strings.NewReader("#records\na=1\nb=2\n"), func(n *core.Node) error {
-		got = append(got, value.D(n.Field("k").(*core.Node)).Text)
+		got = append(got, nodes.D(n.Field("k").(*core.Node)).Text)
 		return nil
 	})
 	if err != nil || strings.Join(got, ",") != "a,b" {

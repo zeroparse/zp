@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 func TestBudgetLiteralReplacementMismatchBudget(t *testing.T) {

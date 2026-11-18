@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -736,7 +736,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		if p.dry {
 			return ""
 		}
-		val := value.LiteralValue(x.Lit.Text)
+		val := nodes.LiteralValue(x.Lit.Text)
 		v, shared := g.LiteralName(val)
 		if !shared {
 			p.decl(v, fmt.Sprintf("const %s: Lit = { text: %s, cps: %s, bytes: %s };\n", v, TsString(val), TsInts([]rune(val)), TsInts([]byte(val))))

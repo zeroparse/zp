@@ -13,8 +13,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // memoTestParser returns a parser whose variables are memoTestVars(n).
@@ -250,7 +250,7 @@ func TestBudgetMemoChainAndStringLimits(t *testing.T) {
 		table.Slots[0] = &state.MemoEntry{Rule: int32(i), Next: table.Slots[0]}
 	}
 	oldHead := table.Slots[0]
-	replacement := &state.MemoEntry{Node: value.Ptr(value.Data{Text: "replacement"})}
+	replacement := &state.MemoEntry{Node: nodes.Ptr(nodes.Data{Text: "replacement"})}
 	p := &state.Parser{Memo: table}
 	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 80})
 	if err := catchFatal(t, func() { p.MemoGet(state.MemoKey{Rule: 0}) }); !errors.Is(err, core.ErrLimit) {
@@ -273,7 +273,7 @@ func TestBudgetMemoChainAndStringLimits(t *testing.T) {
 		t.Fatal("replacement failed")
 	}
 	// Retiring bookkeeping must not clear the old public node or its descendants.
-	retained := value.Ptr(value.Data{Text: "retained", Children: []*core.Node{value.Ptr(value.Data{Text: "child"})}, Fields: coreimpl.Fields{{Name: "value", Value: "unchanged"}}})
+	retained := nodes.Ptr(nodes.Data{Text: "retained", Children: []*core.Node{nodes.Ptr(nodes.Data{Text: "child"})}, Fields: coreimpl.Fields{{Name: "value", Value: "unchanged"}}})
 	table.Slots[0] = &state.MemoEntry{Rule: 1, Node: retained, Env: []any{strings.Repeat("x", 1024)}}
 	before, _ := json.Marshal(retained)
 	key := state.MemoKey{Rule: 1, Env: []any{strings.Repeat("x", 1024)}}
@@ -326,7 +326,7 @@ func TestBudgetMemoGrowthFailureCleanup(t *testing.T) {
 
 rule expr = expr "a" / "a"`)
 	p := state.AcquirePooledParser(&prog.sharedProgram)
-	retained := value.Ptr(value.Data{Text: "retained", Children: []*core.Node{value.Ptr(value.Data{Text: "child"})}})
+	retained := nodes.Ptr(nodes.Data{Text: "retained", Children: []*core.Node{nodes.Ptr(nodes.Data{Text: "child"})}})
 	before, _ := json.Marshal(retained)
 	key := state.MemoKey{Rule: prog.ByName["expr"].ID}
 	g := p.GrowBegin(key, inlinedRules(t, prog)[prog.ByName["expr"].ID])
@@ -368,7 +368,7 @@ rule atom = "a"`)
 		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				for _, cancel := range []bool{false, true} {
-					retained := value.Ptr(value.Data{Text: "retained", Children: []*core.Node{value.Ptr(value.Data{Text: "child"})}})
+					retained := nodes.Ptr(nodes.Data{Text: "retained", Children: []*core.Node{nodes.Ptr(nodes.Data{Text: "child"})}})
 					before, _ := json.Marshal(retained)
 					var observed *state.Parser
 					var chunks [][]state.MemoEntry
@@ -430,7 +430,7 @@ func TestBudgetGrowthStepBeforeEvaluation(t *testing.T) {
 
 rule expr = expr "a" / "a"`)
 	key := state.MemoKey{Rule: prog.ByName["expr"].ID}
-	retained := value.Ptr(value.Data{Text: "retained"})
+	retained := nodes.Ptr(nodes.Data{Text: "retained"})
 	// parser returns a parser whose budget has room for n more units.
 	parser := func(n uint64) *state.Parser {
 		p := state.AcquirePooledParser(&prog.sharedProgram)

@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 var errIteratorStop = errors.New("stream iterator stopped")

@@ -10,9 +10,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/engine/state"
+	value "zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 type streamRuntimePanicToken struct{ phase string }

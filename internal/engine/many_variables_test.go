@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // manyVariablesGrammar declares n variables whose names share a long prefix. The start rule

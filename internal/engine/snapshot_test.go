@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 // snapshotPhaseContext changes state only while the freezer is on the stack.
@@ -56,7 +56,7 @@ func TestSnapshotUnsupportedLegacyFieldPreservesParseError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	value.D(legacy).Fields = coreimpl.Fields{{Name: "bad", Value: []int{1}}}
+	nodes.D(legacy).Fields = coreimpl.Fields{{Name: "bad", Value: []int{1}}}
 	s, err := d.SnapshotWith(ParseOptions{})
 	var capture *core.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "bad") || capture.ParseError != nil {
@@ -65,7 +65,7 @@ func TestSnapshotUnsupportedLegacyFieldPreservesParseError(t *testing.T) {
 	if d.Text() != "x" || d.Version().Sequence() != 1 {
 		t.Fatal("capture failure mutated document")
 	}
-	value.D(legacy).Fields = nil
+	nodes.D(legacy).Fields = nil
 	if s, err := d.SnapshotWith(ParseOptions{}); s == nil || err != nil {
 		t.Fatal("retry", err)
 	}
@@ -81,13 +81,13 @@ func TestSnapshotUnsupportedBoxIsRejected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	value.D(legacy).Kind = coreimpl.TupleValueKind
-	value.SetNodeElems(legacy, []*core.Node{value.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 5)})
+	nodes.D(legacy).Kind = coreimpl.TupleValueKind
+	nodes.SetNodeElems(legacy, []*core.Node{nodes.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 5)})
 	s, err := d.SnapshotWith(ParseOptions{})
 	if err != nil || s.Root().Child(0).Value() != 5 {
 		t.Fatal("boxed int", s, err)
 	}
-	value.SetNodeElems(legacy, []*core.Node{value.NewNode(core.KindValue, 0, 0, "", nil, "", nil, []int{1})})
+	nodes.SetNodeElems(legacy, []*core.Node{nodes.NewNode(core.KindValue, 0, 0, "", nil, "", nil, []int{1})})
 	s, err = d.SnapshotWith(ParseOptions{})
 	var capture *core.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "Children[0]") {

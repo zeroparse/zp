@@ -12,7 +12,7 @@
 #           includes the default tier), then go generate ./internal/backend/... ./bench ./internal/frontend/parser
 #           ./spec/language with a check that it changed nothing, hack/test-alpha-parsers.sh and
 #           hack/test-reference-tags.sh, the last only when the affected packages include internal/engine,
-#           internal/engine/state or internal/engine/document (the reference tags build the engine; it also fails
+#           internal/runtime/state or internal/runtime/document (the reference tags build the engine; it also fails
 #           closed: it is planned when the affected packages cannot be computed).
 #   full    only the long tier of the affected packages (the test-long step that engine also plans; a step that two
 #           levels share runs once).
@@ -218,10 +218,10 @@ go generate ./internal/backend/... ./bench ./internal/frontend/parser ./spec/lan
 	else
 		skipstep alpha-parsers "no codegen or runtime library is affected since $base"
 	fi
-	if aff_has_pkg internal/engine internal/engine/state internal/engine/document; then
+	if aff_has_pkg internal/engine internal/runtime/state internal/runtime/document; then
 		step reference-tags 'hack/test-reference-tags.sh (tags 4 at a time)' hack/test-reference-tags.sh
 	else
-		skipstep reference-tags "internal/engine, internal/engine/state and internal/engine/document are not affected since $base"
+		skipstep reference-tags "internal/engine, internal/runtime/state and internal/runtime/document are not affected since $base"
 	fi
 fi
 

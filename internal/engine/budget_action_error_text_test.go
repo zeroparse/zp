@@ -12,8 +12,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 func TestBudgetActionErrorTextReservationsAndOwnership(t *testing.T) {
@@ -108,14 +108,14 @@ func TestBudgetActionErrorProducersAreEager(t *testing.T) {
 	t.Parallel()
 	long := strings.Repeat("T", 1024)
 	prog := mustCompile(t, "type A = {\n    N int\n}\n\nrule main = \"a\"\n")
-	node := value.Ptr(value.Data{Kind: &coreimpl.Kind{Type: long}})
+	node := nodes.Ptr(nodes.Data{Kind: &coreimpl.Kind{Type: long}})
 	producers := []struct {
 		name string
 		make func(*state.Parser) error
 	}{
 		{"invalid member", func(p *state.Parser) error { _, err := (&state.EvalCtx{P: p}).Member(1, long); return err }},
 		{"missing field", func(p *state.Parser) error {
-			_, err := (&state.EvalCtx{P: p}).Member(value.Ptr(value.Data{Kind: prog.TypeKind("A")}), long)
+			_, err := (&state.EvalCtx{P: p}).Member(nodes.Ptr(nodes.Data{Kind: prog.TypeKind("A")}), long)
 			return err
 		}},
 		{"unary type", func(p *state.Parser) error { _, err := p.ValueUnary("-", node); return err }},

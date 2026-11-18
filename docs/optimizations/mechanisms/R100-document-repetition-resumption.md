@@ -36,9 +36,9 @@ Evidence records: [054](../054-resuming-long-repetitions-in-a-document.md),
 [059](../059-resuming-long-repetitions-in-the-vms.md).
 
 Source owners: [`run records and
-resumeRepeat`](../../../internal/engine/state/resume.go), [`VM repetition run
-sites`](../../../internal/engine/vm/vm.go), [`saved runs and
-eligibility`](../../../internal/engine/document/document.go).
+resumeRepeat`](../../../internal/runtime/state/resume.go), [`VM repetition run
+sites`](../../../internal/runtime/vm/vm.go), [`saved runs and
+eligibility`](../../../internal/runtime/document/document.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

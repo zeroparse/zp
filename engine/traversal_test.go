@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 func TestTraversalPublicFacade(t *testing.T) {
@@ -39,7 +39,7 @@ func TestTraversalPublicFacade(t *testing.T) {
 		if err := node.WriteJSON(&output); err != nil || output.Len() == 0 {
 			t.Fatal(err)
 		}
-		value.SetNodeElems(node, []*core.Node{node})
+		nodes.SetNodeElems(node, []*core.Node{node})
 		var cycle *core.CycleError
 		if err := core.Walk(node, func(core.WalkVisit) (core.WalkAction, error) { return core.WalkContinue, nil }); !errors.As(err, &cycle) {
 			t.Fatalf("cycle = %v", err)

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // computeSweep returns, for a parse of input at each compute limit from 1 up, the distinct sizes of the

@@ -49,21 +49,21 @@ const lookaheadOutcomeKill = `lookahead outcomes of a growth that differ only in
 func expecting(r engineObservationRun, want string) engineObservationRun { r.want = want; return r }
 
 var engineObservationMutants = []engineObservationMutant{
-	{name: "a memo hit records nothing", file: "internal/engine/state/call_exec.go",
+	{name: "a memo hit records nothing", file: "internal/runtime/state/call_exec.go",
 		old: "\t\tp.touch(e.Examined)\n\t\tif e.From < e.Pos {", new: "\t\tif e.From < e.Pos {",
 		runs: []engineObservationRun{expecting(agreementRun, "examined end of")}},
-	{name: "lookahead flipped", file: "internal/engine/state/trace.go",
+	{name: "lookahead flipped", file: "internal/runtime/state/trace.go",
 		old: "Pos: p.Pos, Lookahead: p.Silent > 0}", new: "Pos: p.Pos, Lookahead: p.Silent == 0}",
 		runs: []engineObservationRun{expecting(agreementRun, "lookahead of the call of")}},
-	{name: "profiles not told of discarded input", file: "internal/engine/state/stream_ops.go",
+	{name: "profiles not told of discarded input", file: "internal/runtime/state/stream_ops.go",
 		old: "\t\tp.Tr.discard(pos)\n", new: "",
 		runs: []engineObservationRun{expecting(discardRun, "heap")}},
 	// The trace options: a producer that ignores the trace filter or the depth limit, keeps only the
 	// last trace function or profile, or lets a Document's parses share what they add to its defaults.
-	{name: "engine trace filter ignored", file: "internal/engine/state/trace.go",
+	{name: "engine trace filter ignored", file: "internal/runtime/state/trace.go",
 		old: "selected := t.rules == nil || t.rules[r.Name] ||", new: "selected := len(t.rules) >= 0 || t.rules[r.Name] ||",
 		runs: []engineObservationRun{expecting(agreementRun, "the trace filter"), expecting(engineOptionsRun, "filtered events")}},
-	{name: "engine depth limit ignored", file: "internal/engine/state/trace.go",
+	{name: "engine depth limit ignored", file: "internal/runtime/state/trace.go",
 		old: "deliver := t.fn != nil && selected && (t.maxDepth <= 0 || ev.Depth <= t.maxDepth)", new: "deliver := t.fn != nil && selected",
 		runs: []engineObservationRun{expecting(agreementRun, "the trace filter"), expecting(engineOptionsRun, "filtered events")}},
 	{name: "engine keeps the last trace function", file: "engine/engine.go",
@@ -164,7 +164,7 @@ var engineObservationMutants = []engineObservationMutant{
 		runs: []engineObservationRun{tsAgreementRun, tsOptionsRun}},
 	// The control changes nothing that the tests observe: they must pass with it, so that what makes the
 	// other mutants fail is their change, not the overlay.
-	{name: "control", file: "internal/engine/state/trace.go",
+	{name: "control", file: "internal/runtime/state/trace.go",
 		old: "\tt.exp = nil\n", new: "\tt.exp = nil\n\t_ = t\n",
 		runs: []engineObservationRun{agreementRun, discardRun, engineOptionsRun, libOptionsRun, engineDocumentRun}},
 	{name: "library control", file: "codegen/go/lib/trace.go",

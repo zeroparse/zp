@@ -14,8 +14,8 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 func batchRetentionParser(t *testing.T, e TraceEvent) *state.Parser {
@@ -90,15 +90,15 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 						}
 						var before []byte
 						if node != nil {
-							if node.Type() != "tuple" || len(value.D(node).Children) != 3 || value.D(node).Children[1].Type() != "Entry" {
+							if node.Type() != "tuple" || len(nodes.D(node).Children) != 3 || nodes.D(node).Children[1].Type() != "Entry" {
 								t.Fatalf("unexpected result: %s", batchRetentionJSON(t, node))
 							}
-							entry := value.D(node).Children[1]
-							key, hasKey := value.D(entry).Fields.Get("Key")
-							val, hasValue := value.D(entry).Fields.Get("Value")
-							count, hasCount := value.D(entry).Fields.Get("Count")
+							entry := nodes.D(node).Children[1]
+							key, hasKey := nodes.D(entry).Fields.Get("Key")
+							val, hasValue := nodes.D(entry).Fields.Get("Value")
+							count, hasCount := nodes.D(entry).Fields.Get("Count")
 							valueNode, valueIsNode := val.(*core.Node)
-							if value.D(value.D(node).Children[0]).Text != "!" || value.D(value.D(node).Children[2]).Text != "?" || !hasKey || key != "alpha" || !hasValue || !valueIsNode || valueNode == nil || value.D(valueNode).Text != "123" || !hasCount || count != 3 {
+							if nodes.D(nodes.D(node).Children[0]).Text != "!" || nodes.D(nodes.D(node).Children[2]).Text != "?" || !hasKey || key != "alpha" || !hasValue || !valueIsNode || valueNode == nil || nodes.D(valueNode).Text != "123" || !hasCount || count != 3 {
 								t.Fatalf("unexpected fields/terminals: %s", batchRetentionJSON(t, node))
 							}
 							before = batchRetentionJSON(t, node)
@@ -110,7 +110,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 
 						// A later parse reuses scratch; the caller-owned prior Node stays intact.
 						retry, retryErr, retryEvent := parseFn("!beta:45?", false)
-						if retryErr != nil || recognize && retry != nil || !recognize && (retry == nil || value.D(retry).Children[1].Field("Key") != "beta" || value.D(retry).Children[1].Field("Count") != 2) {
+						if retryErr != nil || recognize && retry != nil || !recognize && (retry == nil || nodes.D(retry).Children[1].Field("Key") != "beta" || nodes.D(retry).Children[1].Field("Count") != 2) {
 							t.Fatalf("retry node=%v err=%v", retry, retryErr)
 						}
 						assertTraceParserDetached(t, batchRetentionParser(t, retryEvent), false)

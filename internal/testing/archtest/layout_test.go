@@ -115,13 +115,13 @@ var layout = []place{
 	// engine splits into internal/driver (the compile entry and complexity advice) and
 	// internal/runtime/engine (parse, document and stream entries).
 	{pkg: "internal/engine", target: "internal/runtime/engine"},
-	{pkg: "internal/engine/document", target: "internal/runtime/document"},
-	{pkg: "internal/engine/state", target: "internal/runtime/state"},
+	{pkg: "internal/runtime/document", target: "internal/runtime/document"},
+	{pkg: "internal/runtime/state", target: "internal/runtime/state"},
 	// vm moves to internal/runtime/vm (the machines); the bytecode compiler is already
 	// internal/backend/vmlower.
-	{pkg: "internal/engine/vm", target: "internal/runtime/vm"},
-	{pkg: "internal/limits", target: "internal/runtime/limits"},
-	{pkg: "internal/value", target: "internal/runtime/nodes"},
+	{pkg: "internal/runtime/vm", target: "internal/runtime/vm"},
+	{pkg: "internal/runtime/limits", target: "internal/runtime/limits"},
+	{pkg: "internal/runtime/nodes", target: "internal/runtime/nodes"},
 
 	// Test support.
 	{pkg: "internal/testing/codegentest", target: "internal/testing/codegentest"},

@@ -7,7 +7,7 @@ import (
 )
 
 // Skip runs and run sites: the records of the walks of skip-run sites and run sites, a mirror of
-// the engine's (internal/engine/state/skip_runs.go; see "Skip Runs" and "Run Sites" in
+// the engine's (internal/runtime/state/skip_runs.go; see "Skip Runs" and "Run Sites" in
 // spec/runtime/parsing.md and the proofs in spec/proofs/skip-runs.md and spec/proofs/run-sites.md).
 //
 // A walk of a site repetition visits positions r0 < r1 < ... with one iteration each. The slot of

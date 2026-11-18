@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 func TestInvalidUTF8LiteralMatching(t *testing.T) {
@@ -52,11 +52,11 @@ func TestInvalidUTF8LiteralMatching(t *testing.T) {
 						if unit == core.CodePoints {
 							wantText = string([]rune(tc.input))
 						}
-						if value.D(value.D(n).Children[0]).Text != wantText {
-							t.Fatalf("literal text=%q want %q", value.D(value.D(n).Children[0]).Text, wantText)
+						if nodes.D(nodes.D(n).Children[0]).Text != wantText {
+							t.Fatalf("literal text=%q want %q", nodes.D(nodes.D(n).Children[0]).Text, wantText)
 						}
-						if value.D(n).End != int32(wantEnd) {
-							t.Fatalf("end=%d want %d", value.D(n).End, wantEnd)
+						if nodes.D(n).End != int32(wantEnd) {
+							t.Fatalf("end=%d want %d", nodes.D(n).End, wantEnd)
 						}
 					}
 				})
@@ -102,8 +102,8 @@ func TestInvalidUTF8LiteralStream(t *testing.T) {
 						if unit == core.Bytes {
 							width = len(item)
 						}
-						if value.D(n).Start != int32((count-1)*width) || value.D(n).End != int32(count*width) {
-							t.Errorf("element %d range [%d,%d)", count, value.D(n).Start, value.D(n).End)
+						if nodes.D(n).Start != int32((count-1)*width) || nodes.D(n).End != int32(count*width) {
+							t.Errorf("element %d range [%d,%d)", count, nodes.D(n).Start, nodes.D(n).End)
 						}
 						return nil
 					}, ParseOptions{Backend: backend, Unit: unit})
@@ -153,8 +153,8 @@ rule item = "�" "\n"`)
 					if unit == core.CodePoints {
 						width = utf8.RuneCountInString(input)
 					}
-					if value.D(n).End != int32(width) {
-						t.Fatalf("end=%d want %d", value.D(n).End, width)
+					if nodes.D(n).End != int32(width) {
+						t.Fatalf("end=%d want %d", nodes.D(n).End, width)
 					}
 				})
 			}

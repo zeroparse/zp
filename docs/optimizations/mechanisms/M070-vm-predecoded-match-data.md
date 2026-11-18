@@ -35,8 +35,8 @@ Evidence records:
 [032](../032-matching-literals-against-loaded-input-in-one-loop.md).
 
 Source owners: [`buildVMProgram, vm.Program.runes, bytes and
-ascii`](../../../internal/engine/vm/vm.go), [`iterative VM literal/class
-execution`](../../../internal/engine/vm/ivm.go).
+ascii`](../../../internal/runtime/vm/vm.go), [`iterative VM literal/class
+execution`](../../../internal/runtime/vm/ivm.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

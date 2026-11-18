@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/document"
+	"zeroparse.dev/zp/internal/runtime/document"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

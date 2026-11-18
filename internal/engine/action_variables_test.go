@@ -5,8 +5,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestMemoActionVariables(t *testing.T) {
@@ -23,7 +23,7 @@ func TestMemoActionVariables(t *testing.T) {
 						opts := ParseOptions{Backend: backend, Unit: unit}
 						input := c.Inputs[0]
 						n, err := prog.ParseWith("main", input, opts)
-						if err != nil || n == nil || len(value.D(n).Children) != 1 || value.D(n).Children[0].Field("N") != 4 {
+						if err != nil || n == nil || len(nodes.D(n).Children) != 1 || nodes.D(n).Children[0].Field("N") != 4 {
 							t.Errorf("memo disabled=%v, %v/%v: got %v, %v; want N=4", disable, backend, unit, n, err)
 						}
 						doc, err := prog.NewDocumentWith("main", input, opts)
@@ -32,7 +32,7 @@ func TestMemoActionVariables(t *testing.T) {
 						}
 						for i := 0; i < 2; i++ {
 							n, err := doc.Parse()
-							if err != nil || n == nil || len(value.D(n).Children) != 1 || value.D(n).Children[0].Field("N") != 4 {
+							if err != nil || n == nil || len(nodes.D(n).Children) != 1 || nodes.D(n).Children[0].Field("N") != 4 {
 								t.Errorf("Document parse %d, memo disabled=%v, %v/%v: got %v, %v; want N=4", i, disable, backend, unit, n, err)
 							}
 						}
@@ -62,7 +62,7 @@ rule r = "!" => V{N: n}`)
 				t.Fatal(err)
 			}
 			n, err := doc.Parse()
-			if err != nil || n == nil || value.D(n).Children[1].Field("N") != 2 {
+			if err != nil || n == nil || nodes.D(n).Children[1].Field("N") != 2 {
 				t.Errorf("%v/%v: got %v, %v; want edited N=2", backend, unit, n, err)
 			}
 		}

@@ -33,7 +33,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -461,7 +461,7 @@ func (b *coreBuilder) node(e ast.Expr, s *coreScope, build bool) (core.Node, err
 	b.m.Control.Poll()
 	switch e := e.(type) {
 	case *ast.Literal:
-		n := &core.Lit{Text: value.LiteralValue(e.Value), Fold: e.IgnoreCase}
+		n := &core.Lit{Text: nodes.LiteralValue(e.Value), Fold: e.IgnoreCase}
 		if n.Text != "" {
 			n.Exp = b.exp(core.LiteralDesc(e))
 		}
@@ -691,7 +691,7 @@ func (b *coreBuilder) attributed(e *ast.Attributed, i int, s *coreScope, build b
 		if !ok || lit.Value == "" {
 			return nil, fmt.Errorf("#missing on %T, not a nonempty literal", e.Expr)
 		}
-		l := &core.Lit{Text: value.LiteralValue(lit.Value), Fold: lit.IgnoreCase, Exp: b.exp(core.LiteralDesc(lit))}
+		l := &core.Lit{Text: nodes.LiteralValue(lit.Value), Fold: lit.IgnoreCase, Exp: b.exp(core.LiteralDesc(lit))}
 		b.set(l, lit, x.Attrs().Want)
 		if b.missing == nil {
 			b.missing = map[*ast.Attribute]int{}

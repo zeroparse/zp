@@ -5,8 +5,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestAliasNodeIdentity(t *testing.T) {
@@ -31,10 +31,10 @@ func TestAliasNodeIdentity(t *testing.T) {
 						t.Errorf("%s: got type %s, want %s", unit, n.Type(), wantType)
 					}
 					terminal := n
-					if v, ok := value.FieldOf(n, "Value"); ok {
+					if v, ok := nodes.FieldOf(n, "Value"); ok {
 						terminal, _ = v.(*core.Node)
 					}
-					if terminal == nil || terminal.Type() != "Num" || value.D(terminal).Text != "éé" {
+					if terminal == nil || terminal.Type() != "Num" || nodes.D(terminal).Text != "éé" {
 						t.Errorf("%s: expected a Num terminal, got %s", unit, codegentest.ResultJSON(terminal, nil))
 					}
 				}

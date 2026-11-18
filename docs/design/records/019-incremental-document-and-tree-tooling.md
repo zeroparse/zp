@@ -21,9 +21,9 @@ proposal addresses the surrounding costs and gives grammar authors reproducible 
 
 The comparison scope is ZeroParse at `f29d1220cb87` and Tree-sitter at
 [`e9930e091568`](https://github.com/tree-sitter/tree-sitter/tree/e9930e0915685efb98a9d325b8f23dfdb9e99559).
-ZeroParse's [input representation](../../../internal/engine/state/input.go), [Document reuse](../../../internal/engine/document/document.go),
+ZeroParse's [input representation](../../../internal/runtime/state/input.go), [Document reuse](../../../internal/runtime/document/document.go),
 [incremental tests](../../../internal/engine/document_test.go) and
-[interruption tests](../../../internal/engine/document/document_abort_test.go) establish the current behavior.
+[interruption tests](../../../internal/runtime/document/document_abort_test.go) establish the current behavior.
 Equivalent ZeroParse and Tree-sitter workloads have not been benchmarked for this proposal. Expected performance benefits
 remain hypotheses; existing engine memo retirement has focused measurements in [optimization 067](../../optimizations/067-retire-memo-entries-when-their-lookup-slots-are-removed.md).
 

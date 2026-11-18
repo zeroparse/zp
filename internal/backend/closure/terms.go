@@ -3,8 +3,8 @@ package closure
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/internal/engine/state"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // termSite is a term of a matcher: a predicate or the value of a binding.
