@@ -14,7 +14,7 @@ func predicateBlock(e *ast.Predicate, block *ast.Block, control *cancel.Control)
 	control.Check()
 	if len(block.Statements) == 1 {
 		copy := *e
-		copy.Term = astfacts.UngroupTermWithPoll(block.Statements[0], poll)
+		copy.Action = astfacts.UngroupTermWithPoll(block.Statements[0], poll)
 		return &copy
 	}
 	items := make([]ast.Expr, len(block.Statements))
@@ -22,7 +22,7 @@ func predicateBlock(e *ast.Predicate, block *ast.Block, control *cancel.Control)
 		control.Poll()
 		items[i] = &ast.Predicate{
 			SourceInfo: *statement.(ast.SourceNode).Source(),
-			Term:       astfacts.UngroupTermWithPoll(statement, poll),
+			Action:     astfacts.UngroupTermWithPoll(statement, poll),
 		}
 	}
 	return &ast.Seq{
@@ -64,7 +64,7 @@ func predicateStatementCount(expr ast.Expr) int {
 	if !ok {
 		return 0
 	}
-	block, ok := predicate.Term.(*ast.Block)
+	block, ok := predicate.Action.(*ast.Block)
 	if !ok {
 		return 0
 	}

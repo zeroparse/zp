@@ -98,7 +98,7 @@ func (k *classifier) triviaWhy(name string) string {
 			// A cut of the body itself can commit the repetition, which then fails.
 			note("#cut", name)
 		case *ast.Predicate:
-			astfacts.WalkTerm(e.Term, func(t ast.Term) {
+			astfacts.WalkTerm(e.Action, func(t ast.ActionExpr) {
 				if b, ok := t.(*ast.Bind); ok && reads[b.Name] {
 					note("binds a variable that it reads", name)
 				}

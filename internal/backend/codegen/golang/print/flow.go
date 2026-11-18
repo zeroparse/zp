@@ -701,10 +701,10 @@ func (p *flowPrinter) not(x flow.Expr) string {
 }
 
 // term returns the term of the grammar predicate that the node n is built from.
-func (p *flowPrinter) term(n core.Node) ast.Term {
+func (p *flowPrinter) term(n core.Node) ast.ActionExpr {
 	e, ok := p.g.Flow.Origin[n].(*ast.Predicate)
 	if !ok {
 		panic(fmt.Sprintf("flow printer: no grammar predicate for %T", n))
 	}
-	return e.Term
+	return e.Action
 }

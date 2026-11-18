@@ -118,7 +118,7 @@ func (*terms) vars(vs *variable) map[string]ref.V {
 
 // evaluate evaluates the term t with the reference evaluator. known is false when the value or the
 // failure depends on what the generator does not know, or when the evaluator does not model t.
-func evaluate(env *ref.TermEnv, t ast.Term) (v ref.V, failed, known bool) {
+func evaluate(env *ref.TermEnv, t ast.ActionExpr) (v ref.V, failed, known bool) {
 	defer func() {
 		if recover() != nil {
 			v, failed, known = ref.Unknown, false, false
@@ -129,7 +129,7 @@ func evaluate(env *ref.TermEnv, t ast.Term) (v ref.V, failed, known bool) {
 }
 
 // decide decides the predicate term t with the reference evaluator (see evaluate for known).
-func decide(env *ref.TermEnv, t ast.Term) (holds, known bool) {
+func decide(env *ref.TermEnv, t ast.ActionExpr) (holds, known bool) {
 	defer func() {
 		if recover() != nil {
 			holds, known = false, false
@@ -208,14 +208,14 @@ func (g *gen) units(off int) int {
 // certainly fail; when the generator cannot tell, it returns true and leaves the decision to the
 // parser. A variable definition is returned as def.
 func (g *gen) predicate(e *ast.Predicate) (ok bool, def *variable) {
-	if a, isBind := e.Term.(*ast.Bind); isBind {
+	if a, isBind := e.Action.(*ast.Bind); isBind {
 		v, failed, known := evaluate(g.env(), a.Value)
 		if known && failed {
 			return false, nil
 		}
 		return true, &variable{name: a.Name, v: v}
 	}
-	holds, known := decide(g.env(), e.Term)
+	holds, known := decide(g.env(), e.Action)
 	return holds || !known, nil
 }
 

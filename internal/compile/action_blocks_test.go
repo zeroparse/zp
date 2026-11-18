@@ -42,12 +42,12 @@ rule a = {x:=1} {x<10} "x"`, "type A = {}\nrule a = \"x\" => A{}", `rule a = "x"
 
 func TestSinglePredicateBlockAST(t *testing.T) {
 	t.Parallel()
-	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Predicate{Term: &ast.Block{Statements: []ast.Term{&ast.BoolLit{Value: true}}}}}}}}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Predicate{Action: &ast.Block{Statements: []ast.ActionExpr{&ast.BoolLit{Value: true}}}}}}}}
 	starttest.MarkAll(g)
 	if _, err := compileStatic(jsonActionBlockGrammar(t, g), Options{}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := g.Rules()[0].Expr.(*ast.Predicate).Term.(*ast.Block); !ok {
+	if _, ok := g.Rules()[0].Expr.(*ast.Predicate).Action.(*ast.Block); !ok {
 		t.Fatal("compile mutated source AST")
 	}
 }

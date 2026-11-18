@@ -648,18 +648,18 @@ func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 
 // referenceTerm returns the term of the generated case: the action of the rule main, or the predicate
 // that precedes the optional "b".
-func referenceTerm(t *testing.T, c codegentest.TermCase) ast.Term {
+func referenceTerm(t *testing.T, c codegentest.TermCase) ast.ActionExpr {
 	t.Helper()
 	g, err := parseTest(c.Src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var found ast.Term
+	var found ast.ActionExpr
 	var walk func(e ast.Expr)
 	walk = func(e ast.Expr) {
 		switch e := e.(type) {
 		case *ast.Predicate:
-			found = e.Term
+			found = e.Action
 		case *ast.Seq:
 			for _, x := range e.Items {
 				walk(x)
@@ -728,7 +728,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 // held, by whether an input that ends in "b" parses. The parse records expectations if expectations is set. A
 // case that inserts missing tokens runs on the closure backend only, which backends lists first, with the
 // insertion enabled.
-func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, term ast.Term, env *ref.TermEnv, unit core.PositionUnit, in string,
+func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, term ast.ActionExpr, env *ref.TermEnv, unit core.PositionUnit, in string,
 	expectations bool, backends ...engine.Backend) {
 	t.Helper()
 	v, msg := env.Eval(term)

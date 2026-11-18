@@ -35,23 +35,23 @@ func walkExprControlled(e ast.Expr, f func(ast.Expr), control *cancel.Control) {
 }
 
 // WalkTerm is astfacts.WalkTerm.
-func WalkTerm(t ast.Term, f func(ast.Term)) { astfacts.WalkTerm(t, f) }
+func WalkTerm(t ast.ActionExpr, f func(ast.ActionExpr)) { astfacts.WalkTerm(t, f) }
 
 // WalkExpr is astfacts.WalkExpr.
 func WalkExpr(e ast.Expr, f func(ast.Expr)) { astfacts.WalkExpr(e, f) }
 
 // WalkRuleTerms visits every term in a rule's action and predicates, including Operators Rule
 // operand and operator actions.
-func WalkRuleTerms(r *ast.RuleDef, f func(ast.Term)) { walkRuleTermsControlled(r, f, nil) }
+func WalkRuleTerms(r *ast.RuleDef, f func(ast.ActionExpr)) { walkRuleTermsControlled(r, f, nil) }
 
 // walkRuleTermsControlled is WalkRuleTerms polling control for cancellation.
-func walkRuleTermsControlled(r *ast.RuleDef, f func(ast.Term), control *cancel.Control) {
+func walkRuleTermsControlled(r *ast.RuleDef, f func(ast.ActionExpr), control *cancel.Control) {
 	control.Poll()
 	WalkTerm(r.Action, f)
 	walkExprControlled(r.Expr, func(e ast.Expr) {
 		switch e := e.(type) {
 		case *ast.Predicate:
-			WalkTerm(e.Term, f)
+			WalkTerm(e.Action, f)
 		case *ast.OperatorsRule:
 			for _, o := range e.Operands {
 				control.Poll()

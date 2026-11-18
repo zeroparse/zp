@@ -185,7 +185,7 @@ func TestListCommaCommentTrailsElement(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var args []ast.Term
+			var args []ast.ActionExpr
 			switch x := g.File.Decls[0].(*ast.RuleDef).Action.(type) {
 			case *ast.Call:
 				args = x.Args

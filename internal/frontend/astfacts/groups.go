@@ -116,23 +116,23 @@ func ungroupTypes(ts []ast.TypeExpr, poll func()) []ast.TypeExpr {
 }
 
 // UngroupTerm removes source-only grouping without changing its input.
-func UngroupTerm(t ast.Term) ast.Term {
+func UngroupTerm(t ast.ActionExpr) ast.ActionExpr {
 	return ungroupTerm(t, nil)
 }
 
 // UngroupTermWithPoll is UngroupTerm with the same polling contract as
 // UngroupTypeWithPoll, including nested type expressions and slice copies.
-func UngroupTermWithPoll(t ast.Term, poll func()) ast.Term {
+func UngroupTermWithPoll(t ast.ActionExpr, poll func()) ast.ActionExpr {
 	return ungroupTerm(t, poll)
 }
 
-func ungroupTerm(t ast.Term, poll func()) ast.Term {
+func ungroupTerm(t ast.ActionExpr, poll func()) ast.ActionExpr {
 	if poll != nil {
 		poll()
 	}
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return ungroupTerm(t.Term, poll)
+	case *ast.ActionGroup:
+		return ungroupTerm(t.Action, poll)
 	case *ast.Member:
 		child := ungroupTerm(t.X, poll)
 		if child != t.X {
@@ -170,7 +170,7 @@ func ungroupTerm(t ast.Term, poll func()) ast.Term {
 				fields[i] = &v
 			}
 		}
-		var args []ast.Term
+		var args []ast.ActionExpr
 		for i, x := range t.Args {
 			child := ungroupTerm(x, poll)
 			if child != x {
@@ -243,8 +243,8 @@ func ungroupTerm(t ast.Term, poll func()) ast.Term {
 	return t
 }
 
-func ungroupTerms(ts []ast.Term, poll func()) []ast.Term {
-	var children []ast.Term
+func ungroupTerms(ts []ast.ActionExpr, poll func()) []ast.ActionExpr {
+	var children []ast.ActionExpr
 	for i, x := range ts {
 		child := ungroupTerm(x, poll)
 		if child != x {

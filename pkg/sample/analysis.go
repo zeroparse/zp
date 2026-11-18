@@ -148,7 +148,7 @@ func analyze(g *ast.Grammar, start string) *info {
 		read := map[string]bool{}
 		walk(ri.def.Expr, func(e ast.Expr) {
 			if p, ok := e.(*ast.Predicate); ok {
-				walkTerm(p.Term, func(t ast.Term) {
+				walkTerm(p.Action, func(t ast.ActionExpr) {
 					if c, ok := t.(*ast.CaptureRef); ok {
 						read[c.Name] = true
 					}
@@ -278,7 +278,7 @@ func (in *info) binds(e ast.Expr) bool {
 		case *ast.Capture:
 			b = true
 		case *ast.Predicate:
-			if _, ok := x.Term.(*ast.Bind); ok {
+			if _, ok := x.Action.(*ast.Bind); ok {
 				b = true
 			}
 		}
@@ -708,7 +708,7 @@ func (s bitset) anyNotIn(a, b bitset) bool {
 }
 
 // walkTerm calls f for t and every term inside it.
-func walkTerm(t ast.Term, f func(ast.Term)) {
+func walkTerm(t ast.ActionExpr, f func(ast.ActionExpr)) {
 	if t == nil {
 		return
 	}
