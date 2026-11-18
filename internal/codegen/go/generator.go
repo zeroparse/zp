@@ -100,6 +100,11 @@ type Hooks struct {
 	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as CoreRun does
 	// for the Core passes.
 	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)
+	// FlowTarget replaces the Go implementation of the primitive operations of grammar code at the Exec
+	// stage (flowPrinter.execTarget), given the printer's own and the address of the statements that the
+	// expression printed last needs before it (those of the term of an Eval), so that the conformance
+	// test of the Flow operations wraps each call in a probe of its own.
+	FlowTarget func(t *Target, pre *string) *Target
 }
 
 // GenerateParser generates the files of Generate (other than for LibOnly). It generates twice: the

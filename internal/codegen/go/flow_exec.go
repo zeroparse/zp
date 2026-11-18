@@ -145,6 +145,15 @@ func otherReads(b *code.Block) map[string]bool {
 // execTarget returns the Go implementation of the primitive operations of grammar code at the Exec
 // stage, which the flow printer prints in place (flowPrinter.op).
 func (p *flowPrinter) execTarget() *Target {
+	t := p.target()
+	if h := p.g.hooks.FlowTarget; h != nil {
+		return h(t, &p.pre)
+	}
+	return t
+}
+
+// target returns the Go implementation of execTarget that Hooks.FlowTarget does not replace.
+func (p *flowPrinter) target() *Target {
 	return &Target{
 		Reg: func(name string) string {
 			return map[string]string{execlower.Pos: "p.Pos", execlower.Cut: "p.Cut"}[name]
