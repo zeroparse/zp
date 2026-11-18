@@ -1278,7 +1278,12 @@ The conditions below use these terms.
   something that can match nothing, evaluates its rule,
   directly or through left calls of rules of the cycle other than leaders:
   that call evaluates the unit once more, outside the steps, where the leader
-  that its left call reaches grows and gives its final result.
+  that its left call reaches grows and gives its final result. In a cycle with
+  more than one leader, a path of a unit of another rule of the cycle through
+  a left call of a leader also goes on at its start, since the growth that
+  evaluates the unit can be one of another leader, where that call starts a
+  growth of its own instead of reading the seed, so the unit is then checked
+  as an alternative that is not growing on all its paths.
 - The **continuations** of a unit are the expressions that the parser can
   evaluate next at the position where the unit started:
   - for a growing unit, the growing units that the same step can evaluate

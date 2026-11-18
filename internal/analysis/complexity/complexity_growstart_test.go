@@ -89,3 +89,42 @@ func TestGrowNullable(t *testing.T) {
 		}
 	}
 }
+
+// memberStartCases are grammars with a growing unit of a rule that is not a leader. without is
+// the class with memberStartOn off.
+var memberStartCases = []struct {
+	name, src string
+	class     ComplexityClass
+	without   ComplexityClass
+}{
+	// E and T are the leaders of one cycle. In a step of the growth of E the unit T "x" of F goes
+	// on at its start through the left call of T, which starts a growth of T there instead of
+	// reading the seed of E, so the unit is checked on all its paths against the later
+	// alternative "x" H, which T can begin with.
+	{"left call of another leader", "@start\nrule main = E $$\n" +
+		"rule E = \"y\" \"z\" / E \"e\" / F \"f\"\nrule T = \"w\" \"v\" / T \"u\" / E \"t\"\n" +
+		"rule F = T \"x\" / \"x\" H\nrule H = E \";\"\n", ClassUnknown, ClassLinear},
+	// Control: the cycle has one leader, whose left call in F reads its seed in each step of its
+	// own growth.
+	{"left call of the only leader", "@start\nrule main = E $$\nrule E = F\n" +
+		"rule F = E \"a\" / \"x\" H / \"x\"\nrule H = E \";\"\n", ClassLinear, ClassLinear},
+}
+
+// TestMemberStart checks that a growing unit of a rule that is not a leader whose paths go on at
+// its start through a left call of a leader, in a cycle with more than one leader, is checked as
+// an alternative that is not growing on all its paths. Without the rule (the mutant) the witness
+// is classified linear.
+func TestMemberStart(t *testing.T) {
+	defer func() { memberStartOn = true }()
+	for _, c := range memberStartCases {
+		memberStartOn = true
+		got := classifySource(t, c.src)
+		if got.Class != c.class {
+			t.Errorf("%s: class %v, want %v\nreasons %v", c.name, got.Class, c.class, got.Reasons)
+		}
+		memberStartOn = false
+		if got := classifySource(t, c.src).Class; got != c.without {
+			t.Errorf("%s without the rule: class %v, want %v", c.name, got, c.without)
+		}
+	}
+}

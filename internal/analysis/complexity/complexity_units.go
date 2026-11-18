@@ -1500,7 +1500,7 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 // growing on all its paths.
 func (k *classifier) leftPathsOf(start *cont, cycle int, grower string, member bool) (paths, first []*cont, ok bool) {
 	ok = true
-	others := member && k.leaderCount(cycle) > 1
+	others := member && memberStartOn && k.leaderCount(cycle) > 1
 	budget := leadBudget
 	var visit func(p *cont, depth int)
 	visit = func(p *cont, depth int) {
@@ -1578,6 +1578,13 @@ func (k *classifier) leftPathsOf(start *cont, cycle int, grower string, member b
 	visit(start, 0)
 	return paths, first, ok
 }
+
+// memberStartOn makes leftPathsOf count, for a unit of a rule that is not a leader, a left call of
+// a leader of a cycle with more than one leader as a path of first. It is on by default; the
+// variable is a test hook, whose off setting is the reading that ended those paths there and so
+// did not check the unit on all its paths, which classified grammars such as
+// E = "y" "z" / E "e" / F "f"; T = "w" "v" / T "u" / E "t"; F = T "x" / "x" H; H = E ";" linear.
+var memberStartOn = true
 
 // leaderCount returns the number of leaders of the cycle.
 func (k *classifier) leaderCount(cycle int) int {
