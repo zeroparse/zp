@@ -34,9 +34,9 @@ zero-overhead expectation handling.
 Evidence records: [075](../075-exclude-absent-expectations-before-scanning.md).
 
 Source owners: [`parser.expect and record
-marks`](../../../internal/engine/state/runtime.go), [`generated expectation
+marks`](../../../internal/runtime/state/runtime.go), [`generated expectation
 filter`](../../../codegen/go/lib/lib.go), [`VM label/recovery
-state`](../../../internal/engine/vm/vm.go).
+state`](../../../internal/runtime/vm/vm.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestOperatorsRuleCST(t *testing.T) {
@@ -37,15 +37,15 @@ func TestOperatorsRulePositions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if value.D(n).Start != 1 || value.D(n).End != 10 {
-		t.Errorf("root [%d,%d)", value.D(n).Start, value.D(n).End)
+	if nodes.D(n).Start != 1 || nodes.D(n).End != 10 {
+		t.Errorf("root [%d,%d)", nodes.D(n).Start, nodes.D(n).End)
 	}
-	mul := value.D(n).Children[2]
-	if value.D(mul).Start != 5 || value.D(mul).End != 10 {
-		t.Errorf("mul [%d,%d)", value.D(mul).Start, value.D(mul).End)
+	mul := nodes.D(n).Children[2]
+	if nodes.D(mul).Start != 5 || nodes.D(mul).End != 10 {
+		t.Errorf("mul [%d,%d)", nodes.D(mul).Start, nodes.D(mul).End)
 	}
-	if op := value.D(n).Children[1]; value.D(op).Start != 3 || value.D(op).End != 4 {
-		t.Errorf("op [%d,%d)", value.D(op).Start, value.D(op).End)
+	if op := nodes.D(n).Children[1]; nodes.D(op).Start != 3 || nodes.D(op).End != 4 {
+		t.Errorf("op [%d,%d)", nodes.D(op).Start, nodes.D(op).End)
 	}
 }
 
@@ -73,11 +73,11 @@ func TestOperatorsRulePositionsWithActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if value.D(n).Start != 0 || value.D(n).End != 9 {
-		t.Errorf("root [%d,%d)", value.D(n).Start, value.D(n).End)
+	if nodes.D(n).Start != 0 || nodes.D(n).End != 9 {
+		t.Errorf("root [%d,%d)", nodes.D(n).Start, nodes.D(n).End)
 	}
-	if l := n.Field("L").(*core.Node); value.D(l).Start != 0 || value.D(l).End != 5 {
-		t.Errorf("left [%d,%d)", value.D(l).Start, value.D(l).End)
+	if l := n.Field("L").(*core.Node); nodes.D(l).Start != 0 || nodes.D(l).End != 5 {
+		t.Errorf("left [%d,%d)", nodes.D(l).Start, nodes.D(l).End)
 	}
 }
 

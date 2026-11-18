@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func dump(t *testing.T, n *core.Node, err error) string {
@@ -116,7 +116,7 @@ func TestDocumentPositionalActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pos := value.D(value.D(value.D(n).Children[0]).Children[2]).Children[0]
+	pos := nodes.D(nodes.D(nodes.D(n).Children[0]).Children[2]).Children[0]
 	if pos.Type() != "Pos" || pos.Field("At") != 3 {
 		t.Errorf("got %s", pos)
 	}
@@ -474,14 +474,14 @@ rule line = x:[a-z]+ #atomic "\n"`)
 	if dump(t, snap, nil) != before {
 		t.Fatal("clone differs")
 	}
-	if l := value.D(value.D(snap).Children[0]).Children[3]; l.Field("x") != value.D(l).Children[0] {
+	if l := nodes.D(nodes.D(snap).Children[0]).Children[3]; l.Field("x") != nodes.D(l).Children[0] {
 		t.Error("clone does not share the captured child")
 	}
 	doc.Edit(0, 0, "zz\n")
 	t2, _ := doc.Parse()
-	old, cur := value.D(value.D(t1).Children[0]).Children[3], value.D(value.D(t2).Children[0]).Children[4]
-	if old != cur || value.D(cur).Start != 12 || value.D(cur.Field("x").(*core.Node)).Start != 12 {
-		t.Errorf("line 3 of the earlier tree: shared %v, at %d", old == cur, value.D(cur).Start)
+	old, cur := nodes.D(nodes.D(t1).Children[0]).Children[3], nodes.D(nodes.D(t2).Children[0]).Children[4]
+	if old != cur || nodes.D(cur).Start != 12 || nodes.D(cur.Field("x").(*core.Node)).Start != 12 {
+		t.Errorf("line 3 of the earlier tree: shared %v, at %d", old == cur, nodes.D(cur).Start)
 	}
 	if dump(t, snap, nil) != before {
 		t.Error("the clone changed")

@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/runtime/query"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
@@ -143,7 +143,7 @@ func TestPublicStructuralQuerySharedEdgesAndLimits(t *testing.T) {
 	for _, c := range root.Elems() {
 		kids = append(kids, c)
 	}
-	value.SetNodeElems(root, append(kids, root))
+	nodes.SetNodeElems(root, append(kids, root))
 	if partial, err := q.Matches(root); partial != nil || !errors.Is(err, query.ErrCycle) {
 		t.Fatalf("cyclic query: %+v, %v", partial, err)
 	}
@@ -227,10 +227,10 @@ rule main = "a" => Item{Value: nil}`, "main")
 	}
 	check(nilQuery, 1)
 	check(stringQuery, 0)
-	value.SetNodeField(root, "Value", "ok")
+	nodes.SetNodeField(root, "Value", "ok")
 	check(stringQuery, 1)
 	check(nilQuery, 0)
-	value.SetNodeField(root, "Value", false)
+	nodes.SetNodeField(root, "Value", false)
 	check(stringQuery, 0)
 	check(nilQuery, 0)
 }
@@ -269,7 +269,7 @@ rule main = x:"a" => Item{Value: text($x)}`, "main")
 	if err != nil || len(matches) != 1 || len(matches[0].Captures) != 1 || matches[0].Captures[0].Value != "a" {
 		t.Fatalf("scalar alias match: %+v, %v", matches, err)
 	}
-	value.SetNodeField(root, "Value", false)
+	nodes.SetNodeField(root, "Value", false)
 	matches, err = q.Matches(root)
 	if err != nil || len(matches) != 0 {
 		t.Fatalf("mutated scalar alias match: %+v, %v", matches, err)

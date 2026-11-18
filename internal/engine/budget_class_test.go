@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -81,11 +81,11 @@ func TestBudgetClassLargeNonASCIIRangesAreCharged(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
-				if n := budgetClassNode(t, positive, late, ParseOptions{Backend: backend, Unit: unit}); value.D(n).Text != late {
-					t.Fatalf("late class hit text=%q, want %q", value.D(n).Text, late)
+				if n := budgetClassNode(t, positive, late, ParseOptions{Backend: backend, Unit: unit}); nodes.D(n).Text != late {
+					t.Fatalf("late class hit text=%q, want %q", nodes.D(n).Text, late)
 				}
-				if n := budgetClassNode(t, negative, gap, ParseOptions{Backend: backend, Unit: unit}); value.D(n).Text != gap {
-					t.Fatalf("negated class text=%q, want %q", value.D(n).Text, gap)
+				if n := budgetClassNode(t, negative, gap, ParseOptions{Backend: backend, Unit: unit}); nodes.D(n).Text != gap {
+					t.Fatalf("negated class text=%q, want %q", nodes.D(n).Text, gap)
 				}
 				if n, err := positive.ParseWith("main", gap, ParseOptions{Backend: backend, Unit: unit}); n != nil || err == nil || errors.Is(err, core.ErrLimit) {
 					t.Fatalf("unlimited positive miss: node=%v err=%v", n, err)
@@ -143,8 +143,8 @@ func TestBudgetClassRangeCancellationAndPoolRetry(t *testing.T) {
 				if observed.Scratch != nil || observed.Control != nil {
 					t.Fatalf("parser retained spend state after interruption: scratch=%v control=%v", observed.Scratch, observed.Control)
 				}
-				if n := budgetClassNode(t, p, input, ParseOptions{Backend: backend, Unit: unit}); value.D(n).Text != input {
-					t.Fatalf("retry text=%q, want %q", value.D(n).Text, input)
+				if n := budgetClassNode(t, p, input, ParseOptions{Backend: backend, Unit: unit}); nodes.D(n).Text != input {
+					t.Fatalf("retry text=%q, want %q", nodes.D(n).Text, input)
 				}
 			})
 		}

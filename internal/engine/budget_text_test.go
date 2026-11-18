@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 func fallbackTextInput(unit core.PositionUnit, base int, bytes []byte, runes []rune, control *state.BudgetControl) state.Input {

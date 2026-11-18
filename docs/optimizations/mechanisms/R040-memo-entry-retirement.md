@@ -37,9 +37,9 @@ Evidence records:
 [067](../067-retire-memo-entries-when-their-lookup-slots-are-removed.md).
 
 Source owners: [`memoTable.retire, put, prune and
-splice`](../../../internal/engine/state/memo.go), [`left-recursion seed
-ownership`](../../../internal/engine/state/runtime.go), [`Document edit
-invalidation`](../../../internal/engine/document/document.go).
+splice`](../../../internal/runtime/state/memo.go), [`left-recursion seed
+ownership`](../../../internal/runtime/state/runtime.go), [`Document edit
+invalidation`](../../../internal/runtime/document/document.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

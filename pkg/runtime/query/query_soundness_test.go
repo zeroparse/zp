@@ -6,9 +6,9 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/runtime/query"
 )
 
@@ -88,7 +88,7 @@ func TestStructuralQueryNestedShapesAreSound(t *testing.T) {
 				n := m.Captures[0].Value.(*core.Node)
 				pattern := describeQueryValue(n, 3)
 				patterns++
-				if value.ShapeOf(n) == coreimpl.ShapeError {
+				if nodes.ShapeOf(n) == coreimpl.ShapeError {
 					recovered++
 				}
 				q, err := query.Compile(pattern, s)
@@ -112,7 +112,7 @@ func TestStructuralQueryNestedShapesAreSound(t *testing.T) {
 
 // describeQueryValue returns a pattern that matches v, describing it to the given depth.
 func describeQueryValue(v any, depth int) query.Pattern {
-	v = value.UnboxValue(v)
+	v = nodes.UnboxValue(v)
 	n, _ := v.(*core.Node)
 	p := query.Pattern{Category: queryCategory(v)}
 	if n == nil || depth == 0 {
@@ -127,7 +127,7 @@ func describeQueryValue(v any, depth int) query.Pattern {
 		p.Rule = n.Rule()
 		// The value of a node is its text, or a tuple or list sharing its elements.
 		val := query.Pattern{Category: "string"}
-		switch value.ShapeOf(n) {
+		switch nodes.ShapeOf(n) {
 		case coreimpl.ShapeTuple:
 			val.Category = "tuple"
 		case coreimpl.ShapeList:
@@ -136,13 +136,13 @@ func describeQueryValue(v any, depth int) query.Pattern {
 		p.Value = &val
 	}
 	if p.Category == "struct" || p.Category == "error" {
-		for _, f := range value.D(n).Fields {
+		for _, f := range nodes.D(n).Fields {
 			p.Fields = append(p.Fields, query.FieldPattern{Name: f.Name, Pattern: describeQueryValue(f.Value, depth-1)})
 		}
 	}
-	switch value.ShapeOf(n) {
+	switch nodes.ShapeOf(n) {
 	case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
-		for i, c := range value.D(n).Children {
+		for i, c := range nodes.D(n).Children {
 			if i == 2 {
 				break
 			}
@@ -159,7 +159,7 @@ func queryCategory(v any) string {
 		if v == nil {
 			return "nil"
 		}
-		switch value.ShapeOf(v) {
+		switch nodes.ShapeOf(v) {
 		case coreimpl.ShapeString, coreimpl.ShapeTuple, coreimpl.ShapeList:
 			return "node"
 		case coreimpl.ShapeError:

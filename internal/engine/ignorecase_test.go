@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 // ignoreCaseCase is one parse of a grammar whose main rule has case-insensitive literals. The
@@ -262,7 +262,7 @@ func TestIgnoreCaseMissingSpelling(t *testing.T) {
 	if len(insertions) != 1 {
 		t.Fatalf("missing nodes: %v", insertions)
 	}
-	if expected, _ := value.D(insertions[0]).Fields.Get("expected"); expected != "Sel" {
+	if expected, _ := nodes.D(insertions[0]).Fields.Get("expected"); expected != "Sel" {
 		t.Fatalf("inserted spelling %q, want Sel (errors %v)", expected, errs)
 	}
 }
@@ -285,7 +285,7 @@ func TestIgnoreCaseMissingSpellingBackends(t *testing.T) {
 			if len(insertions) != 1 {
 				t.Fatalf("%s: backend %v: missing nodes: %v", src, backend, insertions)
 			}
-			if expected, _ := value.D(insertions[0]).Fields.Get("expected"); expected != "Sel" {
+			if expected, _ := nodes.D(insertions[0]).Fields.Get("expected"); expected != "Sel" {
 				t.Fatalf("%s: backend %v: inserted spelling %q, want Sel (errors %v)", src, backend, expected, errs)
 			}
 			if !strings.Contains(fmt.Sprint(errs), `"Sel"i`) {
@@ -340,7 +340,7 @@ func TestIgnoreCaseMissingInPragmaScope(t *testing.T) {
 	if len(insertions) != 1 {
 		t.Fatalf("missing nodes: %v", insertions)
 	}
-	if expected, _ := value.D(insertions[0]).Fields.Get("expected"); expected != "Sel" {
+	if expected, _ := nodes.D(insertions[0]).Fields.Get("expected"); expected != "Sel" {
 		t.Fatalf("inserted spelling %q, want Sel (errors %v)", expected, errs)
 	}
 	if !strings.Contains(fmt.Sprint(errs), `"Sel"i`) {

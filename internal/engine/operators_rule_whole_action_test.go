@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -160,8 +160,8 @@ rule main Wrap = #operators {
 			t.Fatal(err)
 		}
 		folded := n.Field("Value").(*core.Node)
-		if value.D(n).Start != 0 || value.D(n).End != 5 || value.D(folded).Start != 2 || value.D(folded).End != 5 {
-			t.Errorf("%v: action node %d-%d, folded value %d-%d; want 0-5 and 2-5", b, value.D(n).Start, value.D(n).End, value.D(folded).Start, value.D(folded).End)
+		if nodes.D(n).Start != 0 || nodes.D(n).End != 5 || nodes.D(folded).Start != 2 || nodes.D(folded).End != 5 {
+			t.Errorf("%v: action node %d-%d, folded value %d-%d; want 0-5 and 2-5", b, nodes.D(n).Start, nodes.D(n).End, nodes.D(folded).Start, nodes.D(folded).End)
 		}
 	}
 }
@@ -231,10 +231,10 @@ rule main Expr = #operators {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if n.Type() != "Expr" || len(value.D(n).Children) != 3 {
+		if n.Type() != "Expr" || len(nodes.D(n).Children) != 3 {
 			t.Fatalf("%v: result %s of type %s", b, n, n.Type())
 		}
-		if value.D(n).Children[0].Type() == "Expr" {
+		if nodes.D(n).Children[0].Type() == "Expr" {
 			t.Errorf("%v: an operand was converted", b)
 		}
 	}
@@ -242,7 +242,7 @@ rule main Expr = #operators {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if inner := value.D(n).Children[0]; inner.Type() == "Expr" {
+	if inner := nodes.D(n).Children[0]; inner.Type() == "Expr" {
 		t.Errorf("an intermediate operator node was converted: %s", inner.Type())
 	}
 }

@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -55,9 +55,9 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 					if val != nil && name == "b" {
 						text, _ = val.Field("Text").(string)
 					} else if val != nil && val.IsTerminal() {
-						text = value.D(val).Text
+						text = nodes.D(val).Text
 					}
-					if !ok || val == nil || text != tc.text || value.D(val).Start != int32(i)*width || value.D(val).End != int32(i+1)*width {
+					if !ok || val == nil || text != tc.text || nodes.D(val).Start != int32(i)*width || nodes.D(val).End != int32(i+1)*width {
 						t.Fatalf("unit=%v capture=%s lost value or span: %v", unit, name, val)
 					}
 					// A text struct value carries no rule name.

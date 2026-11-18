@@ -11,8 +11,8 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 func actionBudgetParser(ctx context.Context, limits core.Limits, unit core.PositionUnit) *state.Parser {
@@ -22,7 +22,7 @@ func actionBudgetParser(ctx context.Context, limits core.Limits, unit core.Posit
 func actionBudgetNodes(n int) []*core.Node {
 	items := make([]*core.Node, n)
 	for i := range items {
-		items[i] = value.Ptr(value.Data{Start: int32(i), End: int32(i + 1), Terminal: true, Text: "x"})
+		items[i] = nodes.Ptr(nodes.Data{Start: int32(i), End: int32(i + 1), Terminal: true, Text: "x"})
 	}
 	return items
 }

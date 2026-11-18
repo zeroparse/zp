@@ -10,8 +10,8 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 type traceLifecycleSentinel struct{ value [128]byte }
@@ -131,7 +131,7 @@ func TestTraceLifecycleReleasesOwnersAfterGC(t *testing.T) {
 				if sr.Value() != nil {
 					t.Error("stream event retains callback sentinel")
 				}
-				if before != n.String() || value.D(n.Field("k").(*core.Node)).Text != "a" {
+				if before != n.String() || nodes.D(n.Field("k").(*core.Node)).Text != "a" {
 					t.Fatal("emitted node changed")
 				}
 				runtime.KeepAlive(e)

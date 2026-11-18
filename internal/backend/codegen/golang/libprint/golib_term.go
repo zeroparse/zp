@@ -412,7 +412,7 @@ func goValueOp(callee string, a []string, typed bool) (string, bool) {
 }
 
 // engineTermsFile is the file of the printed term operator compositions of the engine.
-const engineTermsFile = "../../../../engine/state/term_exec.go"
+const engineTermsFile = "../../../../runtime/state/term_exec.go"
 
 // printEngineTerms returns the Go file of the printed term operator compositions for package state of the
 // engine.
@@ -488,37 +488,37 @@ func engineValueOp(callee string, a []string) (string, bool) {
 	case "seq.items":
 		return "valItems(" + a[0] + ")", true
 	case "seq.at":
-		return fmt.Sprintf("value.UnboxNode(%s[%s])", a[0], a[1]), true
+		return fmt.Sprintf("nodes.UnboxNode(%s[%s])", a[0], a[1]), true
 	case "node.isNode":
-		return "value.IsNode(" + a[0] + ")", true
+		return "nodes.IsNode(" + a[0] + ")", true
 	case "node.start":
-		return "any(int(value.D(" + a[0] + ").Start))", true
+		return "any(int(nodes.D(" + a[0] + ").Start))", true
 	case "node.end":
-		return "any(int(value.D(" + a[0] + ").End))", true
+		return "any(int(nodes.D(" + a[0] + ").End))", true
 	case "node.isStruct":
 		return "p.isStruct(" + a[0] + ")", true
 	case "node.field":
-		return fmt.Sprintf("p.ValueField(value.D(%s).Fields, %s)", a[0], a[1]), true
+		return fmt.Sprintf("p.ValueField(nodes.D(%s).Fields, %s)", a[0], a[1]), true
 	case "val.box":
-		return fmt.Sprintf("p.NewNode(value.Data{Kind: coreimpl.BoxKind, Box: %[2]s, Start: int32(%[1]s.Start), End: int32(%[1]s.End)})", a[0], a[1]), true
+		return fmt.Sprintf("p.NewNode(nodes.Data{Kind: coreimpl.BoxKind, Box: %[2]s, Start: int32(%[1]s.Start), End: int32(%[1]s.End)})", a[0], a[1]), true
 	case "node.hasText":
-		return "value.D(" + a[0] + ").Terminal", true
+		return "nodes.D(" + a[0] + ").Terminal", true
 	case "node.heldText":
-		return fmt.Sprintf("value.D(%[1]s).Text, value.D(%[1]s).Terminal", a[0]), true
+		return fmt.Sprintf("nodes.D(%[1]s).Text, nodes.D(%[1]s).Terminal", a[0]), true
 	case "node.rangeText":
-		return fmt.Sprintf("p.Text(int(value.D(%[1]s).Start), int(value.D(%[1]s).End))", a[0]), true
+		return fmt.Sprintf("p.Text(int(nodes.D(%[1]s).Start), int(nodes.D(%[1]s).End))", a[0]), true
 	case "node.width":
-		return fmt.Sprintf("any(int(value.D(%[1]s).End - value.D(%[1]s).Start))", a[0]), true
+		return fmt.Sprintf("any(int(nodes.D(%[1]s).End - nodes.D(%[1]s).Start))", a[0]), true
 	case "node.count":
-		return "any(len(value.D(" + a[0] + ").Children))", true
+		return "any(len(nodes.D(" + a[0] + ").Children))", true
 	case "str.len":
 		return "any(p.ValueTextLen(" + a[0] + ".(string)))", true
 	case "node.span":
-		return fmt.Sprintf("int(value.D(%[1]s).Start), int(value.D(%[1]s).End)", a[0]), true
+		return fmt.Sprintf("int(nodes.D(%[1]s).Start), int(nodes.D(%[1]s).End)", a[0]), true
 	case "node.setSpan":
 		return fmt.Sprintf("setSpan(%s, %s, %s)", a[0], a[1], a[2]), true
 	case "val.seq":
-		return fmt.Sprintf("p.NewNode(value.Data{Kind: seqKind(%s), Children: %s})", a[1], a[2]), true
+		return fmt.Sprintf("p.NewNode(nodes.Data{Kind: seqKind(%s), Children: %s})", a[1], a[2]), true
 	case "seq.span":
 		return fmt.Sprintf("elemSpan(%s[%s])", a[1], a[2]), true
 	case "act.span":
@@ -532,15 +532,15 @@ func engineValueOp(callee string, a []string) (string, bool) {
 	case "node.typeName":
 		return a[0] + "[0].Type", true
 	case "node.shape":
-		return "int(value.ShapeOf(" + a[0] + "))", true
+		return "int(nodes.ShapeOf(" + a[0] + "))", true
 	case "node.isType":
 		return fmt.Sprintf("%s.Type() == %s.Name", a[0], a[1]), true
 	case "node.isMissing":
 		return a[0] + ".Type() == coreimpl.TypeMissing", true
 	case "node.children":
-		return "value.D(" + a[0] + ").Children", true
+		return "nodes.D(" + a[0] + ").Children", true
 	case "node.hasBase":
-		return "value.HasBase(" + a[0] + ")", true
+		return "nodes.HasBase(" + a[0] + ")", true
 	case "node.convert":
 		return fmt.Sprintf("%s.Retype(%s)", a[1], a[0]), true
 	}

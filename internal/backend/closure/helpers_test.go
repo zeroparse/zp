@@ -3,7 +3,7 @@ package closure
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // catchFatal runs f and returns the error of the Fatal panic it raises, or nil.

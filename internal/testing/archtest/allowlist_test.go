@@ -22,14 +22,14 @@ var allowlist = []string{
 	"rule 1: internal/engine -> internal/backend/closure",
 	"rule 1: internal/engine -> internal/backend/vmlower",
 	"rule 1: internal/engine -> internal/ir/core",
-	"rule 1: internal/engine/document -> internal/compile",
-	"rule 1: internal/engine/state -> pkg/grammar/ast",
-	"rule 1: internal/engine/state -> internal/compile",
-	"rule 1: internal/engine/state -> internal/ir/core",
-	"rule 1: internal/engine/state -> internal/ir/code",
-	"rule 1: internal/engine/state -> internal/ir/exec/lower",
-	"rule 1: internal/engine/state -> internal/ir/code/exec",
-	"rule 1: internal/engine/vm -> internal/compile",
+	"rule 1: internal/runtime/document -> internal/compile",
+	"rule 1: internal/runtime/state -> pkg/grammar/ast",
+	"rule 1: internal/runtime/state -> internal/compile",
+	"rule 1: internal/runtime/state -> internal/ir/core",
+	"rule 1: internal/runtime/state -> internal/ir/code",
+	"rule 1: internal/runtime/state -> internal/ir/exec/lower",
+	"rule 1: internal/runtime/state -> internal/ir/code/exec",
+	"rule 1: internal/runtime/vm -> internal/compile",
 
 	// The front end computes the rule facts of the Core IR, which now live in corepass, and
 	// reports the structural errors from them. The edge goes when the facts are corepass analyses

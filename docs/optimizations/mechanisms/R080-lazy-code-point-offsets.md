@@ -34,8 +34,8 @@ do not describe current piece-table input or every recognition grammar.
 Evidence records:
 [030](../030-building-the-code-point-offset-table-on-demand.md).
 
-Source owners: [`input.buildOffs and text`](../../../internal/engine/state/input.go),
-[`Document input-table retention`](../../../internal/engine/document/document.go).
+Source owners: [`input.buildOffs and text`](../../../internal/runtime/state/input.go),
+[`Document input-table retention`](../../../internal/runtime/document/document.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

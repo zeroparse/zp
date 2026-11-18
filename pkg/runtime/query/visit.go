@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/value"
+	value "zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 // graphVisit is the adapter boundary for a future common graph walker. Each event contains a

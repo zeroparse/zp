@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 func TestNullableRepetitionMinimum(t *testing.T) {
@@ -110,7 +110,7 @@ func TestNullableRepetitionProjection(t *testing.T) {
 		p := mustCompile(t, fmt.Sprintf(`rule main = xs:(f:_) #repeat(%d, ) $$ => map($xs, (x) => x.$f)`, minimum))
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-				if n, err := p.ParseWith("main", "", ParseOptions{Backend: backend, Unit: unit}); (err == nil) != (minimum == 1) || err == nil && len(value.D(n).Children) != 1 {
+				if n, err := p.ParseWith("main", "", ParseOptions{Backend: backend, Unit: unit}); (err == nil) != (minimum == 1) || err == nil && len(nodes.D(n).Children) != 1 {
 					t.Errorf("projected min=%d %s/%s: %v, %v", minimum, backend, unit, n, err)
 				}
 			}

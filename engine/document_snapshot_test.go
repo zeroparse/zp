@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 func TestDocumentSnapshotPublicContract(t *testing.T) {
@@ -28,7 +28,7 @@ func TestDocumentSnapshotPublicContract(t *testing.T) {
 		if legacy == nil {
 			t.Fatal("materialize")
 		}
-		value.SetNodeStart(legacy, 999)
+		nodes.SetNodeStart(legacy, 999)
 		if s.Root().Start() == 999 {
 			t.Fatal("snapshot aliases materialized result")
 		}

@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestParseStream(t *testing.T) {
@@ -19,7 +19,7 @@ func TestParseStream(t *testing.T) {
 	prog := mustCompile(t, codegentest.Records)
 	var got []string
 	err := prog.ParseStream("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *core.Node) error {
-		got = append(got, fmt.Sprintf("%s [%d,%d)", n, value.D(n).Start, value.D(n).End))
+		got = append(got, fmt.Sprintf("%s [%d,%d)", n, nodes.D(n).Start, nodes.D(n).End))
 		return nil
 	})
 	if err != nil {
@@ -59,7 +59,7 @@ func TestParseStreamIsIncremental(t *testing.T) {
 	done := make(chan error)
 	go func() {
 		done <- prog.ParseStream("main", pr, func(n *core.Node) error {
-			emitted <- value.D(n.Field("k").(*core.Node)).Text
+			emitted <- nodes.D(n.Field("k").(*core.Node)).Text
 			return nil
 		})
 	}()

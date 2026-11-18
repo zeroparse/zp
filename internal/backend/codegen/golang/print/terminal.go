@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/middleend/corepass"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -177,7 +177,7 @@ func (t *terminalProgram) emit(e ast.Expr) {
 	g := t.g
 	switch e := e.(type) {
 	case *ast.Literal:
-		val := value.LiteralValue(e.Value)
+		val := nodes.LiteralValue(e.Value)
 		i, ok := t.literals[val]
 		if !ok {
 			i = len(t.literalItems)

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/internal/runtime/limits"
 )
 
 // Mutants returns n random edits of each input (a character inserted, deleted or replaced, or two

@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/runtime/query"
 )
 
@@ -49,7 +49,7 @@ rule item = [a-z]`
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, err := q.Matches(value.Ptr(value.Data{Kind: coreimpl.KindOf("S", ""), Fields: coreimpl.Fields{{Name: "X", Value: 1}}})); err != nil || len(got) != 0 {
+	if got, err := q.Matches(nodes.Ptr(nodes.Data{Kind: coreimpl.KindOf("S", ""), Fields: coreimpl.Fields{{Name: "X", Value: 1}}})); err != nil || len(got) != 0 {
 		t.Fatalf("struct without nodes: %+v %v", got, err)
 	}
 }

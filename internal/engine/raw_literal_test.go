@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -94,8 +94,8 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 								if err == nil {
 									// JSON replaces malformed strings, so compare raw match text too.
 									gotMatch, wantMatch := n.Field("T").(*core.Node), wn.Field("T").(*core.Node)
-									if value.D(gotMatch).Text != value.D(wantMatch).Text || value.D(gotMatch).Start != value.D(wantMatch).Start || value.D(gotMatch).End != value.D(wantMatch).End {
-										t.Errorf("%s %s/%s input=%x: match %x [%d,%d), want %x [%d,%d)", name, backend, unit, input, value.D(gotMatch).Text, value.D(gotMatch).Start, value.D(gotMatch).End, value.D(wantMatch).Text, value.D(wantMatch).Start, value.D(wantMatch).End)
+									if nodes.D(gotMatch).Text != nodes.D(wantMatch).Text || nodes.D(gotMatch).Start != nodes.D(wantMatch).Start || nodes.D(gotMatch).End != nodes.D(wantMatch).End {
+										t.Errorf("%s %s/%s input=%x: match %x [%d,%d), want %x [%d,%d)", name, backend, unit, input, nodes.D(gotMatch).Text, nodes.D(gotMatch).Start, nodes.D(gotMatch).End, nodes.D(wantMatch).Text, nodes.D(wantMatch).Start, nodes.D(wantMatch).End)
 									}
 									if got, w := codegentest.ResultJSON(n, nil), codegentest.ResultJSON(wn, nil); got != w {
 										t.Errorf("%s %s/%s input=%x\ngot %s\nwant %s", name, backend, unit, input, got, w)

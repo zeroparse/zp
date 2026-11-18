@@ -17,7 +17,7 @@ compositions as they stand; this record keeps the decision, the measurements and
 
 The algorithmic core of a ZeroParse parse — memoization, left-recursion growth, expected-set merging, recovery bookkeeping,
 the variable environment, budget charges, stream commitment, Document reuse and the Operators Rule loop — is written
-once per runtime: in the engine (`internal/engine/state`, shared by the closure backend and both bytecode VMs), twice in
+once per runtime: in the engine (`internal/runtime/state`, shared by the closure backend and both bytecode VMs), twice in
 the generated Go runtime (the node `Parser` in `codegen/go/lib/lib.go` and the typed `TParser` in `codegen/go/lib/typed.go`), and
 in the TypeScript runtime (`codegen/ts/lib/lib.ts`). A fix to one of these mechanisms is a fix to up to four
 copies, and the copies already differ in algorithm where they should only differ in host.
@@ -45,7 +45,7 @@ flowchart LR
   exec --> gob["Go backend"]
   exec --> tsb["TypeScript backend"]
   gob --> goout["Generated Go parser<br/>and runtime"]
-  gob --> eng["internal/engine/state<br/>(last stage)"]
+  gob --> eng["internal/runtime/state<br/>(last stage)"]
   tsb --> tsout["Generated TypeScript parser<br/>and runtime"]
   spec --> conf["Conformance suite"]
   conf -. checks .-> gob
@@ -65,7 +65,7 @@ covers 2026-10-07 to 2026-10-30: 1,263 commits.
 ### Four Copies of One Core
 
 The engine's closure backend and both VMs already share one core: they drive `CallBegin`, `CallEnd`, `GrowBegin`,
-`GrowStep` and `GrowEnd` in `internal/engine/state/runtime.go`. The generated runtimes do not use it. The generated Go
+`GrowStep` and `GrowEnd` in `internal/runtime/state/runtime.go`. The generated runtimes do not use it. The generated Go
 runtime has one copy for node results and one for typed results, and the TypeScript runtime a fourth.
 [Appendix A](#appendix-a-inventory) lists every mechanism with its files, functions and sizes. In approximate lines:
 
@@ -605,7 +605,7 @@ backends' choice.
 - Loops print as `for (;;)` with labeled `break`; no iterator protocol or closure appears in a hot path.
 
 Printed code is checked in: the Go library in `codegen/go/lib/`, the TypeScript library in
-`codegen/ts/lib/`, and the engine's in `internal/engine/state`. A test regenerates them and fails on any
+`codegen/ts/lib/`, and the engine's in `internal/runtime/state`. A test regenerates them and fails on any
 difference. Names come from the compositions and operations, with a suffix only
 for a specialization; each printed function starts with a comment naming its source and specialization, so that a
 stack trace or a profile leads back to it; comments carry through; output is formatted by `go/format` and by the
@@ -666,8 +666,8 @@ default; it can become an option of its own.
 
 ### The Engine and a Second VM
 
-The closure backend and both VMs already share `internal/engine/state`, so the engine is one copy, not three. It
-adopts the shared core last: the Go backend prints the compositions into `internal/engine/state` with the `missing`
+The closure backend and both VMs already share `internal/runtime/state`, so the engine is one copy, not three. It
+adopts the shared core last: the Go backend prints the compositions into `internal/runtime/state` with the `missing`
 feature and the split protocols that the iterative VM needs, over the Go operation library with the engine's value
 type. Until then it is the independent oracle of the differential tests.
 
@@ -737,7 +737,7 @@ move to Exec IR at once while mechanisms move one at a time.
    less, `BenchmarkStream/generated` is within noise, and the batch parses and recognizers are within 2% each, 0.4%
    slower in geomean.
 9. **Engine adoption.** The compositions and the Go operation library replace the hand-written mechanisms of
-   `internal/engine/state`; the closure backend and both VMs run on them. The iterative VM suspends a call while
+   `internal/runtime/state`; the closure backend and both VMs run on them. The iterative VM suspends a call while
    the rule body runs, so the call protocol also has a split form, a begin and an end composition built from the
    same builder functions as the recursive call, with its state in a record that the caller holds. The
    mechanisms that only the engine has keep their meaning and become the engine's implementations of
@@ -754,7 +754,7 @@ move to Exec IR at once while mechanisms move one at a time.
       `memo.splice`, and the repetition runs a host operation of the engine.
 
    In the first part, the compositions `engineCall`, `callBegin`, `callEnd` and `grow` print the engine's `Call`,
-   `CallBegin`, `CallEnd` and `grow` into `internal/engine/state/call_exec.go`, the first three specialized for
+   `CallBegin`, `CallEnd` and `grow` into `internal/runtime/state/call_exec.go`, the first three specialized for
    Documents, the missing-token mode and budget controls; `call_ops.go` holds the engine's implementations of the operations they
    call, and the split form keeps its state in a `CallState` that the caller holds. An entry's `From` is the low
    bound of the input its call examined: a call examines from its position, or from the unit before it to tell a
@@ -1161,9 +1161,9 @@ in non-test sources, and include comments.
 
 | Implementation | Files | Non-test lines |
 |:--|:--|--:|
-| Engine core, shared by closures and both VMs | `internal/engine/state/*.go` | 7,142 |
-| Engine backends (dispatch only) | `internal/backend/closure/*.go`, `internal/engine/vm/vm.go`, `ivm.go` | 1,218 + 2,015 |
-| Engine Document API | `internal/engine/document/*.go` | 1,784 |
+| Engine core, shared by closures and both VMs | `internal/runtime/state/*.go` | 7,142 |
+| Engine backends (dispatch only) | `internal/backend/closure/*.go`, `internal/runtime/vm/vm.go`, `ivm.go` | 1,218 + 2,015 |
+| Engine Document API | `internal/runtime/document/*.go` | 1,784 |
 | Generated Go library | `codegen/go/lib/*.go` | 11,475 |
 | TypeScript library | `codegen/ts/lib/*.ts` | 4,444 |
 

@@ -8,9 +8,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/engine/vm"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/vm"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestFilterNodeIdentityAndEmptyInput(t *testing.T) {
@@ -25,10 +25,10 @@ func TestFilterNodeIdentityAndEmptyInput(t *testing.T) {
 			first := node.Field("First").(*core.Node)
 			kept := node.Field("Kept").(*core.Node)
 			empty := node.Field("Empty").(*core.Node)
-			if len(value.D(kept).Children) != 2 || value.D(kept).Children[0] != first || value.D(kept).Children[1] != first {
+			if len(nodes.D(kept).Children) != 2 || nodes.D(kept).Children[0] != first || nodes.D(kept).Children[1] != first {
 				t.Fatalf("%s/%s: filter changed order or identity", backend, unit)
 			}
-			if empty == nil || len(value.D(empty).Children) != 0 {
+			if empty == nil || len(nodes.D(empty).Children) != 0 {
 				t.Fatalf("%s/%s: nil input did not produce an empty list", backend, unit)
 			}
 		}

@@ -15,19 +15,19 @@ import (
 	zpcore "zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 // Exercise the exported APIs against the same hand-built DAG, including nil,
 // nested lists and a shared value reached through different owning parents.
 func TestTreeLibParity(t *testing.T) {
 	t.Parallel()
-	leaf := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "é<&>", Start: 1, End: 3})
-	gLeaf := zprt.NewNode(zpcore.KindString, 1, 3, value.D(leaf).Text, nil, "", nil, nil)
-	child := value.Ptr(value.Data{Children: []*zpcore.Node{leaf}, Fields: coreimpl.Fields{{Name: "list", Value: []any{leaf, nil, []byte{1, 2}}}}})
+	leaf := nodes.Ptr(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "é<&>", Start: 1, End: 3})
+	gLeaf := zprt.NewNode(zpcore.KindString, 1, 3, nodes.D(leaf).Text, nil, "", nil, nil)
+	child := nodes.Ptr(nodes.Data{Children: []*zpcore.Node{leaf}, Fields: coreimpl.Fields{{Name: "list", Value: []any{leaf, nil, []byte{1, 2}}}}})
 	gChild := zprt.NewNode(zpcore.KindStruct, 0, 0, "", []*zpcore.Node{gLeaf}, "", coreimpl.Fields{{Name: "list", Value: []any{gLeaf, nil, []byte{1, 2}}}}, nil)
-	root := value.Ptr(value.Data{Children: []*zpcore.Node{child, nil, leaf}, Fields: coreimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: leaf}}})
+	root := nodes.Ptr(nodes.Data{Children: []*zpcore.Node{child, nil, leaf}, Fields: coreimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: leaf}}})
 	gRoot := zprt.NewNode(zpcore.KindStruct, 0, 0, "", []*zpcore.Node{gChild, nil, gLeaf}, "", coreimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: gLeaf}}, nil)
 	core, err := root.MarshalJSON()
 	if err != nil {
@@ -44,10 +44,10 @@ func TestTreeLibParity(t *testing.T) {
 	ca := func(v zpcore.WalkVisit) (zpcore.WalkAction, error) {
 		n, p := "", ""
 		if v.Node != nil {
-			n = value.D(v.Node).Text
+			n = nodes.D(v.Node).Text
 		}
 		if v.Parent != nil {
-			p = value.D(v.Parent).Text
+			p = nodes.D(v.Parent).Text
 		}
 		a = append(a, describe(v.Depth, uint8(v.Edge.Kind), v.Edge.ChildIndex, v.Edge.FieldName, v.Edge.ListIndex, n, p))
 		return zpcore.WalkContinue, nil
@@ -86,7 +86,7 @@ func TestTreeLibParity(t *testing.T) {
 			}
 		}
 	}
-	value.D(root).Children = []*zpcore.Node{root}
+	nodes.D(root).Children = []*zpcore.Node{root}
 	zprt.SetNodeElems(gRoot, []*zpcore.Node{gRoot})
 	var c *zpcore.CycleError
 	var gc *zpcore.CycleError

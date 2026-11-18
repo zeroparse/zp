@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 func TestStreamTextSnapshots(t *testing.T) {
@@ -144,7 +144,7 @@ rule row = x:(!"\n" .)+ #atomic "\n"`)
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := value.D(whole.Field("rows").(*core.Node)).Children
+				want := nodes.D(whole.Field("rows").(*core.Node)).Children
 				var got []*core.Node
 				err = prog.ParseStreamWith("main", strings.NewReader(text), func(n *core.Node) error { got = append(got, n); return nil }, opts)
 				if err != nil || len(got) != len(want) {
@@ -175,7 +175,7 @@ rule row = x:(!"\n" .)+ #atomic "\n"`)
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := value.D(whole.Field("rows").(*core.Node)).Children
+				want := nodes.D(whole.Field("rows").(*core.Node)).Children
 				var got []*core.Node
 				err = prog.ParseStreamWith("main", &snapshotOneByteReader{source: text}, func(n *core.Node) error { got = append(got, n); return nil }, opts)
 				if err != nil || len(got) != len(want) {

@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // A Document that edits a grammar with hidden rules gives what a fresh parse gives, on every

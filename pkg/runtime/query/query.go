@@ -14,8 +14,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/limits"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
@@ -327,7 +327,7 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 		task := tasks[len(tasks)-1]
 		tasks = tasks[:len(tasks)-1]
 		p, v := task.pattern, task.visit
-		v.Value = value.UnboxValue(v.Value)
+		v.Value = nodes.UnboxValue(v.Value)
 		category, err := valueCategory(v.Value)
 		if err != nil {
 			return nil, false, err
@@ -352,12 +352,12 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 			if category != "struct" && category != "error" {
 				return nil, false, nil
 			}
-			if err := b.charge(uint64(len(p.Fields) + len(value.D(n).Fields))); err != nil {
+			if err := b.charge(uint64(len(p.Fields) + len(nodes.D(n).Fields))); err != nil {
 				return nil, false, err
 			}
 			for i := len(p.Fields) - 1; i >= 0; i-- {
 				f := &p.Fields[i]
-				val, ok := value.D(n).Fields.Get(f.Name)
+				val, ok := nodes.D(n).Fields.Get(f.Name)
 				if !ok {
 					return nil, false, nil
 				}
@@ -377,7 +377,7 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 			tasks = append(tasks, matchTask{p.Value, graphVisit{nodeValue(n), n, appendPath(v.path, Edge{Kind: "value"})}})
 		}
 		if len(p.Elements) > 0 {
-			if !hasElements(n) || len(value.D(n).Children) < len(p.Elements) {
+			if !hasElements(n) || len(nodes.D(n).Children) < len(p.Elements) {
 				return nil, false, nil
 			}
 			if err := b.charge(uint64(len(p.Elements))); err != nil {
@@ -387,7 +387,7 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 				if err := b.charge(uint64(len(v.path) + 1)); err != nil {
 					return nil, false, err
 				}
-				tasks = append(tasks, matchTask{&p.Elements[i], graphVisit{value.D(n).Children[i], n, appendPath(v.path, Edge{Kind: "element", Index: i})}})
+				tasks = append(tasks, matchTask{&p.Elements[i], graphVisit{nodes.D(n).Children[i], n, appendPath(v.path, Edge{Kind: "element", Index: i})}})
 			}
 		}
 		if p.Capture != "" {
@@ -405,7 +405,7 @@ func hasElements(n *core.Node) bool {
 	if n == nil {
 		return false
 	}
-	switch value.ShapeOf(n) {
+	switch nodes.ShapeOf(n) {
 	case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
 		return true
 	}
@@ -415,13 +415,13 @@ func hasElements(n *core.Node) bool {
 // nodeValue returns the value of the node n: its text, or a tuple or list value sharing its
 // elements.
 func nodeValue(n *core.Node) any {
-	switch value.ShapeOf(n) {
+	switch nodes.ShapeOf(n) {
 	case coreimpl.ShapeTuple:
-		return value.Ptr(value.Data{Kind: coreimpl.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+		return nodes.Ptr(nodes.Data{Kind: coreimpl.TupleValueKind, Start: nodes.D(n).Start, End: nodes.D(n).End, Children: nodes.D(n).Children})
 	case coreimpl.ShapeList:
-		return value.Ptr(value.Data{Kind: coreimpl.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+		return nodes.Ptr(nodes.Data{Kind: coreimpl.ListValueKind, Start: nodes.D(n).Start, End: nodes.D(n).End, Children: nodes.D(n).Children})
 	}
-	return value.D(n).Text
+	return nodes.D(n).Text
 }
 
 func appendPath(path []Edge, e Edge) []Edge {
@@ -440,7 +440,7 @@ func valueCategory(v any) (string, error) {
 		if v == nil {
 			return "nil", nil
 		}
-		switch value.ShapeOf(v) {
+		switch nodes.ShapeOf(v) {
 		case coreimpl.ShapeString, coreimpl.ShapeTuple, coreimpl.ShapeList:
 			return "node", nil
 		case coreimpl.ShapeError:

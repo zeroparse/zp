@@ -5,7 +5,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 // The static shapes of values in the value model. Every backend builds the values of an
@@ -213,10 +213,10 @@ func SharesTuple(p *Checker, e ast.Expr) bool {
 // One returns the one element of the result v.
 func (s Shaper) One(v *core.Node) *core.Node {
 	if s.Elems {
-		if v == nil || len(value.D(v).Children) == 0 {
+		if v == nil || len(nodes.D(v).Children) == 0 {
 			return nil
 		}
-		return value.D(v).Children[0]
+		return nodes.D(v).Children[0]
 	}
 	return v
 }

@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 func TestFingerprintTerminalFlag(t *testing.T) {
@@ -66,9 +66,9 @@ func TestFingerprintSharingAndNodeCycles(t *testing.T) {
 		t.Fatal("fingerprint loses node sharing")
 	}
 	cycle := tupleNode()
-	value.SetNodeElems(cycle, []*core.Node{cycle})
+	nodes.SetNodeElems(cycle, []*core.Node{cycle})
 	copyCycle := tupleNode()
-	value.SetNodeElems(copyCycle, []*core.Node{copyCycle})
+	nodes.SetNodeElems(copyCycle, []*core.Node{copyCycle})
 	if hash(cycle) != hash(copyCycle) {
 		t.Fatal("fingerprint depends on pointer addresses")
 	}
@@ -84,7 +84,7 @@ func TestFingerprintDeepValuesAndCanonicalFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	value.SetNodeText(leaf, "changed")
+	nodes.SetNodeText(leaf, "changed")
 	after, err := fingerprint(root)
 	if err != nil {
 		t.Fatal(err)
@@ -93,7 +93,7 @@ func TestFingerprintDeepValuesAndCanonicalFields(t *testing.T) {
 		t.Fatal("fingerprint omits deep descendants")
 	}
 	a, b := structNode(), structNode()
-	add := value.SetNodeField
+	add := nodes.SetNodeField
 	add(a, "a", []any{1, "x", nil})
 	add(a, "b", map[string]any{"x": 1, "y": true})
 	add(b, "b", map[string]any{"y": true, "x": 1})
@@ -109,7 +109,7 @@ func TestFingerprintDeepValuesAndCanonicalFields(t *testing.T) {
 	if x != y {
 		t.Fatal("field or map order changes fingerprint")
 	}
-	value.SetNodeField(a, "a", []any{1, "different", nil})
+	nodes.SetNodeField(a, "a", []any{1, "different", nil})
 	z, err := fingerprint(a)
 	if err != nil {
 		t.Fatal(err)
@@ -120,13 +120,13 @@ func TestFingerprintDeepValuesAndCanonicalFields(t *testing.T) {
 }
 
 func stringNode(text string) *core.Node {
-	return value.NewNode(core.KindString, 0, len(text), text, nil, "", nil, nil)
+	return nodes.NewNode(core.KindString, 0, len(text), text, nil, "", nil, nil)
 }
 
 func tupleNode(elems ...*core.Node) *core.Node {
-	return value.NewNode(core.KindTuple, 0, 0, "", elems, "", nil, nil)
+	return nodes.NewNode(core.KindTuple, 0, 0, "", elems, "", nil, nil)
 }
 
 func structNode() *core.Node {
-	return value.NewNode(core.KindStruct, 0, 0, "", nil, "S", nil, nil)
+	return nodes.NewNode(core.KindStruct, 0, 0, "", nil, "S", nil, nil)
 }

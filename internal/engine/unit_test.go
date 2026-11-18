@@ -8,8 +8,8 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestBytePositions(t *testing.T) {
@@ -21,11 +21,11 @@ func TestBytePositions(t *testing.T) {
 	}
 	w := n.Field("w").(*core.Node)
 	x := n.Field("x").(*core.Node)
-	if value.D(w).Start != 0 || value.D(w).End != 6 || value.D(x).Start != 7 || value.D(x).End != 10 || value.D(x).Text != "語" {
-		t.Errorf("w [%d,%d) x [%d,%d) %q", value.D(w).Start, value.D(w).End, value.D(x).Start, value.D(x).End, value.D(x).Text)
+	if nodes.D(w).Start != 0 || nodes.D(w).End != 6 || nodes.D(x).Start != 7 || nodes.D(x).End != 10 || nodes.D(x).Text != "語" {
+		t.Errorf("w [%d,%d) x [%d,%d) %q", nodes.D(w).Start, nodes.D(w).End, nodes.D(x).Start, nodes.D(x).End, nodes.D(x).Text)
 	}
 	n, err = prog.ParseWith("main", "日本 語", ParseOptions{Unit: core.CodePoints})
-	if err != nil || value.D(n.Field("x").(*core.Node)).Start != 3 {
+	if err != nil || nodes.D(n.Field("x").(*core.Node)).Start != 3 {
 		t.Errorf("codepoints: %v %v", n, err)
 	}
 	_, err = prog.ParseWith("main", "日本 ", ParseOptions{Unit: core.Bytes})
@@ -43,8 +43,8 @@ func TestInvalidUTF8(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if x := n.Field("x").(*core.Node); value.D(x).Start != 1 || value.D(x).End != 2 {
-		t.Errorf("x [%d,%d)", value.D(x).Start, value.D(x).End)
+	if x := n.Field("x").(*core.Node); nodes.D(x).Start != 1 || nodes.D(x).End != 2 {
+		t.Errorf("x [%d,%d)", nodes.D(x).Start, nodes.D(x).End)
 	}
 	checkUnits(t, prog, "main", "a\xffb", Closure)
 	checkUnits(t, prog, "main", "a\xffb", Bytecode)

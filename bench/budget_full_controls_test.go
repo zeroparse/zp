@@ -18,7 +18,7 @@ import (
 	gminilang "zeroparse.dev/zp/internal/bench/parsers/minilang"
 	goutline "zeroparse.dev/zp/internal/bench/parsers/outline"
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 type fullGeneratedProbe struct {
@@ -288,13 +288,13 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 		return s
 	}
 	str := func(start, end int, text string) *core.Node {
-		return value.NewNode(core.KindString, start, end, text, nil, "", nil, nil)
+		return nodes.NewNode(core.KindString, start, end, text, nil, "", nil, nil)
 	}
 	tuple := func(elems ...*core.Node) *core.Node {
-		return value.NewNode(core.KindTuple, 0, 0, "", elems, "", nil, nil)
+		return nodes.NewNode(core.KindTuple, 0, 0, "", elems, "", nil, nil)
 	}
 	object := func(fields ...coreimpl.NodeField) *core.Node {
-		return value.NewNode(core.KindStruct, 0, 0, "", nil, "T", coreimpl.Fields(fields), nil)
+		return nodes.NewNode(core.KindStruct, 0, 0, "", nil, "T", coreimpl.Fields(fields), nil)
 	}
 	if hash(str(0, 0, "\xff")) == hash(str(0, 0, "\xfe")) {
 		t.Fatal("raw invalid terminal bytes were replaced")
@@ -313,7 +313,7 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	if hash(fields) == hash(reordered) {
 		t.Fatal("field order was discarded")
 	}
-	if hash(tuple()) == hash(value.NewNode(core.KindList, 0, 0, "", nil, "", nil, nil)) {
+	if hash(tuple()) == hash(nodes.NewNode(core.KindList, 0, 0, "", nil, "", nil, nil)) {
 		t.Fatal("the kind of an empty node was discarded")
 	}
 	shifted := str(1, 2, "x")
@@ -324,13 +324,13 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	if hash(fields) == hash(changed) {
 		t.Fatal("field values were discarded")
 	}
-	if hash(value.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 1)) == hash(value.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 2)) {
+	if hash(nodes.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 1)) == hash(nodes.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 2)) {
 		t.Fatal("carried values were discarded")
 	}
 	cycle := tuple()
-	value.SetNodeElems(cycle, []*core.Node{cycle})
+	nodes.SetNodeElems(cycle, []*core.Node{cycle})
 	other := tuple()
-	value.SetNodeElems(other, []*core.Node{other})
+	nodes.SetNodeElems(other, []*core.Node{other})
 	if hash(cycle) != hash(other) {
 		t.Fatal("equivalent cycles differ")
 	}
