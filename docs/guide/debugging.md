@@ -700,8 +700,8 @@ filter or depth limit never changes what a profile records. The
 [specification](../../spec/runtime/observability.md#generated-typescript-tracing-and-profiling) defines every counter.
 
 Profiling requires `performance.now()`; without it, a profiled invocation returns an `Error`, and there is no
-`Date.now()` fallback. Profiled runs took 1.58 to 4.02 times as long as ordinary ones in focused Node 24.19
-measurements taken before profiled parses recorded the input they examine; see [design 043](../design/records/043-generated-parser-observability.md#typescript-profile-measurements) for the
+`Date.now()` fallback. Profiled runs took 1.66 to 6.63 times as long as ordinary ones in focused Node 24.13
+measurements; see [design 043](../design/records/043-generated-parser-observability.md#typescript-profile-measurements) for the
 conditions and limits. The specification covers clock failures and callback errors.
 
 ## Costs and Limits

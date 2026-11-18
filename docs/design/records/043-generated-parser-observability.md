@@ -473,25 +473,24 @@ default; `ZP_TRACE_WARM_MS` and `ZP_TRACE_BENCH_MS` override those durations.
 
 ### TypeScript Profile Measurements
 
-Profile timing used Node 24.19.0 on an Apple M3 Max (darwin/arm64), three
+Profile timing used Node 24.13.0 on an Apple M3 Max (darwin/arm64), three
 serial alternating 150 ms pairs, 75 ms warmup and explicit garbage collection
 after warmup. Inputs were JSON with 64 `éclair` records, XML with 64 items and
 a calculator expression with 32 repetitions; each fixture used both position
 units. Ratios compare profile mode with the separately generated ordinary
 package for the same grammar and workload. The table reports ranges across
-fixture/route medians, not a workload-wide estimate. The measurements predate
-the recording of examined input in profiled parses, which adds work to every
-read and reuse of a profiled parse; they have not been repeated since.
+fixture/route medians, not a workload-wide estimate. Profiled parses record the
+input they examine, which adds work to every read and reuse.
 
 | API | Profile / ordinary time ratio |
 |:--|--:|
-| Node `Parse` | 1.623–2.718× |
-| Node `Recognize` | 1.872–4.016× |
-| Typed-generated Node `Parse` | 1.742–3.193× |
-| Typed `Recognize` | 1.866–4.021× |
-| Typed `ParseValue` | 1.581–2.760× |
+| Node `Parse` | 1.785–3.487× |
+| Node `Recognize` | 2.037–6.632× |
+| Typed-generated Node `Parse` | 1.779–3.407× |
+| Typed `Recognize` | 2.033–6.572× |
+| Typed `ParseValue` | 1.661–3.059× |
 
-Individual paired ratios ranged from 1.492–4.313×. One `Profile` was reused
+Individual paired ratios ranged from 1.641–6.719×. One `Profile` was reused
 per case and `snapshot()` was outside the timed region. The runs do not measure
 JavaScript allocations, retained heap, binary size, browser timing or Deno/Bun
 behavior. No-profile timing was near parity with the parent observed generator

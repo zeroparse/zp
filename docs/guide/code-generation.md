@@ -398,7 +398,7 @@ measurements, not workload-wide estimates. Focused `WithProfile` runs were
 3.8–26.9× ordinary time and added about 45–395 KB/op and 25–50 allocations/op
 across the measured cases; see
 [design 043](../design/records/043-generated-parser-observability.md#performance-and-results)
-for scope and generation costs. Focused TypeScript profiles measured 1.58–4.02×
+for scope and generation costs. Focused TypeScript profiles measured 1.66–6.63×
 ordinary time, depending on API and fixture; see the TypeScript profile
 measurements in design 043 for conditions and limits.
 
