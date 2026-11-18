@@ -2,6 +2,7 @@ package flow
 
 import (
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -48,6 +49,39 @@ const (
 	QBody = "body"
 	// QText is the number of code points of the input a value copies.
 	QText = "text"
+	// QMerge is the units that the compositions over the expectation record (expect, keep and
+	// mergeExpected of spec/exec-ir/compositions.md#expectations) charge for the expectations that the
+	// call records, keeps or merges, as the quantity merge of the Exec stage measures them.
+	QMerge = "merge"
+	// QCall is the units of the call protocol around the body of the called rule (the composition call
+	// of spec/exec-ir/compositions.md#calls): the first-call record, the memo's lookups and stores and
+	// the growth of their tables, as the operations of the Exec stage that the protocol calls declare
+	// them.
+	QCall = "call"
+	// QVals is the number of values that the call returns in its list.
+	QVals = "vals"
+	// QError is the work of building a syntax error: one unit for each expectation that the call is
+	// passed, the steps of sorting their descriptions and of finding the line of the error's position
+	// in a table of the line starts, and, at the first error of a parse of a whole input, one unit for
+	// each code point of the input, which builds that table.
+	QError = "error"
+	// QRanges is the number of ranges of the operation's class.
+	QRanges = "ranges"
+	// QCaptures is the number of the capture names of the scope whose captures the call attaches.
+	QCaptures = "captures"
+	// QCaptureFields is what setting the captures that matched as fields of the value charges: one
+	// unit for each field that the value already has, as the quantity capture_fields of the Exec stage
+	// counts it.
+	QCaptureFields = "capture_fields"
+	// QStream is the units of the work of a stream parse at the call: loading the input into its buffer,
+	// compacting the buffer and scanning it for line starts (stream_scan of the Exec stage), and for a
+	// delivered element the commit of the composition streamCommit
+	// (spec/exec-ir/compositions.md#streams); 0 outside a stream parse.
+	QStream = "stream"
+	// QErrorText is the size of the message of the recovered error that a value holds: the bytes of its
+	// text and one for each of its parts, which a target that bounds the work assembles piece by piece
+	// (the quantity error_parts of the Exec stage).
+	QErrorText = "error_text"
 )
 
 // Op names of the Flow dialect.
@@ -276,6 +310,17 @@ func Ops() []*code.Op {
 	pos := []string{State, Pos}
 	unit := code.Cost{Const: 1}
 	per := func(q string) code.Cost { return code.Cost{Terms: []code.CostTerm{{Coef: 1, Quantity: q}}} }
+	// plus adds the term q to the cost c.
+	plus := func(c code.Cost, q string) code.Cost {
+		c.Terms = append(slices.Clone(c.Terms), code.CostTerm{Coef: 1, Quantity: q})
+		return c
+	}
+	// value1 is the cost of an operation that builds one value: a unit for the value
+	// (spec/runtime/parsing.md#cost).
+	value1 := unit
+	// attach is the cost of attaching the captures of a scope to a value: the value that it may make,
+	// a scan of the captures and of the names, and the setting of the fields.
+	attach := code.Cost{Const: 1, Terms: []code.CostTerm{{Coef: 2, Quantity: QCaptures}, {Coef: 1, Quantity: QCaptureFields}}}
 	pure := "pure: the operation reads the state and changes nothing, so a call whose result is unused may be removed."
 	var ops []*code.Op
 	op := func(o *code.Op) *code.Op {
@@ -298,27 +343,27 @@ func Ops() []*code.Op {
 		Contract: `Adds Delta to the silent depth, inside which expectations are not recorded. For a lookahead
 (Site is not 0) it begins the lookahead of the site after it enters the depth, or ends it, whose body
 matched if Ok, before it leaves.`}), "the change of the depth and the lookahead (Silence)", immOf[Silence]())
-	op(&code.Op{Name: OpPeek, Results: []code.Type{runeT, i, b}, Reads: pos, Writes: []string{State}, NoReturn: true, Cost: unit,
+	op(&code.Op{Name: OpPeek, Results: []code.Type{runeT, i, b}, Reads: pos, Writes: []string{State}, NoReturn: true, Cost: plus(unit, QStream),
 		Contract: `Returns the code point at the position, its size and whether there is one, without consuming it.
-The read charges one unit in a function with budget controls and, in a Document parse, records how far the
-parse examined the input.`})
+The read charges one unit in a function with budget controls (spec/runtime/parsing.md#cost), and in a stream
+parse what loading the input charges; in a Document parse it records how far the parse examined the input.`})
 	op(&code.Op{Name: OpAdvance, Params: []code.Param{P("n", i)}, Reads: pos, Writes: []string{Pos},
 		Contract: "Moves the position forward by n.", Requires: "n code units of input follow the position."})
-	withImm(op(&code.Op{Name: OpExpect, Params: []code.Param{P("at", i)}, Writes: []string{State},
-		Contract: "Records the expectation at the position at, unless the silent depth is positive."}),
+	withImm(op(&code.Op{Name: OpExpect, Params: []code.Param{P("at", i)}, Writes: []string{State}, Cost: per(QMerge),
+		Contract: "Records the expectation at the position at, unless the silent depth is positive, as the composition expect does (spec/exec-ir/compositions.md#expectations)."}),
 		"the expectation (Expectation)", immOf[Expectation]())
 	withImm(op(&code.Op{Name: OpObserveSkip, Writes: []string{State}, NoReturn: true,
 		Contract: "Reports to the observation of the parse that the guard of a choice skips the alternative."}),
 		"the alternative (core.Node)", immOf[core.Node]())
 	op(&code.Op{Name: OpRestore, Params: []code.Param{P("pos", i), P("rec", i)}, Writes: []string{State, Pos},
 		Contract: "Moves the position back to pos and drops the recovered errors after the first rec."})
-	op(&code.Op{Name: OpMergeExpected, Params: []code.Param{P("far", i), P("exps", expids)}, Writes: []string{State},
-		Contract: "Merges the expectations exps, recorded at far, into the enclosing expectation scope."})
-	withImm(op(&code.Op{Name: OpMergeRenamed, Params: []code.Param{P("far", i), P("exps", expids)}, Writes: []string{State},
-		Contract: "Merges the expectations exps, recorded at far, into the enclosing scope, renamed to the expectation of the immediate (@diagnostic)."}),
+	op(&code.Op{Name: OpMergeExpected, Params: []code.Param{P("far", i), P("exps", expids)}, Writes: []string{State}, Cost: per(QMerge),
+		Contract: "Merges the expectations exps, recorded at far, into the enclosing expectation scope, as the composition mergeExpected does (spec/exec-ir/compositions.md#expectations)."})
+	withImm(op(&code.Op{Name: OpMergeRenamed, Params: []code.Param{P("far", i), P("exps", expids)}, Writes: []string{State}, Cost: per(QMerge),
+		Contract: "Merges the expectations exps, recorded at far, into the enclosing scope, renamed to the expectation of the immediate (@diagnostic), as the composition expect does for it (spec/exec-ir/compositions.md#expectations)."}),
 		"the expectation (core.ExpID)", immOf[core.ExpID]())
-	op(&code.Op{Name: OpPushKid, Params: []code.Param{P("x", value)}, Writes: []string{State},
-		Contract: "Pushes x on the stack of gathered values."})
+	op(&code.Op{Name: OpPushKid, Params: []code.Param{P("x", value)}, Writes: []string{State}, Cost: unit,
+		Contract: "Pushes x on the stack of gathered values. It charges at most a unit for the value."})
 	op(&code.Op{Name: OpDropKids, Params: []code.Param{P("base", i)}, Writes: []string{State},
 		Contract: "Truncates the stack of gathered values to base.", Requires: "base is at most the height of the stack."})
 	op(&code.Op{Name: OpStreamStart, Writes: []string{State}, NoReturn: true,
@@ -335,7 +380,7 @@ parse examined the input.`})
 		Contract: `Ends a walk of the value-free scan site that began at start and matched count characters, at least
 ScanHotSpan: unless the walk took the rest from a record, it records itself at a hot site, or notes that it
 walked at a site that is not hot.`}), "the site (Site)", immOf[Site]())
-	op(&code.Op{Name: OpEmitStream, Params: []code.Param{P("x", value)}, Reads: pos, Writes: []string{State}, NoReturn: true,
+	op(&code.Op{Name: OpEmitStream, Params: []code.Param{P("x", value)}, Reads: pos, Writes: []string{State}, NoReturn: true, Cost: per(QStream),
 		Contract: "Delivers the committed element x (nil for a value-free repetition) to the callback of a stream parse, which has consumed the input up to the position."})
 	withImm(op(&code.Op{Name: OpAppend, Params: []code.Param{P("vals", vals), P("x", value)}, Results: []code.Type{vals},
 		Contract: "Returns the list vals with x appended; with Spread, the children of the tuple node x."}),
@@ -382,6 +427,7 @@ walk stops.`})
 them: at a hot site with a record of start it moves the position to the recorded end and returns the
 recorded count; otherwise it returns count.`}), "the site (Site)", immOf[Site]())
 	withImm(op(&code.Op{Name: OpScanKids, Params: []code.Param{P("start", i), P("base", i), P("count", i)}, Results: []code.Type{vals}, Reads: pos, Writes: []string{State},
+		Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QVals}}},
 		Contract: `Returns the elements of a walk of the scan site that began at start, gathered on the stack from
 base, which matched count characters: for a walk that reached ScanHotSpan characters it ends the walk as
 flow.scanEnd does, and the result is the elements of the record that the walk took, if it took one (the
@@ -391,28 +437,35 @@ stack is dropped to base), or the gathered elements, which the record that it ma
 anything; false where the input cannot be read in place. With budget controls a match charges a unit per
 code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchLit of the literal matches."}}),
 		"the literal (*core.Lit)", immOf[*core.Lit]())
-	withImm(op(&code.Op{Name: OpMatchLit, Results: []code.Type{value, b}, Reads: pos, Writes: []string{State, Pos}, NoReturn: true, Cost: per(QLit),
-		Contract: "Matches the literal at the position and moves past it, recording its expectation on failure. Its results are its value (not used) and whether it matched; on failure the position is unchanged."}),
+	withImm(op(&code.Op{Name: OpMatchLit, Results: []code.Type{value, b}, Reads: pos, Writes: []string{State, Pos}, NoReturn: true, Cost: plus(per(QLit), QMerge),
+		Contract: `Matches the literal at the position and moves past it, recording its expectation on failure as the
+composition expect does. Its results are its value (not used) and whether it matched; on failure the position
+is unchanged. It charges a unit for each code point it matches or rejects (spec/runtime/parsing.md#cost) and
+what recording the expectation charges.`}),
 		"the literal (*core.Lit)", immOf[*core.Lit]())
-	withImm(op(&code.Op{Name: OpMatchClass, Results: []code.Type{b}, Reads: pos, Writes: []string{State, Pos}, NoReturn: true, Cost: unit,
-		Contract: "Matches one character of the class through its membership table and moves past it, recording the class's expectation on failure; reports whether it matched."}),
+	withImm(op(&code.Op{Name: OpMatchClass, Results: []code.Type{b}, Reads: pos, Writes: []string{State, Pos}, NoReturn: true, Cost: plus(unit, QMerge),
+		Contract: "Matches one character of the class through its membership table and moves past it, recording the class's expectation on failure as the composition expect does; reports whether it matched."}),
 		"the class (*core.Class)", immOf[*core.Class]())
-	withImm(op(&code.Op{Name: OpInClass, Params: []code.Param{P("ch", runeT)}, Results: []code.Type{b},
-		Contract: "Reports whether the code point ch is in the class.", Laws: []string{pure}}), "the class (*core.Class)", immOf[*core.Class]())
+	withImm(op(&code.Op{Name: OpInClass, Params: []code.Param{P("ch", runeT)}, Results: []code.Type{b}, Cost: per(QRanges),
+		Contract: "Reports whether the code point ch is in the class. With budget controls it charges at most a unit for each range of the class that it compares, a constant of the grammar for the character examined (spec/runtime/parsing.md#cost).", Laws: []string{pure}}), "the class (*core.Class)", immOf[*core.Class]())
 	withImm(op(&code.Op{Name: OpGuardFails, Params: []code.Param{P("ch", runeT), P("more", b)}, Results: []code.Type{b},
 		Contract: "Reports that the guard skips its alternative: the character that more (there is one) and ch describe cannot begin it, and the nesting limit allows the guard's depth of calls.",
 		Laws:     []string{pure}}), "the guard (*core.First)", immOf[*core.First]())
-	withImm(op(&code.Op{Name: OpAtAnchor, Results: []code.Type{b}, Reads: pos,
-		Contract: "Reports whether the position is at the anchor.", Laws: []string{pure}}), "the anchor (core.AnchorKind)", immOf[core.AnchorKind]())
+	withImm(op(&code.Op{Name: OpAtAnchor, Results: []code.Type{b}, Reads: pos, Cost: unit,
+		Contract: "Reports whether the position is at the anchor. Reading the character at the position for the end of a line charges a unit (spec/runtime/parsing.md#cost).", Laws: []string{pure}}), "the anchor (core.AnchorKind)", immOf[core.AnchorKind]())
 	withImm(op(&code.Op{Name: OpSkipTerminal, Results: []code.Type{b}, Reads: pos, Writes: []string{State, Pos}, NoReturn: true, Cost: per(QTerminal),
 		Contract: "Runs the terminal region as one program from the position and reports whether it matched; on a match the position moves past it."}),
 		"the terminal region (*core.Terminal)", immOf[*core.Terminal]())
 	withImm(op(&code.Op{Name: OpSkipClasses, Results: []code.Type{b}, Reads: pos, Writes: []string{State, Pos}, NoReturn: true, Cost: per(QClasses),
-		Contract: "Matches the classes of the run in turn and reports whether they matched; on a match the position moves past them."}),
+		Contract: `Matches the classes of the run in turn and reports whether they matched; on a match the position moves past them.
+On failure the position is past the classes that matched, at the one that did not, whose expectation it records
+there; the code that fails returns to its mark.`}),
 		"the class run (*core.ClassRun)", immOf[*core.ClassRun]())
 	withImm(op(&code.Op{Name: OpCallRule, Results: []code.Type{value, b}, Reads: all, Writes: all, NoReturn: true,
-		Cost:     code.Cost{Const: 1, Terms: []code.CostTerm{{Coef: 1, Quantity: QBody}}},
-		Contract: "Calls the rule from the Operators Rule level. Its results are the rule's value and whether it matched; on a match the position is the end of the rule's match, on failure it is unchanged."}),
+		Cost: code.Cost{Terms: []code.CostTerm{{Coef: 1, Quantity: QBody}, {Coef: 1, Quantity: QCall}}},
+		Contract: `Calls the rule from the Operators Rule level through the composition call
+(spec/exec-ir/compositions.md#calls). Its results are the rule's value and whether it matched; on a match the
+position is the end of the rule's match, on failure it is unchanged. The body charges the unit of the call.`}),
 		"the rule and the level (RuleCall)", immOf[RuleCall]())
 	withImm(op(&code.Op{Name: OpCallOutline, Results: []code.Type{value, b}, Reads: all, Writes: all, NoReturn: true, Cost: per(QBody),
 		Contract: "Runs the node, which a function of its own lowers, under the current frame. Its results are the value of the node, built if Build, and whether it matched."}),
@@ -422,27 +475,28 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 	op(&code.Op{Name: OpUnisolate, Params: []code.Param{P("m", expmark)}, Results: []code.Type{i, expids}, Writes: []string{State},
 		Contract: "Ends the expectation scope m. Its results are the farthest failure inside it and its expectations.",
 		Requires: "m is the innermost scope that has not ended."})
-	op(&code.Op{Name: OpText, Params: []code.Param{P("start", i)}, Results: []code.Type{value}, Reads: pos,
-		Contract: "Returns the input from start to the position.", Laws: []string{pure}})
+	op(&code.Op{Name: OpText, Params: []code.Param{P("start", i)}, Results: []code.Type{value}, Reads: pos, Cost: plus(unit, QText),
+		Contract: "Returns the input from start to the position. In a stream parse it charges at most a unit and the length of its result, and elsewhere at most a unit (spec/runtime/parsing.md#cost).", Laws: []string{pure}})
 	withImm(op(&code.Op{Name: OpLiteralText, Params: []code.Param{P("start", i)}, Results: []code.Type{value},
 		Contract: "Returns the text of the literal matched from start, which differs from the literal where it holds the replacement character.", Laws: []string{pure}}),
 		"the literal's text (Chars)", immOf[Chars]())
 	withImm(op(&code.Op{Name: OpStr, Results: []code.Type{value}, Contract: "Returns the string constant.", Laws: []string{pure}}),
 		"the string (Chars)", immOf[Chars]())
-	op(&code.Op{Name: OpNewMatch, Params: []code.Param{P("start", i), P("text", value)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+	op(&code.Op{Name: OpNewMatch, Params: []code.Param{P("start", i), P("text", value)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: value1,
 		Contract: "Returns a match value from start to the position with the text."})
-	withImm(op(&code.Op{Name: OpNewNode, Params: []code.Param{P("start", i), P("kids", vals)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+	withImm(op(&code.Op{Name: OpNewNode, Params: []code.Param{P("start", i), P("kids", vals)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: value1,
 		Contract: "Returns a tuple node, or with List a list node, from start to the position with the children kids."}),
 		"whether the node is a list (List)", immOf[List]())
-	op(&code.Op{Name: OpNewTerminalNode, Params: []code.Param{P("start", i), P("text", value)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+	op(&code.Op{Name: OpNewTerminalNode, Params: []code.Param{P("start", i), P("text", value)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: value1,
 		Contract: "Returns a terminal of the Node runtime from start to the position, with the text."})
-	withImm(op(&code.Op{Name: OpNewBranchNode, Params: []code.Param{P("start", i), P("kids", vals)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+	withImm(op(&code.Op{Name: OpNewBranchNode, Params: []code.Param{P("start", i), P("kids", vals)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: value1,
 		Contract: "Returns a branch of the Node runtime from start to the position: a sequence, or with List a list, of the children kids."}),
 		"whether the node is a list (List)", immOf[List]())
 	withImm(op(&code.Op{Name: OpNewVals, Results: []code.Type{vals}, Writes: []string{State},
 		Contract: "Returns an empty list of values with room for the immediate."}), "the room (Room)", immOf[Room]())
 	op(&code.Op{Name: OpKids, Params: []code.Param{P("base", i)}, Results: []code.Type{vals}, Writes: []string{State},
-		Contract: "Returns the list of the values gathered above base, which it removes from the stack."})
+		Cost:     code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QVals}}},
+		Contract: "Returns the list of the values gathered above base, which it removes from the stack. It charges at most two units for each value of the list."})
 	withImm(op(&code.Op{Name: OpShapeSingle, Params: []code.Param{P("x", value), P("start", i)}, Results: []code.Type{value, b}, Reads: pos, Writes: []string{State},
 		Contract: "Returns the value of x, matched from start by an expression of the shape, where it takes one element, and whether it is a single element (not used)."}),
 		"the shape (core.Shape)", immOf[core.Shape]())
@@ -453,11 +507,11 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 		Contract: "Returns the value of a scope whose body, of the shape, matched x from start."}),
 		"the shape (core.Shape)", immOf[core.Shape]())
 	withImm(op(&code.Op{Name: OpAttachCaptures, Params: []code.Param{P("x", value), P("start", i), P("caps", value)}, Variadic: true,
-		Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+		Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: attach,
 		Contract: "Returns x, matched from start, with the captures of the scope attached: the values caps of the scope's slots."}),
 		"the names and the source of the captures (Attach)", immOf[Attach]())
 	withImm(op(&code.Op{Name: OpAttachFrame, Params: []code.Param{P("x", value), P("start", i), P("f", frame)},
-		Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+		Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: attach,
 		Contract: "Returns x, matched from start, with the captures of the scope attached: the values of the frame f."}),
 		"the names, with Frame set (Attach)", immOf[Attach]())
 	withImm(op(&code.Op{Name: OpMarkState, Results: []code.Type{mark}, Reads: all, Writes: []string{State},
@@ -469,13 +523,13 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 		Contract: "Returns a new frame for the scope of the names."}), "the names (*Names)", immOf[*Names]())
 	withImm(op(&code.Op{Name: OpFrameVal, Params: []code.Param{P("f", frame)}, Results: []code.Type{value},
 		Contract: "Returns the value of the slot of the frame f.", Laws: []string{pure}}), "the slot (Slot)", immOf[Slot]())
-	op(&code.Op{Name: OpKeep, Params: []code.Param{P("exps", expids)}, Results: []code.Type{expids}, Writes: []string{State},
-		Contract: "Returns the expectations exps, kept beyond the scope that recorded them."})
-	op(&code.Op{Name: OpMakeError, Params: []code.Param{P("far", i), P("exps", expids)}, Results: []code.Type{errT}, Writes: []string{State},
+	op(&code.Op{Name: OpKeep, Params: []code.Param{P("exps", expids)}, Results: []code.Type{expids}, Writes: []string{State}, Cost: per(QMerge),
+		Contract: "Returns the expectations exps, kept beyond the scope that recorded them, as the composition keep does (spec/exec-ir/compositions.md#expectations)."})
+	op(&code.Op{Name: OpMakeError, Params: []code.Param{P("far", i), P("exps", expids)}, Results: []code.Type{errT}, Writes: []string{State}, Cost: per(QError),
 		Contract: "Returns the syntax error at far with the expectations exps."})
-	op(&code.Op{Name: OpErrorValue, Params: []code.Param{P("start", i), P("x", errT)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+	op(&code.Op{Name: OpErrorValue, Params: []code.Param{P("start", i), P("x", errT)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: plus(value1, QErrorText),
 		Contract: "Returns the value of the recovered error x over the input from start to the position."})
-	op(&code.Op{Name: OpNewErrorNode, Params: []code.Param{P("start", i), P("x", errT)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+	op(&code.Op{Name: OpNewErrorNode, Params: []code.Param{P("start", i), P("x", errT)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: plus(value1, QErrorText),
 		Contract: "Returns the error node of the recovered error x in the Node runtime, over the input from start to the position."})
 	op(&code.Op{Name: OpFreshNode, Params: []code.Param{P("x", value)}, Results: []code.Type{value},
 		Contract: "Returns x if it is a node its maker still owns, or nil.", Laws: []string{pure}})
