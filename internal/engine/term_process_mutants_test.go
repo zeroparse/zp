@@ -46,7 +46,7 @@ func TestProcessTermTestsKillArithmeticMutants(t *testing.T) {
 				t.Fatal(err)
 			}
 			// -vet=off: the verdict reads what the tests report, and vet would only analyze the mutated code again.
-			cmd := exec.Command("go", "test", "-count=1", "-vet=off", "-overlay", overlayFile, "-run", "^TestTermReferenceEvaluator$", "./internal/codegen")
+			cmd := exec.Command("go", "test", "-count=1", "-vet=off", "-overlay", overlayFile, "-run", "^TestTermReferenceEvaluator$", "./internal/backend/codegen/common")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

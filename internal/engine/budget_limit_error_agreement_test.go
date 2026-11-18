@@ -13,7 +13,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -166,7 +166,7 @@ func generatedGoLimitReports(t *testing.T, c limitAgreementCase, runtime string)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, common.GenOptions{Package: "fixture", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,12 +217,12 @@ func generatedTSLimitReports(t *testing.T, c limitAgreementCase, patch func(stri
 	script := strings.NewReplacer("MAX", fmt.Sprint(c.max), "INPUT", fmt.Sprintf("%q", c.input)).Replace(limitAgreementTSScript)
 	bundle := codegentest.GenerateTSBundle
 	if patch != nil {
-		bundle = func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+		bundle = func(g *grammar.Grammar, opts common.GenOptions) ([]byte, error) {
 			b, err := codegentest.GenerateTSBundle(g, opts)
 			return []byte(patch(string(b))), err
 		}
 	}
-	out := codegentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", LimitControls: true}, bundle)
+	out := codegentest.RunTSGrammarScriptBundle(t, g, script, common.GenOptions{Start: "main", LimitControls: true}, bundle)
 	reports := make([]string, c.max+1)
 	for _, line := range strings.Split(out, "\n") {
 		var l uint64

@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
@@ -143,7 +143,7 @@ const NodeViewsSource = `func() string {
 	return b.String() + n.String()
 }()`
 
-func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions) {
+func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts common.GenOptions) {
 	t.Helper()
 	for _, m := range GeneratedParsersMismatches(t, goBin, cases, opts, nil) {
 		t.Error(m)
@@ -155,7 +155,7 @@ func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts codeg
 // each with mutate (when not nil), runs them and returns a description of every result that differs
 // from the engine's. GeneratedParsersCorpus fails on them; a negative control passes a mutation and
 // requires some.
-func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions, mutate func([]byte) []byte) []string {
+func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts common.GenOptions, mutate func([]byte) []byte) []string {
 	t.Helper()
 	got, want := GeneratedParsersOutputs(t, goBin, cases, opts, mutate)
 	return outputMismatches(cases, got, want)
@@ -164,7 +164,7 @@ func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts c
 // GeneratedParsersEmbedCorpus is GeneratedParsersCorpus with packages that carry their own copy of
 // the library, as zp gen writes them with -lib embed, generated with opts (whose Lib is ignored)
 // with comments and the limit controls of the fixtures.
-func GeneratedParsersEmbedCorpus(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions) {
+func GeneratedParsersEmbedCorpus(t *testing.T, goBin string, cases []Case, opts common.GenOptions) {
 	t.Helper()
 	got, want := generatedParsersOutputs(t, goBin, cases, opts, nil, true)
 	for _, m := range outputMismatches(cases, got, want) {
@@ -194,14 +194,14 @@ func outputMismatches(cases []Case, got, want []string) []string {
 // returns their results and the engine's, one line for each input of each case in code points and
 // then in bytes. A line starts with the JSON object of the node, "null" for a failed parse, and the
 // error.
-func GeneratedParsersOutputs(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions, mutate func([]byte) []byte) (got, want []string) {
+func GeneratedParsersOutputs(t *testing.T, goBin string, cases []Case, opts common.GenOptions, mutate func([]byte) []byte) (got, want []string) {
 	t.Helper()
 	return generatedParsersOutputs(t, goBin, cases, opts, mutate, false)
 }
 
 // generatedParsersOutputs is GeneratedParsersOutputs, with packages that carry their own copy of
 // the library if embed is set.
-func generatedParsersOutputs(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions, mutate func([]byte) []byte, embed bool) (got, want []string) {
+func generatedParsersOutputs(t *testing.T, goBin string, cases []Case, opts common.GenOptions, mutate func([]byte) []byte, embed bool) (got, want []string) {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
@@ -225,7 +225,7 @@ func generatedParsersOutputs(t *testing.T, goBin string, cases []Case, opts code
 			// asked for by opts stay on whatever the fixture form, so that the budget code of a
 			// narrowed copy runs: the default compute limit gives every parse a budget control.
 			o := opts
-			o.Lib, o.Module, o.KeepComments = codegen.LibEmbed, "codegentest/"+o.Package, true
+			o.Lib, o.Module, o.KeepComments = common.LibEmbed, "codegentest/"+o.Package, true
 			o.LimitControls = FixtureBudgetControls(t) || opts.LimitControls
 			files, err := Generate(t, g, o)
 			if err != nil {
@@ -327,7 +327,7 @@ func main() {
 // GeneratedTypesCorpus generates the typed Go parser of each case and the same parser through the
 // reference route of reference, and fails the test where their values or errors differ, or differ from
 // the engine's (GeneratedTypesMismatches).
-func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference codegen.GenOptions, requiredTyped ...int) {
+func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference common.GenOptions, requiredTyped ...int) {
 	t.Helper()
 	for _, m := range GeneratedTypesMismatches(t, goBin, cases, reference, nil, requiredTyped...) {
 		t.Error(m)
@@ -337,7 +337,7 @@ func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference co
 // GeneratedTypesMismatches runs the comparisons of GeneratedTypesCorpus and returns a description of each
 // difference instead of failing on it. The Go files of each typed parser (not those of the reference
 // route) are changed with mutate when it is not nil, so that a negative control can require some.
-func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, reference codegen.GenOptions, mutate func([]byte) []byte, requiredTyped ...int) []string {
+func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, reference common.GenOptions, mutate func([]byte) []byte, requiredTyped ...int) []string {
 	t.Helper()
 	var mismatches []string
 	fail := func(format string, args ...any) { mismatches = append(mismatches, fmt.Sprintf(format, args...)) }
@@ -364,7 +364,7 @@ func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, referenc
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code := GeneratePackage(t, dir, fmt.Sprintf("g%d", i), g, codegen.GenOptions{Start: "main", Types: true, SourceInfo: true})
+		code := GeneratePackage(t, dir, fmt.Sprintf("g%d", i), g, common.GenOptions{Start: "main", Types: true, SourceInfo: true})
 		if mutate != nil {
 			mutatePackage(t, filepath.Join(dir, fmt.Sprintf("g%d", i)), mutate)
 		}

@@ -9,7 +9,7 @@
 #   code    go build ./..., go vet ./..., and go test of the packages that changed since REV and of every package that
 #           depends on them (hack/affected-tests.sh, which uses go list), the longest packages first.
 #   engine  code, with the default-tier tests replaced by the same packages in the long tier (-tags zp_long, which
-#           includes the default tier), then go generate ./internal/codegen/... ./bench ./internal/frontend/parser
+#           includes the default tier), then go generate ./internal/backend/... ./bench ./internal/frontend/parser
 #           ./spec/language with a check that it changed nothing, hack/test-alpha-parsers.sh and
 #           hack/test-reference-tags.sh, the last only when the affected packages include internal/engine,
 #           internal/engine/state or internal/engine/document (the reference tags build the engine; it also fails
@@ -38,7 +38,7 @@
 # was left out, in plan order; with a fail-fast stop the failed step is the last line that ran.
 #
 # The gate exports ZP_MUTANTS_BASE (the base revision) for the tests that run mutants; see docs/development.md.
-# GATE_SHARDS (default 2; 1 disables) is the number of concurrent shards of the tests of internal/codegen/go.
+# GATE_SHARDS (default 2; 1 disables) is the number of concurrent shards of the tests of internal/backend/codegen/golang/print.
 # Environment: GATE_NICE (default 0) is the nice(1) increment of every step, and GOMAXPROCS, GOFLAGS and the other Go
 # variables pass through. GATE_SELFTEST_FAIL=1 adds a step that fails first, to show that the gate stops.
 # GATE_AFFECTED_CMD replaces hack/affected-tests.sh (GATE_AFFECTED_CMD=false shows that a failed computation runs everything).
@@ -88,10 +88,10 @@ step() {
 # the run alone; naming these first lets them overlap with each other and with the rest. Only the order changes: the
 # same packages run with the same flags. A package that no longer exists makes go test fail, so the list cannot go
 # stale silently.
-export GATE_HEAVY='zeroparse.dev/zp/internal/codegen/go zeroparse.dev/zp/internal/codegen zeroparse.dev/zp/internal/engine zeroparse.dev/zp/internal/codegen/ts zeroparse.dev/zp/spec/language zeroparse.dev/zp/codegen/go/lib zeroparse.dev/zp/internal/testing/complexitytest'
+export GATE_HEAVY='zeroparse.dev/zp/internal/backend/codegen/golang/print zeroparse.dev/zp/internal/backend/codegen/common zeroparse.dev/zp/internal/engine zeroparse.dev/zp/internal/backend/codegen/typescript/print zeroparse.dev/zp/spec/language zeroparse.dev/zp/codegen/go/lib zeroparse.dev/zp/internal/testing/complexitytest'
 
 # affected_cmd GO-TEST-ARGS: go test over the packages of the changes since $GATE_BASE and their reverse dependencies,
-# those of $GATE_HEAVY first. internal/codegen/go, the longest package, runs as GATE_SHARDS (default 2) concurrent
+# those of $GATE_HEAVY first. internal/backend/codegen/golang/print, the longest package, runs as GATE_SHARDS (default 2) concurrent
 # invocations, each with the top-level tests (Test, Fuzz and Example functions, from go test -list) of one shard, beside a
 # third invocation for the other packages; only when it is affected. The sharding fails closed: when the list fails, is
 # empty or the shards do not add up to it, the package runs unsharded with the others. A failed shard fails the step.
@@ -105,7 +105,7 @@ pkgs=$(printf "%s\n" "$raw" | grep -v "^#" || true)
 echo "$pkgs" | sed "s/^/gate: affected /"
 first=$(for h in $GATE_HEAVY; do printf "%s\n" "$pkgs" | grep -Fx "$h" || true; done)
 rest=$(printf "%s\n" "$pkgs" | grep -Fvx -f <(printf "%s\n" $GATE_HEAVY) || true)
-shardpkg=zeroparse.dev/zp/internal/codegen/go
+shardpkg=zeroparse.dev/zp/internal/backend/codegen/golang/print
 shards=${GATE_SHARDS:-2}
 if [ "$shards" -gt 1 ] && printf "%s\n" "$pkgs" | grep -Fxq "$shardpkg"; then
 	list=$(go test $args -list . "$shardpkg" 2>/dev/null | grep -E "^(Test|Fuzz|Example)" | sort || true)
@@ -194,21 +194,21 @@ if want code || want engine; then
 	step build 'go build ./...' 'go build ./...'
 	step vet 'go vet ./...' 'go vet ./...'
 	if ! want engine && ! want full && ! want all; then
-		step test 'go test of the affected packages (internal/codegen/go in shards when affected)' "$(affected_cmd '-timeout 45m')"
+		step test 'go test of the affected packages (internal/backend/codegen/golang/print in shards when affected)' "$(affected_cmd '-timeout 45m')"
 	fi
 fi
 if want engine || want full || want all; then
 	if want all; then
 		step test-all 'go test -tags zp_long ./... (the whole tree, the longest packages first)' 'go test -count=1 -tags zp_long -timeout 90m $GATE_HEAVY ./...'
 	else
-		step test-long 'go test -tags zp_long of the affected packages (internal/codegen/go in shards when affected)' "$(affected_cmd '-tags zp_long -timeout 90m')"
+		step test-long 'go test -tags zp_long of the affected packages (internal/backend/codegen/golang/print in shards when affected)' "$(affected_cmd '-tags zp_long -timeout 90m')"
 	fi
 fi
 if want engine || want all; then
 	if aff_has_marker generate; then
-		step generate 'go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language; the tree must not change' "$snap_def"'
+		step generate 'go generate ./internal/backend/... ./bench ./internal/frontend/parser ./spec/language; the tree must not change' "$snap_def"'
 before=$(snap)
-go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language
+go generate ./internal/backend/... ./bench ./internal/frontend/parser ./spec/language
 [ "$(snap)" = "$before" ] || { echo "gate: go generate changed the tree; commit the regenerated files" >&2; git status --short >&2; exit 1; }'
 	else
 		skipstep generate "no generator, generator input or generated file is affected since $base"
@@ -230,8 +230,8 @@ if [ "$dry" = 1 ]; then
 	i=0
 	for n in "${names[@]}"; do printf '  %-15s %s\n' "$n" "${descs[$i]}"; i=$((i + 1)); done
 	case " ${names[*]} " in *" test"* | *" test-long "* | *" test-all "*) echo "gate: affected packages since $base:"; "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD | sed 's/^/  /' ;; esac
-	if [ "${GATE_SHARDS:-2}" -gt 1 ] && case " ${names[*]} " in *" test"* | *" test-long "*) true ;; *) false ;; esac && "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD 2>/dev/null | grep -qx zeroparse.dev/zp/internal/codegen/go; then
-		echo "gate: internal/codegen/go is affected: its tests run in ${GATE_SHARDS:-2} concurrent shards (go test -list), beside the other packages"
+	if [ "${GATE_SHARDS:-2}" -gt 1 ] && case " ${names[*]} " in *" test"* | *" test-long "*) true ;; *) false ;; esac && "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD 2>/dev/null | grep -qx zeroparse.dev/zp/internal/backend/codegen/golang/print; then
+		echo "gate: internal/backend/codegen/golang/print is affected: its tests run in ${GATE_SHARDS:-2} concurrent shards (go test -list), beside the other packages"
 	fi
 	exit 0
 fi

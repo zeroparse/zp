@@ -35,8 +35,8 @@ Evidence records: [037](../037-no-intermediate-lists-in-concat.md),
 
 Source owners: [`concat element evaluation`](../../../internal/engine/state/eval.go),
 the term lowering of the Exec IR,
-[`concat emission`](../../../internal/codegen/go/generator.go), [`concat
-emission`](../../../internal/codegen/ts/generator.go).
+[`concat emission`](../../../internal/backend/codegen/golang/print/generator.go), [`concat
+emission`](../../../internal/backend/codegen/typescript/print/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

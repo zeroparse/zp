@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegen/go/lib"
+	"zeroparse.dev/zp/internal/backend/codegen/golang/libprint"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -69,18 +69,18 @@ func libOverlay(t *testing.T, mutate func(name, src string) string) string {
 		add(e.Name(), data)
 	}
 	for file, print := range map[string]func() (string, error){
-		"exp_bind_exec_test.go":    libgogen.GoExpBindings,
-		"texp_bind_exec_test.go":   libgogen.GoTypedExpBindings,
-		"doc_bind_exec_test.go":    libgogen.GoDocBindings,
-		"opr_bind_exec_test.go":    libgogen.GoOprBindings,
-		"ctx_bind_exec_test.go":    libgogen.GoCtxBindings,
-		"frame_bind_exec_test.go":  libgogen.GoFrameBindings,
-		"tframe_bind_exec_test.go": libgogen.GoTypedFrameBindings,
-		"rule_bind_exec_test.go":   libgogen.GoRuleBindings,
-		"trule_bind_exec_test.go":  libgogen.GoTypedRuleBindings,
-		"terms_bind_exec_test.go":  libgogen.GoTermStateBindings,
-		"tterms_bind_exec_test.go": libgogen.GoTypedTermStateBindings,
-		libgogen.GoObsBindingsFile: libgogen.GoObsBindings,
+		"exp_bind_exec_test.go":    libprint.GoExpBindings,
+		"texp_bind_exec_test.go":   libprint.GoTypedExpBindings,
+		"doc_bind_exec_test.go":    libprint.GoDocBindings,
+		"opr_bind_exec_test.go":    libprint.GoOprBindings,
+		"ctx_bind_exec_test.go":    libprint.GoCtxBindings,
+		"frame_bind_exec_test.go":  libprint.GoFrameBindings,
+		"tframe_bind_exec_test.go": libprint.GoTypedFrameBindings,
+		"rule_bind_exec_test.go":   libprint.GoRuleBindings,
+		"trule_bind_exec_test.go":  libprint.GoTypedRuleBindings,
+		"terms_bind_exec_test.go":  libprint.GoTermStateBindings,
+		"tterms_bind_exec_test.go": libprint.GoTypedTermStateBindings,
+		libprint.GoObsBindingsFile: libprint.GoObsBindings,
 	} {
 		src, err := print()
 		if err != nil {

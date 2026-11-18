@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 )
 
 // GoLibSource is the Go library source that tests give to the generator: the live directory
@@ -23,7 +23,7 @@ func GoLibSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "codegen"
 func TSLibSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "codegen", "ts", "lib")) }
 
 // WithLib returns opts with the library sources set to the live library directories.
-func WithLib(opts codegen.GenOptions) codegen.GenOptions {
+func WithLib(opts common.GenOptions) common.GenOptions {
 	opts.GoLib = GoLibSource()
 	opts.TSLib = TSLibSource()
 	return opts

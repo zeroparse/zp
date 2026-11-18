@@ -33,7 +33,7 @@ remain separate.
 Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md).
 
 Source owners: [`typed constructors and conversion
-generation`](../../../internal/codegen/go/types.go),
+generation`](../../../internal/backend/codegen/golang/print/types.go),
 [`tparser`](../../../codegen/go/lib/typed.go), [`typed runtime
 design`](../../design/records/012-typed-values.md).
 

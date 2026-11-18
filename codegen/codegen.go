@@ -15,9 +15,9 @@ import (
 	"zeroparse.dev/zp/internal/frontend"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/codegen/ts"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
+	tsprint "zeroparse.dev/zp/internal/backend/codegen/typescript/print"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 )
@@ -45,7 +45,7 @@ type File struct {
 }
 
 // files converts the files that a generator returns.
-func files(generated []codegen.GeneratedFile, err error) ([]File, error) {
+func files(generated []common.GeneratedFile, err error) ([]File, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +83,12 @@ func (m LibMode) String() string {
 }
 
 // internal returns the mode of the generators for m, or an error for a value that names no mode.
-func (m LibMode) internal() (codegen.LibMode, error) {
+func (m LibMode) internal() (common.LibMode, error) {
 	switch m {
 	case LibEmbed:
-		return codegen.LibEmbed, nil
+		return common.LibEmbed, nil
 	case LibImport:
-		return codegen.LibImport, nil
+		return common.LibImport, nil
 	}
 	return 0, fmt.Errorf("unknown library mode %v", m)
 }
@@ -185,7 +185,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return files(gogen.Generate(g, compileForGenerator, codegen.GenOptions{
+	return files(goprint.Generate(g, compileForGenerator, common.GenOptions{
 		Module:         c.Module,
 		Package:        c.PackageName,
 		Start:          start,
@@ -216,7 +216,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 // path c.Module, to refresh a parser generated with LibEmbed without regenerating it. The
 // other settings are not used.
 func (c Go) GenerateLib() ([]File, error) {
-	return files(gogen.Generate(nil, compileForGenerator, codegen.GenOptions{Module: c.Module, Lib: codegen.LibOnly, GoLib: goLib}))
+	return files(goprint.Generate(nil, compileForGenerator, common.GenOptions{Module: c.Module, Lib: common.LibOnly, GoLib: goLib}))
 }
 
 // TypeScript configures the generation of a TypeScript parser. The zero value generates an
@@ -300,7 +300,7 @@ func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return files(tsgen.Generate(g, compileForGenerator, codegen.GenOptions{
+	return files(tsprint.Generate(g, compileForGenerator, common.GenOptions{
 		Start:         start,
 		Lib:           lib,
 		LibModule:     c.LibModule,
@@ -326,10 +326,10 @@ func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 // parsers generated with LibImport import, or the copy of a parser generated with LibEmbed.
 // The settings are not used.
 func (c TypeScript) GenerateLib() ([]File, error) {
-	return files(tsgen.Generate(nil, compileForGenerator, codegen.GenOptions{Lib: codegen.LibOnly, TSLib: tsLib}))
+	return files(tsprint.Generate(nil, compileForGenerator, common.GenOptions{Lib: common.LibOnly, TSLib: tsLib}))
 }
 
-// compileForGenerator is the codegen.Compiler that the generators compile grammars with: it checks g
+// compileForGenerator is the common.Compiler that the generators compile grammars with: it checks g
 // to its static program, which is all a generator reads, and checks the recognizer of the program
 // (as the engine's Program.Recognizer makes it) on first use. No backend of the engine is built.
 func compileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {

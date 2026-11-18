@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
@@ -17,7 +17,7 @@ import (
 // coreRecognizeCase builds the Core IR of the recognizer of the parser generated with Recognize,
 // with the passes that apply to its rule table recRules (no terminal programs and no class runs
 // there), verifying the module after each pass.
-func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, error) {
+func coreRecognizeCase(name, mode string, g *print.Generator) (*coreGenCase, error) {
 	rec, err := recognizerOf(g)
 	if err != nil {
 		return nil, err
@@ -69,8 +69,8 @@ func guardedClassCount(m *core.Module) int {
 
 // recognizerGenModes are the modes in which the Core IR of the recognizers is frozen.
 var recognizerGenModes = []coreGenMode{
-	{"lean", codegen.GenOptions{Recognize: true}},
-	{"controlled", codegen.GenOptions{Recognize: true, LimitControls: true}},
+	{"lean", common.GenOptions{Recognize: true}},
+	{"controlled", common.GenOptions{Recognize: true, LimitControls: true}},
 }
 
 // recognizerCorpus is the corpus grammars of the recognizer freeze.

@@ -98,7 +98,7 @@ func TestSkipUnlessChanged(t *testing.T) {
 func TestPipelineCoversImports(t *testing.T) {
 	t.Chdir("../../..")
 	out, err := exec.Command("go", "list", "-deps", "-test", "-f", "{{.ImportPath}}",
-		"./internal/codegen/...", "./codegen/go/lib/...", "./sample", "./internal/engine/...").Output()
+		"./internal/backend/...", "./codegen/go/lib/...", "./sample", "./internal/engine/...").Output()
 	if err != nil {
 		t.Skipf("go list: %v", err)
 	}

@@ -46,7 +46,7 @@ distinct literal stays the plain equality `ts == "x"`, which is shorter and says
 Source owners: the term lowering of the Exec IR, which recognizes the literal
 text dispatch, and the Go and TypeScript term targets, which print it as one
 switch; [`route and unsafe-shape
-checks`](../../../internal/codegen/gen_literal_text_dispatch_test.go).
+checks`](../../../internal/backend/codegen/common/gen_literal_text_dispatch_test.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

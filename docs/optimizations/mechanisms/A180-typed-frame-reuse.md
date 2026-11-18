@@ -30,7 +30,7 @@ Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md).
 
 Source owners: [`typed frame allocation and
 TParser.FreeFrame`](../../../codegen/go/lib/typed.go), [`direct local
-captures`](../../../internal/codegen/go/flowrule.go).
+captures`](../../../internal/backend/codegen/golang/print/flowrule.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

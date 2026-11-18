@@ -1,0 +1,640 @@
+package libprint
+
+import (
+	"fmt"
+	"strings"
+
+	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/exec/compose"
+	"zeroparse.dev/zp/internal/middleend/codepass"
+)
+
+// goLibFile is the file of the printed compositions in the Go library of generated parsers,
+// relative to the directory of this package, which go generate in this directory writes.
+const goLibFile = "../../../../../codegen/go/lib/call_exec.go"
+
+// goStreamFile is the file of the printed stream compositions in the Go library, relative
+// to the directory of this package.
+const goStreamFile = "../../../../../codegen/go/lib/stream_exec.go"
+
+// goOperatorsFile is the file of the printed Operators Rule compositions in the generated Go library,
+// relative to the directory of this package.
+const goOperatorsFile = "../../../../../codegen/go/lib/operators_exec.go"
+
+// goSpec is a printed function of the Go library: a specialization of a composition for the node
+// Parser or the typed TParser.
+type goSpec struct {
+	fn    string
+	typed bool
+	on    []string
+	name  string // the Go name
+	plain bool   // printed as a function of its package, without the parser as receiver
+	// docMeta keeps the Document record of a typed memo entry beside the entry (typedDocumentState.meta),
+	// as a typed Document does; other typed calls keep the examined end in the entry.
+	docMeta bool
+}
+
+// goSpecs are the functions of the Go library that the compositions replace.
+var goSpecs = []goSpec{
+	// Parser.Call hands observed and Document parses to the tracked path, so it neither observes nor
+	// reads a Document itself beyond that test.
+	{fn: "call", on: []string{exec.Document, exec.Observe, exec.Budget}, name: "Call"},
+	// The deferral of memoization: the node library's is the one that generated parsers call, also for
+	// the typed library's rules; the typed library's compositions call their own, of a typed rule.
+	{fn: "firstCall", name: "FirstCall"},
+	{fn: "firstCall", typed: true, name: "firstCall"},
+	{fn: "grow", name: "grow"},
+	// The expectation record: the form of a parse with limit controls or a Document, and the form of
+	// an ordinary parse with its slow path.
+	{fn: "expect", on: []string{exec.Budget}, name: "Expect"},
+	{fn: "expectOrdinary", name: "ExpectOrdinary"},
+	{fn: "expectSlow", name: "expectOrdinarySlow"},
+	{fn: "mergeExpected", on: []string{exec.Budget}, name: "MergeExpected"},
+	{fn: "keep", on: []string{exec.Budget}, name: "Keep"},
+	{fn: "call", typed: true, on: []string{exec.Document, exec.Observe, exec.Typed, exec.Budget}, name: "callBody"},
+	{fn: "callMemo", typed: true, on: []string{exec.Document, exec.Observe, exec.Typed}, name: "CallMemo"},
+	{fn: "grow", typed: true, on: []string{exec.Typed}, name: "grow"},
+	// The observed calls and plain invocations of both libraries, which their callers take in an
+	// observed parse.
+	{fn: "observed", on: []string{exec.Document, exec.Observe}, name: "callObserved"},
+	{fn: "observedPlain", on: []string{exec.Document, exec.Observe}, name: "invokePlainObserved"},
+	{fn: "observed", typed: true, on: []string{exec.Document, exec.Observe, exec.Typed}, name: "callObserved"},
+	{fn: "observedPlain", typed: true, on: []string{exec.Document, exec.Observe}, name: "invokePlainObserved"},
+	// The tracked path of the node library: the rule call of a Document parse, the unmemoized and
+	// memoized calls, the call without observation, and the entry of the path.
+	{fn: "document", on: []string{exec.Document, exec.Budget}, name: "callDocument"},
+	{fn: "unmemoized", name: "callUnmemoized"},
+	{fn: "memoized", on: []string{exec.Document, exec.Observe, exec.Budget}, name: "callMemo"},
+	{fn: "body", on: []string{exec.Document, exec.Budget}, name: "callBody"},
+	{fn: "tracked", on: []string{exec.Document, exec.Observe}, name: "callTracked"},
+	// The rule call of a Document parse in the typed library.
+	{fn: "typedDocument", typed: true, on: []string{exec.Document, exec.Observe, exec.Typed, exec.Budget}, name: "DocumentCall", docMeta: true},
+	// The predicates and bindings of both libraries.
+	{fn: "predicate", name: "Predicate"},
+	{fn: "bind", name: "Bind"},
+	{fn: "predicate", typed: true, name: "Predicate"},
+	{fn: "bind", typed: true, name: "Bind"},
+}
+
+// goStreamSpecs are the functions of the stream mechanism that the compositions replace, in the
+// node library (the typed library has no streams).
+var goStreamSpecs = []goSpec{
+	{fn: "streamEmit", on: []string{exec.Stream}, name: "EmitStream"},
+	{fn: "streamCommit", on: []string{exec.Stream}, name: "streamCommit"},
+	{fn: "streamsIn", on: []string{exec.Stream}, name: "StreamsIn"},
+}
+
+// goOperatorSpecs are the functions of the Operators Rule loop that the compositions replace, in the
+// node and the typed library.
+var goOperatorSpecs = []goSpec{
+	{fn: "operatorsParse", on: []string{exec.Budget}, name: "OperatorsRuleParse"},
+	{fn: "operatorsExpr", on: []string{exec.Budget}, name: "operatorsRuleExpr"},
+	{fn: "operatorsNud", on: []string{exec.Budget}, name: "operatorsRuleNud"},
+	{fn: "longest", on: []string{exec.Budget}, name: "longest"},
+	{fn: "skipTrivia", name: "skipTrivia"},
+	{fn: "reset", name: "Reset"},
+	{fn: "operatorsParseTyped", typed: true, on: []string{exec.Budget, exec.Typed}, name: "OperatorsRuleParse"},
+	{fn: "operatorsExprTyped", typed: true, on: []string{exec.Budget, exec.Typed}, name: "operatorsRuleExpr"},
+	{fn: "operatorsNudTyped", typed: true, on: []string{exec.Budget, exec.Typed}, name: "operatorsRuleNud"},
+	{fn: "longest", typed: true, on: []string{exec.Budget}, name: "longest"},
+	{fn: "skipTrivia", typed: true, name: "skipTrivia"},
+	{fn: "reset", typed: true, name: "Reset"},
+}
+
+// printGoOperators returns the Go file of the printed Operators Rule compositions for package libgo.
+func printGoOperators() (string, error) { return goFile(goOperatorSpecs) }
+
+// printGoStream returns the Go file of the printed stream compositions for package libgo.
+func printGoStream() (string, error) {
+	m := compose.Build()
+	var b strings.Builder
+	for _, s := range goStreamSpecs {
+		f, err := codepass.Specialize(m, m.Func(s.fn), s.fn, s.on)
+		if err != nil {
+			return "", err
+		}
+		src, err := print.Func(m, f, goTarget(s))
+		if err != nil {
+			return "", err
+		}
+		b.WriteString("\n" + src)
+	}
+	return libFileHeader(b.String(), nil) + b.String(), nil
+}
+
+// libFileHeader returns the header of a printed file of package libgo with the body: the
+// generated-code comment, the package clause and the imports of the standard packages std and of
+// the packages of the library that body names.
+func libFileHeader(body string, std []string) string {
+	return "// Code generated by internal/backend/codegen/golang/libprint; DO NOT EDIT.\n\npackage libgo\n" + libImports(body, std)
+}
+
+// printGoLib returns the Go file of the printed compositions for package libgo.
+func printGoLib() (string, error) {
+	body, err := goBody(goSpecs)
+	if err != nil {
+		return "", err
+	}
+	// The limit on pending edits is defined once, in the operations, and printed for the library.
+	limit := fmt.Sprintf(`
+// pendingEditLimit is the number of edits after which a Document drops its memo until the next parse
+// (exec.PendingEditLimit): the engine treats a memo entry that lags behind by more edits as absent, and
+// a generated parser applies each edit to the memo when it is made, which a memo that many edits old
+// no longer pays for.
+const pendingEditLimit = %d
+`, exec.PendingEditLimit)
+	return libFileHeader(body, nil) + limit + body, nil
+}
+
+// goFile returns the Go file of the printed functions specs for package libgo.
+func goFile(specs []goSpec) (string, error) {
+	body, err := goBody(specs)
+	if err != nil {
+		return "", err
+	}
+	return libFileHeader(body, nil) + body, nil
+}
+
+// goBody returns the printed functions specs for package libgo.
+func goBody(specs []goSpec) (string, error) {
+	m := compose.Build()
+	var b strings.Builder
+	for _, s := range specs {
+		f, err := codepass.Specialize(m, m.Func(s.fn), s.fn, s.on)
+		if err != nil {
+			return "", err
+		}
+		src, err := print.Func(m, f, goTarget(s))
+		if err != nil {
+			return "", err
+		}
+		b.WriteString("\n" + src)
+	}
+	return b.String(), nil
+}
+
+// goTarget returns the Go implementation of the operations in the node or the typed library, for
+// the printed function s.
+func goTarget(s goSpec) *print.Target {
+	typed := s.typed
+	t := &print.Target{Recv: "p *Parser", Source: "internal/ir/code/exec/compose"}
+	handles := map[string]string{
+		exec.Rule: "*Rule", exec.Value: "*core.Node", exec.Entry: "*memoEntry", exec.Values: "[]any", exec.Errs: "recEntry",
+		exec.ExpID: "ExpID", exec.Mark: "ExpMark", exec.Set: "[]ExpID", exec.Kept: "[]ExpID",
+		exec.Ctx: "ctxCallState", exec.Res: "*ctxResult", exec.Grow: "growState",
+		exec.Frame: "*CaptureFrame", exec.Backtrack: "Mark", exec.Scope: "*Env", exec.Operators: "[]*OperatorsRuleOp",
+		exec.Operator: "*OperatorsRuleOp", exec.Line: "*OperatorsRuleLine", exec.Attempt: "operatorsRuleAttempt",
+		exec.Term: "func(*ActCtx) (any, any)", exec.Datum: "any", exec.Seq: "[]*core.Node",
+		exec.Obj: "*core.Node", exec.Name: "string", exec.Str: "string", exec.Act: "*ActCtx", exec.Fail: "any", exec.Elem: "*core.Node",
+		exec.NodeType: "*nodeTypeKinds", exec.FType: "*FieldType",
+	}
+	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "firstCall": "FirstCall", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
+		"document": "callDocument", "body": "callBody", "observed": "callObserved", "tracked": "callTracked", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
+		// A kept set is a slice like the set of an isolation, so MergeExpected merges both.
+		"mergeKept": "MergeExpected"}
+	for _, s := range goOperatorSpecs {
+		names[s.fn] = s.name
+	}
+	goLibTermNames(names)
+	entryType, valueField, alloc := "memoEntry", "node", "p.memo.alloc()"
+	// spender is the parser that the generic copies of values charge.
+	attemptType, spender := "operatorsRuleAttempt", "p"
+	// created is the field of the nodes that terms and actions create.
+	created := "created"
+	rule := func(r string) string { return r }
+	// step passes the value of a growth step as the node or the typed value of growStep.
+	step := func(v string) string { return v + ", nil" }
+	if typed {
+		t.Recv = "p *TParser"
+		handles[exec.Rule], handles[exec.Value], handles[exec.Entry] = "*TRule", "any", "*tmemoEntry"
+		handles[exec.Body] = "func(*TParser) (any, bool)"
+		handles[exec.Frame], handles[exec.Operators], handles[exec.Operator] = "*TCaptureFrame", "[]*TOperatorsRuleOp", "*TOperatorsRuleOp"
+		handles[exec.Line], handles[exec.Attempt] = "*TOperatorsRuleLine", "toperatorsRuleAttempt"
+		handles[exec.Term] = "func(*TActCtx) (any, any)"
+		handles[exec.Seq], handles[exec.Obj], handles[exec.Act], handles[exec.Elem] = "[]any", "TVal", "*TActCtx", "any"
+		handles[exec.NodeType] = "uint16"
+		names = map[string]string{"call": "callBody", "firstCall": "firstCall", "typedDocument": "DocumentCall", "observed": "callObserved", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
+			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
+		for _, s := range goOperatorSpecs {
+			names[s.fn] = s.name
+		}
+		goLibTermNames(names)
+		entryType, valueField, alloc = "tmemoEntry", "val", "p.memoSlab.one()"
+		attemptType, spender, created = "toperatorsRuleAttempt", "p.Parser", "Created"
+		rule = func(r string) string { return r + ".Rule" }
+		step = func(v string) string { return "nil, " + v }
+	}
+	names[s.fn] = s.name
+	t.Handle = func(name string) string { return handles[name] }
+	t.FuncName = func(name string) string { return names[name] }
+	t.Reg = func(name string) string {
+		return map[string]string{exec.Pos: "p.Pos", exec.Silent: "p.Silent", exec.Cut: "p.Cut"}[name]
+	}
+	t.Op = func(c *code.Call, a []string) string {
+		if s, ok := goValueOp(c.Callee, a, typed); ok {
+			return s
+		}
+		switch c.Callee {
+		case "depth.enter":
+			return "p.Depth++\nif p.Depth > p.MaxDepth {\np.TooDeep()\n}"
+		case "depth.exit":
+			return "p.Depth--"
+		case "frame.mark":
+			return "p.Mark()"
+		case "frame.markPos":
+			return a[0] + ".Pos"
+		case "frame.markRec":
+			return a[0] + ".recovered"
+		case "frame.markEnv":
+			return a[0] + ".env"
+		case "frame.markTrail":
+			return a[0] + ".Trail"
+		case "frame.undo":
+			if typed {
+				return fmt.Sprintf("p.undoCaptures(%s)\np.DropTrail(%[1]s)", a[0])
+			}
+			return fmt.Sprintf("p.undoCaptures(%s)\np.Trail = p.Trail[:%[1]s]", a[0])
+		case "frame.current":
+			return "p.Frame"
+		case "frame.use":
+			return "p.Frame = " + a[0]
+		case "frame.open":
+			return "p.NewFrame(" + a[0] + ")"
+		case "frame.slots":
+			return "len(" + a[0] + ".Vals)"
+		case "frame.set":
+			return fmt.Sprintf("p.SetCapture(%s, %s)", a[0], a[1])
+		case "frame.close":
+			if typed {
+				return "p.FreeFrame(" + a[0] + ")"
+			}
+			return ""
+		case "frame.save":
+			return fmt.Sprintf("p.saved = appendSpend(%s, p.saved[:0], %s.Vals)", spender, a[0])
+		case "frame.restore":
+			return fmt.Sprintf("copySpend(%s, %s.Vals, p.saved)", spender, a[0])
+		case "env.restore":
+			return "p.Env = " + a[0]
+		case "env.bind":
+			return fmt.Sprintf("p.bind(%s, %s)", a[0], a[1])
+		case "term.ctx":
+			if typed {
+				return "p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})"
+			}
+			return "p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)})"
+		case "term.created":
+			return "len(p." + created + ")"
+		case "term.dropCreated":
+			return fmt.Sprintf("clearSpend(%s, p.%s[%s:])\np.%[2]s = p.%[2]s[:%[3]s]", spender, created, a[0])
+		case "term.kids":
+			return "len(p.KidStack)"
+		case "term.dropKids":
+			return fmt.Sprintf("clearSpend(%s, p.KidStack[%s:])\np.KidStack = p.KidStack[:%[2]s]", spender, a[0])
+		case "term.elemsAbove":
+			return "p.Kids(" + a[0] + ")"
+		case "term.keep":
+			return fmt.Sprintf("p.KidStack = append(p.KidStack, %s[%s])", a[0], a[1])
+		case "opr.led":
+			return a[0] + ".OperatorsRule.Led"
+		case "opr.prefix":
+			return a[0] + ".OperatorsRule.Prefix"
+		case "opr.count":
+			return "len(" + a[0] + ")"
+		case "opr.at":
+			return a[0] + "[" + a[1] + "]"
+		case "opr.operands":
+			return "len(" + a[0] + ".OperatorsRule.Operands)"
+		case "opr.operand":
+			return a[0] + ".OperatorsRule.Operands[" + a[1] + "]"
+		case "opr.line":
+			return a[0] + ".Line"
+		case "opr.level":
+			return a[0] + ".Level"
+		case "opr.infix":
+			return a[0] + `.Kind == "infix"`
+		case "opr.postfix":
+			return a[0] + `.Kind == "postfix"`
+		case "opr.right":
+			return a[0] + `.Assoc == "right"`
+		case "opr.nonAssoc":
+			return a[0] + `.Assoc == "none"`
+		case "opr.scope":
+			return "len(" + a[0] + ".Scope)"
+		case "opr.hasSkip":
+			return a[0] + ".OperatorsRule.Skip != nil"
+		case "opr.match":
+			return a[0] + ".M(p)"
+		case "opr.lineValue":
+			return fmt.Sprintf("p.lineResult(%s, %s, %s, %s, %s)", a[0], a[1], a[2], a[3], a[4])
+		case "opr.build":
+			return fmt.Sprintf("p.operatorsRuleBuild(%s, &%s, %s, %s)", a[0], a[1], a[2], a[3])
+		case "opr.buildTyped":
+			return fmt.Sprintf("p.operatorsRuleBuild(%s, &%s, %s, %s, %s)", a[0], a[1], a[2], a[3], a[4])
+		case "opr.attempt":
+			return fmt.Sprintf("%s{op: %s, frame: %s, v: %s, start: %s, end: p.Pos, env: p.Env, cut: %s, errs: %s}",
+				attemptType, a[0], a[1], a[2], a[3], a[4], a[5])
+		case "opr.found":
+			return a[0] + ".op != nil"
+		case "opr.op", "opr.end", "opr.cut", "opr.env", "opr.errs":
+			return a[0] + "." + strings.TrimPrefix(c.Callee, "opr.")
+		case "opr.setCutFailed":
+			return "p.cutFailed = " + a[0]
+		case "opr.cutFailed":
+			return "p.cutFailed"
+		case "opr.setNudBound":
+			return "p.nudBound = " + a[0]
+		case "opr.nudBound":
+			return "p.nudBound"
+		case "opr.setAfterEmpty":
+			return "p.afterEmpty = " + a[0]
+		case "opr.afterEmpty":
+			return "p.afterEmpty"
+		case "budget.charge":
+			// Spend is the charge of one unit, small enough to inline.
+			if k, ok := c.Args[0].(*code.Const); ok && k.Value == uint64(1) {
+				return "p.Spend()"
+			}
+			// A charge of n is n one-unit reservations (Take).
+			return "p.Control.Take(" + a[0] + ")"
+		case "budget.freeBegin":
+			return "p.Control.FreeBegin(" + a[0] + ")"
+		case "budget.freeEnd":
+			return "p.Control.FreeEnd(" + a[0] + ")"
+		case "seen.defers":
+			// Set once at the start of a parse: a stream or a Document parse memoizes on the first call.
+			return "p.deferMemo"
+		case "seen.first":
+			return "p.seenFirst(" + a[0] + ", " + a[1] + ")"
+		case "rule.memo":
+			return a[0] + ".Memo"
+		case "rule.leader":
+			return a[0] + ".Leader"
+		case "rule.plain":
+			return "len(" + a[0] + ".Scope) == 0"
+		case "rule.docMemo":
+			return a[0] + ".DocMemo"
+		case "rule.docOnlyMemo":
+			return "(" + a[0] + ".DocMemo && !" + a[0] + ".Memo && !" + a[0] + ".Leader)"
+		case "rule.positional":
+			return a[0] + ".Positional"
+		case "rule.id":
+			return a[0] + ".Id"
+		case "rule.seen":
+			return a[0] + ".Seen"
+		case "rule.invoke":
+			return fmt.Sprintf("p.invoke(%s, %s)", a[0], a[1])
+		case "rule.invokePlain":
+			return fmt.Sprintf("p.invokePlainBody(%s, %s)", a[0], a[1])
+		case "rule.run":
+			return a[0] + "(p)"
+		case "env.key":
+			return "p.memoEnv(" + rule(a[0]) + ")"
+		case "rec.mark":
+			return "len(p.Recovered)"
+		case "rec.truncate":
+			return "p.Recovered = p.Recovered[:" + a[0] + "]"
+		case "rec.since":
+			return "p.recSince(" + a[0] + ")"
+		case "rec.add":
+			return "p.recAdd(" + a[0] + ")"
+		case "rec.none":
+			return a[0] + ".none()"
+		case "exp.farthest":
+			return "p.farthest"
+		case "exp.recording":
+			return "p.Expectations"
+		case "exp.reset":
+			return fmt.Sprintf("p.farthest = %s\np.exp = p.exp[:p.expBase]\np.expBits = 0", a[0])
+		case "exp.fresh":
+			return "len(p.exp) == p.expBase"
+		case "exp.placeholder":
+			return "p.exp = append(p.exp, ExpFar)"
+		case "exp.maybe":
+			return fmt.Sprintf("p.expBits&(uint64(1)<<(uint32(%s)*0x9e3779b1>>26)) != 0", a[0])
+		case "exp.count":
+			return "len(p.exp) - p.expBase"
+		case "exp.at":
+			return "p.exp[p.expBase+" + a[0] + "]"
+		case "exp.add":
+			return fmt.Sprintf("p.expBits |= uint64(1) << (uint32(%s) * 0x9e3779b1 >> 26)\np.exp = append(p.exp, %[1]s)", a[0])
+		case "exp.setCount":
+			return "len(" + a[0] + ")"
+		case "exp.setAt":
+			return a[0] + "[" + a[1] + "]"
+		case "exp.isolate":
+			return "p.Isolate(" + a[0] + ")"
+		case "exp.unisolate":
+			return "p.Unisolate(" + a[0] + ")"
+		case "exp.empty":
+			return "nil"
+		case "exp.last":
+			return "p.lastKept"
+		case "exp.keptCount":
+			return "len(" + a[0] + ")"
+		case "exp.keptAt":
+			return a[0] + "[" + a[1] + "]"
+		case "memo.far", "memo.expected", "memo.ok", "memo.end", "memo.silent", "memo.errs":
+			return a[0] + "." + strings.TrimPrefix(c.Callee, "memo.")
+		case "memo.value":
+			return a[0] + "." + valueField
+		case "memo.setExpected":
+			return fmt.Sprintf("%s.far, %s.expected = %s, %s", a[0], a[0], a[1], a[2])
+		case "obs.memoHit":
+			return "p.Observation.memoHit()"
+		case "obs.enter":
+			return fmt.Sprintf("p.Observation.Enter(%s.Name, %s, %s)", a[0], a[1], a[2])
+		case "obs.exit":
+			return fmt.Sprintf("p.Observation.Exit(%s, %s, %s)", a[0], a[1], a[2])
+		case "doc.examinedBegin":
+			return "p.ExaminedBegin()"
+		case "doc.examinedEnd":
+			return "p.ExaminedEnd(" + a[0] + ")"
+		case "doc.leave":
+			// The binding level of a call is named min: the low end is lowered without the builtin.
+			return fmt.Sprintf("p.docExamined = max(%s, p.docExamined)\nif %s < p.docLow {\np.docLow = %s\n}", a[0], a[1], a[1])
+		case "doc.touchFrom":
+			return "p.documentTouchFrom(" + a[0] + ")"
+		case "doc.low":
+			return "p.docLow"
+		case "doc.move":
+			if typed {
+				return "p.TypedDocument.move(" + a[0] + ")"
+			}
+			return "p.documentMove(" + a[0] + ")"
+		case "memo.before":
+			if typed {
+				return "p.TypedDocument.meta[" + a[0] + "].before"
+			}
+			return a[0] + ".from == fromBefore"
+		case "memo.pin":
+			if typed {
+				return "p.TypedDocument.pin(" + a[0] + ")"
+			}
+			return a[0] + ".pinned = true"
+		case "obs.active":
+			return "p.Observation != nil"
+		case "doc.active":
+			return "p.Document != nil"
+		case "doc.tracking":
+			return "p.track"
+		case "doc.touch":
+			return "p.documentTouch(" + a[0] + ")"
+		case "doc.examined":
+			return "p.docExamined"
+		case "memo.examined":
+			if s.docMeta {
+				return "p.TypedDocument.meta[" + a[0] + "].examined"
+			}
+			if typed {
+				return "p.memoExamined[" + a[0] + "]"
+			}
+			return a[0] + ".examined"
+		case "doc.evaluated":
+			return "p.Document.stats.Evaluated++"
+		case "doc.reused":
+			return "p.Document.stats.Reused++"
+		case "memo.examine":
+			if s.docMeta {
+				return "p.TypedDocument.meta[" + a[0] + "] = typedDocumentMeta{examined: " + a[2] + ", recorded: true, before: " + a[1] + "}"
+			}
+			if typed {
+				// Outside a Document the parser keeps only the end, beside the entry (typedTrack records no
+				// start).
+				return "p.examine(" + a[0] + ", " + a[2] + ")"
+			}
+			return fmt.Sprintf("%s.examined, %s.from, %s.pinned = %s, examinedFromOf(%s), false", a[0], a[0], a[0], a[2], a[1])
+		case "ctx.found":
+			return a[0] + " != nil"
+		case "ctx.ok":
+			return a[0] + ".ok"
+		case "ctx.value":
+			return a[0] + "." + valueField
+		case "ctx.end", "ctx.errs", "ctx.far", "ctx.expected", "ctx.examined":
+			return a[0] + "." + strings.TrimPrefix(c.Callee, "ctx.")
+		case "ctx.before":
+			// The library does not record where the input that a kept result examined starts.
+			return "true"
+		case "ctx.allows":
+			return fmt.Sprintf("%s.memoAllows(%s.present)", a[0], a[1])
+		case "ctx.active":
+			return a[0] + ".ctx"
+		case "ctx.lookup":
+			return fmt.Sprintf("p.ctxLookup(&%s, %s.Id, %s, %s)", a[0], a[1], a[2], a[3])
+		case "ctx.push":
+			return "p.ctxPush(&" + a[0] + ")"
+		case "ctx.pop":
+			return "p.ctxPop(&" + a[0] + ")"
+		case "ctx.storeMemo":
+			return "storeMemo"
+		case "ctx.storeCtx":
+			return "storeCtx"
+		case "memo.setPresent":
+			return fmt.Sprintf("%s.present |= %s.present", a[0], a[1])
+		case "ctx.keep":
+			return fmt.Sprintf("p.ctxKeep(&%s, %s.Id, %s, %s, %s, &ctxResult{%s: %s, ok: %s, end: %s, examined: p.examinedNow(), silent: %s, errs: %s, far: %s, expected: %s})",
+				a[0], a[1], a[2], a[3], a[4], valueField, a[8], a[5], a[6], a[7], a[9], a[10], a[11])
+		case "ctx.done":
+			return "p.ctxDone(&" + a[0] + ")"
+		case "depth.current":
+			return "p.Depth"
+		case "stream.emits":
+			return "p.Stream != nil && p.Stream.Emit != nil"
+		case "stream.start":
+			return "p.Stream.start"
+		case "stream.check":
+			return "p.Control.Check()"
+		case "stream.report":
+			return "p.streamReport()"
+		case "stream.deliver":
+			return "p.streamDeliver(" + a[0] + ")"
+		case "stream.discard":
+			return "p.streamDiscard(" + a[0] + ")"
+		case "stream.release":
+			return "p.streamRelease()"
+		case "memo.floor":
+			return "p.Stream.memoBase"
+		case "memo.prune":
+			return "p.pruneStreamMemo(" + a[0] + ")"
+		case "stream.dropRecords":
+			return "p.streamDropRecords(" + a[0] + ")"
+		case "stream.tail":
+			return "p.Stream.tail.limit > 0"
+		case "stream.settleErrors":
+			return "p.streamSettleErrors()"
+		case "grow.begin":
+			return fmt.Sprintf("p.growBegin(%s, %s)", rule(a[0]), a[1])
+		case "grow.ctx":
+			return a[0] + ".ctx"
+		case "grow.longer":
+			return fmt.Sprintf("p.growLonger(&%s, %s)", a[0], a[1])
+		case "grow.adopt":
+			return fmt.Sprintf("p.growAdopt(&%s, %s, %s)", a[0], step(a[1]), a[2])
+		case "grow.next":
+			return "p.growNext(&" + a[0] + ")"
+		case "grow.step":
+			return fmt.Sprintf("p.growStep(&%s, %s, %s)", a[0], step(a[1]), a[2])
+		case "grow.end":
+			return "p.growEnd(&" + a[0] + ")"
+		}
+		panic("core: no Go implementation of " + c.Callee)
+	}
+	t.Negate = func(c *code.Call, a []string) (string, bool) {
+		switch c.Callee {
+		case "opr.found":
+			return a[0] + ".op == nil", true
+		case "opr.hasSkip":
+			return a[0] + ".OperatorsRule.Skip == nil", true
+		case "opr.infix":
+			return a[0] + `.Kind != "infix"`, true
+		case "rec.none":
+			return "!" + a[0] + ".none()", true
+		}
+		return "", false
+	}
+	t.Stmt = func(c *code.Call, a []string, dst []string, define bool) (string, bool) {
+		op := " = "
+		if define {
+			op = " := "
+		}
+		key := func() string { return strings.Join(a[:4], ", ") }
+		switch c.Callee {
+		case "opr.skip":
+			return fmt.Sprintf("_, %s%s%s.OperatorsRule.Skip(p)", dst[0], op, a[0]), true
+		case "memo.lookup":
+			s := dst[0] + op + "p.memoGet(" + key() + ", " + a[4] + ")"
+			if dst[1] != "_" {
+				s += "\n" + dst[1] + op + dst[0] + " != nil"
+			}
+			return s, true
+		case "ctx.enter":
+			// The context of a call of a rule of no cycle, or outside every growth, is empty.
+			c, seed := dst[0], dst[1]
+			s := ""
+			if define {
+				s = fmt.Sprintf("var %s ctxCallState\nvar %s *ctxResult\n", c, seed)
+			}
+			return s + fmt.Sprintf("if %s.Cycle != 0 && len(p.gamma) != 0 {\n%s = p.ctxEnter(&%s, %s, %s)\n}", a[0], seed, c, rule(a[0]), a[1]), true
+		case "exp.copy":
+			// The kept sets fill append-only chunks of the arena.
+			return fmt.Sprintf(`if cap(p.arena)-len(p.arena) < len(%[1]s) {
+// A new chunk; the previous one lives while sets in it remain.
+p.arena = make([]ExpID, 0, max(1024, len(%[1]s)))
+p.memUsed += uint64(cap(p.arena)) * expIDBytes
+}
+off := len(p.arena)
+p.arena = appendSpend(p, p.arena, %[1]s)
+p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
+%[2]s%[3]sp.lastKept`, a[0], dst[0], op), true
+		case "doc.enter":
+			return fmt.Sprintf("%s, %s%sp.docExamined, p.docLow\np.docExamined, p.docLow = %s, %s", dst[0], dst[1], op, a[0], a[0]), true
+		case "memo.store":
+			e := dst[0]
+			fields := fmt.Sprintf("%s: %s, ok: %s, end: %s, silent: %s, errs: %s", valueField, a[7], a[4], a[5], a[6], a[8])
+			return fmt.Sprintf("%s%s%s\n*%s = %s{%s}\n%[4]s = p.memoPut(%[7]s, %[8]s, %[4]s)", e, op, alloc, e, entryType, fields, key(), a[9]), true
+		}
+		return "", false
+	}
+	return t
+}

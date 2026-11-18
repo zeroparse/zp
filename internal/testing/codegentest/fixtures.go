@@ -15,8 +15,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 )
 
 // The generated fixtures are built in two forms: with budget controls, so that the tests of
@@ -72,16 +72,16 @@ var genHooks sync.Map
 
 // SetGenHooks makes the Go parsers that t and its subtests generate use h, so that tests that
 // observe the generator run in parallel.
-func SetGenHooks(t testing.TB, h *gogen.Hooks) {
+func SetGenHooks(t testing.TB, h *print.Hooks) {
 	name := t.Name()
 	genHooks.Store(name, h)
 	t.Cleanup(func() { genHooks.Delete(name) })
 }
 
 // testGenHooks returns the hooks of the generator for t, or nil.
-func testGenHooks(t testing.TB) *gogen.Hooks {
+func testGenHooks(t testing.TB) *print.Hooks {
 	if h, ok := byTest(&genHooks, t); ok {
-		return h.(*gogen.Hooks)
+		return h.(*print.Hooks)
 	}
 	return nil
 }
@@ -263,7 +263,7 @@ func GoModAt(module, dir string) string {
 
 // WriteGenerated writes the files of a generated package into dir. A go.mod for the module is
 // written when dir has none.
-func WriteGenerated(t testing.TB, dir, module string, files []codegen.GeneratedFile) {
+func WriteGenerated(t testing.TB, dir, module string, files []common.GeneratedFile) {
 	t.Helper()
 	for _, f := range files {
 		path := filepath.Join(dir, filepath.FromSlash(f.Path))
@@ -286,27 +286,27 @@ func WriteGenerated(t testing.TB, dir, module string, files []codegen.GeneratedF
 // codegentest/<pkg>, writes its files (parser.go, api.go and types/types.go) below dir/<pkg> in the
 // module of dir, and returns its parser.go. Unlike GenerateCode, it keeps the types package
 // apart, so that grammar types named like the names of the parser package compile.
-func GeneratePackage(t testing.TB, dir, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
+func GeneratePackage(t testing.TB, dir, pkg string, g *grammar.Grammar, opts common.GenOptions) string {
 	t.Helper()
 	return GeneratePackageIn(t, dir, "codegentest", pkg, g, opts)
 }
 
 // GeneratePackageIn is GeneratePackage for a test module whose path is root.
-func GeneratePackageIn(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
+func GeneratePackageIn(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts common.GenOptions) string {
 	t.Helper()
 	return generatePackage(t, dir, root, pkg, g, opts, Generate)
 }
 
 // GeneratePackageRaw is GeneratePackage with the options as given: the parser records
 // expectations only with opts.Expectations.
-func GeneratePackageRaw(t testing.TB, dir, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
+func GeneratePackageRaw(t testing.TB, dir, pkg string, g *grammar.Grammar, opts common.GenOptions) string {
 	t.Helper()
 	return generatePackage(t, dir, "codegentest", pkg, g, opts, GenerateRaw)
 }
 
-func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts codegen.GenOptions, generate func(testing.TB, *grammar.Grammar, codegen.GenOptions) ([]codegen.GeneratedFile, error)) string {
+func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts common.GenOptions, generate func(testing.TB, *grammar.Grammar, common.GenOptions) ([]common.GeneratedFile, error)) string {
 	t.Helper()
-	opts.Lib = codegen.LibImport
+	opts.Lib = common.LibImport
 	opts.LimitControls = FixtureBudgetControls(t)
 	opts.Package, opts.Module = pkg, root+"/"+pkg
 	opts.KeepComments = true
@@ -332,8 +332,8 @@ func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, op
 
 // GenerateCode generates a parser that imports the library from this module and returns its
 // parser.go and api.go as one source file, which tests write as parser.go.
-func GenerateCode(t testing.TB, g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
-	opts.Lib = codegen.LibImport
+func GenerateCode(t testing.TB, g *grammar.Grammar, opts common.GenOptions) ([]byte, error) {
+	opts.Lib = common.LibImport
 	opts.KeepComments = true
 	opts.LimitControls = FixtureBudgetControls(t)
 	if opts.Module == "" && opts.Types {
@@ -353,8 +353,8 @@ func GenerateCode(t testing.TB, g *grammar.Grammar, opts codegen.GenOptions) ([]
 // MergeGenerated joins the Go files of a generated package into one file. The types package of
 // a typed parser (types/types.go) joins the file too, with the references to it unqualified, so
 // that the fixtures of the tests name the types without importing the package.
-func MergeGenerated(files []codegen.GeneratedFile) []byte {
-	var parts []codegen.GeneratedFile
+func MergeGenerated(files []common.GeneratedFile) []byte {
+	var parts []common.GeneratedFile
 	for _, f := range files {
 		switch {
 		case f.Path == "types/types.go":
@@ -381,7 +381,7 @@ func MergeGenerated(files []codegen.GeneratedFile) []byte {
 		type span struct{ lo, hi int }
 		var cut []span
 		for _, imp := range file.Imports {
-			if imp.Name != nil && imp.Name.Name == gogen.TypesAlias {
+			if imp.Name != nil && imp.Name.Name == print.TypesAlias {
 				continue
 			}
 			text := string(src[fset.Position(imp.Pos()).Offset:fset.Position(imp.End()).Offset])
@@ -429,7 +429,7 @@ func unqualifyTypes(src []byte) []byte {
 	var cuts [][2]int
 	goast.Inspect(file, func(n goast.Node) bool {
 		if sel, ok := n.(*goast.SelectorExpr); ok {
-			if id, ok := sel.X.(*goast.Ident); ok && id.Name == gogen.TypesAlias && id.Obj == nil {
+			if id, ok := sel.X.(*goast.Ident); ok && id.Name == print.TypesAlias && id.Obj == nil {
 				cuts = append(cuts, [2]int{fset.Position(id.Pos()).Offset, fset.Position(sel.Sel.Pos()).Offset})
 			}
 		}

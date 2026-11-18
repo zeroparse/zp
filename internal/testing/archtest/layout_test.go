@@ -88,11 +88,11 @@ var layout = []place{
 	{pkg: "internal/middleend/codepass", target: "internal/middleend/codepass"},
 
 	// Back end.
-	{pkg: "internal/codegen", target: "internal/backend/codegen/common"},
-	{pkg: "internal/codegen/go", target: "internal/backend/codegen/golang"},
-	{pkg: "internal/codegen/go/lib", target: "internal/backend/codegen/golang/libprint"},
-	{pkg: "internal/codegen/ts", target: "internal/backend/codegen/typescript"},
-	{pkg: "internal/engine/closure", target: "internal/backend/closure"},
+	{pkg: "internal/backend/codegen/common", target: "internal/backend/codegen/common"},
+	{pkg: "internal/backend/codegen/golang/print", target: "internal/backend/codegen/golang"},
+	{pkg: "internal/backend/codegen/golang/libprint", target: "internal/backend/codegen/golang/libprint"},
+	{pkg: "internal/backend/codegen/typescript/print", target: "internal/backend/codegen/typescript"},
+	{pkg: "internal/backend/closure", target: "internal/backend/closure"},
 
 	// Driver: the optimization profiles and the driving of the pipelines. The flags are registered
 	// beside each part of the pipeline, in the registry of internal/pass.

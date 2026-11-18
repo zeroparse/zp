@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -24,14 +24,14 @@ func testMalformedASTEntryPointsAndPosition(t *testing.T) {
 		"compile":           func() error { _, err := Compile(g, compile.Options{}); return err },
 		"saved AST rebuild": func() error { _, err := build(g, compile.Options{}, []compile.RuleFlags{{}}); return err },
 		"Go generator": func() error {
-			_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "p", Package: "p"})
+			_, err := codegentest.GenerateCode(t, g, common.GenOptions{Start: "p", Package: "p"})
 			return err
 		},
 		"typed Go generator": func() error {
-			_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "p", Package: "p", Types: true})
+			_, err := codegentest.GenerateCode(t, g, common.GenOptions{Start: "p", Package: "p", Types: true})
 			return err
 		},
-		"TS generator": func() error { _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "p"}); return err },
+		"TS generator": func() error { _, err := codegentest.GenerateTSBundle(g, common.GenOptions{Start: "p"}); return err },
 	} {
 		t.Run(name, func(t *testing.T) {
 			err := run()

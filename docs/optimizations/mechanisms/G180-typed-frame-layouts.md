@@ -32,8 +32,8 @@ establish zero memory cost for every grammar.
 Evidence records: [082](../082-match-typed-direct-frame-layouts.md).
 
 Source owners: [`typed structural
-emitter`](../../../internal/codegen/go/flowrule.go), [`framed body
-emission`](../../../internal/codegen/go/flowframe.go).
+emitter`](../../../internal/backend/codegen/golang/print/flowrule.go), [`framed body
+emission`](../../../internal/backend/codegen/golang/print/flowframe.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.
