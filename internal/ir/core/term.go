@@ -4,27 +4,27 @@ package core
 // its names resolved and its checked type (TypeOf).
 type ActionExpr interface{ typ() *Type }
 
-// termBase holds the checked type of a term.
-type termBase struct{ t Type }
+// actionExprBase holds the checked type of an action expression.
+type actionExprBase struct{ t Type }
 
-func (b *termBase) typ() *Type { return &b.t }
+func (b *actionExprBase) typ() *Type { return &b.t }
 
-// TypeOf returns the checked type of the term t: the type of its value, nil for a lambda, which
+// TypeOf returns the checked type of the action expression t: the type of its value, nil for a lambda, which
 // only built-ins call.
 func TypeOf(t ActionExpr) Type { return *t.typ() }
 
-// SetType sets the checked type of the term t.
+// SetType sets the checked type of the action expression t.
 func SetType(t ActionExpr, typ Type) { *t.typ() = typ }
 
 // Const is a constant: an int, a string, a bool or nil.
 type Const struct {
-	termBase
+	actionExprBase
 	Value any
 }
 
-// SlotRef reads a capture slot of the scope that encloses the term.
+// SlotRef reads a capture slot of the scope that encloses the action expression.
 type SlotRef struct {
-	termBase
+	actionExprBase
 	Slot int
 	Name string
 }
@@ -45,7 +45,7 @@ const (
 
 // Local reads a lambda parameter or an Operators Rule local.
 type Local struct {
-	termBase
+	actionExprBase
 	Kind LocalKind
 	Name string
 	// Lambda is the lambda that binds a parameter.
@@ -54,13 +54,13 @@ type Local struct {
 
 // VarRef reads a variable.
 type VarRef struct {
-	termBase
+	actionExprBase
 	Name string
 }
 
 // Member reads a member of a value: a field or a node member ($o, .Start, ...).
 type Member struct {
-	termBase
+	actionExprBase
 	X    ActionExpr
 	Name string
 	// Field is the capture of the value that a projection of an element can stand for: the member
@@ -71,7 +71,7 @@ type Member struct {
 
 // New makes a struct.
 type New struct {
-	termBase
+	actionExprBase
 	// Type is the struct type.
 	Type string
 	// Fields are the fields given, in the order written.
@@ -90,7 +90,7 @@ type FieldInit struct {
 
 // Convert converts a value to a named node type.
 type Convert struct {
-	termBase
+	actionExprBase
 	NodeType string
 	X        ActionExpr
 	// Proven reports that the checker proved that every value of X converts.
@@ -99,34 +99,34 @@ type Convert struct {
 
 // Tuple makes a tuple.
 type Tuple struct {
-	termBase
+	actionExprBase
 	Elems []ActionExpr
 }
 
 // Builtin calls a built-in function: len, text, foldl, foldr, map, filter, list or concat.
 type Builtin struct {
-	termBase
+	actionExprBase
 	Func string
 	Args []ActionExpr
 }
 
 // Lambda is a function literal, an argument of a built-in.
 type Lambda struct {
-	termBase
+	actionExprBase
 	Params []string
 	Body   ActionExpr
 }
 
 // Binary is a binary operation.
 type Binary struct {
-	termBase
+	actionExprBase
 	Op   string
 	L, R ActionExpr
 }
 
 // Unary is a unary operation.
 type Unary struct {
-	termBase
+	actionExprBase
 	Op string
 	X  ActionExpr
 }
@@ -134,7 +134,7 @@ type Unary struct {
 // Cast converts a value to a checked type. Check and Key are the backend's handles to the
 // checked type and to the cast; Check is nil for a type that every value fits, which checks nothing.
 type Cast struct {
-	termBase
+	actionExprBase
 	X         ActionExpr
 	Check     any
 	Key       any

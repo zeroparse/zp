@@ -41,5 +41,5 @@ analysis, and the verifier of the IR package checks them on an analyzed module, 
 
 ## Types
 
-- In a typed module, every term but a lambda, every slot and the value of every rule
+- In a typed module, every action expression but a lambda, every slot and the value of every rule
   that is not a twin has a checked type.

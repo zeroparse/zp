@@ -637,7 +637,7 @@ func TestVerifyRejects(t *testing.T) {
 			m := module(r)
 			m.Typed = true
 			return m
-		}, "term 1 has no type"},
+		}, "action expression 1 has no type"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

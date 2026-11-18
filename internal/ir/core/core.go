@@ -7,7 +7,7 @@
 // graph. A rule's body is a tree of Nodes; each node carries Attrs: whether its value is wanted,
 // its value shape and the budget it spends, set when it is built, and whether it is nullable, its
 // first terminal and a summary of its effects, computed by Analyze. Actions, predicates and
-// bindings are Terms, whose names are resolved to capture slots, lambda parameters, Operators
+// bindings are action expressions, whose names are resolved to capture slots, lambda parameters, Operators
 // Rule locals and variables, and which carry their checked types.
 //
 // The package depends on nothing of the engine: checked types are handles the engine makes
@@ -38,7 +38,7 @@ type Module struct {
 	// Cyclic reports, for each component, that its rules are on a cycle of calls: it has more
 	// than one rule, or its rule calls itself.
 	Cyclic []bool
-	// Typed reports that the module carries the checked types of the program: every term but a
+	// Typed reports that the module carries the checked types of the program: every action expression but a
 	// lambda, every capture slot and every rule's value have one.
 	Typed bool
 	// Control is the control of the work that builds the module (the parse that first needs it),
@@ -132,7 +132,7 @@ type FinishKind uint8
 const (
 	// FinishNone: the value is nil (a value-free twin).
 	FinishNone FinishKind = iota
-	// FinishAction: the value is the Action term.
+	// FinishAction: the value is the Action expression.
 	FinishAction
 	// FinishSplice: the value is the body's value, which the rule does not wrap.
 	FinishSplice

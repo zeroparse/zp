@@ -58,7 +58,7 @@ first terminals and the effects are computed, since both depend on those policie
 | Left calls, Cycle, Leader and Member with insertion | The same facts for a parse with token insertion enabled: computed alike with NullableIns in place of Nullable, with proofs of success of their own. They differ only where a call may follow a `Missing` node before input is consumed |
 | Positional | The rule's action, predicates, bindings or Operators Rule line actions read `.Start` or `.End`, or a rule it calls is positional |
 | Recovering | A rule whose `Recover` can put an error value in the rule's value: the rule itself, if it has a `Recover` outside lookaheads and Operators Rule skip lines, or a recovering rule that it calls outside them |
-| Variables | The variables that the terms of the rule or of a rule it calls read |
+| Variables | The variables that the action expressions of the rule or of a rule it calls read |
 | Memo, Transient | Every rule but a leader may be memoized. Ordinary parses do not memoize a transient rule: one that calls no rule, or that is called at fewer than two places, unless it is a start rule on a cycle of rules that are each called at one place, which a parse can enter without a call. Incremental parses memoize it |
 | Missing | The rule has a `Missing` node, or a rule it calls is Missing |
 
@@ -111,7 +111,7 @@ The summary of a node is the union of its children's, with these differences.
   and Raise: a call can exceed the nesting limit. `Nest` is the same for its body. An `OperatorsRule` has consume, fail,
   expect, call and raise, and the effects of its lines.
 - `Capture` adds Capture and its slot. `BindNode` is Bind. `Pred` is Fail. A `Pred`, a `BindNode`, a rule's action and
-  an `OperatorsRule` line's action add Raise when their term can raise.
+  an `OperatorsRule` line's action add Raise when their action expression can raise.
 - `Recover` can fail only when its body can fail and its skip can fail or match without consuming input, and adds
   Recover. `Missing` is consume, fail, expect, recover and raise: its literal fails where it may not be inserted, and an
   insertion can exceed the limit of missing tokens. `Stream` adds Commit in a start rule.

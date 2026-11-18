@@ -22,7 +22,7 @@ Two rules are in the same component of the call graph exactly when they call eac
 is on a cycle when it has more than one rule or its rule calls itself. The callees of a rule are those of its `Call`
 and `Nest` nodes, including the nodes of the lines of an Operators Rule.
 
-A module is typed when every term but a lambda, every capture slot and the value of every rule that is not value-free
+A module is typed when every action expression but a lambda, every capture slot and the value of every rule that is not value-free
 has a checked type. A checked type is opaque to Core IR: it is compared by identity only.
 
 ## Rule
@@ -42,7 +42,7 @@ A rule has the following parts.
 
 ### Scope
 
-A scope is the list of capture slots that the captures of a rule body write and its terms read. A slot is addressed by
+A scope is the list of capture slots that the captures of a rule body write and its action expressions read. A slot is addressed by
 its index and its name. Four constructs have a scope of their own: a rule, a `Repeat` with a scope (each iteration has
 fresh captures that the element's value carries), a line of an Operators Rule, and a `Nest` (the scope of the rule it
 inlines).
@@ -54,7 +54,7 @@ The finish of a rule selects how it makes its value.
 | Finish | The value is |
 |:--|:--|
 | None | Nil. A value-free twin |
-| Action | The value of the rule's action term. For an Operators Rule, the term reads the folded value of the body as `$value` |
+| Action | The value of the rule's action expression. For an Operators Rule, the action expression reads the folded value of the body as `$value` |
 | Splice | The value of the body, which the rule does not wrap. An Operators Rule without an action has this finish |
 | Scope | The scope value of the body, with the captures attached, converted to the rule's node type if it names one |
 

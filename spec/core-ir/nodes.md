@@ -48,8 +48,8 @@ the guard's class, so that a guard that already read the character lets the clas
 | `Text` | [`#atomic`](../language/pragmas.md#atomic): the matched text is the value. The body builds no value |
 | `Drop` | A [discard](../language/parser-expressions.md#discard). The body builds no value |
 | `Capture` | A [capture](../language/parser-expressions.md#capture): it stores the value of its body in a slot of the enclosing scope. With Project, the body is a repetition and the capture gathers the named field of its elements |
-| `Pred` | A [Predicate Action](../language/predicates.md#predicate-actions): it fails unless its term is true |
-| `BindNode` | Binds a [variable](../language/predicates.md#variables) to the value of a term |
+| `Pred` | A [Predicate Action](../language/predicates.md#predicate-actions): it fails unless its action expression is true |
+| `BindNode` | Binds a [variable](../language/predicates.md#variables) to the value of an action expression |
 
 ## Diagnostic and Recovery Nodes
 

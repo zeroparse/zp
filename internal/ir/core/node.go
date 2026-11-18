@@ -278,13 +278,13 @@ type Capture struct {
 	Project string
 }
 
-// Pred is a Predicate Action: it fails unless the term is true.
+// Pred is a Predicate Action: it fails unless the action expression is true.
 type Pred struct {
 	base
 	Term ActionExpr
 }
 
-// BindNode binds a variable to the value of a term.
+// BindNode binds a variable to the value of an action expression.
 type BindNode struct {
 	base
 	Var  string

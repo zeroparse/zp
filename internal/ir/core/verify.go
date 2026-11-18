@@ -27,7 +27,7 @@ import (
 //   - repetition and Scan bounds are ordered;
 //   - a Terminal holds only literals, classes, sequences, choices, options, negative lookaheads,
 //     Text and Drop, and wants no value; Scan and ClassRun want no value;
-//   - in a typed module, every term but a lambda, every slot and the
+//   - in a typed module, every action expression but a lambda, every slot and the
 //     value of every rule that is not value-free have a checked type.
 func Verify(m *Module) error {
 	v := &verifier{m: m, classes: map[*Class]bool{}}
@@ -79,7 +79,7 @@ func Verify(m *Module) error {
 		if err := v.scope(r.Scope); err != nil {
 			return fmt.Errorf("rule %s: %w", r.Name, err)
 		}
-		if err := v.term(r.Finish.Action, r.Scope); err != nil {
+		if err := v.actionExpr(r.Finish.Action, r.Scope); err != nil {
 			return fmt.Errorf("rule %s: %w", r.Name, err)
 		}
 		if err := v.node(r.Body, r.Scope); err != nil {
@@ -208,7 +208,7 @@ func (v *verifier) scope(scope []Slot) error {
 	return nil
 }
 
-func (v *verifier) term(t ActionExpr, scope []Slot) error {
+func (v *verifier) actionExpr(t ActionExpr, scope []Slot) error {
 	var err error
 	WalkActionExpr(t, func(x ActionExpr) {
 		if err != nil {
@@ -218,7 +218,7 @@ func (v *verifier) term(t ActionExpr, scope []Slot) error {
 			err = slotErr(scope, s.Slot, s.Name)
 		}
 		if _, lambda := x.(*Lambda); v.m.Typed && !lambda && TypeOf(x) == nil {
-			err = fmt.Errorf("term %s has no type", ActionExprString(x))
+			err = fmt.Errorf("action expression %s has no type", ActionExprString(x))
 		}
 	})
 	return err
@@ -300,7 +300,7 @@ func (v *verifier) node(n Node, scope []Slot) error {
 			if err := v.node(l.Body, l.Scope); err != nil {
 				return err
 			}
-			if err := v.term(l.Action, l.Scope); err != nil {
+			if err := v.actionExpr(l.Action, l.Scope); err != nil {
 				return err
 			}
 		}
@@ -323,11 +323,11 @@ func (v *verifier) node(n Node, scope []Slot) error {
 			return err
 		}
 	case *Pred:
-		if err := v.term(n.Term, scope); err != nil {
+		if err := v.actionExpr(n.Term, scope); err != nil {
 			return err
 		}
 	case *BindNode:
-		if err := v.term(n.Term, scope); err != nil {
+		if err := v.actionExpr(n.Term, scope); err != nil {
 			return err
 		}
 	case *Label:

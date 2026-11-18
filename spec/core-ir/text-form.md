@@ -8,7 +8,7 @@ change before the first release. With attributes, each node line ends with the n
 
 A rule line is `rule`, the rule's ID and name, then the following that apply, in this order: `want`; the policy flags
 `memo`, `transient`, `plain`, `leader`, `splice` and `novalue`; `seen=n`; `vars=[...]`; `scope=[names]`; `twin=id`;
-the finish, which is `=> term` for an action, `splice`, or `scope-value` with the shape; and `as Type` if the rule's
+the finish, which is `=> expr` for an action, `splice`, or `scope-value` with the shape; and `as Type` if the rule's
 value is converted to a node type. The rule's body follows, indented one level.
 
 ## Node Lines
@@ -26,7 +26,7 @@ value is converted to a node type. The rule's body follows, indented one level.
 | `Nest` | `nest id:name` |
 | `OperatorsRule` | `operators`, then its lines: `skip`, `operand` and `op id kind assoc level=n`, each with `scope=[names]`, the shape, ` => action` if it has one, and its body below |
 | `Capture` | `capture slot name`, then ` project=field` if present |
-| `Pred`, `BindNode` | `pred term`, `bind name = term` |
+| `Pred`, `BindNode` | `pred expr`, `bind name = expr` |
 | `Label` | `error "message"` or `diagnostic "message"`, then ` missing-scope` if the message labels inserted tokens |
 | `Missing` | `missing`, then ` site=n` if present; its body follows |
 | `Scan` | `scan class min max`, or `scan any min max`, then ` scan-site=n` if present |
@@ -42,11 +42,11 @@ shape; `nullable`, or `nullable-ins` for a node that is NullableIns but not Null
 and the effects, separated by commas, named `consume`, `fail`, `expect`, `capture[slots]`, `bind`, `recover`, `cut`,
 `raise`, `call` and `commit`.
 
-## Terms
+## Action Expressions
 
-A term is printed as follows: a string constant quoted; `$slot:name` for a slot; `param:name`, `$lhs`, `$rhs`, `$op` and
-`$value` for locals; `var:name`; `x.Name` for a member; `Type{Field: term, ...}` for a struct, with `!` after the closing brace
-for the final struct of a rule or line; `Node(term)` for a conversion; `(a, b)` for a tuple; `f(args)` for a built-in;
+An action expression is printed as follows: a string constant quoted; `$slot:name` for a slot; `param:name`, `$lhs`, `$rhs`, `$op` and
+`$value` for locals; `var:name`; `x.Name` for a member; `Type{Field: expr, ...}` for a struct, with `!` after the closing brace
+for the final struct of a rule or line; `Node(expr)` for a conversion; `(a, b)` for a tuple; `f(args)` for a built-in;
 `fn(params) body` for a lambda; and `(a op b)` and `opx` for operations.
 
 ## Example
@@ -101,7 +101,7 @@ rule 4 ws memo transient plain novalue
 ```
 
 Rule 1 calls rule 4, the value-free twin of `ws`, because it wants no value there. The action's
-`$0:n` is slot 0, named `n`; the final `!` marks the term that makes the rule's own value.
+`$0:n` is slot 0, named `n`; the final `!` marks the action expression that makes the rule's own value.
 
 The same module after guards and scans were introduced and analysis was run, printed with attributes (rules 0 to 2):
 
