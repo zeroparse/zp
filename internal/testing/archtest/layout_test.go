@@ -89,10 +89,13 @@ var layout = []place{
 
 	// Back end.
 	{pkg: "internal/backend/codegen/common", target: "internal/backend/codegen/common"},
-	{pkg: "internal/backend/codegen/golang/print", target: "internal/backend/codegen/golang"},
+	{pkg: "internal/backend/codegen/golang/print", target: "internal/backend/codegen/golang/print"},
 	{pkg: "internal/backend/codegen/golang/libprint", target: "internal/backend/codegen/golang/libprint"},
-	{pkg: "internal/backend/codegen/typescript/print", target: "internal/backend/codegen/typescript"},
+	{pkg: "internal/backend/codegen/typescript/print", target: "internal/backend/codegen/typescript/print"},
+	{pkg: "internal/backend/codegen/golang/pass", target: "internal/backend/codegen/golang/pass"},
+	{pkg: "internal/backend/codegen/typescript/pass", target: "internal/backend/codegen/typescript/pass"},
 	{pkg: "internal/backend/closure", target: "internal/backend/closure"},
+	{pkg: "internal/backend/vmlower", target: "internal/backend/vmlower"},
 
 	// Driver: the optimization profiles and the driving of the pipelines. The flags are registered
 	// beside each part of the pipeline, in the registry of internal/pass.
@@ -112,8 +115,8 @@ var layout = []place{
 	{pkg: "internal/engine", target: "internal/runtime/engine"},
 	{pkg: "internal/engine/document", target: "internal/runtime/document"},
 	{pkg: "internal/engine/state", target: "internal/runtime/state"},
-	// vm splits into internal/runtime/vm (the machines) and internal/backend/vmlower (the
-	// bytecode compiler).
+	// vm moves to internal/runtime/vm (the machines); the bytecode compiler is already
+	// internal/backend/vmlower.
 	{pkg: "internal/engine/vm", target: "internal/runtime/vm"},
 	{pkg: "internal/limits", target: "internal/runtime/limits"},
 	{pkg: "internal/value", target: "internal/runtime/nodes"},
