@@ -1,9 +1,9 @@
 # Operations
 
 This chapter lists the operations on the state of a parse, by the state component they belong to; [Values](values.md)
-lists those on the values of terms. Each entry gives the declaration on one line, as the [text form](text-form.md#catalog-entries)
+lists those on the values of terms. Each entry gives the declaration on one line, as the [text form](printing.md#catalog-entries)
 writes it, the components and registers the operation reads and writes, its cost bound (see
-[Costs](machine.md#costs)) and its contract, with its precondition and its laws where it has them.
+[Costs](../code-ir/module.md#costs)) and its contract, with its precondition and its laws where it has them.
 
 ## Memo Table
 

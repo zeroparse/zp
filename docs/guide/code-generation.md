@@ -350,10 +350,10 @@ never turns on a pass for a parser that it is unsound for. `-no-opt guards` also
 parser (the lean passes in a parser with limit controls, for example) prints nothing. Only the generation that
 writes the output prints, and the text starts with `-- Core IR of the <table> after <pass> --`, where `<table>` is
 `typed` for the typed rules, and `rules` or `recRules` for the untyped and recognizer tables. `-print-after flow` shows
-the next form: each function that the parser is printed from, in Flow IR, as lowered from the Core IR, under
-`-- Flow IR of <function> in the <table> table after flow --`, and `-print-after exec` the form after that, Exec IR,
-under `-- Exec IR of <function> in the <table> table after exec --`; the passes over Flow IR and Exec IR print under
-their own names.
+the next form: each function that the parser is printed from, as a listing of Code IR at the Flow stage, as lowered from the Core IR, under
+`-- Flow IR of <function> in the <table> table after flow --`, and `-print-after exec` the form after that, a listing of Code IR at the Exec stage,
+under `-- Exec IR of <function> in the <table> table after exec --`; the passes at the Flow stage and the Exec stage print under
+their own names. A listing writes the statements and the calls of the operations of the stage in the notation of the Code IR text form, with the immediate operand of a call in brackets before its arguments.
 
 ### From Go
 

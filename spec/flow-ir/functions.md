@@ -1,13 +1,16 @@
 # Functions
 
-A function of Flow IR is the body of one rule variant: a rule, or a part of its body that runs as a function of its own,
-lowered for one combination of the options below (Node, Budget and Document). Its parts are the following.
+A function at the Flow stage is a function of [Code IR](../code-ir/functions.md) that is the body of one rule variant: a
+rule, or a part of its body that runs as a function of its own, lowered for one combination of the options below (Node,
+Budget and Document). The base's parts, its name, parameters, locals and body, are those of Code IR: its variables are
+the locals of the function, and its body is the base's structured control. The Flow dialect adds the following parts as
+attributes of the function.
 
 | Part | Meaning |
 |:--|:--|
 | Name | The function's name |
 | Rule | The rule of Core IR it is the body of |
-| Variables | Its variables, each with a name unique in the function and a type, in the order they were made |
+| Variables | Its variables, which are the locals of the function, each with a name unique in the function and a type, in the order they were made |
 | Body | Its statements. Running to the end of the body is success; an exit to the failure label is failure |
 | Failure label | The label that an exit takes to fail |
 | Entry variables | The start, the position at which the rule was entered, set before the body runs; the result, the rule's value; and the context of the rule's action. The code that holds the function declares them. A framed function has none |
@@ -32,6 +35,9 @@ where the function returns.
 
 ## Types
 
+The types of the Flow stage are the types of Code IR: `int` and `bool` are its scalar types, and each of the others is a
+handle type of the component of the Flow dialect.
+
 | Type | Values |
 |:--|:--|
 | `int` | A position, a count or a length |
@@ -49,7 +55,8 @@ where the function returns.
 
 ## Registers
 
-A register is a part of the state of a parse that functions read and assign directly.
+A register is a register of the Code IR module (see [The Module](../code-ir/module.md#declarations)): a part of the
+state of a parse that functions read and assign directly.
 
 | Register | Holds |
 |:--|:--|
@@ -65,5 +72,5 @@ Variables are declared for the whole function, so that any statement may exit to
 block or a loop; a label without a name is never printed by a target, which names only the labels of blocks. A place,
 which an assignment assigns, is a variable, a register, or a discard, whose value is dropped.
 
-Statements after an exit, up to the end of the block that is exited to or of the loop, are unreachable. Flow IR keeps
-them, and a backend leaves out what is unreachable.
+Statements after an exit, up to the end of the block that is exited to or of the loop, are unreachable. Code IR keeps
+them at this stage, and a backend leaves out what is unreachable.

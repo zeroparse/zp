@@ -39,12 +39,12 @@ This document describes the repository layout and architecture, how to run tests
 | `codegen/go/lib/` | Library of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/codegen/go/lib`); it depends only on `core` |
 | `core/` | The types that the engine and generated Go parsers share: nodes with their JSON form, traversal and cursors, the stream iterator, limits and their errors, position units, syntax errors, edits and statistics (`zeroparse.dev/zp/core`) |
 | `core/impl/` | The representation of `core.Node` that the parsers build and read; not a stable API |
-| `internal/codegen/go/` | Go generator: prints the parser, its types package and the library copy from the compiled program and the Exec form, and leaves out what the entry points cannot reach |
-| `internal/codegen/ts/` | TypeScript generator: prints the parser, its types and its library file from the compiled program and the Exec form |
+| `internal/codegen/go/` | Go generator: prints the parser, its types package and the library copy from the compiled program and Code IR at the Exec stage, and leaves out what the entry points cannot reach |
+| `internal/codegen/ts/` | TypeScript generator: prints the parser, its types and its library file from the compiled program and Code IR at the Exec stage |
 | `internal/pass/` | The runner of declared passes: a pipeline of passes over one unit, with the analyses they read and invalidate, where they apply, their order, and verification; and the registry of the optimizations (flags with a kind and a `speed` value), which each part of the pipeline fills with its own |
 | `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR), `code/` (the structured code that Code IR shares, with the Exec dialect in `code/exec/`: the operations of the abstract machine, the compositions in `code/exec/compose/`, the reference models and conformance suite in `code/exec/ref/` and `code/exec/conform/`, and the specification-table reader of the tests in `code/exec/spectest/`), `flow/` (the Flow form, which the target layout makes the Flow dialect of Code IR) and `exec/lower/` (the lowering from the Flow form to the Exec dialect). See [Core IR and Code IR](design/intermediate-representations.md) |
 | `internal/driver/` | The `speed`, `memory` and `size` profiles over the registered optimizations, and the driver that runs the IR pass pipelines under them with their dumps and verification |
-| `internal/middleend/` | The passes and lowerings between the representations: `corepass/` (the Core passes and the rule facts), `flowlower/` (the lowering from Core IR to the Flow form, and which compiled rules it lowers) and `codepass/` (the passes of Code IR that do not depend on a dialect) |
+| `internal/middleend/` | The passes and lowerings between the representations: `corepass/` (the Core passes and the rule facts), `flowlower/` (the lowering from Core IR to Code IR at the Flow stage, and which compiled rules it lowers), `execlower/` (the conversion from the Flow stage to the Exec stage) and `codepass/` (the passes of Code IR that do not depend on a dialect) |
 | `codegen/ts/lib/` | Source of `lib.ts`, the library that generated TypeScript parsers import (joined from `lib.ts`, `budget.ts`, `trace.ts` and `profile.ts`) |
 | `cmd/zp/` | Command-line tool |
 | `examples/` | Small example grammars that show the features, with golden tests |
@@ -105,7 +105,7 @@ for backend scope, cleanup and measured costs.
 
 Generated Go and TypeScript parsers embed their library. Generated TypeScript depends on nothing else, and generated
 Go only on the package `core` and the standard library. Generated Go
-and TypeScript rules are built as Core IR, lowered to the Flow form and then to the Exec form, which the printers print ([design 062](design/records/062-backend-independent-optimization-ir.md), [design 065](design/records/065-exec-ir-parser-vm.md)): in Go, lean value-free rules are direct rules and the others framed bodies the runtime calls; typed Go also emits inferred Go types
+and TypeScript rules are built as Core IR, lowered to Code IR at the Flow stage and then converted to the Exec stage, which the printers print ([design 062](design/records/062-backend-independent-optimization-ir.md), [design 065](design/records/065-exec-ir-parser-vm.md)): in Go, lean value-free rules are direct rules and the others framed bodies the runtime calls; typed Go also emits inferred Go types
 and `ParseValue`/`ParseRuleValue` for configured-start and named rules
 ([design 029](design/records/029-typed-named-rule-parsing.md)). Generation defaults (`MaxDepth` of `codegen.Go` and `codegen.TypeScript`, `gen -max-depth`) and invocation-local depth
 options are implemented ([design 022](design/records/022-generated-parser-depth-limits.md)); Go entry points accept
@@ -242,7 +242,7 @@ inputs, retained results, and error/retry reuse in both position units.
 
 The TypeScript generator's test needs Node.js 22.18 or later (`node`) and, for its type check, `tsc`; it is skipped when they are missing.
 The generated TypeScript has the same two forms, chosen by `-limits`. The TypeScript tests generate the form without limit controls unless the test passes a control option (`signal`, `limits.compute`), which generates with `LimitControls`. `TestGeneratedTSParsersMatchEngine` compares both forms with the engine, and `gents_budget_forms_test.go` checks that the plain form has no charge, no control option and no cancellation export, and that the controlled form accepts the options.
-TypeScript is printed from the same Flow form as Go (`internal/codegen/ts/flow.go`, `internal/codegen/ts/outline.go`); `TestGeneratedTSPrintsLeanRulesFromFlow` and the frozen decision goldens cover what is chosen, and a rule that the Flow form does not print fails generation.
+TypeScript is printed from the same Flow stage as Go (`internal/codegen/ts/flow.go`, `internal/codegen/ts/outline.go`); `TestGeneratedTSPrintsLeanRulesFromFlow` and the frozen decision goldens cover what is chosen, and a rule that the Flow stage does not print fails generation.
 
 `lint` tests every check with positive and negative cases, lints every example grammar against a hand-checked list of findings, and `TestSoundness` checks the certain findings against the engine on random grammars, exhaustively over short inputs (`-soundness=N` for a longer run).
 

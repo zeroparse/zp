@@ -23,8 +23,12 @@ import (
 // documentation changes. They check the structure of each entry, not the prose of contracts, which
 // the specification owns.
 
-// specDir is the directory of the Exec IR specification, relative to this package.
-const specDir = "../../../../../spec/exec-ir"
+// specDir is the directory of the Exec dialect's specification, and codeIRDir that of Code IR, which
+// lists the statements and expressions of every stage, relative to this package.
+const (
+	specDir   = "../../../../../spec/exec-ir"
+	codeIRDir = "../../../../../spec/code-ir"
+)
 
 func params(ps []code.Param) string {
 	s := make([]string, len(ps))
@@ -296,9 +300,10 @@ func TestSpecSectionsHostNegative(t *testing.T) {
 	}
 }
 
-// TestSpecStatements checks the statement and expression kinds of Functions against package exec.
+// TestSpecStatements checks the statement and expression kinds of Functions (spec/code-ir) against
+// package exec.
 func TestSpecStatements(t *testing.T) {
-	spec := spectest.Read(t, specDir)
+	spec := spectest.Read(t, codeIRDir)
 	for _, k := range []struct{ kind, head, method string }{{"statement", "Statement", "stmt"}, {"expression", "Expression", "expr"}} {
 		var got [][2]string
 		for _, r := range spectest.Column(map[string][]spectest.Table{"functions.md": spec["functions.md"]}, k.head) {

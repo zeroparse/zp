@@ -1,25 +1,12 @@
-# The Parser VM
+# The Abstract Machine
 
-The parser VM is the abstract machine that runs a parse. Every runtime of ZeroParse hosts it: the engine's backends and
-every generated parser. A module of Exec IR declares it: the features that a function can be specialized for, the
-abstract state of a parse, as state components and registers, the handle types and the operations, followed by the
-functions (see [Functions](functions.md)). The state is abstract: a contract talks about it, and a target chooses how
-to represent it.
-
-## Types
-
-A value of Exec IR has one of the following types.
-
-| Type | Values |
-|:--|:--|
-| `bool` | A truth value |
-| `int` | A position or a count: at least 32 bits, and exact up to 2^53, on every target |
-| `i32`, `u32`, `u64` | Sized integers, signed 32-bit and unsigned 32-bit and 64-bit, whose arithmetic wraps at their width |
-| A handle type | An opaque value of a declared handle type, or the null handle of that type |
-
-There are no records, arrays or maps: data structures live inside operations, where targets choose them. A handle
-is opaque: functions pass it on, compare it with `==` and `!=`, and give it to operations; only operations look
-inside.
+The abstract machine is what every runtime of ZeroParse hosts: the engine's backends and every generated parser. The
+Exec dialect of [Code IR](../code-ir/README.md) declares it: the features that a function can be specialized for, the
+abstract state of a parse, as state components and registers, and the handle types, in the declarations that
+[The Module](../code-ir/module.md) describes. The operations are in [Operations](operations.md) and
+[Values](values.md), and the functions over them are in [Functions](../code-ir/functions.md). The state is abstract: a
+contract talks about it, and a target chooses how to represent it. The types of values are those of
+[The Module](../code-ir/module.md#types).
 
 ## Features
 
@@ -39,7 +26,7 @@ operation that belongs to features exists only in builds that have all of them.
 
 ### Components
 
-A state component is a part of the abstract state that only the operations declaring it may write. The parser VM
+A state component is a part of the abstract state that only the operations declaring it may write. The abstract machine
 has the following components.
 
 | Component | Holds |
@@ -49,7 +36,7 @@ has the following components.
 | `budget` | The work budget of the parse: the units charged so far and the limit, zero for none. |
 | `depth` | The nesting depth of rule calls and its limit. |
 | `env` | The variable environment: one current value for each declared variable, in a slot that the grammar fixes. An environment is persistent: a binding makes a new one and changes none that a backtracking point holds. Values handles stand for the values of a rule's variables, compared by the host's value equality. |
-| `host` | The host: values and nodes, which the parser VM passes on without reading. |
+| `host` | The host: values and nodes, which the abstract machine passes on without reading. |
 | `recovered` | The list of errors recovered so far in the parse. |
 | `rules` | The rules of the grammar: their descriptors and bodies. |
 | `expected` | The expectation record: the expectations at the farthest position. |
@@ -79,7 +66,7 @@ A register is a scalar of the abstract state that functions read and assign dire
 ### Handle Types
 
 A handle type is a type of opaque values. Its component is the state component whose operations make its values. A
-handle type may be callable: its values are code that [an application](functions.md#application) runs.
+handle type may be callable: its values are code that [an application](../code-ir/functions.md#application) runs.
 
 | Handle type | Component | Stands for |
 |:--|:--|:--|
@@ -105,7 +92,7 @@ handle type may be callable: its values are code that [an application](functions
 | `Run` | `runs` | A repetition run in progress in a Document parse. |
 | `RunElem` | `runs` | An element of an old run that the parse reuses, or none. |
 | `RunSite` | `runs` | A repetition that a Document parse can resume. |
-| `Term` | `host` | A term of a predicate or a binding, in the form the target holds: code that is applied to an `Act`, and returns a `Datum` and a `Fail` ([Application](functions.md#application)). |
+| `Term` | `host` | A term of a predicate or a binding, in the form the target holds: code that is applied to an `Act`, and returns a `Datum` and a `Fail` ([Application](../code-ir/functions.md#application)). |
 | `CallState` | `suspended` | The record of a suspended call, which its caller holds. |
 | `Frame` | `frames` | A capture frame: the slots of the captures of a rule body or a line. |
 | `Mark` | `frames` | A backtracking point: the position, the variable environment, the recovered errors and the length of the trail when it was taken. |
@@ -124,60 +111,11 @@ handle type may be callable: its values are code that [an application](functions
 | `Str` | `value` | A string of the target that is not a value, as text returns it. |
 | `Elem` | `value` | An element of a list or a tuple that a term makes, as a Seq holds it. |
 
-## Operations
+## Quantities
 
-An operation is a transition of the abstract state. Its declaration has the following parts.
-
-| Part | Meaning |
-|:--|:--|
-| Name | The operation's name, unique in the module. By convention it is the component's short name, a dot and a verb |
-| Component | The state component the operation belongs to |
-| Signature | Its parameters, each with a name and a type, and its result types, any number |
-| Reads, writes | The components and registers it reads and writes. It writes only its own component and registers, except a transitional operation (below), which declares every component it changes, so that a pass sees each state it changes |
-| Features | The features it exists in. None means every build |
-| No return | It may end the parse instead of returning: an interruption, such as an exhausted budget |
-| Contract | What every implementation does, observable through its results, the state afterwards, the statistics it counts and what it charges |
-| Requires | The precondition that its callers guarantee. Behavior outside it is unspecified: implementations may differ on states that no function reaches, and conformance never exercises them |
-| Cost | The bound on the units that one call charges the budget (below) |
-| Laws | Facts about the operation that passes may use. Each law has a kind that passes read: equal results (equal arguments give equal results), a stable read (two calls with no write of the component between them give the same result) or the merge of two charges. Each kind has a conformance property that tests the law, and a pass relies only on laws of a kind it names. A law states something about results only; it never permits removing a call, which depends on what the operation writes and charges |
-| Immediate operand | A static datum of a call that is not a value of Exec IR, such as a literal, a character class, an expectation or a term of the grammar. A call of an operation that declares one holds it, and passes keep it |
-
-An operation is of one of three kinds.
-
-- An **operation** of the parser VM has a reference model of its component, and a conformance suite compares every
-  implementation with the model: its results, the state afterwards and its charges against the bound.
-- A **host operation** has a contract and a cost bound but no reference model, because its effect lies outside the
-  parser VM's state or is not observable in the result of a parse: input buffers, memory that the parse lets go of,
-  callbacks and cancellation. It has no conformance cases; its charges are checked against its bound.
-- A **transitional operation** stands for a function of a runtime, with its current behavior, until its mechanism is
-  written as a composition of operations of the first kind. It has no conformance cases. An operation is not both a
-  host and a transitional operation.
-
-An operation never runs grammar code and never chooses between outcomes of the parse: reusing or recomputing a
-result, growing or stopping, which error or expectation survives. Those choices are made in functions, which read
-the results of operations. The exceptions are the transitional operations that invoke a rule's body or a line of an
-Operators Rule, which say so in their contracts. A term is not run by an operation: a function applies it
-([Application](functions.md#application)). [Operations](operations.md) and [Values](values.md) list
-every operation.
-
-## Costs
-
-The cost of an operation bounds the units of budget that one call charges: at most a constant plus, for each term, a
-positive coefficient times the value of a quantity. A quantity is an abstract measure of the state before the call,
-which the reference model of the component computes. The charges themselves are the implementation's: for a given
-target they are deterministic, and they stay within the bound. The bound is the worst case over the representations
-that a target may choose. Charges inside an operation spend the same budget that `budget.charge` and `budget.used`
-see, and an implementation may end the parse with an interruption inside an operation only where charges within the
-bound could exceed the limit.
-
-A charge that pays for one call, step, iteration or line is made by the function that runs it, with `budget.charge`;
-an operation of constant work charges nothing, because the call or step around it has paid. An operation that runs a
-rule body bounds its charges by what the grammar code it runs charges (the quantity `body`), and its own work
-besides. The application of a term is not an operation and charges nothing itself: the operations of the code of the
-term charge.
-
-A bound is written `c + k*q + ...`, where `c` is the constant and each `k*q` a coefficient and a quantity. The
-quantities are the following.
+The cost of an operation (see [Costs](../code-ir/module.md#costs)) is bounded in terms of quantities. A quantity is an
+abstract measure of the state before the call, which the reference model of the component computes. The quantities
+are the following.
 
 | Quantity | Measures |
 |:--|:--|

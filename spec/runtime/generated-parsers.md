@@ -98,8 +98,8 @@ The optimization settings are a profile and the values of named optimizations. T
 the grammar's meaning: an optimization changes the code a parser is generated as, and the memory and
 time it needs, but not what it returns. It is either on or off, or it has a count where `0` is off.
 Each optimization has a kind: `pass` (a transformation of the Core IR, the first intermediate
-representation built from the grammar), `flow pass` and `exec pass` (a transformation of the Flow IR
-and the Exec IR that are lowered from it), `lowering` (an option of a step that lowers one
+representation built from the grammar), `flow pass` and `exec pass` (a transformation of Code IR at the Flow
+stage and at the Exec stage that is converted from it), `lowering` (an option of a step that lowers one
 representation toward the next), `printer` (a choice of what the Go and TypeScript printers emit) or
 `runtime` (a control of the runtime structures that the printers emit). `zp gen -h` lists every optimization with its kind, its default and whether it takes a
 count.
@@ -121,8 +121,8 @@ count.
 - **Languages.** The options apply to Go and TypeScript. An optimization that concerns only one language,
   such as the slabs of typed Go values, has no effect on the other, and naming it is not an error.
 - **`-print-after`** takes `core` (the Core IR of each rule table as built), the name of a Core pass,
-  `flow` (each function printed from Flow IR, as lowered from Core IR), the name of a Flow pass, `exec`
-  (each function printed from Exec IR, as lowered from Flow IR), the name of an Exec pass, or `all`.
+  `flow` (each function as the Code IR listing at the Flow stage, as lowered from Core IR), the name of a Flow pass, `exec`
+  (each function as the Code IR listing at the Exec stage, as converted from the Flow stage), the name of an Exec pass, or `all`.
   A pass that does not apply to the parser prints nothing. An unknown name is an error that lists the
   valid ones.
 

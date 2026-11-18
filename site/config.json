@@ -415,7 +415,20 @@
       ]
     },
     {
-      "title": "Flow IR",
+      "title": "Code IR",
+      "match": [
+        "spec/code-ir/*.md"
+      ],
+      "index": "spec/code-ir/README.md",
+      "first": [
+        "spec/code-ir/module.md",
+        "spec/code-ir/functions.md",
+        "spec/code-ir/invariants.md",
+        "spec/code-ir/text-form.md"
+      ]
+    },
+    {
+      "title": "Flow Dialect",
       "match": [
         "spec/flow-ir/*.md"
       ],
@@ -429,22 +442,20 @@
       ]
     },
     {
-      "title": "Exec IR",
+      "title": "Exec Dialect",
       "match": [
         "spec/exec-ir/*.md"
       ],
       "index": "spec/exec-ir/README.md",
       "first": [
         "spec/exec-ir/machine.md",
-        "spec/exec-ir/functions.md",
         "spec/exec-ir/operations.md",
         "spec/exec-ir/values.md",
         "spec/exec-ir/compositions.md",
         "spec/exec-ir/invariants.md",
         "spec/exec-ir/passes.md",
         "spec/exec-ir/lowering.md",
-        "spec/exec-ir/printing.md",
-        "spec/exec-ir/text-form.md"
+        "spec/exec-ir/printing.md"
       ]
     },
     {
@@ -640,6 +651,8 @@
     "/spec/core-ir/terms/": "/spec/core-ir/actions/",
     "/spec/flow-ir/statements/": "/spec/flow-ir/operations/",
     "/spec/flow-ir/expressions/": "/spec/flow-ir/operations/",
+    "/spec/exec-ir/functions/": "/spec/code-ir/functions/",
+    "/spec/exec-ir/text-form/": "/spec/code-ir/text-form/",
     "/docs/design/records/005-pratt-expressions/": "/docs/design/records/005-operators-rule/",
     "/docs/design/records/050-pratt-skip-control/": "/docs/design/records/050-operators-rule-skip-control/",
     "/docs/optimizations/009-value-free-pratt-lines-discarding-trivia-in-example-grammars-936857c/": "/docs/optimizations/009-value-free-operators-rule-lines-discarding-trivia-in-example-grammars-936857c/",

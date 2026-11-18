@@ -1,15 +1,15 @@
 # Printing
 
 A backend prints a function of a verified module as source code of its target language. The printed code does what
-running the function does (see [Functions](functions.md)), over the target's own implementation of the operations:
+running the function does (see [Functions](../code-ir/functions.md)), over the target's own implementation of the operations:
 for each operation, the target gives the code of a call, given the call with its immediate operand and the printed
 arguments, and for each register and handle type, how the code reaches the register and which type of the target
 language stands for the handle type. A backend prints only the code that the function holds; it never adds a call of
 an operation or a decision of the parse.
 
 ZeroParse has two backends, Go and TypeScript. They print the compositions into each runtime (see
-[Compositions](compositions.md#specializations)) and the rules of a grammar, lowered from Flow IR (see
-[Lowering From Flow IR](lowering.md)), into generated parsers.
+[Compositions](compositions.md#specializations)) and the rules of a grammar, converted from the Flow stage (see
+[Lowering From the Flow Stage](lowering.md)), into generated parsers.
 
 ## Common Rules
 
@@ -27,7 +27,7 @@ ZeroParse has two backends, Go and TypeScript. They print the compositions into 
 ## Go
 
 - `bool` is `bool`, `int` is `int`, and `i32`, `u32` and `u64` are `int32`, `uint32` and `uint64`, whose arithmetic
-  wraps as Exec IR's does. A handle type is the Go type that the target gives it.
+  wraps as Code IR's does. A handle type is the Go type that the target gives it.
 - A function prints as a function, or as a method of the receiver that the target gives, and a call of a function of
   the module goes through that receiver. A function marked no-inline prints with the directive that keeps the Go
   compiler from inlining it.
@@ -49,8 +49,8 @@ ZeroParse has two backends, Go and TypeScript. They print the compositions into 
 - A `Protect` prints as `try` with its body and `finally` with its cleanup.
 - A function with several results returns them as an array, except a pair of a handle type that the target packs and
   `bool`, which is one value: the handle when the `bool` is true, and `undefined` when it is false.
-- The rules of a grammar lowered from Flow IR print by the conventions of the TypeScript code of the runtime, so that
-  they read as the code that the Flow IR printers write.
+- The rules of a grammar converted from the Flow stage print by the conventions of the TypeScript code of the runtime, so that
+  they read as the code that the printers of the Flow stage write.
 
 ## The Runtime Protocol
 
@@ -64,8 +64,8 @@ that interface does.
 
 Three kinds of tests hold implementations to this specification.
 
-- The **conformance suite** runs conformance cases, functions of Exec IR that call operations, in lock-step on the
-  reference model of the parser VM and on an implementation under test, and fails on the first call where they
+- The **conformance suite** runs conformance cases, functions of Code IR that call operations, in lock-step on the
+  reference model of the abstract machine and on an implementation under test, and fails on the first call where they
   differ: in its results, in which handle a result is, in whether the call ended the parse, or in units charged beyond
   the operation's cost bound. Cases are written by hand or generated at random within the operations' preconditions.
   Each case is checked against the reference model first, so a case that is wrong about a contract fails before it
@@ -74,3 +74,19 @@ Three kinds of tests hold implementations to this specification.
   what the reference interpreter does for the same functions.
 - The **value tables** state what the compositions of terms return on the values of fixed fixtures (see
   [Values](values.md)); each target runs them through its printed compositions.
+
+## Catalog Entries
+
+The tables of [Operations](operations.md), [Values](values.md) and [Compositions](compositions.md) declare each
+operation and function on one line, the header line of its listing, with the parts that the listing writes on lines
+of their own moved onto it.
+
+- An operation: its kind (`op`, `host op`, `primitive op` or `transitional op`), its name, its parameters and its results, then its features in brackets, if it has any, and
+  `noreturn`, if it may end the parse, as in `op budget.charge(n u64) [budget] noreturn`. The table gives the state it
+  reads and writes, its cost bound and its contract in columns of their own.
+- A function: `func`, its name, its parameters, its results and its features in brackets, as in
+  `func grow(r Rule, min int) (Value, bool) [typed]`.
+
+Results print bare when there is one and in parentheses when there are several. A specialization of a composition is
+written as the composition's name followed by the set of features it is specialized for in brackets, as in
+`call [budget, document]`, with `[]` for the specialization with no feature on.

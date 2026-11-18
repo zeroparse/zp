@@ -6,6 +6,8 @@ definition and the place where the term is defined.
 | Term | Meaning |
 |:--|:--|
 | action | An umbrella term for a Predicate Action and a Value Action. See [Actions](language/actions.md). |
+| abstract machine | The machine that every runtime hosts: the state of a parse and the operations that change it. See [The Abstract Machine](exec-ir/machine.md). |
+| Action dialect | The operations of Code IR on the values of terms, legal at the Flow and the Exec stage. See [Values](exec-ir/values.md). |
 | Action Expression | A value-level expression evaluated inside a Predicate Action or Value Action. See [Actions](language/actions.md). |
 | anchor | A Rule Expression that matches a position without consuming input and has no value: `^^`, `$$`, `^`, `$`. See [Anchors](language/parser-expressions.md#anchors). |
 | atomic | `a #atomic`: matches `a` and produces a single string node. See [Atomic](language/pragmas.md#atomic). |
@@ -16,7 +18,8 @@ definition and the place where the term is defined.
 | choice | `a / b`: an ordered choice, which commits to the first alternative that succeeds. See [Ordered choice](language/parser-expressions.md#ordered-choice). |
 | code point | A Unicode code point; the unit in which the input is matched. See [Input and positions](runtime/parsing.md#input-and-positions). |
 | compiled grammar | A grammar saved as a `.zpc` file holding the bytecode of one mode (parse, recognize or document), with no grammar AST, that loads without parsing grammar source. See [Compiled Grammars](runtime/compiled-grammars.md). |
-| composition | A function of Exec IR that every runtime shares, written once over the operations of the parser VM, such as the call protocol of a rule. See [Compositions](exec-ir/compositions.md). |
+| Code IR | The form of the code that a grammar is compiled to and that the runtimes are written in: modules of types, state and operations, and functions of structured code over them, at the Flow or the Exec stage. See [ZeroParse Code IR Specification](code-ir/README.md). |
+| composition | A function at the Exec stage of Code IR that every runtime shares, written once over the operations of the abstract machine, such as the call protocol of a rule. See [Compositions](exec-ir/compositions.md). |
 | concrete syntax tree (CST) | The tree of nodes that Rule Expressions produce when no action is involved: string nodes, tuples for sequences and lists for repetitions. See [Values and the concrete syntax tree](language/parser-expressions.md#values-and-the-concrete-syntax-tree). |
 | contextual word | A grammar word interpreted as syntax only in a Declaration Statement or Operators Rule position; the same spelling may be an identifier elsewhere. See [Contextual Words](language/lexical.md#contextual-words). |
 | Core IR | The intermediate representation of a checked grammar, whose nodes make their effects explicit. See [ZeroParse Core IR Specification](core-ir/README.md). |
@@ -24,15 +27,16 @@ definition and the place where the term is defined.
 | cut | `#cut`: commits the enclosing choice to the current alternative. See [Cut](language/parser-expressions.md#cut). |
 | Declaration Statement | A Type Declaration Statement or Rule Declaration Statement in a `.zp` file. See [Grammar Files](language/grammar-files.md#structure). |
 | diagnostic | A syntax error that a parse reports with its position and expectations; a recovered parse and a Document publish them as caller-owned values, and a stream delivers them through diagnostic options. See [Syntax Errors](runtime/parsing.md#syntax-errors) and [Incremental Documents](runtime/documents.md). |
+| dialect | A named set of operations of Code IR with their contracts: Flow, Action or Exec. See [Dialects and Stages](code-ir/module.md#dialects-and-stages). |
 | discard | `-a`: matches `a` and has no value. See [Discard](language/parser-expressions.md#discard). |
 | Document | A mutable text together with its parse result, updated by edits and reparsed incrementally. See [Incremental Documents](runtime/documents.md). |
 | edit | The replacement of a range of a Document's text; the next parse reuses the results that the edit did not affect. See [Edits](runtime/documents.md#edits). |
 | effect | One thing a Core IR node can do besides succeed or fail, such as consuming input, recording expectations or writing a capture. See [Attributes and Effects](core-ir/attributes.md#effects). |
-| Exec IR | The executable form of a parse: the parser VM, its operations with their contracts, and functions in structured code over them. See [ZeroParse Exec IR Specification](exec-ir/README.md). |
+| Exec dialect | The operations of the abstract machine, with the compositions written over them; with the Action dialect it is what Code IR at the Exec stage calls. See [ZeroParse Exec Dialect Specification](exec-ir/README.md). |
 | expectation | An item that a syntax error lists as expected at a position: a literal, a character class, `any character` or an anchor. A parse records expectations only on request. See [Recording expectations](runtime/parsing.md#recording-expectations). |
 | farthest failure | The farthest position at which parsing failed, with the items expected there when the parse records expectations; the syntax error reports it. See [Syntax errors](runtime/parsing.md#syntax-errors). |
 | fixture suite | A versioned JSON file of named inputs with expected outcomes and goldens, run by `zp test`. See [Fixture Suites and Edit Sequences](runtime/test-formats.md). |
-| Flow IR | The form of a rule that says how a parser runs it: the body of one rule variant as primitives on the state of a parse with structured control. See [ZeroParse Flow IR Specification](flow-ir/README.md). |
+| Flow dialect | The operations that say how a parser runs a rule: matching, backtracking, expectations, rule calls, values and charges; Code IR at the Flow stage calls them. See [ZeroParse Flow Dialect Specification](flow-ir/README.md). |
 | fragment | A part of a text that is parsed alone: a prefix parse matches the start rule at the beginning of a supplied string, which the caller confines by slicing both ends. See [Prefix Parsing](runtime/parsing.md#prefix-parsing). |
 | generated parser | A standalone Go or TypeScript parser written for one grammar by `zp gen`. See [Generated Parsers](runtime/generated-parsers.md). |
 | grammar | An optional package clause followed by Type and Rule Declaration Statements, normally written in a `.zp` file. See [Grammar Files](language/grammar-files.md). |
@@ -45,10 +49,9 @@ definition and the place where the term is defined.
 | named node type | A Type Definition `type N = node[U]`: a type distinct from `node[U]` and from every other named node type. Its values are nodes that carry the name `N`. See [Named Node Types](language/types.md#named-node-types). |
 | node | A value together with the range of input that it covers: a string, a tuple or a list. See [Nodes and Values](runtime/nodes.md#node-model). |
 | operand, operator | The parts of an Operators Rule: an operand is the leading element of an expression, an operator is a prefix, infix or postfix form. See [Operators Rule](language/operators-rule.md). |
-| operation | A transition of the abstract state of a parse that the parser VM declares, with a contract and a cost bound. See [Operations](exec-ir/machine.md#operations). |
+| operation | A transition of the abstract state of a parse that a dialect of Code IR declares, with a contract and a cost bound. See [The Module](code-ir/module.md#operations). |
 | Operators Rule | A rule declaration that declares operators by precedence and associativity. See [Operators Rule](language/operators-rule.md). |
 | output schema | The description of the values a grammar can produce: its declared types and the inferred value shape of each rule, exported without parsing input. See [Output Schemas](runtime/schemas-and-queries.md#output-schemas). |
-| parser VM | The abstract machine that every runtime hosts: the state of a parse and the operations that change it. See [The Parser VM](exec-ir/machine.md). |
 | position | A number that identifies a place between two characters of the input, counted in the position unit. See [Input and positions](runtime/parsing.md#input-and-positions). |
 | position unit | The unit in which positions and lengths in the input are measured: code points or bytes. See [Input and positions](runtime/parsing.md#input-and-positions). |
 | pragma | A `#` annotation that changes expression behavior or structure, such as `#atomic`, `#recover`, `#repeat(...)` or `#stream`, which follow an expression, and `#cut`, which stands in place of one. See [Pragmas](language/pragmas.md). |
@@ -67,7 +70,8 @@ definition and the place where the term is defined.
 | skip run | The walks of a skip-run site: an unbounded repetition written in the skip expression of a `#recover`, whose walks the parser records and reuses. See [Skip Runs](runtime/parsing.md#skip-runs). |
 | snapshot | An immutable capture of one revision of a Document: its text, parse outcome and value graph. See [Snapshots](runtime/documents.md#snapshots). |
 | source information | An opt-in record of the rule that produced each node and of the names of captures. See [Source Information](runtime/nodes.md#source-information). |
-| specialization | A copy of a function of Exec IR in which each feature is fixed on or off. See [Specialization](exec-ir/passes.md#specialization). |
+| specialization | A copy of a function of Code IR at the Exec stage in which each feature is fixed on or off. See [Specialization](exec-ir/passes.md#specialization). |
+| stage | The form that a module of Code IR is in, Flow or Exec, which lists the dialects whose operations may appear in it. See [Dialects and Stages](code-ir/module.md#dialects-and-stages). |
 | start rule | The rule with which parsing begins. It is chosen when the grammar is compiled or parsed, not in the grammar file. See [Start rule](runtime/parsing.md#start-rule). |
 | stream | A `#stream` repetition whose elements are handed to the caller as soon as they match, so that earlier input can be released. See [Streaming](runtime/streaming.md). |
 | string node | A node whose value is the matched input text: the node of a literal, a character class, `.` or an atomic expression. Its type is `node[string]`. See [Nodes and Values](runtime/nodes.md#node-model). |
