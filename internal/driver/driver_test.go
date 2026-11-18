@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -88,19 +89,19 @@ const testFlowPass = "test-flow-comment"
 
 // withTestFlowPass adds a profile that turns testFlowPass (registered on in speed) off for the
 // duration of the test, and returns a FlowRun that runs a pipeline with the pass.
-func withTestFlowPass(t *testing.T) func(string, *code.Module, *flow.Env, flow.RunOptions) ([]string, error) {
+func withTestFlowPass(t *testing.T) func(string, *code.Module, *flowpass.Env, flowpass.RunOptions) ([]string, error) {
 	defs := profileDefs
 	profileDefs = append(slices.Clone(profileDefs), profileDef{Name: "no-comment", Doc: "x", Values: map[string]int{testFlowPass: 0}})
 	t.Cleanup(func() { profileDefs = defs })
-	p := *flow.Pipeline
-	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flow.Env]{
+	p := *flowpass.Pipeline
+	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flowpass.Env]{
 		Name: testFlowPass, Obligation: "a comment changes nothing",
-		Run: func(m *code.Module, _ *flow.Env) error {
+		Run: func(m *code.Module, _ *flowpass.Env) error {
 			b := flow.FuncOf(m).Body
 			b.Stmts = append(b.Stmts, &code.Comment{Text: "tested"})
 			return nil
 		}})
-	return func(_ string, m *code.Module, env *flow.Env, o flow.RunOptions) ([]string, error) {
+	return func(_ string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error) {
 		return p.Run(m, env, o.Options(env))
 	}
 }
@@ -154,7 +155,7 @@ func TestDriverRunFlow(t *testing.T) {
 	if err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).RunFlow("typed", f, true); err != nil {
 		t.Fatal(err)
 	}
-	if n := strings.Count(dump.String(), "-- Flow IR of r in the typed table after "); n != 1+len(flow.Pipeline.Passes) {
+	if n := strings.Count(dump.String(), "-- Flow IR of r in the typed table after "); n != 1+len(flowpass.Pipeline.Passes) {
 		t.Errorf("all printed %d sections:\n%s", n, dump.String())
 	}
 }

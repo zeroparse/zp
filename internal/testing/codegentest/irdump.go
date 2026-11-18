@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"slices"
 	"testing"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -53,10 +54,10 @@ func CheckIRPipelines(t *testing.T, dump string, tables ...string) map[string]in
 }
 
 // BrokenFlowPass is a Flow pass that lists a variable twice, which flow.VerifyModule rejects.
-var BrokenFlowPass = pass.Pass[*code.Module, *flow.Env]{
+var BrokenFlowPass = pass.Pass[*code.Module, *flowpass.Env]{
 	Name:       "break-flow",
 	Obligation: "none: it breaks the function on purpose",
-	Run: func(m *code.Module, _ *flow.Env) error {
+	Run: func(m *code.Module, _ *flowpass.Env) error {
 		a := flow.AttrsOf(flow.FuncOf(m))
 		a.Vars = append(a.Vars, "broken", "broken")
 		return nil
@@ -77,12 +78,12 @@ var BrokenExecPass = pass.Pass[*code.Module, *codepass.Env]{
 // BrokenFlowRun returns a FlowRun hook of a generator that runs the Flow pipeline with
 // BrokenFlowPass added at its end on the functions of the table named table, and the Flow pipeline
 // as it is on the others. It counts the functions of the table in seen.
-func BrokenFlowRun(table string, seen *int) func(string, *code.Module, *flow.Env, flow.RunOptions) ([]string, error) {
-	p := *flow.Pipeline
-	p.Passes = append(slices.Clone(flow.Pipeline.Passes), BrokenFlowPass)
-	return func(tb string, m *code.Module, env *flow.Env, o flow.RunOptions) ([]string, error) {
+func BrokenFlowRun(table string, seen *int) func(string, *code.Module, *flowpass.Env, flowpass.RunOptions) ([]string, error) {
+	p := *flowpass.Pipeline
+	p.Passes = append(slices.Clone(flowpass.Pipeline.Passes), BrokenFlowPass)
+	return func(tb string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error) {
 		if tb != table {
-			return flow.Run(m, env, o)
+			return flowpass.Run(m, env, o)
 		}
 		*seen++
 		po := o.Options(env)
