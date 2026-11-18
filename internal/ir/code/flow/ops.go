@@ -521,6 +521,24 @@ func AttrsOf(f *code.Func) *Attrs {
 	return a
 }
 
+// FuncOf returns the function of m, a module of one lowered function.
+func FuncOf(m *code.Module) *code.Func { return m.Funcs[0] }
+
+// VarsOf returns the variables of the lowered function f (Attrs.Vars), in order, with their types.
+func VarsOf(f *code.Func) []code.Param {
+	a := AttrsOf(f)
+	out := make([]code.Param, 0, len(a.Vars))
+	for _, name := range a.Vars {
+		for _, l := range f.Locals {
+			if l.Name == name {
+				out = append(out, l)
+				break
+			}
+		}
+	}
+	return out
+}
+
 // TypeOf returns the type of a variable of the Code IR type t at the Flow stage.
 func TypeOf(t code.Type) Type {
 	switch t.Kind {

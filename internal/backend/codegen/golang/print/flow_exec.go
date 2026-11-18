@@ -27,7 +27,7 @@ import (
 // execBody prints the body of the Flow IR function f from Exec IR with the flow printer p, for a
 // function that is printed whatever its body: it checks the variables (execVars) and counts the
 // function (execCount).
-func (p *flowPrinter) execBody(f *flow.Func) BodyResult {
+func (p *flowPrinter) execBody(f *code.Module) BodyResult {
 	l, res := p.execPrint(f)
 	p.execVars(l, &res)
 	p.execCount()
@@ -35,10 +35,11 @@ func (p *flowPrinter) execBody(f *flow.Func) BodyResult {
 }
 
 // execPrint lowers the Flow IR function f to Exec IR and prints its body with the flow printer p.
-func (p *flowPrinter) execPrint(f *flow.Func) (*execlower.Lowered, BodyResult) {
+func (p *flowPrinter) execPrint(f *code.Module) (*execlower.Lowered, BodyResult) {
+	fn := flow.FuncOf(f) // the conversion to the Exec stage moves it out of f
 	l, err := common.LowerFlow(f)
 	if err != nil {
-		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, p.g.Table, err))
+		panic(fmt.Errorf("rule %s of table %s: %w", fn.Name, p.g.Table, err))
 	}
 	p.g.ExecPasses(l)
 	return l, Body(l.Module, l.Func, p.execTarget(), l.Vars)
@@ -194,14 +195,16 @@ func goPrec(text string) int {
 }
 
 // execFlatRule prints the local function f from Exec IR as a flat rule (flowTypedRule).
-func (g *Generator) execFlatRule(p *flowPrinter, f *flow.Func) *flatRule {
+func (g *Generator) execFlatRule(p *flowPrinter, f *code.Module) *flatRule {
+	fn := flow.FuncOf(f) // the conversion to the Exec stage moves it out of f
 	res := p.execBody(f)
 	st := res.Stores
-	read := func(v *flow.Var) bool { return v != nil && st.Read[v.Name] }
-	out := &flatRule{fail: res.Exited, succeed: res.End, binds: f.Binds, start: read(f.Start), ctx: read(f.Ctx)}
+	a := flow.AttrsOf(fn)
+	read := func(v string) bool { return v != "" && st.Read[v] }
+	out := &flatRule{fail: res.Exited, succeed: res.End, binds: a.Binds, start: read(a.Start), ctx: read(a.Ctx)}
 	var unread []string
-	for _, v := range f.Vars {
-		out.vars = append(out.vars, dvar{v.Name, goType(v.Type)})
+	for _, v := range flow.VarsOf(fn) {
+		out.vars = append(out.vars, dvar{v.Name, goType(flow.TypeOf(v.Type))})
 		switch {
 		case st.Dead[v.Name]:
 			out.markVar(v.Name, true)
@@ -223,17 +226,19 @@ func (g *Generator) execFlatRule(p *flowPrinter, f *flow.Func) *flatRule {
 // or returns nil where flowRecRule does: if the printed function reads its start or its context, or
 // a variable has a type that untypedGoType cannot name. It checks the variables at the point where
 // flowRecRule does, between the two refusals, and counts only a rule it prints.
-func (g *Generator) execRecRule(p *flowPrinter, f *flow.Func) *flatRule {
+func (g *Generator) execRecRule(p *flowPrinter, f *code.Module) *flatRule {
+	fn := flow.FuncOf(f) // the conversion to the Exec stage moves it out of f
 	l, res := p.execPrint(f)
 	st := res.Stores
-	read := func(v *flow.Var) bool { return v != nil && st.Named[v.Name] }
-	if read(f.Start) || read(f.Ctx) {
+	a, vars := flow.AttrsOf(fn), flow.VarsOf(fn)
+	read := func(v string) bool { return v != "" && st.Named[v] }
+	if read(a.Start) || read(a.Ctx) {
 		return nil
 	}
 	p.execVars(l, &res)
-	types := make([]string, len(f.Vars))
-	for i, v := range f.Vars {
-		t, ok := untypedGoType(v.Type)
+	types := make([]string, len(vars))
+	for i, v := range vars {
+		t, ok := untypedGoType(flow.TypeOf(v.Type))
 		if !ok {
 			return nil
 		}
@@ -242,7 +247,7 @@ func (g *Generator) execRecRule(p *flowPrinter, f *flow.Func) *flatRule {
 	p.execCount()
 	out := &flatRule{fail: res.Exited, succeed: res.End}
 	var unread []string
-	for i, v := range f.Vars {
+	for i, v := range vars {
 		out.vars = append(out.vars, dvar{v.Name, types[i]})
 		switch {
 		case st.Dead[v.Name]:
@@ -262,14 +267,15 @@ func (g *Generator) execRecRule(p *flowPrinter, f *flow.Func) *flatRule {
 }
 
 // execFramed prints the framed function f from Exec IR as flowFramed does.
-func (g *Generator) execFramed(p *flowPrinter, f *flow.Func, slots []irc.Slot, scope *check.Scope, comment string, ruleBody bool) string {
+func (g *Generator) execFramed(p *flowPrinter, f *code.Module, slots []irc.Slot, scope *check.Scope, comment string, ruleBody bool) string {
+	fn := flow.FuncOf(f) // the conversion to the Exec stage moves it out of f
 	res := p.execBody(f)
 	st := res.Stores
 	var vars []dvar
 	dead, quiet := map[string]bool{}, map[string]bool{}
 	var unread []string
-	for _, v := range f.Vars {
-		vars = append(vars, dvar{v.Name, p.goType(v.Type)})
+	for _, v := range flow.VarsOf(fn) {
+		vars = append(vars, dvar{v.Name, p.goType(flow.TypeOf(v.Type))})
 		switch {
 		case st.Dead[v.Name]:
 			dead[v.Name] = true

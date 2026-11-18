@@ -35,18 +35,20 @@ const (
 )
 
 // printTSFlowExec is printTSFlow from Exec IR.
-func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
+func (g *Generator) printTSFlowExec(f *code.Module) (string, []string, []tsDecl) {
+	fn := flow.FuncOf(f)
+	a := flow.AttrsOf(fn)
 	l, err := common.LowerFlow(f)
 	if err != nil {
-		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, g.Table, err))
+		panic(fmt.Errorf("rule %s of table %s: %w", fn.Name, g.Table, err))
 	}
 	g.ExecPasses(l)
 	g.ExecFuncs++
 	tsRuns(l)
 	vars := map[string]bool{}
-	for _, v := range append(append([]*flow.Var(nil), f.Vars...), f.Start, f.Result, f.Ctx) {
-		if v != nil {
-			vars[v.Name] = true
+	for _, v := range append(append([]string(nil), a.Vars...), a.Start, a.Result, a.Ctx) {
+		if v != "" {
+			vars[v] = true
 		}
 	}
 	st := codepass.DeadStores(l.Func, l.Vars, tsPure)
@@ -96,13 +98,13 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 	}
 	p := newPrinter(false)
 	res := Body(l.Module, l.Func, p.bodyTarget(), st)
-	for _, v := range []*flow.Var{f.Start, f.Ctx} {
-		if v != nil && (st.Read[v.Name] || p.next[v.Name]) {
+	for _, v := range []string{a.Start, a.Ctx} {
+		if v != "" && (st.Read[v] || p.next[v]) {
 			panic(tsFlowUnsupported("the start or the context of a value-free rule"))
 		}
 	}
 	body := res.Text
-	if !f.Frame {
+	if !a.Frame {
 		inner := ""
 		if res.End {
 			inner = "return null;\n"
@@ -114,11 +116,9 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 		}
 	}
 	var decl []string
-	for _, v := range f.Vars {
-		if v.Entry {
-			continue
-		}
-		if v.Type == flow.TypeMark {
+	for _, v := range flow.VarsOf(fn) {
+		t := flow.TypeOf(v.Type)
+		if t == flow.TypeMark {
 			// A mark of the whole parser state is four variables, declared as far as they are read.
 			if ps := parts[v.Name]; ps != nil {
 				for i, part := range ps {
@@ -130,11 +130,11 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 			continue
 		}
 		if st.Read[v.Name] {
-			if typ := tsFlowType(v.Type); typ == "number" || typ == "boolean" {
+			if typ := tsFlowType(t); typ == "number" || typ == "boolean" {
 				// The initial value gives the type.
-				decl = append(decl, fmt.Sprintf("  let %s = %s;\n", v.Name, tsFlowZero(v.Type)))
+				decl = append(decl, fmt.Sprintf("  let %s = %s;\n", v.Name, tsFlowZero(t)))
 			} else {
-				decl = append(decl, fmt.Sprintf("  let %s: %s = %s;\n", v.Name, typ, tsFlowZero(v.Type)))
+				decl = append(decl, fmt.Sprintf("  let %s: %s = %s;\n", v.Name, typ, tsFlowZero(t)))
 			}
 		}
 	}

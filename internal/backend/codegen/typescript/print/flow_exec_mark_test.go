@@ -40,7 +40,7 @@ func TestFlowExecPrintsMarkInIfBody(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			g := &Generator{}
-			text, decls, _ := g.printTSFlowExec(markInIfFunc(resetInIf))
+			text, decls, _ := g.printTSFlowExec(emitted(t, markInIfFunc(resetInIf)))
 			for _, want := range []string{"x1Pos = p.pos", "x1Env = p.env", "x1Trail = p.trail.length", "p.reset(x1Pos, x1Env, x1Trail,"} {
 				if !strings.Contains(text, want) {
 					t.Errorf("the printed body has no %q:\n%s", want, text)
@@ -62,7 +62,7 @@ func TestFlowExecOmitsUnreadMarkInIfBody(t *testing.T) {
 	f := markInIfFunc(true)
 	then := f.Body[0].(*flow.If).Then
 	f.Body[0].(*flow.If).Then = then[:len(then)-1] // without the Reset
-	text, decls, _ := (&Generator{}).printTSFlowExec(f)
+	text, decls, _ := (&Generator{}).printTSFlowExec(emitted(t, f))
 	if strings.Contains(text, "x1") || strings.Contains(strings.Join(decls, ""), "x1") {
 		t.Errorf("an unread mark prints:\n%s%q", text, decls)
 	}
