@@ -12,7 +12,7 @@ import (
 // the unit that does not, as the charges in a row would, and reports one unit requested.
 func TestFlowExecPrintsStepRunAsUnits(t *testing.T) {
 	t.Parallel()
-	f := &flow.Func{Name: "steps", Fail: &flow.Label{Name: "fail"}, Body: []flow.Stmt{&flow.Step{}, &flow.Step{}, &flow.Step{}}}
+	f := &flow.Func{Name: "steps", Fail: &flow.Label{Name: "fail"}, Frame: true, Body: []flow.Stmt{&flow.Step{}, &flow.Step{}, &flow.Step{}}}
 	text, _, _ := (&Generator{}).printTSFlowExec(f)
 	if !strings.Contains(text, "p.spendUnits(3);") || strings.Contains(text, "p.spend(3)") {
 		t.Errorf("three charges in a row do not print as a run of three units:\n%s", text)
