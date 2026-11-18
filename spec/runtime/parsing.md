@@ -1253,7 +1253,23 @@ The conditions below use these terms.
   this way, from there, against the later alternatives of its choice. A body of a leader is evaluated only in the
   steps of its growth, and in the first step its own left calls read the
   failed seed, so for a unit of a leader this check follows only the paths
-  that examine the input before a left call of that leader, from there. A unit of another rule of the cycle is checked as an alternative that
+  that examine the input before a left call of that leader, from there.
+  For a unit of a leader that contains a scanning source, those paths must
+  also be committing against the later alternatives at their own start: no
+  later alternative can begin with a character with which one of the paths
+  can begin, unless the words of the paths exclude it. Here no shared call or
+  literal is removed first, and a path counts whether or not it contains a
+  scanning source. In a later step, the unit can fail after it read the seed,
+  and the step goes on to the later alternatives at the position where the
+  rule grows; when one of the paths matched there in the first step, the
+  first step did not evaluate them. A later alternative that consumed the
+  character there would evaluate, at the positions after it, what no step
+  evaluated before, as `"x" F` does in
+  `E = (E [x]* / "") "x" / "x" F; F = E ";"`: on `x` n+1 times and `;` n
+  times, each such step starts a growth of `E` at the next position, whose
+  own later step scans the rest of the `x` again, so the cost grows as n^2,
+  although the path `"x"` that goes on at the start contains no scanning
+  source and shares its literal with the later alternative. A unit of another rule of the cycle is checked as an alternative that
   is not growing also when a call that is not a left call, or one after
   something that can match nothing, evaluates its rule,
   directly or through left calls of rules of the cycle other than leaders:
@@ -1287,7 +1303,8 @@ The conditions below use these terms.
     step, that evaluation is the one of the first step after the same failure,
     except that later growing units read the seed, so unless one of them
     succeeds, the step ends where the first step ended, at the end of the
-    seed. Otherwise the check as an alternative that is not growing keeps the
+    seed. Otherwise the check as an alternative that is not growing, at the
+    start of the paths that go on there for a unit of a leader, keeps the
     later alternatives from consuming the character at the position where the
     rule grows, so the step again ends no farther than the seed. Either way
     the growth ends with the seed and the parser continues at its end;

@@ -32,11 +32,13 @@ rule R = R "b" / S "y" / &(!"q" R) S "x" / "c"`, ClassUnknown, "can make a left 
 rule Bs = "b" Bs / ""
 rule R = (R #cut "b" / S "y" / "c") / S "x"`, ClassUnknown, "passed after a left call", false},
 		// The cut in a recovery commits the choice around it. On "c" q^n (zy)^n the cost grows
-		// as n^2; without the #cut the grammar is linear.
+		// as n^2; without the #cut the grammar is linear (the control below). With the #cut the
+		// group is also a growing unit whose first step can match "c", with which the later
+		// alternative S "y" can begin, so the cut-left reason is not the only one.
 		{"cut in the base of a recovery", `rule S = S "w" / R "z"
-rule R = (R (#cut "b") #recover(skip="q") / "c") / S "y"`, ClassUnknown, "passed after a left call", true},
+rule R = (R (#cut "b") #recover(skip="q") / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
 		{"cut in the skip of a recovery", `rule S = S "w" / R "z"
-rule R = (R ("b") #recover(skip=#cut "q") / "c") / S "y"`, ClassUnknown, "passed after a left call", true},
+rule R = (R ("b") #recover(skip=#cut "q") / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
 		// The recovery attribute binds to the last item, so the group makes the left call part
 		// of the recovery's own base: the skip must see it.
 		{"cut in the skip of a recovery whose base makes the left call", `rule S = S "w" / R "z"
@@ -48,7 +50,7 @@ rule R = ("x"* R #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left ca
 		{"cut after a left call following a repetition in a capture", `rule S = S "w" / R "z"
 rule R = (v:("x"* R) #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
 		{"cut after a left call in one choice", `rule S = S "w" / R "z"
-rule R = (R #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left call", true},
+rule R = (R #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
 		{"lookahead in the base of a recovery", `rule S = S "w" / R "z"
 rule R = R "b" / S "y" / (!(!"q" R) "c") #recover(skip="q") / S "x"`, ClassUnknown, "can make a left call", false},
 		// Left calls nested in captures, discards and #atomic after parts that consume no
@@ -66,6 +68,10 @@ rule R = (v:(Q R) #cut "b" / "c") / S "y"
 rule Q = "w"?`, ClassUnknown, "passed after a left call", false},
 		{"left call after an option in a discard", `rule S = S "w" / R "z"
 rule R = (-("w"? R) #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
+		{"control: no cut in the recovery", `rule S = S "w" / R "z"
+rule R = (R ("b") #recover(skip="q") / "c") / S "y"`, ClassLinear, "", false},
+		{"control: no cut in one choice", `rule S = S "w" / R "z"
+rule R = (R "b" / "c") / S "y"`, ClassLinear, "", false},
 		{"control: cut before the left call", `rule S = S "w" / R "z"
 rule R = (#cut R "b" / "c") / "d" / S "y"`, ClassLinear, "", false},
 		{"control: cut after a call that is not a left call", `rule S = S "w" / "(" S #cut ")" / R "z"

@@ -1381,13 +1381,32 @@ func (k *classifier) committing(owner *unit, self []*cont, conts []contSpec) (bo
 		if !k.pathsContainSource(u) {
 			continue
 		}
-		fu := k.firstPaths(u, nil)
-		fc := k.firstPaths(c, func(r string) charset { return k.follow[r] })
-		if fu.intersects(fc) && !k.excludedByWord(u, c) {
+		if !k.disjointStart(u, c) {
 			return false, cs.what
 		}
 	}
 	return true, ""
+}
+
+// committingAtStart reports whether the first characters of the paths and of each continuation
+// are disjoint, or the words with which the paths begin exclude the continuation, at the start of
+// the paths themselves: unlike committing, it removes no shared call or literal and checks paths
+// that contain no scanning source too. It returns the first continuation that is neither.
+func (k *classifier) committingAtStart(self []*cont, conts []contSpec) (bool, string) {
+	for _, cs := range conts {
+		if !k.disjointStart(self, cs.paths) {
+			return false, cs.what
+		}
+	}
+	return true, ""
+}
+
+// disjointStart reports whether the first characters of the unit paths u and of the continuation
+// paths c are disjoint, or the words with which the paths of u begin exclude c.
+func (k *classifier) disjointStart(u, c []*cont) bool {
+	fu := k.firstPaths(u, nil)
+	fc := k.firstPaths(c, func(r string) charset { return k.follow[r] })
+	return !fu.intersects(fc) || k.excludedByWord(u, c)
 }
 
 // checkUnits checks condition 2: every unit that contains a scanning source is committing.
@@ -1516,6 +1535,14 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 	return paths, first, ok
 }
 
+// growStartOn makes the check of a growing unit of a leader compare the paths on which its first
+// step goes on at its start with the later alternatives of its choice at that start, without
+// removing shared calls and whether or not the paths contain a scanning source (committingAtStart).
+// It is on by default; the variable is a test hook, whose off setting is the check that skipped
+// the paths without a scanning source after the shared calls, which classified quadratic grammars
+// such as E = (E [x]* / "") "x" / "x" F; F = E ";" linear.
+var growStartOn = true
+
 // checkGrowingUnit checks a growing unit. In each step of a growth after the first its left call
 // reads the seed, and it examines the input from the end of the seed; its continuations are the
 // later growing alternatives and what follows the calls that start the growth.
@@ -1570,7 +1597,19 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 	// not grow, as an alternative that is not growing, after the leaders that it calls have grown.
 	switch {
 	case grower != "" && len(first) > 0:
-		if ok, what := k.committing(u, first, u.conts); !ok {
+		// The paths of first match at the position where the rule grows in the first step, and a
+		// later step that fails after its read of the seed goes on to the later alternatives
+		// there, which the first step did not evaluate when one of those paths matched. Unless
+		// the later alternatives cannot begin with what those paths begin with, they consume the
+		// character at that position and evaluate, at the positions after it, what no step
+		// evaluated before, as "x" F does in E = (E [x]* / "") "x" / "x" F; F = E ";", where each
+		// nested growth scans the rest of the x again. So the check removes no shared call and
+		// checks the paths whether or not they contain a scanning source themselves.
+		ok, what := k.committing(u, first, u.conts)
+		if ok && growStartOn {
+			ok, what = k.committingAtStart(first, u.conts)
+		}
+		if !ok {
 			u.nc, u.witness = true, what
 		}
 	case grower == "" && (len(first) > 0 || k.startsGrowth(u.rule)):
