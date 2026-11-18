@@ -39,10 +39,8 @@ func (g *Generator) startTSFlow() bool {
 		return false
 	}
 	// The generated TypeScript reads input through the library's peek and matches literals through
-	// matchLiteral: it has no in-place reads and no class tables.
-	g.Flow.Opts.GuardedClasses = false
-	g.Flow.Opts.InlineLiterals = 0
-	g.Flow.Opts.ClassTableRanges = 0
+	// matchLiteral: it has no in-place reads and no class tables, so it prints none of the forms of
+	// the Flow passes that need them (FlowTarget is empty).
 	if chosen := outlineNodes(g.Flow.M, g.Table == "rules"); len(chosen) > 0 {
 		g.Flow.Opts.Outline = func(n core.Node) bool { return chosen[n] }
 	}

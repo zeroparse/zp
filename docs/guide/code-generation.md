@@ -308,21 +308,22 @@ the table, is always an opt-in, and is never part of a profile. Two uses of the 
 - To measure an optimization with the same generator on both sides.
 
 The kind says what the optimization changes: a `pass` rewrites the parser before it is lowered, a `lowering` is an
-option of the lowering to the code, a `printer` is a choice of what the Go and TypeScript printers emit, and a `runtime`
+option of the lowering to the code, a `flow pass` replaces the form in which the lowered code matches a construct with
+another where the target language prints it, a `printer` is a choice of what the Go and TypeScript printers emit, and a `runtime`
 optimization is a control of the runtime structures the parser emits. The names are the following, by kind and by name within a kind, as the usage text lists them, and an unknown name in `-opt` or `-no-opt` is an error that lists them. No flag in this
 table changes output yet:
 
 | Name | Kind | Default | What it does and what it costs |
 | --- | --- | --- | --- |
-| `class-runs` | pass | on | Consecutive classes of a value-free sequence run as one (lean typed Go). One run against one test and call per class |
-| `guarded-classes` | pass | on | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers). Saves a second read and test of that character |
 | `guards` | pass | on | Skip an alternative when the next character cannot start it. One read of the next character per choice against the attempts of alternatives that cannot match, and a little more code per choice |
 | `scans` | pass | on | A value-free repetition of a class or of any character runs as a scan. A loop against the general repetition |
-| `terminals` | pass | on | Value-free choices of many literals and classes run as one program (lean typed Go). Data against code: the choice becomes a table in the parser instead of nested alternatives |
-| `class-tables` | lowering | off | Match a class of at least this many ranges through a membership table (lean typed Go); `-opt class-tables=5` is the measured choice, and 0 turns the tables off. Table data against code: about 3% smaller source, and about 1% slower parsing on the language grammars (3.7% on TypeScript). It is an opt-in |
 | `field-compare` | lowering | on | Typed Go compares fields in the actions and predicates of typed rules without boxing string fields. Fewer allocations, no cost |
-| `inline-literals` | lowering | 4 | Compare literals of at most four code points in place first; the number is the longest literal, and 0 turns it off. Code against calls: faster, with more code |
 | `text-dispatch` | lowering | on | A predicate that compares the text of a capture with literals tests them at once when the parse runs without limit controls. One test of the literals against a chain of comparisons, and the text is computed once |
+| `class-runs` | flow pass | on | Consecutive classes of a value-free sequence run as one (lean typed Go). One run against one test and call per class |
+| `class-tables` | flow pass | off | Match a class of at least this many ranges through a membership table (lean typed Go); `-opt class-tables=5` is the measured choice, and 0 turns the tables off. Table data against code: about 3% smaller source, and about 1% slower parsing on the language grammars (3.7% on TypeScript). It is an opt-in |
+| `guarded-classes` | flow pass | on | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers). Saves a second read and test of that character |
+| `inline-literals` | flow pass | 4 | Compare literals of at most four code points in place first; the number is the longest literal, and 0 turns it off. Code against calls: faster, with more code |
+| `terminals` | flow pass | on | Value-free choices of many literals and classes run as one program (lean typed Go). Data against code: the choice becomes a table in the parser instead of nested alternatives |
 | `literal-sharing` | printer | on | Emit one table for equal literals (Go; TypeScript also needs `ts-literal-sharing`). Smaller source against an indirection to the table |
 | `method-sharing` | printer | on | Emit one helper for generated bodies that are exactly equal (Go and TypeScript). Code against calls: smaller source, with a call where a body was |
 | `ts-literal-sharing` | printer | off | Share literal tables in TypeScript parsers. Smaller code against speed: a small cold parse measured about 1.5 times slower. It is an opt-in: turn it on with `-opt ts-literal-sharing` |

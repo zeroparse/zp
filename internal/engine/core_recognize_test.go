@@ -15,8 +15,8 @@ import (
 )
 
 // coreRecognizeCase builds the Core IR of the recognizer of the parser generated with Recognize,
-// with the passes that apply to its rule table recRules (no terminal programs and no class runs
-// there), verifying the module after each pass.
+// with the Core passes, verifying the module after each pass, and the decisions of the Flow passes on
+// the functions of its rule table recRules (no terminal programs and no class runs there).
 func coreRecognizeCase(name, mode string, g *print.Generator) (*coreGenCase, error) {
 	rec, err := recognizerOf(g)
 	if err != nil {
@@ -42,29 +42,13 @@ func coreRecognizeCase(name, mode string, g *print.Generator) (*coreGenCase, err
 			}
 		}
 	}
-	env := &corepass.Env{Mode: corepass.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, Flag: g.Opt.On, PrepareScans: prepare}
+	env := &corepass.Env{Flag: g.Opt.On, PrepareScans: prepare}
 	if _, err := corepass.Run(m, env, corepass.RunOptions{Dump: check}); err != nil {
 		return nil, err
 	}
 	c.m = m
+	c.flow = flowRecordOf(g).decisions(c.table, g)
 	return c, nil
-}
-
-// guardedClassCount returns the number of alternatives of the module whose first class is a guarded class.
-func guardedClassCount(m *core.Module) int {
-	n := 0
-	for _, r := range m.Rules {
-		core.Walk(r.Body, func(x core.Node) {
-			if ch, ok := x.(*core.Choice); ok {
-				for _, a := range ch.Alts {
-					if a.GuardedClass {
-						n++
-					}
-				}
-			}
-		})
-	}
-	return n
 }
 
 // recognizerGenModes are the modes in which the Core IR of the recognizers is frozen.
@@ -118,7 +102,7 @@ func TestCoreRecognizerDecisionsFrozen(t *testing.T) {
 				if !mode.opts.LimitControls {
 					want = 1
 				}
-				if got := guardedClassCount(c.m); got != want {
+				if got := len(c.flow.guarded); got != want {
 					t.Errorf("%s: %d guarded classes, want %d", gc.Name, got, want)
 				}
 			}

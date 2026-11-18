@@ -1,11 +1,15 @@
 package engine
 
 import (
+	"slices"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -21,9 +25,19 @@ type coreBreak struct {
 	apply func(c *coreGenCase, m *core.Module) bool
 }
 
+// flowBreak is a negative control of a decision of the Flow passes: it changes the decisions recorded
+// for a case (flowDecisions) as a broken pass would have made them.
+type flowBreak struct {
+	name    string
+	aspects []string
+	// apply changes the decisions of the case and reports whether it changed something.
+	apply func(c *coreGenCase, d *flowDecisions) bool
+}
+
 // checkCoreAspect compares the aspect of the Core IR with the frozen decisions over the corpus in
-// every mode, and runs the negative controls in the lean mode.
-func checkCoreAspect(t *testing.T, aspect string, breaks []coreBreak) {
+// every mode, and runs the negative controls in the lean mode: breaks on the Core passes, flows on
+// the decisions of the Flow passes.
+func checkCoreAspect(t *testing.T, aspect string, breaks []coreBreak, flows ...flowBreak) {
 	t.Helper()
 	for _, mode := range coreGenModes {
 		var n coreDecisionCounts
@@ -61,6 +75,49 @@ func checkCoreAspect(t *testing.T, aspect string, breaks []coreBreak) {
 		}
 		t.Logf("%s: %d of %d broken modules caught", b.name, caught, broken)
 	}
+	for _, b := range flows {
+		broken, caught := 0, 0
+		for _, c := range coreGenCases(t, coreGenModes[0], nil) {
+			c.flow = c.flow.clone()
+			if !b.apply(c, c.flow) {
+				continue
+			}
+			broken++
+			errs := compareCoreDecisions(c, &coreDecisionCounts{})
+			found := false
+			for _, a := range b.aspects {
+				found = found || len(coreAspectErrors(errs, a)) > 0
+			}
+			if found {
+				caught++
+			} else {
+				t.Errorf("%s: %s: not caught", b.name, c.name)
+			}
+		}
+		if broken == 0 {
+			t.Errorf("%s: no case to break", b.name)
+		}
+		t.Logf("%s: %d of %d broken cases caught", b.name, caught, broken)
+	}
+}
+
+// firstKey returns a key of the set, the first in the order of its rule and of the expression's
+// text, or false if it is empty.
+func firstKey[V any](set map[flowKey]V) (flowKey, bool) {
+	var keys []flowKey
+	for k := range set {
+		keys = append(keys, k)
+	}
+	if len(keys) == 0 {
+		return flowKey{}, false
+	}
+	slices.SortFunc(keys, func(x, y flowKey) int {
+		if x.rule != y.rule {
+			return x.rule - y.rule
+		}
+		return strings.Compare(syntaxfmt.FormatExpr(x.e), syntaxfmt.FormatExpr(y.e))
+	})
+	return keys[0], true
 }
 
 // firstNode returns the first node of the module for which f reports true, with an accessor of
@@ -185,46 +242,38 @@ func TestCoreGuardsFrozen(t *testing.T) {
 			a.Guard = &g
 			return true
 		}},
-		{"guarded class dropped", "guards", []string{"guard"}, func(c *coreGenCase, m *core.Module) bool {
-			a := firstAlt(c, m, func(a *core.Alt) bool { return a.GuardedClass })
-			if a == nil {
-				return false
-			}
-			a.GuardedClass = false
-			return true
-		}},
-	})
+	}, flowBreak{"guarded class dropped", []string{"guard"}, func(c *coreGenCase, d *flowDecisions) bool {
+		k, ok := firstKey(d.guarded)
+		delete(d.guarded, k)
+		return ok
+	}})
 }
 
-// TestCoreTerminalsFrozen compares the Terminals of the Core passes with the frozen ones,
-// and checks that a terminal pass that leaves one out is
+// TestCoreTerminalsFrozen compares the terminal regions that the Flow passes match as one program
+// with the frozen ones, and checks that a pass that leaves one out or matches a spurious one is
 // caught.
 func TestCoreTerminalsFrozen(t *testing.T) {
-	checkCoreAspect(t, "terminal", []coreBreak{
-		{"terminal left out", "terminals", []string{"terminal"}, func(c *coreGenCase, m *core.Module) bool {
-			n, set := firstNode(m, func(n core.Node) bool { _, ok := n.(*core.Terminal); return ok })
-			if n == nil {
-				return false
-			}
-			set(n.(*core.Terminal).Body)
-			return true
+	checkCoreAspect(t, "terminal", nil,
+		flowBreak{"terminal left out", []string{"terminal"}, func(c *coreGenCase, d *flowDecisions) bool {
+			k, ok := firstKey(d.terminals)
+			delete(d.terminals, k)
+			return ok
 		}},
-		{"spurious terminal", "terminals", []string{"terminal"}, func(c *coreGenCase, m *core.Module) bool {
-			for _, r := range m.Rules {
-				if !print.CoreLocalRule(r) {
+		flowBreak{"spurious terminal", []string{"terminal"}, func(c *coreGenCase, d *flowDecisions) bool {
+			for _, r := range c.m.Rules {
+				if !flowlower.LocalRule(r) {
 					continue
 				}
 				if seq := valueFreeSeq(r.Body, func(n core.Node) bool {
 					_, ok := c.origin[n]
 					return ok
 				}); seq != nil {
-					seq.Items[0] = &core.Terminal{Body: seq.Items[0]}
+					d.terminals[flowKey{r.ID, c.origin[seq.Items[0]]}] = true
 					return true
 				}
 			}
 			return false
-		}},
-	})
+		}})
 }
 
 // leadingLit returns the literal that n is or that begins the sequence n.
@@ -236,12 +285,9 @@ func leadingLit(n core.Node) *core.Lit {
 	return l
 }
 
-// valueFreeSeq returns the first value-free sequence of n outside Terminals that begins with a
-// literal for which written reports true.
+// valueFreeSeq returns the first value-free sequence of n that begins with a literal for which
+// written reports true.
 func valueFreeSeq(n core.Node, written func(core.Node) bool) *core.Seq {
-	if _, ok := n.(*core.Terminal); ok {
-		return nil
-	}
 	if s, ok := n.(*core.Seq); ok && !s.Attrs().Want && len(s.Items) > 0 {
 		if _, ok := s.Items[0].(*core.Lit); ok && written(s.Items[0]) {
 			return s
@@ -255,35 +301,15 @@ func valueFreeSeq(n core.Node, written func(core.Node) bool) *core.Seq {
 	return nil
 }
 
-// TestCoreClassRunsFrozen compares the class runs of the Core passes with the frozen ones,
-// and checks that a class-run pass that leaves one out is caught.
+// TestCoreClassRunsFrozen compares the class runs that the Flow passes make with the frozen ones,
+// and checks that a pass that leaves one out is caught.
 func TestCoreClassRunsFrozen(t *testing.T) {
-	checkCoreAspect(t, "class runs", []coreBreak{
-		{"class run left out", "class-runs", []string{"class runs"}, func(c *coreGenCase, m *core.Module) bool {
-			var seq *core.Seq
-			at := -1
-			for _, r := range m.Rules {
-				core.Walk(r.Body, func(n core.Node) {
-					if s, ok := n.(*core.Seq); ok && seq == nil {
-						for i, it := range s.Items {
-							if _, ok := it.(*core.ClassRun); ok && at < 0 {
-								seq, at = s, i
-							}
-						}
-					}
-				})
-			}
-			if seq == nil {
-				return false
-			}
-			var items []core.Node
-			for _, cl := range seq.Items[at].(*core.ClassRun).Classes {
-				items = append(items, &core.ClassNode{Class: cl})
-			}
-			seq.Items = append(seq.Items[:at:at], append(items, seq.Items[at+1:]...)...)
-			return true
-		}},
-	})
+	checkCoreAspect(t, "class runs", nil,
+		flowBreak{"class run left out", []string{"class runs"}, func(c *coreGenCase, d *flowDecisions) bool {
+			k, ok := firstKey(d.runs)
+			delete(d.runs, k)
+			return ok
+		}})
 }
 
 // TestCoreScansFrozen compares the scans of the Core passes with the frozen ones, and
