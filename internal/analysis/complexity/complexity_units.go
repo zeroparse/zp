@@ -1489,7 +1489,18 @@ func (k *classifier) checkUnits() {
 // one of the leader grower: in the first step of its growth its own left calls read the failed
 // seed and end their paths, while a left call of another leader can match and is a path of first.
 func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, first []*cont, ok bool) {
+	return k.leftPathsOf(start, cycle, grower, false)
+}
+
+// leftPathsOf is leftPaths, and with member set the alternative is one of a rule that is not a
+// leader (grower is empty). The growth of any leader of the cycle that reaches the rule can
+// evaluate it, so when the cycle has more than one leader a left call of a leader can be one of
+// another leader than the one that grows, which starts a growth of its own there and can match in
+// the first step: it is a path of first, and the unit is checked as an alternative that is not
+// growing on all its paths.
+func (k *classifier) leftPathsOf(start *cont, cycle int, grower string, member bool) (paths, first []*cont, ok bool) {
 	ok = true
+	others := member && k.leaderCount(cycle) > 1
 	budget := leadBudget
 	var visit func(p *cont, depth int)
 	visit = func(p *cont, depth int) {
@@ -1547,7 +1558,7 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 				}
 				if k.an.Leaders[e.Name] {
 					paths = append(paths, rest)
-					if grower != "" && e.Name != grower {
+					if grower != "" && e.Name != grower || others {
 						first = append(first, p)
 					}
 					return
@@ -1568,6 +1579,17 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 	return paths, first, ok
 }
 
+// leaderCount returns the number of leaders of the cycle.
+func (k *classifier) leaderCount(cycle int) int {
+	n := 0
+	for _, r := range k.rules {
+		if k.an.Leaders[r.Name] && k.an.Cyclic[r.Name] && k.an.Cycle[r.Name] == cycle {
+			n++
+		}
+	}
+	return n
+}
+
 // growStartOn makes the check of a growing unit of a leader compare the paths on which its first
 // step goes on at its start with the later alternatives of its choice at that start, without
 // removing shared calls and whether or not the paths contain a scanning source (committingAtStart).
@@ -1584,7 +1606,7 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 	if k.an.Leaders[u.rule] {
 		grower = u.rule
 	}
-	self, first, ok := k.leftPaths(u.self[0], u.cycle, grower)
+	self, first, ok := k.leftPathsOf(u.self[0], u.cycle, grower, grower == "")
 	if !ok {
 		k.reason(u.rule, u.pos, "the growing alternative at %s contains %s, and the classifier cannot follow its left calls",
 			at(u.rule, u.pos), u.src)
