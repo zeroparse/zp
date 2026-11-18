@@ -134,6 +134,10 @@ func r
 			if err := flow.Verify(f); err != nil {
 				t.Fatal(err)
 			}
+			// The function is written at the Flow stage of Code IR, which verifies.
+			if _, _, err := Emit(f); err != nil {
+				t.Fatal(err)
+			}
 			if got := flow.String(f); got != strings.TrimPrefix(c.want, "\n") {
 				t.Errorf("got\n%s\nwant\n%s", got, strings.TrimPrefix(c.want, "\n"))
 			}

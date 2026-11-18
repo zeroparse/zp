@@ -113,6 +113,7 @@ const (
 	OpShapeCapture    = "flow.shapeCapture"
 	OpScopeValue      = "flow.scopeValue"
 	OpAttachCaptures  = "flow.attachCaptures"
+	OpAttachFrame     = "flow.attachFrame"
 	OpMarkState       = "flow.markState"
 	OpMarkPos         = "flow.markPos"
 	OpNewFrame        = "flow.newFrame"
@@ -178,9 +179,8 @@ type List bool
 // Room is the immediate of flow.newVals: the room of the new list.
 type Room int
 
-// Attach is the immediate of flow.attachCaptures: the slot names of the scope, and whether the
-// captures are the values of a frame (the last argument) instead of variables (the arguments after
-// the first two).
+// Attach is the immediate of flow.attachCaptures and flow.attachFrame: the slot names of the scope,
+// and whether the captures are the values of a frame (flow.attachFrame) instead of variables.
 type Attach struct {
 	Names *Names
 	Frame bool
@@ -399,7 +399,7 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 		Contract: "Reports whether the code point ch is in the class.", Laws: []string{pure}}), "the class (*core.Class)", immOf[*core.Class]())
 	withImm(op(&code.Op{Name: OpGuardFails, Params: []code.Param{P("ch", runeT), P("more", b)}, Results: []code.Type{b},
 		Contract: "Reports that the guard skips its alternative: the character that more (there is one) and ch describe cannot begin it, and the nesting limit allows the guard's depth of calls.",
-		Laws: []string{pure}}), "the guard (*core.First)", immOf[*core.First]())
+		Laws:     []string{pure}}), "the guard (*core.First)", immOf[*core.First]())
 	withImm(op(&code.Op{Name: OpAtAnchor, Results: []code.Type{b}, Reads: pos,
 		Contract: "Reports whether the position is at the anchor.", Laws: []string{pure}}), "the anchor (core.AnchorKind)", immOf[core.AnchorKind]())
 	withImm(op(&code.Op{Name: OpSkipTerminal, Results: []code.Type{b}, Reads: pos, Writes: []string{State, Pos}, NoReturn: true, Cost: per(QTerminal),
@@ -409,7 +409,7 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 		Contract: "Matches the classes of the run in turn and reports whether they matched; on a match the position moves past them."}),
 		"the class run (*core.ClassRun)", immOf[*core.ClassRun]())
 	withImm(op(&code.Op{Name: OpCallRule, Results: []code.Type{value, b}, Reads: all, Writes: all, NoReturn: true,
-		Cost: code.Cost{Const: 1, Terms: []code.CostTerm{{Coef: 1, Quantity: QBody}}},
+		Cost:     code.Cost{Const: 1, Terms: []code.CostTerm{{Coef: 1, Quantity: QBody}}},
 		Contract: "Calls the rule from the Operators Rule level. Its results are the rule's value and whether it matched; on a match the position is the end of the rule's match, on failure it is unchanged."}),
 		"the rule and the level (RuleCall)", immOf[RuleCall]())
 	withImm(op(&code.Op{Name: OpCallOutline, Results: []code.Type{value, b}, Reads: all, Writes: all, NoReturn: true, Cost: per(QBody),
@@ -452,9 +452,12 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 		"the shape (core.Shape)", immOf[core.Shape]())
 	withImm(op(&code.Op{Name: OpAttachCaptures, Params: []code.Param{P("x", value), P("start", i), P("caps", value)}, Variadic: true,
 		Results: []code.Type{value}, Reads: pos, Writes: []string{State},
-		Contract: `Returns x, matched from start, with the captures of the scope attached: the values caps of the
-scope's slots, or with Frame the values of the frame that is the only element of caps.`}),
+		Contract: "Returns x, matched from start, with the captures of the scope attached: the values caps of the scope's slots."}),
 		"the names and the source of the captures (Attach)", immOf[Attach]())
+	withImm(op(&code.Op{Name: OpAttachFrame, Params: []code.Param{P("x", value), P("start", i), P("f", frame)},
+		Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+		Contract: "Returns x, matched from start, with the captures of the scope attached: the values of the frame f."}),
+		"the names, with Frame set (Attach)", immOf[Attach]())
 	withImm(op(&code.Op{Name: OpMarkState, Results: []code.Type{mark}, Reads: all, Writes: []string{State},
 		Contract: "Returns a mark of the parser state, which flow.reset returns to: the position, and the variable environment, the capture trail and the recovered errors as the immediate names them."}),
 		"the parts the mark restores (StateMark)", immOf[StateMark]())
@@ -491,4 +494,54 @@ scope's slots, or with Frame the values of the frame that is the only element of
 	op(&code.Op{Name: OpCtxFinish, Params: []code.Param{P("c", ctx), P("x", value)}, Results: []code.Type{value}, Writes: []string{State},
 		Contract: "Returns the value x of an action finished in the context c."})
 	return ops
+}
+
+// Attrs are the attributes of a function of grammar code at the Flow stage, which code.Func.Attrs
+// holds.
+type Attrs struct {
+	Rule *core.Rule
+	// Vars are the locals that are variables of the function, in the order they were made; the
+	// other locals are its entry variables Start, Result and Ctx (empty where it has none), which
+	// the caller declares.
+	Vars               []string
+	Start, Result, Ctx string
+	// Fail is the label of the block that the body leaves on failure.
+	Fail string
+	// Cut is the local of a framed function's cut flag, or empty.
+	Cut string
+	// Binds, Frame, Node, Budget, Document, Traced and Entered are as in Func.
+	Binds, Frame, Node, Budget, Document, Traced, Entered bool
+}
+
+// AttrsOf returns the Flow attributes of f, or nil.
+func AttrsOf(f *code.Func) *Attrs {
+	a, _ := f.Attrs.(*Attrs)
+	return a
+}
+
+// TypeOf returns the type of a variable of the Code IR type t at the Flow stage.
+func TypeOf(t code.Type) Type {
+	switch t.Kind {
+	case code.KInt:
+		return TypeInt
+	case code.KBool:
+		return TypeBool
+	}
+	for i, n := range typeNames {
+		if n == t.Handle {
+			return Type(i)
+		}
+	}
+	panic("flow: no variable type " + t.String())
+}
+
+// CodeType returns the Code IR type of a variable of the type t.
+func CodeType(t Type) code.Type {
+	switch t {
+	case TypeInt:
+		return code.TInt
+	case TypeBool:
+		return code.TBool
+	}
+	return code.THandle(t.String())
 }
