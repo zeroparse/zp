@@ -1,4 +1,4 @@
-package lower_test
+package execlower_test
 
 import (
 	"flag"
@@ -12,7 +12,7 @@ import (
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
+	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
@@ -23,7 +23,7 @@ var update = flag.Bool("update", false, "update golden files")
 // printed programs. A term that Term does not lower is listed by the kinds that it holds and Term
 // does not lower.
 func TestTermDumpGolden(t *testing.T) {
-	paths, err := filepath.Glob("../../../../testdata/grammars/*/*.zp")
+	paths, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
 	if err != nil || len(paths) == 0 {
 		t.Fatalf("no grammars: %v", err)
 	}
@@ -77,7 +77,7 @@ func dumpTerms(t *testing.T, m *core.Module) string {
 			return
 		}
 		fmt.Fprintf(&b, "## %s %s\n", rule, what)
-		l, err := lower.Term(x, lower.TermOptions{})
+		l, err := execlower.Term(x, execlower.TermOptions{})
 		if err != nil {
 			t.Fatalf("%s %s: %v", rule, what, err)
 		}
@@ -124,14 +124,14 @@ func TestTermRejectsMalformedTerms(t *testing.T) {
 		&core.Lambda{Body: one},
 		&core.Binary{Op: "+", L: one, R: &core.Lambda{Params: []string{"e"}, Body: one}},
 	} {
-		if l, err := lower.Term(x, lower.TermOptions{}); err == nil || l != nil {
+		if l, err := execlower.Term(x, execlower.TermOptions{}); err == nil || l != nil {
 			t.Errorf("Term(%s) = %v, %v; want an error", core.ActionExprString(x), l, err)
 		}
 	}
-	if _, err := lower.Term(&core.Builtin{Func: "len", Args: []core.ActionExpr{one}}, lower.TermOptions{}); err != nil {
+	if _, err := execlower.Term(&core.Builtin{Func: "len", Args: []core.ActionExpr{one}}, execlower.TermOptions{}); err != nil {
 		t.Errorf("Term(len(1)): %v", err)
 	}
-	if _, err := lower.Term(mapped, lower.TermOptions{}); err != nil {
+	if _, err := execlower.Term(mapped, execlower.TermOptions{}); err != nil {
 		t.Errorf("Term(%s): %v", core.ActionExprString(mapped), err)
 	}
 }
@@ -172,7 +172,7 @@ func TestTermLowersNoFunctionValue(t *testing.T) {
 		{"a built-in that is not one", b("apply", list, lambda("e")), false},
 		{"a lambda alone", lambda("e"), false},
 	} {
-		l, err := lower.Term(c.term, lower.TermOptions{})
+		l, err := execlower.Term(c.term, execlower.TermOptions{})
 		if (err == nil) != c.ok || (err == nil) != (l != nil) {
 			t.Errorf("%s: Term(%s) = %v, %v; want ok %v", c.name, core.ActionExprString(c.term), l, err, c.ok)
 		}

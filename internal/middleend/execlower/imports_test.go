@@ -1,4 +1,4 @@
-package lower_test
+package execlower_test
 
 import (
 	"os/exec"

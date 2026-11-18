@@ -10,16 +10,16 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 	irc "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
-	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/middleend/execlower"
 )
 
 // Go rules printed from Exec IR.
 //
 // The rules of every table (the typed table, the Node
 // table and the recognizer, and the stream body), in the ordinary form, with budget controls and
-// with a Document, are lowered from Flow IR to Exec IR (lower.Flow) and
+// with a Document, are lowered from Flow IR to Exec IR (execlower.Flow) and
 // printed by the Go backend of Exec IR (print.Body), which prints the compositions of the library
 // too. The primitives of Flow IR are transitional operations there, which the flow printer prints as
 // it prints them from Flow IR. The printed code is the same as from Flow IR.
@@ -35,8 +35,8 @@ func (p *flowPrinter) execBody(f *flow.Func) BodyResult {
 }
 
 // execPrint lowers the Flow IR function f to Exec IR and prints its body with the flow printer p.
-func (p *flowPrinter) execPrint(f *flow.Func) (*lower.Lowered, BodyResult) {
-	l, err := lower.Flow(f)
+func (p *flowPrinter) execPrint(f *flow.Func) (*execlower.Lowered, BodyResult) {
+	l, err := execlower.Flow(f)
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, p.g.Table, err))
 	}
@@ -47,7 +47,7 @@ func (p *flowPrinter) execPrint(f *flow.Func) (*lower.Lowered, BodyResult) {
 // execVars checks the variables of the printed body res of the lowered function l: a variable that
 // the body names but that is not declared is an internal error (Generator.FlowErr). Hooks.FlowVarsMutant and Hooks.FlowVarsMutantUses instead leave variables
 // undeclared, without the check.
-func (p *flowPrinter) execVars(l *lower.Lowered, res *BodyResult) {
+func (p *flowPrinter) execVars(l *execlower.Lowered, res *BodyResult) {
 	if p.g.hooks.FlowVarsMutant {
 		// The locals that the body names stay undeclared.
 		for _, v := range l.Vars {
@@ -146,7 +146,7 @@ func otherReads(b *code.Block) map[string]bool {
 func (p *flowPrinter) execTarget() *Target {
 	return &Target{
 		Reg: func(name string) string {
-			return map[string]string{lower.Pos: "p.Pos", lower.Cut: "p.Cut"}[name]
+			return map[string]string{execlower.Pos: "p.Pos", execlower.Cut: "p.Cut"}[name]
 		},
 		Handle: func(name string) string { return name },
 		Op: func(c *code.Call, args []string) string {

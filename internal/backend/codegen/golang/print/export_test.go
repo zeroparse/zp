@@ -1,8 +1,8 @@
 package print
 
 import (
-	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/middleend/codepass"
+	"zeroparse.dev/zp/internal/middleend/execlower"
 )
 
 // The tests of package gogen_test compile grammars with the engine, which imports packages that
@@ -27,7 +27,7 @@ func ExecVarsError(text string, dead ...string) error {
 	for _, v := range dead {
 		res.Stores.Dead[v] = true
 	}
-	(&flowPrinter{g: g}).execVars(&lower.Lowered{}, res)
+	(&flowPrinter{g: g}).execVars(&execlower.Lowered{}, res)
 	return g.FlowErr
 }
 

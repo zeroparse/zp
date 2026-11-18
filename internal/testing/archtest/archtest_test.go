@@ -152,16 +152,16 @@ func TestNegativeControls(t *testing.T) {
 	// with -lib embed.
 	addEdge(mod("core/impl"), mod("internal/runtime/nodes"))
 	// Rule 2: the Code IR base imports a dialect.
-	addEdge(mod("internal/ir/code"), mod("internal/ir/flow"))
+	addEdge(mod("internal/ir/code"), mod("internal/ir/code/flow"))
 	// Rule 2: the front end imports the analysis layer.
 	addEdge(mod("internal/frontend/desugar"), mod("internal/analysis/lint"))
 	// Rule 2: an analysis package imports two dialects.
-	addEdge(mod("internal/analysis/lint"), mod("internal/ir/flow"))
+	addEdge(mod("internal/analysis/lint"), mod("internal/ir/code/flow"))
 	addEdge(mod("internal/analysis/lint"), mod("internal/ir/code/exec"))
 	// Rule 2, one edge for each clause.
 	addEdge(mod("internal/pass"), mod("internal/ir/core"))                      // internal/pass
 	addEdge(mod("internal/ir/core"), mod("internal/diagnostic"))                // internal/ir/** imports only ...
-	addEdge(mod("internal/ir/flow"), mod("internal/ir/code/exec"))              // code/flow
+	addEdge(mod("internal/ir/code/flow"), mod("internal/ir/code/exec"))         // code/flow
 	addEdge(mod("internal/ir/code/exec"), mod("internal/ir/code/exec/compose")) // code/exec
 	addEdge(mod("internal/ir/code/exec/compose"), mod("internal/ir/core"))      // the packages under code/exec
 	addEdge(mod("bench/report"), mod("internal/lsp/zpls"))                      // internal/lsp
@@ -173,7 +173,7 @@ func TestNegativeControls(t *testing.T) {
 	// Rule 2: the grammar source operations import the engine, which links the compiler.
 	addEdge(mod("pkg/grammar"), mod("internal/engine"))
 	// Rule 2: edges against the arrows of the layer graph (TestLayerGraph checks every pair).
-	addEdge(mod("internal/frontend/desugar"), mod("internal/ir/exec/lower"))
+	addEdge(mod("internal/frontend/desugar"), mod("internal/middleend/execlower"))
 	addEdge(mod("internal/backend/closure"), mod("internal/analysis/lint"))
 	// Packages at paths that no current package has: an Action dialect package and the public VM.
 	fake := func(path, target string) {
@@ -191,7 +191,7 @@ func TestNegativeControls(t *testing.T) {
 	// code/flow may not.
 	addEdge(mod("internal/ir/code/exec/compose"), mod("internal/fakeaction"))
 	addEdge(mod("internal/ir/code/exec"), mod("internal/fakeaction"))
-	addEdge(mod("internal/ir/flow"), mod("internal/fakeaction"))
+	addEdge(mod("internal/ir/code/flow"), mod("internal/fakeaction"))
 	// Rule 2: the Action dialect imports another dialect.
 	addEdge(mod("internal/fakeaction"), mod("internal/ir/code/exec"))
 	// Rule 1a: a generated parser imports a third-party package.
@@ -221,12 +221,12 @@ func TestNegativeControls(t *testing.T) {
 			"\tchain: codegen/go/lib -> internal/runtime/vm\n",
 			"generated parser (-lib import)", "internal/bench/parsers/json,", "internal/frontend/parser/zpparser,"}},
 		{"rule 1a: core/impl -> internal/runtime/nodes", []string{"codegen/go/lib -> core/impl -> internal/runtime/nodes\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
-		{"rule 2: internal/ir/code -> internal/ir/flow", []string{"\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n"}},
+		{"rule 2: internal/ir/code -> internal/ir/code/flow", []string{"\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n"}},
 		{"rule 2: internal/frontend/desugar -> internal/analysis/lint", []string{"the front end layer does not import the analysis layer (internal/frontend/desugar -> internal/analysis/lint)"}},
 		{"rule 2: internal/analysis/lint -> dialects exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/analysis/lint)"}},
 		{"rule 2: internal/pass -> internal/ir/core", []string{"internal/pass imports nothing of the module (internal/pass -> internal/ir/core)"}},
 		{"rule 2: internal/ir/core -> internal/diagnostic", []string{"internal/ir/** imports only internal/ir/**, internal/pass, internal/cancel and pkg/grammar/ast (internal/ir/core -> internal/diagnostic)"}},
-		{"rule 2: internal/ir/flow -> internal/ir/code/exec", []string{"within internal/ir, code/flow imports only code and ir/core (internal/ir/code/flow -> internal/ir/code/exec)"}},
+		{"rule 2: internal/ir/code/flow -> internal/ir/code/exec", []string{"within internal/ir, code/flow imports only code and ir/core (internal/ir/code/flow -> internal/ir/code/exec)"}},
 		{"rule 2: internal/ir/code/exec -> internal/ir/code/exec/compose", []string{"within internal/ir, code/exec imports only code (internal/ir/code/exec -> internal/ir/code/exec/compose)"}},
 		{"rule 2: internal/ir/code/exec/compose -> internal/ir/core", []string{"within internal/ir, the packages under code/exec import only code, code/exec and code/action (internal/ir/code/exec/compose -> internal/ir/core)"}},
 		{"rule 2: bench/report -> internal/lsp/zpls", []string{"only cmd/** and internal/testing/** import internal/lsp/** (bench/report -> internal/lsp/zpls)"}},
@@ -235,12 +235,12 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: pkg/grammar/ast -> core", []string{"the grammar AST imports only the standard library (pkg/grammar/ast -> "}},
 		{"rule 2: pkg/grammar/ast -> example.org/thirdparty", []string{"the grammar AST imports only the standard library"}},
 		{"rule 2: pkg/grammar -> internal/engine", []string{"pkg/grammar imports only pkg/grammar/ast, internal/frontend/parser, internal/syntax/fmt and pkg/bytecode (pkg/grammar -> "}},
-		{"rule 2: internal/frontend/desugar -> internal/ir/exec/lower", []string{"the front end layer does not import the middle end layer"}},
+		{"rule 2: internal/frontend/desugar -> internal/middleend/execlower", []string{"the front end layer does not import the middle end layer"}},
 		{"rule 2: internal/backend/closure -> internal/analysis/lint", []string{"the back end layer does not import the analysis layer"}},
 		{"rule 1a: codegen/go/lib -> internal/fakevm", []string{"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not pkg/runtime/vm"}},
 		{"rule 2: internal/ir/code/exec -> internal/fakeaction", []string{"within internal/ir, code/exec imports only code (internal/ir/code/exec -> internal/ir/code/action)"}},
-		{"rule 2: internal/ir/flow -> internal/fakeaction", []string{"within internal/ir, code/flow imports only code and ir/core"}},
-		{"rule 2: internal/ir/flow -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/ir/code/flow)"}},
+		{"rule 2: internal/ir/code/flow -> internal/fakeaction", []string{"within internal/ir, code/flow imports only code and ir/core"}},
+		{"rule 2: internal/ir/code/flow -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/ir/code/flow)"}},
 		{"rule 2: internal/fakeaction -> internal/ir/code/exec", []string{"within internal/ir, code/action imports only code (internal/ir/code/action -> internal/ir/code/exec)"}},
 		{"rule 1a: internal/bench/parsers/json -> example.org/thirdparty", []string{"a generated parser imports no third-party package"}},
 		{"internal/unplaced: no row of layout places the package", nil},
