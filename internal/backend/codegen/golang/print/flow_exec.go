@@ -8,6 +8,7 @@ import (
 
 	goast "go/ast"
 
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -15,14 +16,13 @@ import (
 	"zeroparse.dev/zp/internal/middleend/execlower"
 )
 
-// Go rules printed from Exec IR.
+// Go rules printed from the Exec stage of Code IR.
 //
-// The rules of every table (the typed table, the Node
-// table and the recognizer, and the stream body), in the ordinary form, with budget controls and
-// with a Document, are lowered from Flow IR to Exec IR (execlower.Flow) and
-// printed by the Go backend of Exec IR (print.Body), which prints the compositions of the library
-// too. The primitives of Flow IR are transitional operations there, which the flow printer prints as
-// it prints them from Flow IR. The printed code is the same as from Flow IR.
+// The rules of every table (the typed table, the Node table and the recognizer, and the stream
+// body), in the ordinary form, with budget controls and with a Document, are written at the Flow
+// stage and converted to the Exec stage (common.LowerFlow), and printed by the Go backend of the Exec
+// stage (print.Body), which prints the compositions of the library too. The primitives of grammar
+// code are printed in place by the flow printer (flowPrinter.op).
 
 // execBody prints the body of the Flow IR function f from Exec IR with the flow printer p, for a
 // function that is printed whatever its body: it checks the variables (execVars) and counts the
@@ -36,7 +36,7 @@ func (p *flowPrinter) execBody(f *flow.Func) BodyResult {
 
 // execPrint lowers the Flow IR function f to Exec IR and prints its body with the flow printer p.
 func (p *flowPrinter) execPrint(f *flow.Func) (*execlower.Lowered, BodyResult) {
-	l, err := execlower.Flow(f)
+	l, err := common.LowerFlow(f)
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, p.g.Table, err))
 	}
@@ -141,33 +141,23 @@ func otherReads(b *code.Block) map[string]bool {
 	return out
 }
 
-// execTarget returns the Go implementation of the operations of lowered grammar code: the flow
-// printer prints each primitive as it does from Flow IR.
+// execTarget returns the Go implementation of the primitive operations of grammar code at the Exec
+// stage, which the flow printer prints in place (flowPrinter.op).
 func (p *flowPrinter) execTarget() *Target {
 	return &Target{
 		Reg: func(name string) string {
 			return map[string]string{execlower.Pos: "p.Pos", execlower.Cut: "p.Cut"}[name]
 		},
 		Handle: func(name string) string { return name },
-		Op: func(c *code.Call, args []string) string {
-			switch x := c.Imm.(type) {
-			case flow.Reg:
-				return p.expr(&flow.Read{R: x}) + " = " + args[0]
-			case flow.Expr:
-				return p.expr(x)
-			case flow.Stmt:
-				return p.leafStmt(x)
-			}
-			panic(fmt.Sprintf("gogen: operation %s without a Flow IR primitive", c.Callee))
-		},
-		Stmt: func(c *code.Call, _ []string, dst []string, _ bool) (string, bool) {
-			switch x := c.Imm.(type) {
-			case *flow.Peek:
+		Op:     p.op,
+		Stmt: func(c *code.Call, args []string, dst []string, _ bool) (string, bool) {
+			switch execlower.FlowOp(c.Callee) {
+			case flow.OpPeek:
 				return strings.TrimSuffix(p.peekText(dst[0], dst[1], dst[2]), "\n"), true
-			case *flow.Append:
-				return p.leafStmt(x), true
-			case *flow.Eval:
-				v := p.expr(x)
+			case flow.OpAppend:
+				return p.appendText(c, args), true
+			case flow.OpEval:
+				v := p.op(c, args)
 				pre := p.pre
 				p.pre = ""
 				assign := strings.Join(dst, ", ") + " = " + v
@@ -178,32 +168,16 @@ func (p *flowPrinter) execTarget() *Target {
 			}
 			return "", false
 		},
-		Negate: func(c *code.Call, _ []string) (string, bool) {
-			if x, ok := c.Imm.(flow.Expr); ok {
-				return p.not(x), true
-			}
-			return "", false
-		},
-		Prec: goPrec,
+		Negate: func(c *code.Call, args []string) (string, bool) { return p.negate(c, args), true },
+		Prec:   goPrec,
 		Pure: func(c *code.Call) bool {
-			switch c.Imm.(type) {
-			case *flow.Str, *flow.MarkPos, *flow.Read:
+			switch execlower.FlowOp(c.Callee) {
+			case flow.OpStr, flow.OpMarkPos, flow.OpEnv, flow.OpFrame:
 				return true
 			}
 			return false
 		},
 	}
-}
-
-// leafStmt returns the text of the primitive statement s as the flow printer writes it at a
-// reachable point, without its final newline.
-func (p *flowPrinter) leafStmt(s flow.Stmt) string {
-	prev := p.b
-	p.b = strings.Builder{}
-	p.stmt(s)
-	text := p.b.String()
-	p.b = prev
-	return strings.TrimSuffix(text, "\n")
 }
 
 // goPrec returns the precedence of the loosest binary operator of the Go expression text outside

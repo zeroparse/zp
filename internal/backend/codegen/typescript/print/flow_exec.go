@@ -4,34 +4,30 @@ import (
 	"fmt"
 	"strings"
 
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/execlower"
 )
 
-// Rules printed from Exec IR.
+// Rules printed from the Exec stage of Code IR.
 //
-// The functions of Flow IR are lowered to Exec
-// IR (execlower.Flow) and printed by print.Body, which prints their structure and decides which
-// assignments stay (codepass.DeadStores). The primitives of Flow IR are transitional operations there,
-// which tsFlowPrinter prints as it prints them from Flow IR. Before printing (tsRuns), charges in a
-// row become one spend, the end of an expectation record followed by the merge of its expectations
-// one unisolateMerge, and the test of the call an If's Init makes the If's condition, as the flow
-// printer prints them, so that the locals they no longer read are not declared. The printed code
-// is the same as from Flow IR.
+// The functions of grammar code are written at the Flow stage and converted to the Exec stage
+// (common.LowerFlow), and printed by print.Body, which prints their structure and decides which
+// assignments stay (codepass.DeadStores). The primitives are printed in place by tsFlowPrinter.
+// Before printing (tsRuns), charges in a row become one spend, the end of an expectation record
+// followed by the merge of its expectations one unisolateMerge, and the test of the call an If's Init
+// makes the If's condition, so that the locals they no longer read are not declared.
 
 // tsSpendRun is the immediate operand of a call of tsSpendOp: the number of charges in a row.
 type tsSpendRun struct{ n int }
-
-// tsMergeIsolated is the immediate operand of a call of tsMergeOp: the end of the expectation record
-// whose expectations merge into the enclosing record.
-type tsMergeIsolated struct{ u *flow.Unisolate }
 
 // tsFailed is the immediate operand of a call of tsFailedOp: the variable of the bool that the Init
 // of the If sets.
 type tsFailed struct{ flag string }
 
+// The primitive operations of the TypeScript target that tsRuns makes.
 const (
 	tsSpendOp  = "ts.spend"
 	tsMergeOp  = "ts.unisolateMerge"
@@ -40,46 +36,42 @@ const (
 
 // printTSFlowExec is printTSFlow from Exec IR.
 func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
-	l, err := execlower.Flow(f)
+	l, err := common.LowerFlow(f)
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, g.Table, err))
 	}
 	g.ExecPasses(l)
 	g.ExecFuncs++
 	tsRuns(l)
-	vars := map[string]*flow.Var{}
+	vars := map[string]bool{}
 	for _, v := range append(append([]*flow.Var(nil), f.Vars...), f.Start, f.Result, f.Ctx) {
 		if v != nil {
-			vars[v.Name] = v
+			vars[v.Name] = true
 		}
 	}
-	pure := func(c *code.Call) bool {
-		x, ok := c.Imm.(flow.Expr)
-		return ok && tsFlowPure(x)
-	}
-	st := codepass.DeadStores(l.Func, l.Vars, func(x code.Expr) bool { return Pure(x, pure) })
-	reads := map[*flow.Var]bool{}
-	for name, v := range vars {
+	st := codepass.DeadStores(l.Func, l.Vars, tsPure)
+	reads := map[string]bool{}
+	for name := range vars {
 		if st.Read[name] {
-			reads[v] = true
+			reads[name] = true
 		}
 	}
 	// The parts of the marks that are read: the reads of a pass do not depend on them, but which
 	// parts a mark saves does.
-	parts := map[*flow.Var]*[4]*flow.Var{}
-	partReads := map[*flow.Var]bool{}
+	parts := map[string]*[4]string{}
+	partReads := map[string]bool{}
 	newPrinter := func(dry bool) *tsFlowPrinter {
-		r := map[*flow.Var]bool{}
+		r := map[string]bool{}
 		for v := range reads {
 			r[v] = true
 		}
 		for v := range partReads {
 			r[v] = true
 		}
-		return &tsFlowPrinter{g: g, parts: parts, dry: dry, reads: r, next: map[*flow.Var]bool{}, assigned: map[*flow.Var]bool{}, used: map[*flow.Label]bool{}, labels: map[*flow.Label]string{}}
+		return &tsFlowPrinter{g: g, parts: parts, dry: dry, reads: r, next: map[string]bool{}, labels: map[string]string{}}
 	}
-	partsRead := func(p *tsFlowPrinter) map[*flow.Var]bool {
-		out := map[*flow.Var]bool{}
+	partsRead := func(p *tsFlowPrinter) map[string]bool {
+		out := map[string]bool{}
 		for _, ps := range parts {
 			for _, part := range ps {
 				if p.next[part] {
@@ -91,7 +83,7 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 	}
 	for i := 0; ; i++ {
 		p := newPrinter(true)
-		Body(l.Module, l.Func, p.bodyTarget(l, vars), st)
+		Body(l.Module, l.Func, p.bodyTarget(), st)
 		next := partsRead(p)
 		same := len(next) == len(partReads)
 		for v := range next {
@@ -103,9 +95,9 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 		partReads = next
 	}
 	p := newPrinter(false)
-	res := Body(l.Module, l.Func, p.bodyTarget(l, vars), st)
+	res := Body(l.Module, l.Func, p.bodyTarget(), st)
 	for _, v := range []*flow.Var{f.Start, f.Ctx} {
-		if v != nil && (st.Read[v.Name] || p.next[v]) {
+		if v != nil && (st.Read[v.Name] || p.next[v.Name]) {
 			panic(tsFlowUnsupported("the start or the context of a value-free rule"))
 		}
 	}
@@ -116,7 +108,7 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 			inner = "return null;\n"
 		}
 		if res.Exited {
-			body = fmt.Sprintf("%s: {\n%s%s}\nreturn undefined;\n", p.label(f.Fail), indent(body), indent(inner))
+			body = fmt.Sprintf("%s: {\n%s%s}\nreturn undefined;\n", p.label(flow.AttrsOf(l.Func).Fail), indent(body), indent(inner))
 		} else {
 			body += inner
 		}
@@ -128,7 +120,7 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 		}
 		if v.Type == flow.TypeMark {
 			// A mark of the whole parser state is four variables, declared as far as they are read.
-			if ps := parts[v]; ps != nil {
+			if ps := parts[v.Name]; ps != nil {
 				for i, part := range ps {
 					if p.next[part] {
 						decl = append(decl, fmt.Sprintf("  let %s%s = %s;\n", v.Name, tsMarkParts[i], tsMarkZero[i]))
@@ -154,27 +146,17 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 // and the condition of an If that tests the call of its Init with a call of tsFailedOp.
 func tsRuns(l *execlower.Lowered) {
 	m := l.Module
-	m.AddOp(&code.Op{Name: tsFailedOp, Component: execlower.Component, Results: []code.Type{code.TBool}, Reads: []string{execlower.Component},
-		Kind: code.OpTransitional, Imm: "the bool the Init sets",
-		Contract: "Reports that the call of the Init of the If failed: that the bool it sets is false."})
-	m.AddOp(&code.Op{Name: tsSpendOp, Component: execlower.Component, Writes: []string{execlower.Component}, NoReturn: true,
-		Kind: code.OpTransitional, Imm: "the number of charges", Contract: "Charges a step as many times as Imm says."})
-	// The merge reads what the end of the record reads: one operation for each operation of the end.
-	merges := map[string]string{}
-	merge := func(end *code.Op) string {
-		if name, ok := merges[end.Name]; ok {
-			return name
-		}
-		name := tsMergeOp
-		if len(merges) > 0 {
-			name = fmt.Sprintf("%s.%d", tsMergeOp, len(merges)+1)
-		}
-		merges[end.Name] = name
-		m.AddOp(&code.Op{Name: name, Component: execlower.Component, Params: end.Params,
-			Reads: []string{execlower.Component}, Writes: []string{execlower.Component}, NoReturn: true, Kind: code.OpTransitional,
-			Imm: "the end of the expectation record", Contract: "Ends the expectation record and merges its expectations into the enclosing record."})
-		return name
+	op := func(o *code.Op) {
+		o.Component, o.Dialect, o.Kind = execlower.Component, execlower.Dialect, code.OpPrimitive
+		m.AddOp(o)
 	}
+	op(&code.Op{Name: tsFailedOp, Results: []code.Type{code.TBool}, Reads: []string{execlower.Component},
+		Imm: "the bool the Init sets", Contract: "Reports that the call of the Init of the If failed: that the bool it sets is false."})
+	op(&code.Op{Name: tsSpendOp, Writes: []string{execlower.Component}, NoReturn: true,
+		Imm: "the number of charges", Contract: "Charges a step as many times as Imm says."})
+	op(&code.Op{Name: tsMergeOp, Params: []code.Param{code.P("m", code.THandle(flow.TExpMark))},
+		Reads: []string{execlower.Component}, Writes: []string{execlower.Component}, NoReturn: true,
+		Contract: "Ends the expectation record m and merges its expectations into the enclosing record."})
 	var block func(ss []code.Stmt) []code.Stmt
 	block = func(ss []code.Stmt) []code.Stmt {
 		var out []code.Stmt
@@ -190,7 +172,7 @@ func tsRuns(l *execlower.Lowered) {
 			}
 			if i+1 < len(ss) {
 				if end, ok := tsMergedRecord(ss[i], ss[i+1]); ok {
-					out = append(out, &code.Do{Call: &code.Call{Callee: merge(m.Op(end.Callee)), Args: end.Args, Imm: tsMergeIsolated{end.Imm.(*flow.Unisolate)}}})
+					out = append(out, &code.Do{Call: &code.Call{Callee: tsMergeOp, Args: end.Args}})
 					i++
 					continue
 				}
@@ -218,18 +200,13 @@ func tsRuns(l *execlower.Lowered) {
 }
 
 // tsTestedFlag reports whether the If s tests that the call of its Init fails, which prints as one
-// condition (tsTestedCall), and returns the variable of the bool that the Init sets.
+// condition (tsFlowPrinter.testedCond), and returns the variable of the bool that the Init sets.
 func tsTestedFlag(s *code.If) (string, bool) {
 	if s.Init == nil || len(s.Init.Dst) != 2 || len(s.Init.Values) != 1 {
 		return "", false
 	}
 	c, ok := s.Init.Values[0].(*code.Call)
-	if !ok {
-		return "", false
-	}
-	switch c.Imm.(type) {
-	case *flow.MatchLit, *flow.CallRule, *flow.CallOutline:
-	default:
+	if !ok || !tsTwoResults(execlower.FlowOp(c.Callee)) {
 		return "", false
 	}
 	flag := s.Init.Dst[1]
@@ -246,11 +223,7 @@ func tsTestedFlag(s *code.If) (string, bool) {
 // tsStep reports whether s charges a step.
 func tsStep(s code.Stmt) bool {
 	d, ok := s.(*code.Do)
-	if !ok {
-		return false
-	}
-	_, ok = d.Call.Imm.(*flow.Step)
-	return ok
+	return ok && execlower.FlowOp(d.Call.Callee) == flow.OpStep
 }
 
 // tsMergedRecord reports whether a and b end an expectation record and merge its expectations into
@@ -261,32 +234,24 @@ func tsMergedRecord(a, b code.Stmt) (*code.Call, bool) {
 		return nil, false
 	}
 	c, ok := set.Values[0].(*code.Call)
-	if !ok {
-		return nil, false
-	}
-	if _, ok := c.Imm.(*flow.Unisolate); !ok {
+	if !ok || execlower.FlowOp(c.Callee) != flow.OpUnisolate {
 		return nil, false
 	}
 	do, ok := b.(*code.Do)
-	if !ok {
-		return nil, false
-	}
-	m, ok := do.Call.Imm.(*flow.MergeExpected)
-	if !ok {
+	if !ok || execlower.FlowOp(do.Call.Callee) != flow.OpMergeExpected {
 		return nil, false
 	}
 	far, ids := set.Dst[0], set.Dst[1]
-	f, fok := m.Far.(*flow.Use)
-	e, eok := m.Exps.(*flow.Use)
-	if !fok || !eok || far.Reg || ids.Reg || far.Name == "" || ids.Name == "" || f.V.Name != far.Name || e.V.Name != ids.Name {
+	f, fok := do.Call.Args[0].(*code.Local)
+	e, eok := do.Call.Args[1].(*code.Local)
+	if !fok || !eok || far.Reg || ids.Reg || far.Name == "" || ids.Name == "" || f.Name != far.Name || e.Name != ids.Name {
 		return nil, false
 	}
 	return c, true
 }
 
-// bodyTarget returns the printing of the operations of the lowered function l, whose variables by
-// name are vars, by the printer p.
-func (p *tsFlowPrinter) bodyTarget(l *execlower.Lowered, vars map[string]*flow.Var) *BodyTarget {
+// bodyTarget returns the printing of the primitives of a lowered function by the printer p.
+func (p *tsFlowPrinter) bodyTarget() *BodyTarget {
 	// at runs print at the point that dead tells and returns what it writes.
 	at := func(dead bool, print func()) string {
 		prev, prevDead := p.b, p.dead
@@ -296,114 +261,83 @@ func (p *tsFlowPrinter) bodyTarget(l *execlower.Lowered, vars map[string]*flow.V
 		p.b, p.dead = prev, prevDead
 		return text
 	}
-	set := func(s *code.Set) (*flow.Set, bool) {
+	// primitive returns the call of a primitive that s assigns, if it assigns one.
+	primitive := func(s *code.Set) (*code.Call, bool) {
 		if len(s.Values) != 1 {
 			return nil, false
 		}
 		c, ok := s.Values[0].(*code.Call)
-		if !ok {
-			return nil, false
-		}
-		x, ok := c.Imm.(flow.Expr)
-		if !ok {
-			return nil, false
-		}
-		fs := &flow.Set{X: []flow.Expr{x}}
-		for _, d := range s.Dst {
-			switch {
-			case d.Reg && d.Name == execlower.Pos:
-				fs.Dst = append(fs.Dst, flow.RegPos)
-			case d.Reg:
-				fs.Dst = append(fs.Dst, flow.RegCut)
-			case d.Name == "":
-				fs.Dst = append(fs.Dst, &flow.Discard{})
-			default:
-				fs.Dst = append(fs.Dst, vars[d.Name])
-			}
-		}
-		return fs, true
+		return c, ok && execlower.FlowOp(c.Callee) != ""
 	}
 	return &BodyTarget{
-		Reg: func(name string) string {
-			if name == execlower.Cut {
-				return "p.cut"
-			}
-			return "p.pos"
-		},
-		Label: func(name string) string { return p.label(l.Labels[name]) },
-		Op: func(c *code.Call, dead bool) string {
-			x, ok := c.Imm.(flow.Expr)
-			if !ok {
-				panic(fmt.Sprintf("tsgen: operation %s without a Flow IR expression", c.Callee))
-			}
+		Reg:   p.reg,
+		Label: p.label,
+		Op: func(c *code.Call, args func() []string, dead bool) string {
 			var s string
-			at(dead, func() { s = p.expr(x) })
+			at(dead, func() { s = p.expr(c, args) })
 			return s
 		},
 		Do: func(c *code.Call, args func() []string, dead bool) string {
-			switch x := c.Imm.(type) {
-			case tsSpendRun:
-				return at(dead, func() { p.write(tsSpend(x.n)) })
-			case tsMergeIsolated:
+			switch c.Callee {
+			case tsSpendOp:
+				return at(dead, func() { p.write(tsSpend(c.Imm.(tsSpendRun).n)) })
+			case tsMergeOp:
 				return at(dead, func() {
-					p.read(x.u.Mark)
-					p.write(fmt.Sprintf("p.unisolateMerge(%s);\n", p.expr(x.u.Mark)))
+					p.read(c.Args...)
+					p.write(fmt.Sprintf("p.unisolateMerge(%s);\n", args()[0]))
 				})
-			case flow.Reg:
+			}
+			switch execlower.FlowOp(c.Callee) {
+			case flow.OpSetEnv, flow.OpSetFrame:
 				// The assignment of a register that holds a handle.
 				if dead {
 					return ""
 				}
-				return p.reg(x) + " = " + args()[0] + ";\n"
-			case flow.Stmt:
-				return at(dead, func() { p.stmt(x) })
-			}
-			panic(fmt.Sprintf("tsgen: operation %s without a Flow IR statement", c.Callee))
-		},
-		Set: func(s *code.Set, init, dead bool) (string, bool) {
-			if len(s.Values) == 1 {
-				if c, ok := s.Values[0].(*code.Call); ok {
-					if x, ok := c.Imm.(flow.Stmt); ok {
-						// A primitive statement that sets variables (Peek, Append).
-						return at(dead, func() { p.stmt(x) }), true
-					}
+				reg := "p.env"
+				if execlower.FlowOp(c.Callee) == flow.OpSetFrame {
+					reg = "p.frame"
 				}
+				return reg + " = " + args()[0] + ";\n"
 			}
-			fs, ok := set(s)
+			return at(dead, func() { p.stmtOp(c, args) })
+		},
+		Set: func(s *code.Set, expr func(code.Expr) string, init, dead bool) (string, bool) {
+			c, ok := primitive(s)
 			if !ok {
 				return "", false
+			}
+			switch execlower.FlowOp(c.Callee) {
+			case flow.OpPeek:
+				return at(dead, func() { p.peek(s) }), true
+			case flow.OpAppend:
+				return at(dead, func() {
+					p.stmtOp(c, func() []string { return []string{expr(c.Args[0]), expr(c.Args[1])} })
+				}), true
 			}
 			if init {
 				var text string
-				at(dead, func() { text = p.setText(fs, true) })
+				at(dead, func() { text = p.setText(s, expr, true) })
 				return text, true
 			}
-			return at(dead, func() { p.set(fs) }), true
+			return at(dead, func() { p.set(s, expr) }), true
 		},
-		Test: func(s *code.If, dead bool) (string, bool) {
-			fs, ok := set(s.Init)
+		Test: func(s *code.If, expr func(code.Expr) string, dead bool) (string, bool) {
+			c, ok := primitive(s.Init)
 			if !ok {
 				return "", false
 			}
-			c, ok := s.Cond.(*code.Call)
-			if !ok {
+			cond, ok := s.Cond.(*code.Call)
+			if !ok || cond.Callee != tsFailedOp {
 				return "", false
 			}
-			failed, ok := c.Imm.(tsFailed)
-			if !ok {
-				return "", false
+			v := ""
+			if d := s.Init.Dst[0]; !d.Reg {
+				v = d.Name
 			}
-			call, v, ok := tsTestedCall(&flow.If{Init: fs, Cond: &flow.Not{X: &flow.Use{V: vars[failed.flag]}}})
-			if !ok {
-				panic("tsgen: an If whose test does not print as one condition")
-			}
-			var cond string
-			at(dead, func() { cond = p.testedCond(call, v) })
-			return cond, true
+			var text string
+			at(dead, func() { text = p.testedCond(c, v, expr) })
+			return text, true
 		},
-		Pure: func(c *code.Call) bool {
-			x, ok := c.Imm.(flow.Expr)
-			return ok && tsFlowPure(x)
-		},
+		Pure: tsFlowPure,
 	}
 }

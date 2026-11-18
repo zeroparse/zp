@@ -103,7 +103,7 @@ func (e *emitter) label(x *flow.Label) string {
 	}
 	if name == "" {
 		e.anon++
-		name = fmt.Sprintf("loop.%d", e.anon)
+		name = flow.UnnamedLabel(e.anon)
 	}
 	e.labels[x] = name
 	return name

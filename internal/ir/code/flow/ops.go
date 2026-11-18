@@ -2,6 +2,8 @@ package flow
 
 import (
 	"reflect"
+	"strconv"
+	"strings"
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
@@ -582,3 +584,13 @@ func CodeType(t Type) code.Type {
 	}
 	return code.THandle(t.String())
 }
+
+// unnamedPrefix begins the labels that the lowering gives the loops it leaves unnamed.
+const unnamedPrefix = "loop."
+
+// UnnamedLabel returns the label of the n-th loop that the lowering leaves unnamed.
+func UnnamedLabel(n int) string { return unnamedPrefix + strconv.Itoa(n) }
+
+// Unnamed reports whether the label is one that the lowering leaves unnamed (UnnamedLabel), which a
+// printer numbers instead of naming.
+func Unnamed(label string) bool { return strings.HasPrefix(label, unnamedPrefix) }
