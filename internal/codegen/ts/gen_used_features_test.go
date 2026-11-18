@@ -3,11 +3,13 @@ package tsgen_test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/codegen"
@@ -143,15 +145,10 @@ func tsSpentUnits(t *testing.T, node string, cases []codegentest.Case, opts code
 }
 
 // tsSpentHarness parses the inputs of inputs.json with the parsers g<i>.ts in a worker with a large
-// stack and prints, per parse, the compute units charged and the error, if any.
-const tsSpentHarness = `import { Worker, isMainThread, workerData } from "node:worker_threads";
-import { readFileSync } from "node:fs";
-
-if (isMainThread) {
-  const w = new Worker(new URL(import.meta.url), { workerData: { inputs: process.argv[2] }, resourceLimits: { stackSizeMb: 1024 } });
-  w.on("error", (e) => { console.error(e); process.exit(1); });
-  w.on("exit", (code) => process.exit(code));
-} else {
+// stack and prints, per parse, the compute units charged and the error, if any. The worker hands
+// its output to the main thread, which writes it and lets the process end by itself: ending it
+// with process.exit when the worker exits can cut off output that a slow reader has not yet drained.
+const tsSpentHarness = tsWorkerMain + `
   const inputs = JSON.parse(readFileSync(workerData.inputs, "utf8"));
   const lines = [];
   for (let i = 0; i < inputs.length; i++) {
@@ -176,6 +173,58 @@ if (isMainThread) {
       }
     }
   }
-  process.stdout.write(lines.join("\n") + "\n");
+  parentPort.postMessage(lines.join("\n") + "\n");
 }
 `
+
+// tsWorkerMain is the start of a harness that runs its body in a worker thread with a large stack:
+// the main thread writes what the worker posts to the standard output, and sets the exit status
+// instead of calling process.exit, so that the output is written out before the process ends. The
+// body continues the else branch and ends it.
+const tsWorkerMain = `import { Worker, isMainThread, workerData, parentPort } from "node:worker_threads";
+import { readFileSync } from "node:fs";
+
+if (isMainThread) {
+  const w = new Worker(new URL(import.meta.url), { workerData: { inputs: process.argv[2] }, resourceLimits: { stackSizeMb: 1024 } });
+  w.on("message", (s) => process.stdout.write(s));
+  w.on("error", (e) => { console.error(e); process.exitCode = 1; });
+  w.on("exit", (code) => { if (code !== 0) process.exitCode = code; });
+} else {`
+
+// TestTSWorkerMainDrainsSlowReader runs a worker that posts about 400 KB to a reader that starts
+// reading late, far beyond the capacity of a pipe, and checks that every line arrives.
+func TestTSWorkerMainDrainsSlowReader(t *testing.T) {
+	t.Parallel()
+	node := codegentest.RequireNode(t)
+	const lines = 20000
+	dir := t.TempDir()
+	harness := tsWorkerMain + `
+  const lines = [];
+  for (let i = 0; i < ` + fmt.Sprint(lines) + `; i++) lines.push("spent " + i + " \"\"");
+  parentPort.postMessage(lines.join("\n") + "\n");
+}
+`
+	if err := os.WriteFile(filepath.Join(dir, "spent.mjs"), []byte(harness), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(node, "spent.mjs", "unused.json")
+	cmd.Dir = dir
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(500 * time.Millisecond)
+	data, err := io.ReadAll(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Wait(); err != nil {
+		t.Fatalf("node: %v", err)
+	}
+	if got := strings.Count(string(data), "\n"); got != lines {
+		t.Errorf("got %d lines from a reader that started late, want %d", got, lines)
+	}
+}
