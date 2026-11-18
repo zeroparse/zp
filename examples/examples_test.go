@@ -8,17 +8,17 @@
 package examples_test
 
 import (
-	"flag"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
-var update = flag.Bool("update", false, "update golden files")
+var update = codegentest.UpdateGoldens // -update: enginetest links codegentest, which defines the flag
 
 func TestExamples(t *testing.T) {
 	grammars, err := filepath.Glob("*/*.zp")
