@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	igen "zeroparse.dev/zp/internal/codegen"
+	igen "zeroparse.dev/zp/internal/backend/codegen/common"
 )
 
 // listGenerated returns the files below dir, relative to it and with slashes.

@@ -1162,7 +1162,7 @@ in non-test sources, and include comments.
 | Implementation | Files | Non-test lines |
 |:--|:--|--:|
 | Engine core, shared by closures and both VMs | `internal/engine/state/*.go` | 7,142 |
-| Engine backends (dispatch only) | `internal/engine/closure/*.go`, `internal/engine/vm/vm.go`, `ivm.go` | 1,218 + 2,015 |
+| Engine backends (dispatch only) | `internal/backend/closure/*.go`, `internal/engine/vm/vm.go`, `ivm.go` | 1,218 + 2,015 |
 | Engine Document API | `internal/engine/document/*.go` | 1,784 |
 | Generated Go library | `codegen/go/lib/*.go` | 11,475 |
 | TypeScript library | `codegen/ts/lib/*.ts` | 4,444 |

@@ -3,7 +3,7 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegen/go"
+	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -211,7 +211,7 @@ func TestCoreTerminalsFrozen(t *testing.T) {
 		}},
 		{"spurious terminal", "terminals", []string{"terminal"}, func(c *coreGenCase, m *core.Module) bool {
 			for _, r := range m.Rules {
-				if !gogen.CoreLocalRule(r) {
+				if !goprint.CoreLocalRule(r) {
 					continue
 				}
 				if seq := valueFreeSeq(r.Body, func(n core.Node) bool {
@@ -341,7 +341,7 @@ func TestCoreScans(t *testing.T) {
 	if !ok {
 		t.Fatal("does not compile")
 	}
-	g := &gogen.Generator{Prog: prog.Static(), Table: "trules"}
+	g := &goprint.Generator{Prog: prog.Static(), Table: "trules"}
 	m, err := g.TypedCore(nil)
 	if err != nil {
 		t.Fatal(err)

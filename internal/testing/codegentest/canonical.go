@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/codegen/go"
+	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
 )
 
 // CanonicalValueSource is the Go code of the generated program that turns a typed value into the
@@ -250,7 +250,7 @@ func canonicalTyped(v any) (any, error) {
 // a "_" to a field whose name is a library method name or the name of the embedded span, so a single
 // trailing "_" over such a name is removed. Other names are returned as they are.
 func goFieldName(goName string) string {
-	if base, ok := strings.CutSuffix(goName, "_"); ok && gogen.LibMethodNames[base] {
+	if base, ok := strings.CutSuffix(goName, "_"); ok && goprint.LibMethodNames[base] {
 		return base
 	}
 	return goName

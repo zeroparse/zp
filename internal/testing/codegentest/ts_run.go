@@ -18,8 +18,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegen/ts"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	tsprint "zeroparse.dev/zp/internal/backend/codegen/typescript/print"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
@@ -45,7 +45,7 @@ var (
 // it: the three files in one scope (runtime, types, parser), without the imports between them. Test
 // hooks append code that reaches the library's internals and parsers' own names this way. The tests
 // of the real file split (gents_split_test.go) compile and run the files as they are written.
-func GenerateTSBundle(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+func GenerateTSBundle(g *grammar.Grammar, opts common.GenOptions) ([]byte, error) {
 	files, err := GenerateTS(g, opts)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func GenerateTSBundle(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, erro
 }
 
 // GenerateTSBundleRaw is GenerateTSBundle with the options as given.
-func GenerateTSBundleRaw(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+func GenerateTSBundleRaw(g *grammar.Grammar, opts common.GenOptions) ([]byte, error) {
 	files, err := GenerateTSRaw(g, opts)
 	if err != nil {
 		return nil, err
@@ -63,13 +63,13 @@ func GenerateTSBundleRaw(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, e
 }
 
 // bundleTS joins the generated files into one module.
-func bundleTS(files []codegen.GeneratedFile) []byte {
+func bundleTS(files []common.GeneratedFile) []byte {
 	contents := map[string]string{}
 	for _, f := range files {
 		contents[f.Path] = string(f.Content)
 	}
 	var b strings.Builder
-	b.WriteString(tsgen.TsGeneratedHeader())
+	b.WriteString(tsprint.TsGeneratedHeader())
 	b.WriteString("/* eslint-disable */\n\n")
 	for _, name := range []string{"lib.ts", "types.ts", "parser.ts"} {
 		src, ok := contents[name]
@@ -196,30 +196,30 @@ func DiffAt(a, b string) int {
 // RunTSGrammarScript generates the TypeScript parser of g, runs script in Node with it and returns the output.
 func RunTSGrammarScript(t *testing.T, g *grammar.Grammar, script string) string {
 	t.Helper()
-	return RunTSGrammarScriptWith(t, g, script, codegen.GenOptions{Start: "main"})
+	return RunTSGrammarScriptWith(t, g, script, common.GenOptions{Start: "main"})
 }
 
 // RunTSGrammarScriptWith is RunTSGrammarScript with the generator options opts.
-func RunTSGrammarScriptWith(t *testing.T, g *grammar.Grammar, script string, opts codegen.GenOptions) string {
+func RunTSGrammarScriptWith(t *testing.T, g *grammar.Grammar, script string, opts common.GenOptions) string {
 	t.Helper()
 	return runTSGrammarScript(t, g, script, opts, GenerateTSBundle)
 }
 
 // RunTSGrammarScriptRaw is RunTSGrammarScriptWith with the options as given: the parser records
 // expectations only with opts.Expectations.
-func RunTSGrammarScriptRaw(t *testing.T, g *grammar.Grammar, script string, opts codegen.GenOptions) string {
+func RunTSGrammarScriptRaw(t *testing.T, g *grammar.Grammar, script string, opts common.GenOptions) string {
 	t.Helper()
 	return runTSGrammarScript(t, g, script, opts, GenerateTSBundleRaw)
 }
 
 // RunTSGrammarScriptBundle is RunTSGrammarScriptWith with the bundle that bundle generates, such as
 // a patched GenerateTSBundle.
-func RunTSGrammarScriptBundle(t *testing.T, g *grammar.Grammar, script string, opts codegen.GenOptions, bundle func(*grammar.Grammar, codegen.GenOptions) ([]byte, error)) string {
+func RunTSGrammarScriptBundle(t *testing.T, g *grammar.Grammar, script string, opts common.GenOptions, bundle func(*grammar.Grammar, common.GenOptions) ([]byte, error)) string {
 	t.Helper()
 	return runTSGrammarScript(t, g, script, opts, bundle)
 }
 
-func runTSGrammarScript(t *testing.T, g *grammar.Grammar, script string, opts codegen.GenOptions, bundle func(*grammar.Grammar, codegen.GenOptions) ([]byte, error)) string {
+func runTSGrammarScript(t *testing.T, g *grammar.Grammar, script string, opts common.GenOptions, bundle func(*grammar.Grammar, common.GenOptions) ([]byte, error)) string {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("runs generated code")
@@ -252,7 +252,7 @@ func runTSGrammarScript(t *testing.T, g *grammar.Grammar, script string, opts co
 // TSParsersCorpus generates a TypeScript parser for each case with opts, runs them with the Node
 // executable node (and checks their types with tsc if there is one), and compares the results on the
 // inputs of the case, in positions of code points and of bytes, with those of the engine.
-func TSParsersCorpus(t *testing.T, node string, cases []Case, opts codegen.GenOptions) {
+func TSParsersCorpus(t *testing.T, node string, cases []Case, opts common.GenOptions) {
 	t.Helper()
 	for _, m := range TSParsersMismatches(t, node, cases, opts, nil) {
 		t.Error(m)
@@ -279,7 +279,7 @@ func RequireNode(t *testing.T) string {
 // from the engine's instead of failing on them, after changing the source of each generated parser
 // with mutate (when not nil; the types are then not checked). TSParsersCorpus fails on them; a
 // negative control passes a mutation and requires some.
-func TSParsersMismatches(t *testing.T, node string, cases []Case, opts codegen.GenOptions, mutate func(string) string) []string {
+func TSParsersMismatches(t *testing.T, node string, cases []Case, opts common.GenOptions, mutate func(string) string) []string {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
@@ -427,7 +427,7 @@ func TSParsersMismatches(t *testing.T, node string, cases []Case, opts codegen.G
 }
 
 // TSBundles generates a TypeScript parser for each case with opts, concurrently, for TSOutputs.
-func TSBundles(t *testing.T, cases []Case, opts codegen.GenOptions) [][]byte {
+func TSBundles(t *testing.T, cases []Case, opts common.GenOptions) [][]byte {
 	t.Helper()
 	opts.Start, opts.Recognize = "main", true
 	bundles := make([][]byte, len(cases))
@@ -460,7 +460,7 @@ func TSBundles(t *testing.T, cases []Case, opts codegen.GenOptions) [][]byte {
 // each with mutate (when not nil), runs them with the Node executable node on the inputs of the
 // case as TSParsersCorpus does, and returns the results, one JSON line per input, unit and form.
 // Negative controls compare the results of a mutated library with those of the library as it is.
-func TSParsersOutputs(t *testing.T, node string, cases []Case, opts codegen.GenOptions, mutate func(string) string) string {
+func TSParsersOutputs(t *testing.T, node string, cases []Case, opts common.GenOptions, mutate func(string) string) string {
 	t.Helper()
 	return TSOutputs(t, node, cases, TSBundles(t, cases, opts), mutate)
 }

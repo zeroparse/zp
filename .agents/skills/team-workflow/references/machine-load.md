@@ -8,7 +8,7 @@ quiet machine. So runs fall into four classes.
 |:--|:--|
 | Docs, spec, site and skill checks (`cd site && go test -count=1 ./...`, the site build and check), `go vet`, deterministic count or charge probes that measure no time | Directly, throttled: `nice -n 15 env GOMAXPROCS=4 ...`. Never queue them. |
 | Targeted package tests while developing | Throttled through the test slots: `.agents/scripts/testslot.sh nice -n 15 env GOMAXPROCS=4 go test -p 2 -run '<tests>' -short <pkgs>` |
-| Whole packages of the large test suites (engine, codegen and complexity tests), the root suite, `-tags zp_long`, `go generate ./internal/codegen/... ./bench`, `hack/test-alpha-parsers.sh`, `hack/test-reference-tags.sh`, the engine and full gates, and any other heavy run that measures no time | Only through the queue, in its shared class: `BENCHLOCK_CLASS=shared .agents/scripts/benchlock.sh <tag> zsh -f -c 'cd <worktree> && ...'` (`run-gate.sh` and `alpha-check.sh` do this) |
+| Whole packages of the large test suites (engine, codegen and complexity tests), the root suite, `-tags zp_long`, `go generate ./internal/backend/... ./bench`, `hack/test-alpha-parsers.sh`, `hack/test-reference-tags.sh`, the engine and full gates, and any other heavy run that measures no time | Only through the queue, in its shared class: `BENCHLOCK_CLASS=shared .agents/scripts/benchlock.sh <tag> zsh -f -c 'cd <worktree> && ...'` (`run-gate.sh` and `alpha-check.sh` do this) |
 | Benchmarks, A/B runs, profiles and any other timed run | Only through the queue, exclusive (the default): `.agents/scripts/benchlock.sh <tag> zsh -f -c 'cd <worktree> && ...'` |
 
 Heavy test runs, including the root `go test ./...`, go only through the queue. Docs and site

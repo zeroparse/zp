@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
@@ -21,20 +21,20 @@ import (
 )
 
 // The tests here check the Core IR of the typed Go rules, after the passes of
-// gogen.Generator.TypedCore, against the decisions frozen in testdata/typed_decisions.golden
+// goprint.Generator.TypedCore, against the decisions frozen in testdata/typed_decisions.golden
 // (core_typed_decisions_test.go).
 
 // coreGenMode is a set of generator options under which the Core passes are frozen.
 type coreGenMode struct {
 	name string
-	opts codegen.GenOptions
+	opts common.GenOptions
 }
 
 var coreGenModes = []coreGenMode{
-	{"lean", codegen.GenOptions{Types: true, TypedOnly: true}},
-	{"lean observable", codegen.GenOptions{Types: true, TypedOnly: true, Observability: true}},
-	{"controlled", codegen.GenOptions{Types: true, TypedOnly: true, LimitControls: true}},
-	{"lean boxed", codegen.GenOptions{Types: true, TypedOnly: true, NoOpt: []string{"text-dispatch", "field-compare"}}},
+	{"lean", common.GenOptions{Types: true, TypedOnly: true}},
+	{"lean observable", common.GenOptions{Types: true, TypedOnly: true, Observability: true}},
+	{"controlled", common.GenOptions{Types: true, TypedOnly: true, LimitControls: true}},
+	{"lean boxed", common.GenOptions{Types: true, TypedOnly: true, NoOpt: []string{"text-dispatch", "field-compare"}}},
 }
 
 // coreGenCase is a corpus grammar generated with the options of a mode, and the Core IR of its
@@ -45,7 +45,7 @@ type coreGenCase struct {
 	// recognizer.
 	table  string
 	golden *decisionsGolden
-	gen    *gogen.Generator
+	gen    *goprint.Generator
 	m      *core.Module
 	origin map[core.Node]grammar.Expr
 	// rules holds the rules of the program by ID, value-free twins included.
@@ -58,7 +58,7 @@ type coreGenCase struct {
 	lines []string
 }
 
-func (c *coreGenCase) g() *gogen.Generator { return c.gen }
+func (c *coreGenCase) g() *goprint.Generator { return c.gen }
 
 // altOrigin returns the expression of the alternative i of the choice x, which the decisions are
 // keyed by: the alternative of the grammar choice x is built from. (The origin of an alternative's
@@ -77,18 +77,18 @@ func (c *coreGenCase) altOrigin(x *core.Choice, i int) (grammar.Expr, bool) {
 }
 
 // coreGenerate generates the parser of the grammar source with the options and returns the
-// generator that wrote it, for the Core IR of the same options (gogen.Generator.TypedCore), in the
+// generator that wrote it, for the Core IR of the same options (goprint.Generator.TypedCore), in the
 // state of its traced pass with observability. It reports false for a grammar that the generator
 // rejects.
-func coreGenerate(src string, opts codegen.GenOptions) (*gogen.Generator, bool) {
+func coreGenerate(src string, opts common.GenOptions) (*goprint.Generator, bool) {
 	g, err := parseTest(src)
 	if err != nil {
 		return nil, false
 	}
-	var gen *gogen.Generator
-	h := &gogen.Hooks{Generator: func(x *gogen.Generator) { gen = x }}
+	var gen *goprint.Generator
+	h := &goprint.Hooks{Generator: func(x *goprint.Generator) { gen = x }}
 	opts.Module = "example.com/p"
-	if _, err := gogen.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h); err != nil || gen == nil {
+	if _, err := goprint.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h); err != nil || gen == nil {
 		return nil, false
 	}
 	if opts.Observability {
@@ -101,7 +101,7 @@ func coreGenerate(src string, opts codegen.GenOptions) (*gogen.Generator, bool) 
 
 // recognizerOf returns the recognizer of the program that the generator g prints, compiled as
 // Program.Recognizer compiles it.
-func recognizerOf(g *gogen.Generator) (*compile.Program, error) {
+func recognizerOf(g *goprint.Generator) (*compile.Program, error) {
 	rec, err := newProgram(g.Prog, nil, nil).Recognizer()
 	if err != nil {
 		return nil, err
@@ -110,10 +110,10 @@ func recognizerOf(g *gogen.Generator) (*compile.Program, error) {
 }
 
 // coreTypedCase builds the Core IR of the typed rules of the generated parser with the passes of
-// gogen.Generator.TypedCore, verifying the module after each pass and following the repetitions
+// goprint.Generator.TypedCore, verifying the module after each pass and following the repetitions
 // the scan pass replaces, so that every scan has the origin of its repetition. If breaks is not nil, it is called
 // after each pass, before the module is verified: a negative control breaks a pass there.
-func coreTypedCase(name, mode string, gen *gogen.Generator, breaks func(c *coreGenCase, pass string, m *core.Module)) (*coreGenCase, error) {
+func coreTypedCase(name, mode string, gen *goprint.Generator, breaks func(c *coreGenCase, pass string, m *core.Module)) (*coreGenCase, error) {
 	c := &coreGenCase{name: name, mode: mode, table: "trules", golden: typedGolden, gen: gen, origin: map[core.Node]grammar.Expr{}}
 	c.rules = typedRules(gen)
 	var repeats []func()
@@ -149,7 +149,7 @@ var coreGenerated = map[string][]coreGenerated1{}
 
 type coreGenerated1 struct {
 	name string
-	gen  *gogen.Generator
+	gen  *goprint.Generator
 }
 
 // coreGenerations generates every corpus grammar in the mode, once for all tests: those that the
@@ -161,7 +161,7 @@ func coreGenerations(t *testing.T, mode coreGenMode) []coreGenerated1 {
 		return out
 	}
 	cases := append(codegentest.CorpusWithParsers(t), codegentest.CoreExtraGrammars...)
-	gens := make([]*gogen.Generator, len(cases))
+	gens := make([]*goprint.Generator, len(cases))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, runtime.GOMAXPROCS(0))
 	for i, gc := range cases {
@@ -235,7 +235,7 @@ var budgetClassName = regexp.MustCompile(`budgetClass[0-9]+`)
 // guardString is the guard of a Core alternative as a Go condition: the condition on the
 // next character and the expectation. The numbers of budget class tables are left out: they depend on
 // the order in which the generator met the classes, and the ranges of the condition name the class.
-func guardString(g *gogen.Generator, m *core.Module, f *core.First) (string, string) {
+func guardString(g *goprint.Generator, m *core.Module, f *core.First) (string, string) {
 	if f.Lit {
 		if f.Fold {
 			return fmt.Sprintf("ch == %d || ch == %d", f.Rune, f.Rune-('a'-'A')), m.Exps[f.Exp]
@@ -246,7 +246,7 @@ func guardString(g *gogen.Generator, m *core.Module, f *core.First) (string, str
 	for _, r := range f.Class.Ranges {
 		e.Ranges = append(e.Ranges, grammar.CharRange{Lo: r.Lo, Hi: r.Hi})
 	}
-	cond := gogen.NegateCondition(g.ControlledClassReject(e))
+	cond := goprint.NegateCondition(g.ControlledClassReject(e))
 	return budgetClassName.ReplaceAllString(cond, "budgetClass"), m.Exps[f.Exp]
 }
 

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen/go"
+	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -322,13 +322,13 @@ func (gd *decisionsGolden) freeze(t *testing.T, modes []coreGenMode, cases func(
 }
 
 // typedRules returns the rules of the program of the generator by ID, value-free twins included.
-func typedRules(g *gogen.Generator) []*compile.Rule {
+func typedRules(g *goprint.Generator) []*compile.Rule {
 	return append(append([]*compile.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...)
 }
 
 // recognizerRules returns the rules of the recognizer program of the generator by ID, value-free
 // twins included.
-func recognizerRules(g *gogen.Generator) []*compile.Rule {
+func recognizerRules(g *goprint.Generator) []*compile.Rule {
 	rec, err := recognizerOf(g)
 	if err != nil {
 		panic(err)

@@ -40,7 +40,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	igen "zeroparse.dev/zp/internal/codegen"
+	igen "zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/driver"
 	iengine "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/pass"

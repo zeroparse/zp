@@ -57,10 +57,10 @@ Evidence records:
 [136](../136-measured-effect-of-the-generation-flags.md).
 
 Source owners: [`Guards pass`](../../../internal/middleend/corepass/passes.go),
-[`closure.Builder.Choice and Guard`](../../../internal/engine/closure/builder.go), the GUARD
+[`closure.Builder.Choice and Guard`](../../../internal/backend/closure/builder.go), the GUARD
 emission of the bytecode compiler, [`generated choice
-guards`](../../../internal/codegen/go/generator.go), [`TypeScript choice
-guards`](../../../internal/codegen/ts/generator.go).
+guards`](../../../internal/backend/codegen/golang/print/generator.go), [`TypeScript choice
+guards`](../../../internal/backend/codegen/typescript/print/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.
