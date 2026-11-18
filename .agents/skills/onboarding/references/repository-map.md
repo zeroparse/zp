@@ -10,7 +10,7 @@ before choosing an edit location:
 | Public Go API and grammar AST | `engine/`, `grammar/` |
 | Grammar source parsing | `internal/frontend/parser/` |
 | Compiler and static analysis | `internal/compile/` |
-| Runtime: execution, bytecode VMs, Documents, streams and limit controls | `internal/engine/` (shared state in `core/`, backends in `closure/` and `vm/`, the Document in `document/`) |
+| Runtime: execution, bytecode VMs, Documents, streams and limit controls | `internal/engine/` (shared state in `state/`, the VMs in `vm/`, the Document in `document/`); backends in `internal/backend/` (`closure/`, `vmlower/` the bytecode compiler, `codegen/{common,golang,typescript}/`) |
 | Code generation entry points | `codegen/` (`codegen.Go`, `codegen.TypeScript`, embedding the library sources `codegen/go/lib/` and `codegen/ts/lib/`), `internal/backend/codegen/common/` |
 | Output schema and structural queries | `schema/` (the types, their validation and `Compare`), `internal/frontend/schemaexport/` (the export), `query/` (the queries) |
 | Generated Go parser source | Generator `internal/backend/codegen/golang/print/generator.go` and library package `codegen/go/lib/` (imported or copied into generated parsers; depends only on `core/`); generated parsers under `internal/bench/parsers/` are outputs |

@@ -182,7 +182,6 @@ docs/design/records/062-backend-independent-optimization-ir.md	gofile	project.go
 docs/design/records/062-backend-independent-optimization-ir.md	gofile	type_resolve.go	1
 docs/design/records/062-backend-independent-optimization-ir.md	gofile	value_types.go	1
 docs/design/records/062-backend-independent-optimization-ir.md	qualified	core.Stream	1
-docs/design/records/062-backend-independent-optimization-ir.md	qualified	gogen.Generator	2
 docs/design/records/062-backend-independent-optimization-ir.md	unexport	documentTouch	1
 docs/design/records/062-backend-independent-optimization-ir.md	unexport	firstTerminal	1
 docs/design/records/062-backend-independent-optimization-ir.md	unexport	flowRecRule	1
@@ -717,7 +716,6 @@ docs/optimizations/mechanisms/M050-plain-rule-calls.md	gofile	internal/engine/st
 docs/optimizations/mechanisms/M050-plain-rule-calls.md	gofile	internal/engine/vm/ivm.go	1
 docs/optimizations/mechanisms/M050-plain-rule-calls.md	gofile	internal/backend/codegen/golang/print/generator.go	1
 docs/optimizations/mechanisms/M050-plain-rule-calls.md	gofile	internal/backend/codegen/typescript/print/generator.go	1
-docs/optimizations/mechanisms/M050-plain-rule-calls.md	qualified	tsgen.Generator	1
 docs/optimizations/mechanisms/M050-plain-rule-calls.md	unexport	plainCall	1
 docs/optimizations/mechanisms/M050-plain-rule-calls.md	unexport	plainCallFrame	1
 docs/optimizations/mechanisms/M060-left-recursion-growth.md	codelink	internal/engine/state/memo.go	1
