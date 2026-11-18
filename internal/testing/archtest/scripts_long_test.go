@@ -14,7 +14,13 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
+
+// scriptsDeps are what the tests of the queue scripts depend on: the scripts and the test package (the harness
+// helpers live in its other files). The gate skips them when none changed since its base (see mutanttest).
+var scriptsDeps = []string{".agents/scripts", "internal/testing/archtest"}
 
 // The queue scripts' races and signal handling, run against temporary state directories. They
 // take minutes, so they belong to the long tier.
@@ -62,6 +68,7 @@ exec `+real+` "$@"
 // A dead mutex and dead slots left by killed holders, with many waiters: reclaiming must be one
 // step, so no more than TESTSLOT_N commands run at once.
 func TestTestslotReclaimDoesNotAdmitExtraHolders(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	state := t.TempDir()
 	env := append(scriptEnv(t, state), "TESTSLOT_N=2")
@@ -110,6 +117,7 @@ rm -f "$1/live.$$"
 // Two claimers that judge the same dead mutex and slot together must not both take the slot: the claim
 // is one step, serialized between the scripts.
 func TestTestslotClaimIsSerialized(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	for round := 0; round < 3; round++ {
 		state := t.TempDir()
@@ -199,6 +207,7 @@ func stagedTools(t *testing.T, env []string, dir, role string) []string {
 // slot. The order is forced (see stagedTools), so a script without the flock that serializes the
 // claim runs two commands in its one slot every time.
 func TestTestslotStaleMutexRaceNeedsTheFlock(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	state := t.TempDir()
 	stage := t.TempDir()
@@ -259,6 +268,7 @@ func blockWait(blocked bool) time.Duration {
 
 // A live pid with another start time is a reused pid, not the holder; the same start time is.
 func TestTestslotReusedPid(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	live := os.Getpid()
 	pid := strconv.Itoa(live)
@@ -353,6 +363,7 @@ func startLatency(t *testing.T, name string, args []string) time.Duration {
 // outlives the wait below. Only that pid counts: a copy of the script that is only leaving, or a
 // subshell of it that a loaded machine delays, also holds the marker in its command line.
 func TestQueueScriptsTermDuringStart(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	for _, name := range []string{"testslot.sh", "benchlock.sh"} {
 		base := []string{scriptPath(t, name)}
@@ -408,6 +419,7 @@ func TestQueueScriptsTermDuringStart(t *testing.T) {
 // The command's standard input is /dev/null: job control does not redirect it, and a queued
 // command must not read the pipe or the terminal of its caller.
 func TestQueueScriptsCommandStdinIsNull(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	for _, name := range []string{"testslot.sh", "benchlock.sh"} {
 		args := []string{scriptPath(t, name)}
@@ -427,6 +439,7 @@ func TestQueueScriptsCommandStdinIsNull(t *testing.T) {
 // Without perl, which the scripts need for their locks, they stop with a message instead of waiting
 // for a lock that they can never take.
 func TestQueueScriptsWithoutPerl(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	bin := t.TempDir()
 	for _, tool := range []string{"bash", "dirname"} {
@@ -458,6 +471,7 @@ func TestQueueScriptsWithoutPerl(t *testing.T) {
 // A claimer killed between making a slot and writing its pid leaves a slot without a pid. It is
 // taken back once it is older than a minute, and not before: its claimer may still be writing.
 func TestTestslotReclaimsEmptySlot(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	for _, c := range []struct {
 		name    string
@@ -570,6 +584,7 @@ func waitConcurrency(t *testing.T, what, run string, want, most int, cmds ...*ex
 // the other way round, for the test slots and the heavy-run lock: lanes on older branches share the
 // queue with the current scripts.
 func TestQueueScriptsBesideEarlierVersion(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	old := mainScripts(t)
 	for _, name := range []string{"testslot.sh", "benchlock.sh"} {
@@ -651,6 +666,7 @@ func before(ev []string, a, b string) bool {
 
 // Shared jobs run K at a time, and no more: four of them with K = 2 run two by two.
 func TestBenchlockSharedSlots(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	state := t.TempDir()
 	env := append(scriptEnv(t, state), "BENCHLOCK_SHARED=2")
@@ -664,6 +680,7 @@ func TestBenchlockSharedSlots(t *testing.T) {
 
 // An exclusive job waits for the shared holders, and a shared job waits for an exclusive holder.
 func TestBenchlockExclusiveAndSharedExclude(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	for _, first := range []string{"shared", "exclusive"} {
 		state := t.TempDir()
@@ -689,6 +706,7 @@ func TestBenchlockExclusiveAndSharedExclude(t *testing.T) {
 // of shared jobs cannot starve it. A record without class=, written by an earlier version, ranks
 // as an exclusive one.
 func TestBenchlockExclusiveIsNotStarved(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	for _, waiter := range []string{"current", "earlier"} {
 		state := t.TempDir()
@@ -731,6 +749,7 @@ func TestBenchlockExclusiveIsNotStarved(t *testing.T) {
 // earlier holder excludes a shared job, and an earlier waiter waits for the shared holders, which
 // leave benchlock/ without an owner that it could take over.
 func TestBenchlockSharedBesideEarlierVersion(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	old := filepath.Join(mainScripts(t), "benchlock.sh")
 	for _, holderOld := range []bool{true, false} {
@@ -763,6 +782,7 @@ func TestBenchlockSharedBesideEarlierVersion(t *testing.T) {
 
 // A shared holder killed without releasing its slot is taken back, and the next job runs.
 func TestBenchlockReclaimsDeadSharedHolder(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	state := t.TempDir()
 	env := append(scriptEnv(t, state), "BENCHLOCK_SHARED=1")
@@ -782,6 +802,7 @@ func TestBenchlockReclaimsDeadSharedHolder(t *testing.T) {
 
 // queue-status.sh names the lock's class and each record's.
 func TestQueueStatusShowsClass(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	state := t.TempDir()
 	env := append(scriptEnv(t, state), "BENCHLOCK_SHARED=2")
@@ -810,6 +831,7 @@ func TestQueueStatusShowsClass(t *testing.T) {
 // A stray file in benchlock/ keeps the lock from being removed: the script keeps its command's
 // exit status and reports the stray file in the stall log, which queue-status.sh shows.
 func TestBenchlockReleaseKeepsStatusBesideStrayFile(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	for _, class := range []string{"exclusive", "shared"} {
 		state := t.TempDir()
@@ -861,6 +883,7 @@ func crashHolder(t *testing.T, env []string, state, class, tag string) {
 // cannot take its slot back, so queue-status.sh must report the dead holder and its record as
 // stale and exit 1. The next current benchlock.sh takes the slot back and the queue moves.
 func TestQueueStatusReportsDeadSharedHolder(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	state := t.TempDir()
 	env := append(scriptEnv(t, state), "BENCHLOCK_SHARED=2")
@@ -905,6 +928,7 @@ func TestQueueStatusReportsDeadSharedHolder(t *testing.T) {
 // the ranking holds it back takes the lock and logs the stall. Here a live record that never takes
 // the lock is ranked first: a process of a script named benchlock.sh that only sleeps.
 func TestBenchlockStallBackstop(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, scriptsDeps...)
 	needTools(t)
 	for _, class := range []string{"shared", "exclusive"} {
 		state := t.TempDir()
