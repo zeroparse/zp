@@ -3,6 +3,7 @@ package tsgen_test
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -22,6 +23,7 @@ func TestGeneratedTSRecoveredValues(t *testing.T) {
 // TestGeneratedTSRecoveredValues: a parser that builds a wrong struct differs from the engine on the
 // inputs that recover from an error.
 func TestGeneratedTSRecoveredValuesDetectsMutation(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("runs generated code")

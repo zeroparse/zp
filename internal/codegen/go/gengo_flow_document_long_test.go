@@ -5,6 +5,7 @@ package gogen_test
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -15,6 +16,7 @@ import (
 // has invalidated, which differs from a parse from scratch or changes the counts the golden holds. Verify
 // rejects the same read in the IR (TestVerifyRejects in package flow).
 func TestFlowNodeDocumentMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated consumers")

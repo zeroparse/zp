@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -53,6 +54,7 @@ func TestGeneratedStorePolicyReferenceCounts(t *testing.T) {
 // where the mutant differs, in the dense seen table and in the sparse one, in a stream and in a
 // Document.
 func TestGeneratedStorePolicyMutantsFail(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	const dense = "\t\tfirst = t.markSeen(pos, s)\n"
 	const sparse = "\t\tfirst = markSeenPage(page, pos)\n"

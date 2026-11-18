@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // predicateMutants each break one way in which the generator gives predicates the values that the
@@ -28,6 +29,7 @@ var predicateMutants = []struct{ name, file, old, new string }{
 // TestPredicateMutants is the proof that TestPredicateSemantics holds the generator to the values that
 // the parser builds: each mutant, built over the package's sources with -overlay, fails it.
 func TestPredicateMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}

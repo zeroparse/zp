@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // TestCallProtocolMutantsFail is the negative control of the tests of the engine's call protocol,
@@ -798,6 +799,7 @@ func runPrintedMutants(t *testing.T, path string, mutants []printedMutant) {
 // runPrintedMutantsOver is runPrintedMutants with the replacements of over, by absolute path, in
 // every overlay, for a mutant that takes edits of two files.
 func runPrintedMutantsOver(t *testing.T, path string, over map[string]string, mutants []printedMutant) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	src, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

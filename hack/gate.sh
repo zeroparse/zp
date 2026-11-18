@@ -28,6 +28,7 @@
 # tab-separated line per step that ran, "NAME<TAB>exit N<TAB>Ss", in execution order; with a fail-fast stop the failed
 # step is the last line.
 #
+# The gate exports ZP_MUTANTS_BASE (the base revision) for the tests that run mutants; see docs/development.md.
 # Environment: GATE_NICE (default 0) is the nice(1) increment of every step, and GOMAXPROCS, GOFLAGS and the other Go
 # variables pass through. GATE_SELFTEST_FAIL=1 adds a step that fails first, to show that the gate stops.
 # GATE_AFFECTED_CMD replaces hack/affected-tests.sh (GATE_AFFECTED_CMD=false shows that a failed computation fails the step).
@@ -148,6 +149,8 @@ fi
 git rev-parse --verify --quiet "$base^{commit}" >/dev/null || { echo "gate: base $base is not a revision" >&2; exit 2; }
 if [ -n "$(git status --porcelain)" ]; then echo "gate: warning: the tree has uncommitted changes; the changed packages are those of $base..HEAD" >&2; fi
 export GATE_BASE=$base
+# Mutant runners skip when what they depend on is unchanged since the base (internal/testing/mutanttest).
+export ZP_MUTANTS_BASE=$base
 : >"$summary"
 failed=0
 i=0

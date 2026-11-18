@@ -3,6 +3,7 @@ package libgo_test
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -89,6 +90,7 @@ var goMutants = []goMutant{
 // mutant, TestValueConformance, TestValueMemberTable, TestValueBuiltinTable or TestValueStructTable fails. A mutant that no test notices would be
 // one that the model and the code do not both bound.
 func TestPrintedOperatorMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}

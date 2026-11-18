@@ -5,6 +5,7 @@ package gogen_test
 import (
 	"bytes"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -13,6 +14,7 @@ import (
 // printer that loses the charge of one Step: with the first, and with the last, step charge of each parser
 // removed, some report violates an invariant or differs from the golden.
 func TestFlowNodeBudgetMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {

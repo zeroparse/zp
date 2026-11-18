@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -51,6 +52,7 @@ var examinedMutants = []examinedMutant{
 // examined end left out on each route: each mutant must change the examined end of some exit of each of
 // its entries.
 func TestObservedExaminedEndsMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated consumers")

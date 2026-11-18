@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
@@ -560,6 +561,7 @@ func streamPlacementIn(method string) error {
 // duplicated delivery, which the comparison with the batch body and the parses do not tell from the
 // original.
 func TestFlowStreamPlacementMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.EachMode(t, func(t *testing.T) {
 		g, err := parseTest(streamCorpus[0].Src)

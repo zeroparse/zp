@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -29,6 +30,7 @@ func TestGeneratedRecoveredValues(t *testing.T) {
 // TestGeneratedRecoveredValues: a typed parser that builds a wrong struct is reported for an input
 // whose parse recovers, so the typed values of recovered parses are compared.
 func TestGeneratedRecoveredValuesDetectsMutation(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated code")

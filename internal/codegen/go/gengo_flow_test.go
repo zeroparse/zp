@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
@@ -62,6 +63,7 @@ func flowDiff(want, got string) string {
 // generation of the same options in a statement, also next to the line of unread
 // variables that it leaves out, while it ignores a change of that line alone.
 func TestFlowDiffDetectsMutations(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	opts := codegen.GenOptions{Types: true, TypedOnly: true}
 	mutations := []struct {

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
@@ -141,6 +142,7 @@ func splitHull(r string) (string, int) {
 // TestPrintedHullMutantsTypeScript is the proof that the hull table holds the printed code of the
 // range of a list or tuple in the TypeScript library: with the source of each mutant, it fails.
 func TestPrintedHullMutantsTypeScript(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}

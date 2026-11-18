@@ -3,6 +3,7 @@ package gogen_test
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
@@ -12,6 +13,7 @@ import (
 // The tests of generated code catch a wrong decision of which variables are unread: one that treats
 // every variable as unread, and one that ignores the reads of the assignments that stay.
 func TestFlowVarsMutantFailsToCompile(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	for name, h := range map[string]*gogen.Hooks{"every variable unread": {FlowVarsMutant: true}, "assignment reads ignored": {FlowVarsMutantUses: true}} {
 		t.Run(name, func(t *testing.T) {

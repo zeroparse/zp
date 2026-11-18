@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
@@ -215,6 +216,7 @@ func testTermFixedGeneratedTargets(t *testing.T) {
 // unraised, the right operand of a logical operator always evaluated or an equality of texts negated,
 // the comparison with the engine fails on some generated or fixed scalar term.
 func TestTermDifferentialDetectsBrokenTargets(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.EachMode(t, testTermDifferentialDetectsBrokenTargets)
 }
@@ -306,6 +308,7 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 // also with the parser that converts its nodes) on the fixed struct, hull, push and cast terms must then
 // fail. The control changes nothing and must find no mismatch.
 func TestTermConstructorsDetectBrokenTargets(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.EachMode(t, testTermConstructorsDetectBrokenTargets)
 }
@@ -419,6 +422,7 @@ func testTermConstructorsDetectBrokenTargets(t *testing.T) {
 // the engine on the fixed iteration terms must then fail. The control changes nothing and must find no
 // mismatch.
 func TestTermIterationsDetectBrokenTargets(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.EachMode(t, testTermIterationsDetectBrokenTargets)
 }
@@ -545,6 +549,7 @@ func testTermIterationsDetectBrokenTargets(t *testing.T) {
 // test of the controls, so that the term runs; a control that only does that, and one that changes
 // nothing, must find no mismatch.
 func TestTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.EachMode(t, testTermLoweringOptionsDetectBrokenTargets)
 }

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
@@ -130,6 +131,7 @@ func TestValueMemberTableTypeScript(t *testing.T) {
 // TestPrintedMemberMutantsTypeScript is the proof that the member table holds the printed code of the
 // member reads of the TypeScript library: with the source of each mutant, it fails.
 func TestPrintedMemberMutantsTypeScript(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}

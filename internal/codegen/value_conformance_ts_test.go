@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	xexec "zeroparse.dev/zp/internal/ir/code"
@@ -269,6 +270,7 @@ func TestValueConformanceTypeScript(t *testing.T) {
 // TestValueConformanceDetectsBrokenTypeScript is the negative control: with the library functions
 // changed in one way each, the conformance run fails.
 func TestValueConformanceDetectsBrokenTypeScript(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	mutants := map[string][2]string{
 		"an addition does not wrap":    {"return intOf(big(l as number | bigint) + big(r as number | bigint));", "return Number(big(l as number | bigint) + big(r as number | bigint));"},
@@ -320,6 +322,7 @@ func mutateTSFunc(src, sig, old, new string, last bool) (string, bool) {
 // TestPrintedOperatorMutantsTypeScript is the proof that the value conformance holds the printed code
 // of the operators of terms in the TypeScript library: with the source of each mutant, it fails.
 func TestPrintedOperatorMutantsTypeScript(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}

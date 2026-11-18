@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -14,6 +15,7 @@ import (
 // forgets to start the stream, drops the delivery of an element, delivers at the wrong position or delivers
 // after the zero-width check instead of before.
 func TestFlowStreamObservationMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated consumers")

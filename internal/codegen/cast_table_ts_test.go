@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
@@ -141,6 +142,7 @@ func TestValueCastTableTypeScript(t *testing.T) {
 // TestPrintedCastMutantsTypeScript is the proof that the cast table holds the printed code of the cast
 // check of the TypeScript library: with the source of each mutant, it fails.
 func TestPrintedCastMutantsTypeScript(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}

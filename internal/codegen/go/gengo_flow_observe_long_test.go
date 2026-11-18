@@ -5,6 +5,7 @@ package gogen_test
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -13,6 +14,7 @@ import (
 // an event: it changes the code of the build in each way and requires a digest that differs from the
 // golden's for some case.
 func TestFlowNodeObservationMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated consumers")
@@ -79,6 +81,7 @@ func TestFlowNodeObservationMutants(t *testing.T) {
 // reads the input without recording how far it read: each mutant replaces the recording read of a character
 // or of a literal with its ordinary form, and the examined end of some call must then differ from the engine's.
 func TestFlowNodeObservationExaminedMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated consumers")

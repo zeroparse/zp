@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -20,6 +21,7 @@ import (
 //     for the same string data;
 //   - the elements that a tuple, a list, a concat or a struct literal makes charge no step.
 func TestTermChargeGoldensDetectBrokenCharges(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {

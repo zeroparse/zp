@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // unknownMutants each break one way in which the evaluation keeps Unknown out of known results.
@@ -68,6 +69,7 @@ func TestErrorValueMutants(t *testing.T) {
 // runMutants builds each mutant over the package's sources with -overlay, runs the tests that match run, and
 // requires that they fail with a line that contains one of fails.
 func runMutants(t *testing.T, mutants []struct{ name, file, old, new string }, run string, fails ...string) {
+	mutanttest.SkipUnlessChanged(t, "internal/ir", "grammar")
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}

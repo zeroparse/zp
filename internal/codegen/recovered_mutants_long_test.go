@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -34,6 +35,7 @@ var recoveredMutants = []struct{ name, file, fn, old, new string }{
 // missing token and the ranges of structs that hold a recovered value, in the engine and in the reference model:
 // with a source overlay of each mutant, it fails.
 func TestRecoveredValueMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	root := codegentest.ModuleRoot()
 	for _, m := range recoveredMutants {
 		t.Run(m.name, func(t *testing.T) {

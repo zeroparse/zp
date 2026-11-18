@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
@@ -186,6 +187,7 @@ func dropCaptures(code []byte) []byte {
 // TestGeneratedFlowRecognizerMutantChild runs the parity test with the mutant that ZP_FLOW_MUTANT
 // names. It runs only as a child of TestGeneratedFlowRecognizerNegativeControl.
 func TestGeneratedFlowRecognizerMutantChild(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	name := os.Getenv("ZP_FLOW_MUTANT")
 	if name == "" {
 		t.Skip("run by TestGeneratedFlowRecognizerNegativeControl")

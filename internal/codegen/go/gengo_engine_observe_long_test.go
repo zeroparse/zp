@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // engineObservationRun is a test that an engine mutant runs, and what the test must then report (want),
@@ -100,6 +101,7 @@ var engineObservationMutants = []engineObservationMutant{
 // the tests of the trace options notice either producer getting one of them wrong. A mutant of the library
 // also changes the copy of it that the agreement's generated parsers import.
 func TestEngineObservationMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds the engine again for each mutant")

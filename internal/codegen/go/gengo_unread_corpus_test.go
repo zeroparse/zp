@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
@@ -145,6 +146,7 @@ func TestLocalErrorsDetectsUnusedVariable(t *testing.T) {
 // shakable variable, as a shaking that kept nothing would, leaves the generated code of each
 // corpus grammar that declares one with an undefined name.
 func TestShakeVarsMutantFailsToCompile(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	var declared, failed atomic.Int64
 	codegentest.EachParallel(t, codegentest.Representative(codegentest.GenCorpus(t)), func(t *testing.T, c codegentest.Case) {

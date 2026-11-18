@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -73,6 +74,7 @@ func TestGeneratedTSStorePolicyReferenceCounts(t *testing.T) {
 // the calls where the mutant differs, in the dense seen table and in the sparse one and in a
 // Document.
 func TestGeneratedTSStorePolicyMutantsFail(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("runs generated TypeScript")

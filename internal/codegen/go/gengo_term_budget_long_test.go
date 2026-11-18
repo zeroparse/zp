@@ -5,6 +5,7 @@ package gogen_test
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -50,6 +51,7 @@ func patchTermCharge(t *testing.T, m termChargeMutant) string {
 // forgets the values of a term without charging for them: with each charged clear of Predicate and
 // Bind of the node Parser made a plain clear, some pair spends other than its delta.
 func TestGeneratedTermChargeMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
@@ -80,6 +82,7 @@ func TestGeneratedTermChargeMutants(t *testing.T) {
 // TestGeneratedTypedTermChargeMutants is TestGeneratedTermChargeMutants for the typed Parser (TParser),
 // which clears its own Created list and charges for it through the node Parser.
 func TestGeneratedTypedTermChargeMutants(t *testing.T) {
+	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
 	t.Parallel()
 	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
