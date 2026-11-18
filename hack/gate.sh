@@ -12,7 +12,8 @@
 #           includes the default tier), then go generate ./internal/codegen/... ./bench ./internal/frontend/parser
 #           ./spec/language with a check that it changed nothing, hack/test-alpha-parsers.sh and
 #           hack/test-reference-tags.sh.
-#   full    go test -tags zp_long ./... (the whole tree, in the long tier), with the longest packages named first.
+#   full    go test -tags zp_long ./... (the whole tree, in the long tier), with the longest packages named first. It
+#           subsumes the long run of the affected packages that engine plans, so engine with full omits that step.
 #
 # REV is the base of the change (default origin/main); the changed packages are those of REV..HEAD, so commit before
 # running. Steps run in order and the gate stops at the first failure, so that a heavy step does not run after a
@@ -107,7 +108,9 @@ if want code || want engine; then
 	fi
 fi
 if want engine; then
-	step test-long 'go test -tags zp_long of the affected packages' "$(affected_cmd '-tags zp_long -timeout 90m')"
+	if ! want full; then
+		step test-long 'go test -tags zp_long of the affected packages' "$(affected_cmd '-tags zp_long -timeout 90m')"
+	fi
 	step generate 'go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language; the tree must not change' "$snap_def"'
 before=$(snap)
 go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language

@@ -7,7 +7,8 @@
 #   code   through testslot.sh
 #   engine, full   through benchlock.sh under <tag>, in its shared class: beside other gates, never
 #                  beside an exclusive (timed) run
-# The gate runs with GOMAXPROCS=4 (unless set) and nice 15, so a heavy level is slow on a small machine.
+# The gate runs with GOMAXPROCS=8 (unless set) and nice 15: the shared class runs two gates at a time, so on
+# 16 cores each gets half of them.
 # Defaults: worktree = the current one, tag = the worktree directory name, base = origin/main.
 # Commit before running: the gate looks at base..HEAD. Exit status: the gate's.
 set -euo pipefail
@@ -36,7 +37,7 @@ mkdir -p "$zp_state/gates"
 log=$zp_state/gates/$tag.log; sum=$zp_state/gates/$tag.sum
 rm -f "$sum"
 # shellcheck disable=SC2016  # the inner script expands its own arguments
-run=(bash -c 'cd "$1" && shift && exec "$@"' _ "$wt" env GATE_NICE=15 GOMAXPROCS="${GOMAXPROCS:-4}" "$wt/hack/gate.sh" --base "$base" --summary "$sum" "$@")
+run=(bash -c 'cd "$1" && shift && exec "$@"' _ "$wt" env GATE_NICE=15 GOMAXPROCS="${GOMAXPROCS:-8}" "$wt/hack/gate.sh" --base "$base" --summary "$sum" "$@")
 case $class in
   docs) wrap=() ;;
   code) wrap=("$here/testslot.sh") ;;
