@@ -246,7 +246,7 @@ func (p *Parser) chargeMemoHash(e *MemoEntry) {
 // parse.
 func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) *MemoEntry {
 	if !BudgetControlsEnabled || p.Control == nil {
-		return p.Memo.put(k, e, p.joinStored)
+		return p.Memo.put(k, e, p)
 	}
 	p.Spend()
 	ident := k.DocOnly
