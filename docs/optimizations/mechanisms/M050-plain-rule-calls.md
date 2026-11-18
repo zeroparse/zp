@@ -49,7 +49,7 @@ classification`](../../../internal/compile/compile.go),
 [`parser.invokePlain`](../../../internal/engine/state/runtime.go),
 [`plainCallFrame`](../../../internal/engine/vm/ivm.go), [`plain call
 emission`](../../../internal/backend/codegen/golang/print/generator.go),
-[`tsgen.Generator.plainCall`](../../../internal/backend/codegen/typescript/print/generator.go).
+[`Generator.plainCall`](../../../internal/backend/codegen/typescript/print/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.
