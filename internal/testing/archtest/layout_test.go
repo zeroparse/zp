@@ -94,9 +94,9 @@ var layout = []place{
 	{pkg: "internal/codegen/ts", target: "internal/backend/codegen/typescript"},
 	{pkg: "internal/engine/closure", target: "internal/backend/closure"},
 
-	// Driver. opt splits into pass registrations beside each pass (through internal/pass), the
-	// optimization profiles (pkg/compiler and internal/driver) and the driving of the pipelines.
-	{pkg: "internal/ir/opt", target: "internal/driver"},
+	// Driver: the optimization profiles and the driving of the pipelines. The flags are registered
+	// beside each part of the pipeline, in the registry of internal/pass.
+	{pkg: "internal/driver", target: "internal/driver"},
 
 	// Analysis and the grammar LSP.
 	{pkg: "internal/analysis/complexity", target: "internal/analysis/complexity"},

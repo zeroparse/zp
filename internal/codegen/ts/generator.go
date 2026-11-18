@@ -15,12 +15,13 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
-	"zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 )
 
 // tsLibMarker starts the part of lib.ts in the TypeScript library that is copied into generated code.
@@ -49,12 +50,12 @@ func Generate(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOptions) (
 type Hooks struct {
 	// Generator, if not nil, is called with the generator once it has generated.
 	Generator func(*Generator)
-	// FlowRun runs the Flow passes in place of flow.Run (opt.Driver.FlowRun), so that a test
+	// FlowRun runs the Flow passes in place of flow.Run (driver.Driver.FlowRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks a function added.
 	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
-	// ExecRun runs the Exec passes in place of code.RunPasses (opt.Driver.ExecRun), as FlowRun does
+	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as FlowRun does
 	// for the Flow passes.
-	ExecRun func(table string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error)
+	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)
 }
 
 // GenerateParser generates the files of Generate with the hooks h, which may be nil.
@@ -87,7 +88,7 @@ func GenerateParser(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOpti
 	if err != nil {
 		return nil, err
 	}
-	printAfter, _ := opt.ParsePrintAfter(opts.PrintAfter)
+	printAfter, _ := driver.ParsePrintAfter(opts.PrintAfter)
 	prog, recognizer, err := c(g, compile.Options{SourceInfo: opts.SourceInfo, DefaultValue: opts.DefaultValue, LeftRecursionBindings: opts.LeftRecursionBindings})
 	if err != nil {
 		return nil, err

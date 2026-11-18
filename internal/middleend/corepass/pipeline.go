@@ -140,5 +140,11 @@ type RunOptions struct {
 // Run runs the enabled passes of Pipeline that apply to e.Mode on m, and verifies the module. It
 // returns the names of the passes that ran.
 func Run(m *core.Module, e *Env, o RunOptions) ([]string, error) {
-	return Pipeline.Run(m, e, pass.Options[*core.Module]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, Stage: Stage})
+	return Pipeline.Run(m, e, o.Options(e))
+}
+
+// Options returns the options of the generic pipeline for a run under e, for a caller that runs a
+// pipeline of its own (tests).
+func (o RunOptions) Options(e *Env) pass.Options[*core.Module] {
+	return pass.Options[*core.Module]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, Stage: Stage}
 }

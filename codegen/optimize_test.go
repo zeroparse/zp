@@ -59,7 +59,7 @@ rule num = [0-9]+
 			if bytes.Equal(joinFiles(base), joinFiles(off)) {
 				t.Error("-no-opt guards changes nothing")
 			}
-			if _, err := c.generate("", []string{"nonsense"}, "", nil); err == nil || !strings.Contains(err.Error(), "valid: terminals") {
+			if _, err := c.generate("", []string{"nonsense"}, "", nil); err == nil || !strings.Contains(err.Error(), "valid: class-runs, guarded-classes") {
 				t.Errorf("unknown optimization: %v", err)
 			}
 			if _, err := c.generate("nosuch", nil, "", nil); err == nil || !strings.Contains(err.Error(), "valid: speed") {

@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -63,7 +64,9 @@ func withBrokenGuards() func(*core.Module, *corepass.Env, corepass.RunOptions) (
 	return func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error) {
 		// The mutant is not a registered optimization, which the settings of the generator would refuse.
 		enabled := func(name string) bool { return name == brokenGuards.Name || env.On(name) }
-		return p.Run(m, env, pass.Options[*core.Module]{Enabled: enabled, VerifyEach: o.VerifyEach, Dump: o.Dump})
+		po := o.Options(env)
+		po.Enabled = enabled
+		return p.Run(m, env, po)
 	}
 }
 
@@ -209,8 +212,8 @@ rule num = [0-9]+
 		}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			hooks := &gogen.Hooks{ExecRun: func(_ string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error) {
-				ran, err := code.RunPasses(m, env, o)
+			hooks := &gogen.Hooks{ExecRun: func(_ string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error) {
+				ran, err := codepass.RunPasses(m, env, o)
 				c.run(m)
 				return ran, err
 			}}

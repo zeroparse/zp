@@ -1,4 +1,4 @@
-package opt
+package driver
 
 import (
 	"fmt"
@@ -8,7 +8,9 @@ import (
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // A Driver runs the pass pipelines of the IR under one Settings value: it turns the passes on and
@@ -18,7 +20,7 @@ import (
 // profile, verifies once at the end of each pipeline and dumps nothing.
 type Driver struct {
 	// Opt holds the optimizations that are on.
-	Opt Settings
+	Opt pass.Settings
 	// PrintAfter lists the names (PrintNames) after which a unit is written to PrintTo; "all"
 	// selects every step and pass, "core" the Core IR before the first Core pass, "flow" each
 	// Flow function before the first Flow pass and "exec" each Exec function before the first Exec
@@ -37,9 +39,9 @@ type Driver struct {
 	// FlowRun, if set, runs the Flow passes in place of flow.Run, for tests that run a pipeline of
 	// their own; table names the table of the function, as in the dumps.
 	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
-	// ExecRun, if set, runs the Exec passes in place of code.RunPasses, for tests that run a pipeline
+	// ExecRun, if set, runs the Exec passes in place of codepass.RunPasses, for tests that run a pipeline
 	// of their own; table names the table of the module, as in the dumps.
-	ExecRun func(table string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error)
+	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)
 }
 
 // prints reports whether the unit is dumped after the named pass.
@@ -109,7 +111,7 @@ func (d *Driver) RunFlow(table string, f *flow.Func, observe bool) error {
 // with, as the dump of "exec" before the first pass. A failure is an internal error that names the
 // pass.
 func (d *Driver) RunExec(table string, m *code.Module, observe bool) error {
-	env := &code.Env{Observe: observe, Flag: d.Opt.On}
+	env := &codepass.Env{Observe: observe, Flag: d.Opt.On}
 	var dump func(pass string, m *code.Module)
 	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
 		dump = func(pass string, m *code.Module) {
@@ -121,12 +123,12 @@ func (d *Driver) RunExec(table string, m *code.Module, observe bool) error {
 			}
 		}
 	}
-	o := code.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}
+	o := codepass.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}
 	var err error
 	if d.ExecRun != nil {
 		_, err = d.ExecRun(table, m, env, o)
 	} else {
-		_, err = code.RunPasses(m, env, o)
+		_, err = codepass.RunPasses(m, env, o)
 	}
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)

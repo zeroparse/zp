@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/pass"
 )
 
@@ -64,10 +65,10 @@ var BrokenFlowPass = pass.Pass[*flow.Func, *flow.Env]{
 
 // BrokenExecPass is an Exec pass that declares the first function of the module twice, which
 // code.Verify rejects.
-var BrokenExecPass = pass.Pass[*code.Module, *code.Env]{
+var BrokenExecPass = pass.Pass[*code.Module, *codepass.Env]{
 	Name:       "break-exec",
 	Obligation: "none: it breaks the module on purpose",
-	Run: func(m *code.Module, _ *code.Env) error {
+	Run: func(m *code.Module, _ *codepass.Env) error {
 		m.Funcs = append(m.Funcs, m.Funcs[0])
 		return nil
 	},
@@ -92,12 +93,12 @@ func BrokenFlowRun(table string, seen *int) func(string, *flow.Func, *flow.Env, 
 }
 
 // BrokenExecRun is BrokenFlowRun for the Exec pipeline, with BrokenExecPass.
-func BrokenExecRun(table string, seen *int) func(string, *code.Module, *code.Env, code.RunOptions) ([]string, error) {
-	p := *code.Pipeline
-	p.Passes = append(slices.Clone(code.Pipeline.Passes), BrokenExecPass)
-	return func(tb string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error) {
+func BrokenExecRun(table string, seen *int) func(string, *code.Module, *codepass.Env, codepass.RunOptions) ([]string, error) {
+	p := *codepass.Pipeline
+	p.Passes = append(slices.Clone(codepass.Pipeline.Passes), BrokenExecPass)
+	return func(tb string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error) {
 		if tb != table {
-			return code.RunPasses(m, env, o)
+			return codepass.RunPasses(m, env, o)
 		}
 		*seen++
 		po := o.Options(env)

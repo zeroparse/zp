@@ -1,6 +1,9 @@
-package code
+package codepass
 
-import "zeroparse.dev/zp/internal/pass"
+import (
+	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/pass"
+)
 
 // The passes of Exec IR as a pipeline (design 063): transformations of a lowered module that keep the
 // behavior of its functions and that the backend printing it then prints. A pass has the name of the
@@ -24,9 +27,9 @@ type Env struct {
 func (e *Env) On(name string) bool { return e.Flag == nil || e.Flag(name) }
 
 // Pipeline is the pipeline of the Exec passes. It has no pass yet.
-var Pipeline = &pass.Pipeline[*Module, *Env]{
-	Analyses: map[pass.Analysis]func(*Module){},
-	Verify:   Verify,
+var Pipeline = &pass.Pipeline[*code.Module, *Env]{
+	Analyses: map[pass.Analysis]func(*code.Module){},
+	Verify:   code.Verify,
 }
 
 // RunOptions selects what a run of Pipeline does besides running the passes.
@@ -35,17 +38,17 @@ type RunOptions struct {
 	VerifyEach bool
 	// Dump, if not nil, is called with "exec" before the first pass and with the name of each pass
 	// that ran, after it.
-	Dump func(pass string, m *Module)
+	Dump func(pass string, m *code.Module)
 }
 
 // RunPasses runs the enabled passes of Pipeline that apply to e on the module m, which the lowering has
 // verified, and verifies it again if a pass ran. It returns the names of the passes that ran.
-func RunPasses(m *Module, e *Env, o RunOptions) ([]string, error) {
+func RunPasses(m *code.Module, e *Env, o RunOptions) ([]string, error) {
 	return Pipeline.Run(m, e, o.Options(e))
 }
 
 // Options returns the options of the generic pipeline for a run under e, for a caller that runs a
 // pipeline of its own (tests).
-func (o RunOptions) Options(e *Env) pass.Options[*Module] {
-	return pass.Options[*Module]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, Stage: Stage, BuiltVerified: true}
+func (o RunOptions) Options(e *Env) pass.Options[*code.Module] {
+	return pass.Options[*code.Module]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, Stage: Stage, BuiltVerified: true}
 }

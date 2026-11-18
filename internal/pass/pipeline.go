@@ -1,4 +1,5 @@
-// Package pass runs declared passes over an IR unit (design 063).
+// Package pass runs declared passes over an IR unit, and holds the registry of the optimizations that
+// turn passes and other choices of the pipeline on and off (design 063).
 //
 // A Pass names itself, states the analyses it reads and the analyses it makes stale, the passes it
 // must follow, the generation modes it applies to and what it preserves. A Pipeline is an ordered list
@@ -8,8 +9,8 @@
 //
 // The package knows nothing about the unit M or the context X that its callers choose: Core IR
 // (internal/middleend/corepass, Pipeline), Flow IR (internal/ir/flow, Pipeline) and Exec IR
-// (internal/ir/code, Pipeline) use it. It holds no state
-// between runs.
+// (internal/middleend/codepass, Pipeline) use it. It holds no state between runs; the registry is filled once,
+// by the init functions of the parts that register flags. It imports no other package of the module.
 package pass
 
 import "fmt"
@@ -65,7 +66,7 @@ type Options[M any] struct {
 	// after it ran, before it is verified.
 	Dump func(pass string, m M)
 	// Stage names the unit as it reaches the first pass: the stage of the pipeline that made it,
-	// such as "core", "flow" or "exec".
+	// such as "core", "flow" or "exec". A run with a Dump requires it, so that every dump is named.
 	Stage string
 	// BuiltVerified reports that the builder of the unit has verified it, so that a run in which no
 	// pass ran does not verify it again.
@@ -121,6 +122,9 @@ func (p *Pipeline[M, X]) Names() []string {
 func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 	if err := p.Validate(); err != nil {
 		return nil, err
+	}
+	if o.Dump != nil && o.Stage == "" {
+		return nil, fmt.Errorf("a run with a dump names no stage for the unit as it reaches the first pass")
 	}
 	// Every analysis starts stale: a unit comes from the builder without them.
 	valid := map[Analysis]bool{}

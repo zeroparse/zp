@@ -123,9 +123,12 @@ Documents.
 
 ### Flags
 
-The registry `internal/ir/opt` lists every optimization with a name, a kind (`Pass`, `Lowering`, `Printer`, `Runtime`), a
-description, its value in the `speed` profile and whether it changes the output. The Core pipeline names the passes, and a test checks that the
-registry has the name of every pass.
+The registry of `internal/pass` lists every optimization with a name, a kind (pass, lowering, flow pass, exec pass,
+printer, runtime), a description, its value in the `speed` profile and whether it changes the output. Each part of the
+pipeline registers its own flags: the Core passes beside their pipeline, and the lowering, printer and runtime flags in
+the generators that read them. The registry lists them by kind, in that order, and by name within a kind. The profiles
+and the driver that runs the pipelines under the settings are in `internal/driver`. The Core pipeline names the passes,
+and a test checks that the registry has the name of every pass.
 
 | Flag | Kind | Default | Controls | Cost |
 |:--|:--|:--|:--|:--|
@@ -299,7 +302,7 @@ plain fields, and their options are fields. Rejected for consistency.
   the generators (`TestVerifyEachPassNamesTheBreakingPass`).
 - Print after pass: the dump hook is called once per pass in order, only the final generation prints, and a request to
   print without a writer is an error.
-- Output-changing flags: `TestRegistryIsValid` rejects a registry in which a `ChangesOutput` flag is on in `speed`.
+- Output-changing flags: `TestCheckFlags` rejects a registry in which a `ChangesOutput` flag is on in `speed`.
   `TestOutputFlagsHaveContractTests` requires each such flag to name a contract test, and keeps it out of the flag-off
   parity tests. Profiles may set only flags that keep behavior.
 - Profiles: each profile other than `speed` is compared with the engine on every route: lean typed Go, the Node parser
