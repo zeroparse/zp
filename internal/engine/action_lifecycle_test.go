@@ -8,9 +8,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestActionResultReleasesTracking(t *testing.T) {
@@ -22,25 +22,25 @@ func TestActionResultReleasesTracking(t *testing.T) {
 	}{
 		{"nil", nil, nil},
 		{"typed nil", (*core.Node)(nil), nil},
-		{"node", value.Ptr(value.Data{Start: 90, End: 91, Fresh: true}), nil},
+		{"node", nodes.Ptr(nodes.Data{Start: 90, End: 91, Fresh: true}), nil},
 		{"error", nil, errors.New("action failed")},
 		{"boxed value", 1, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			prefix := value.Ptr(value.Data{Text: "keep"})
+			prefix := nodes.Ptr(nodes.Data{Text: "keep"})
 			p := &state.Parser{Created: []*core.Node{prefix}}
 			ctx := &state.EvalCtx{P: p, Cbase: 1, Start: 3, End: 4}
 			var panicked any
 			func() {
 				defer func() { panicked = recover() }()
 				n := p.ActionResult(ctx, func(*state.EvalCtx) (any, error) {
-					p.Created = append(p.Created, value.Ptr(value.Data{Text: "temporary"}))
+					p.Created = append(p.Created, nodes.Ptr(nodes.Data{Text: "temporary"}))
 					if n, ok := c.value.(*core.Node); ok && n != nil {
 						p.Created = append(p.Created, n)
 					}
 					return c.value, c.err
 				}, "test")
-				if n != nil && (value.D(n).Start != 3 || value.D(n).End != 4 || value.D(n).Fresh) {
+				if n != nil && (nodes.D(n).Start != 3 || nodes.D(n).End != 4 || nodes.D(n).Fresh) {
 					t.Errorf("returned node has wrong span/freshness: %+v", n)
 				}
 			}()

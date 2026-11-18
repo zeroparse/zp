@@ -9,14 +9,14 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 	t.Parallel()
-	retained := value.Ptr(value.Data{Text: "retained", Start: 7, End: 9, Fields: coreimpl.Fields{{Name: "value", Value: "unchanged"}}})
+	retained := nodes.Ptr(nodes.Data{Text: "retained", Start: 7, End: 9, Fields: coreimpl.Fields{{Name: "value", Value: "unchanged"}}})
 	p := &state.Parser{KidStack: make([]*core.Node, 257)}
 	for i := range p.KidStack {
 		p.KidStack[i] = retained
@@ -44,7 +44,7 @@ func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 			t.Fatalf("retry child %d lost its identity", i)
 		}
 	}
-	if value.D(retained).Text != "retained" || value.D(retained).Start != 7 || value.D(retained).End != 9 || value.D(retained).Fields[0].Value != "unchanged" {
+	if nodes.D(retained).Text != "retained" || nodes.D(retained).Start != 7 || nodes.D(retained).End != 9 || nodes.D(retained).Fields[0].Value != "unchanged" {
 		t.Fatal("clearing tracking references modified the retained node")
 	}
 }
@@ -89,7 +89,7 @@ func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 
 func TestBudgetValueTrackingCleanupAfterInterruption(t *testing.T) {
 	t.Parallel()
-	retained := value.Ptr(value.Data{Text: "retained"})
+	retained := nodes.Ptr(nodes.Data{Text: "retained"})
 	p := &state.Parser{Created: make([]*core.Node, 258)}
 	for i := range p.Created {
 		p.Created[i] = retained
@@ -101,7 +101,7 @@ func TestBudgetValueTrackingCleanupAfterInterruption(t *testing.T) {
 	// The interruption boundary must disable controls before mandatory cleanup.
 	p.ReleaseScratch()
 	p.DropCreated(1)
-	if p.Control != nil || len(p.Created) != 1 || p.Created[0] != retained || value.D(retained).Text != "retained" {
+	if p.Control != nil || len(p.Created) != 1 || p.Created[0] != retained || nodes.D(retained).Text != "retained" {
 		t.Fatal("cleanup changed the tracking prefix or retained value")
 	}
 	for _, n := range p.Created[1:cap(p.Created)] {

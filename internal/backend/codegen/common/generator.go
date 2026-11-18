@@ -14,10 +14,10 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/flow"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/pass"
+	"zeroparse.dev/zp/internal/runtime/limits"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

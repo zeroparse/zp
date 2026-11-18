@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 const memoizedStream = `rule main = item* #stream $$
@@ -87,13 +87,13 @@ func TestMemoPruneKeepsActiveSeed(t *testing.T) {
 	t.Parallel()
 	table := state.NewMemoTable()
 	seed := table.Alloc()
-	*seed = state.MemoEntry{Growing: true, Node: value.Ptr(value.Data{Text: "active"})}
+	*seed = state.MemoEntry{Growing: true, Node: nodes.Ptr(nodes.Data{Text: "active"})}
 	table.Put(state.MemoKey{Rule: 1}, seed)
 	completed := table.Alloc()
-	*completed = state.MemoEntry{Node: value.Ptr(value.Data{Text: "retired"})}
+	*completed = state.MemoEntry{Node: nodes.Ptr(nodes.Data{Text: "retired"})}
 	table.Put(state.MemoKey{Rule: 2}, completed)
 	table.Prune(1)
-	if seed.Node == nil || value.D(seed.Node).Text != "active" || !seed.Growing {
+	if seed.Node == nil || nodes.D(seed.Node).Text != "active" || !seed.Growing {
 		t.Fatal("pruning overwrote a stack-owned growth seed")
 	}
 	if table.Len() != 0 {

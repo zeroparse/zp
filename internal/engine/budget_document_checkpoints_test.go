@@ -10,9 +10,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestBudgetDocumentMemoReplayAtomicReservation(t *testing.T) {
@@ -94,16 +94,16 @@ func TestBudgetDocumentRunPublicationCopyIsProvisional(t *testing.T) {
 
 func TestBudgetDocumentMovementChargesEdges(t *testing.T) {
 	t.Parallel()
-	child := value.Ptr(value.Data{Start: 2, End: 3})
-	field := value.Ptr(value.Data{Start: 4, End: 5})
-	root := value.Ptr(value.Data{Start: 1, End: 6, Children: []*core.Node{child}, Fields: coreimpl.Fields{{Name: "field", Value: field}}})
+	child := nodes.Ptr(nodes.Data{Start: 2, End: 3})
+	field := nodes.Ptr(nodes.Data{Start: 4, End: 5})
+	root := nodes.Ptr(nodes.Data{Start: 1, End: 6, Children: []*core.Node{child}, Fields: coreimpl.Fields{{Name: "field", Value: field}}})
 	p := stateBudgetParser(core.Limits{Compute: 3})
 	p.Gen = 1
 	if err := catchFatal(t, func() { p.MoveTree(root, 10) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("movement interruption = %v", err)
 	}
 	// Legacy movement is non-transactional, but later unvisited fields remain.
-	if value.D(root).Start != 11 || value.D(child).Start != 12 || value.D(field).Start != 4 {
+	if nodes.D(root).Start != 11 || nodes.D(child).Start != 12 || nodes.D(field).Start != 4 {
 		t.Fatal("movement checkpoints do not precede individual edges")
 	}
 }
@@ -136,7 +136,7 @@ func TestBudgetDocumentGrowthCopyReservation(t *testing.T) {
 	t.Parallel()
 	values := make([]*core.Node, 129)
 	for i := range values {
-		values[i] = value.Ptr(value.Data{Start: int32(i)})
+		values[i] = nodes.Ptr(nodes.Data{Start: int32(i)})
 	}
 	before := append([]*core.Node(nil), values...)
 	p := stateBudgetParser(core.Limits{Compute: 128})
@@ -156,13 +156,13 @@ func TestBudgetDocumentGrowthCopyReservation(t *testing.T) {
 func TestBudgetDocumentMovementMapCleanupIsCounted(t *testing.T) {
 	t.Parallel()
 	p := stateBudgetParser(core.Limits{Compute: 1})
-	a, b := value.Ptr(value.Data{Text: "a"}), value.Ptr(value.Data{Text: "b"})
+	a, b := nodes.Ptr(nodes.Data{Text: "a"}), nodes.Ptr(nodes.Data{Text: "b"})
 	p.Moved = map[*core.Node]*core.Node{a: a, b: b}
 	p.Shifts = map[uint32]int{1: 3, 2: 4}
 	if err := catchFatal(t, func() { p.ClearMovementSpend() }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("cleanup interruption = %v", err)
 	}
-	if len(p.Moved) != 1 || len(p.Shifts) != 2 || value.D(a).Text != "a" || value.D(b).Text != "b" {
+	if len(p.Moved) != 1 || len(p.Shifts) != 2 || nodes.D(a).Text != "a" || nodes.D(b).Text != "b" {
 		t.Fatal("cleanup changed pointees or skipped reservations")
 	}
 	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 3})
@@ -177,30 +177,30 @@ func TestBudgetDocumentShiftReplayAndSharedEmptyGraph(t *testing.T) {
 	p := stateBudgetParser(core.Limits{Compute: 2})
 	p.Gen = 4
 	p.Edits = []state.DocEdit{{Start: 0, End: 1, Delta: 1}, {Start: 0, End: 1, Delta: 1}, {Start: 0, End: 1, Delta: 1}, {Start: 0, End: 1, Delta: 1}}
-	n := value.Ptr(value.Data{Start: 10, End: 11, Mark: 1})
+	n := nodes.Ptr(nodes.Data{Start: 10, End: 11, Mark: 1})
 	if err := catchFatal(t, func() { p.ShiftOf(n) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("shift interruption = %v", err)
 	}
-	if p.Shifts != nil || value.D(n).Start != 10 {
+	if p.Shifts != nil || nodes.D(n).Start != 10 {
 		t.Fatal("interrupted shift replay published state")
 	}
 	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 3})
 	if got := p.ShiftOf(n); got != 3 || p.Shifts[1] != 3 {
 		t.Fatalf("shift = %d, cache=%v", got, p.Shifts)
 	}
-	empty := value.Ptr(value.Data{Start: 0, End: 0})
-	leaf := value.Ptr(value.Data{Start: 3, End: 4})
-	root := value.Ptr(value.Data{Start: 0, End: 0, Children: []*core.Node{empty, leaf}, Fields: coreimpl.Fields{{Name: "empty", Value: empty}, {Name: "leaf", Value: leaf}}})
+	empty := nodes.Ptr(nodes.Data{Start: 0, End: 0})
+	leaf := nodes.Ptr(nodes.Data{Start: 3, End: 4})
+	root := nodes.Ptr(nodes.Data{Start: 0, End: 0, Children: []*core.Node{empty, leaf}, Fields: coreimpl.Fields{{Name: "empty", Value: empty}, {Name: "leaf", Value: leaf}}})
 	clone := root.Clone()
 	history := codegentest.ResultJSON(clone, nil)
 	p = stateBudgetParser(core.Limits{Compute: 32})
 	p.Gen = 1
 	p.Moved = map[*core.Node]*core.Node{}
 	got := p.MoveEmpty(root, 2)
-	if got == root || value.D(root).Start != 0 || value.D(empty).Start != 0 || value.D(got).Children[0] != value.D(got).Fields[0].Value.(*core.Node) {
+	if got == root || nodes.D(root).Start != 0 || nodes.D(empty).Start != 0 || nodes.D(got).Children[0] != nodes.D(got).Fields[0].Value.(*core.Node) {
 		t.Fatal("empty shared nodes were mutated or duplicated")
 	}
-	if value.D(leaf).Start != 5 || value.D(got).Children[1] != value.D(got).Fields[1].Value.(*core.Node) {
+	if nodes.D(leaf).Start != 5 || nodes.D(got).Children[1] != nodes.D(got).Fields[1].Value.(*core.Node) {
 		t.Fatal("shared non-empty descendant was moved more than once")
 	}
 	if codegentest.ResultJSON(clone, nil) != history {

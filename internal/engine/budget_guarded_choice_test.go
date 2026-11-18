@@ -12,9 +12,9 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/starttest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -65,16 +65,16 @@ func budgetGuardedChoiceSnapshot(n *core.Node) *core.Node {
 		return nil
 	}
 	copy := *n
-	if value.D(n).Children != nil {
-		value.D(&copy).Children = make([]*core.Node, len(value.D(n).Children))
-		for i, child := range value.D(n).Children {
-			value.D(&copy).Children[i] = budgetGuardedChoiceSnapshot(child)
+	if nodes.D(n).Children != nil {
+		nodes.D(&copy).Children = make([]*core.Node, len(nodes.D(n).Children))
+		for i, child := range nodes.D(n).Children {
+			nodes.D(&copy).Children[i] = budgetGuardedChoiceSnapshot(child)
 		}
 	}
-	value.D(&copy).Fields = append(coreimpl.Fields(nil), value.D(n).Fields...)
-	for i := range value.D(&copy).Fields {
-		if child, ok := value.D(&copy).Fields[i].Value.(*core.Node); ok {
-			value.D(&copy).Fields[i].Value = budgetGuardedChoiceSnapshot(child)
+	nodes.D(&copy).Fields = append(coreimpl.Fields(nil), nodes.D(n).Fields...)
+	for i := range nodes.D(&copy).Fields {
+		if child, ok := nodes.D(&copy).Fields[i].Value.(*core.Node); ok {
+			nodes.D(&copy).Fields[i].Value = budgetGuardedChoiceSnapshot(child)
 		}
 	}
 	return &copy

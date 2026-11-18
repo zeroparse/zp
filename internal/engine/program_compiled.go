@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/vm"
+	"zeroparse.dev/zp/internal/runtime/vm"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

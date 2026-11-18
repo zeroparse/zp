@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -63,7 +63,7 @@ type Program struct {
 	typeKinds map[string]*coreimpl.Kind
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
-	NodeKinds map[string]*value.NodeTypeKinds
+	NodeKinds map[string]*nodes.NodeTypeKinds
 	// skipSites numbers the skip-run sites (skip_sites.go), NumSkipSites of them; inSite holds,
 	// while they are marked, the repetitions inside a site.
 	skipSites    map[*ast.Repeat]int
@@ -131,7 +131,7 @@ type Options struct {
 
 // Rule is a rule of a compiled program: what the compiler found out about it. Every backend and
 // generator reads it; the engine's parser runs a rule
-// (internal/engine/state/runtime.go) made from it.
+// (internal/runtime/state/runtime.go) made from it.
 type Rule struct {
 	// Where names the rule in the message of a failed action, if not name (Rule.WhereName).
 	Where string
@@ -563,12 +563,12 @@ func Check(g *ast.Grammar, opts Options, flags []RuleFlags, names desugar.Inline
 	prog.NSeen = NumberSeen(prog.RuleList, prog.Twins)
 	NumberLeaders(prog.RuleList)
 	prog.typeKinds = map[string]*coreimpl.Kind{}
-	prog.NodeKinds = map[string]*value.NodeTypeKinds{}
+	prog.NodeKinds = map[string]*nodes.NodeTypeKinds{}
 	for name, spec := range prog.Types {
 		control.Poll()
 		if n, ok := prog.NodeTypeOf(name); ok {
 			if prog.NodeKinds[n.Name] == nil {
-				prog.NodeKinds[n.Name] = value.NewNodeTypeKinds(n.Name)
+				prog.NodeKinds[n.Name] = nodes.NewNodeTypeKinds(n.Name)
 			}
 			prog.NodeKinds[name] = prog.NodeKinds[n.Name]
 			continue

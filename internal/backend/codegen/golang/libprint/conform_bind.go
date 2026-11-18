@@ -18,7 +18,7 @@ import (
 
 // engineExpBindingsFile is the file of the engine's conformance bindings of the expectation record,
 // relative to the directory of this package. It is a test file of package state of the engine.
-const engineExpBindingsFile = "../../../../engine/state/exp_bind_exec_test.go"
+const engineExpBindingsFile = "../../../../runtime/state/exp_bind_exec_test.go"
 
 // expBindingMemoOps are the operations of the memo that keep the expectations of an entry.
 var expBindingMemoOps = []string{"memo.far", "memo.expected", "memo.setExpected"}
@@ -193,7 +193,7 @@ func GoTypedExpBindings() (string, error) {
 
 // engineDocBindingsFile is the file of the engine's conformance bindings of the doc operations,
 // relative to the directory of this package. It is a test file of package state of the engine.
-const engineDocBindingsFile = "../../../../engine/state/doc_bind_exec_test.go"
+const engineDocBindingsFile = "../../../../runtime/state/doc_bind_exec_test.go"
 
 // printEngineDocBindings returns the Go test file of the conformance bindings of the doc operations for
 // package state of the engine.
@@ -210,7 +210,7 @@ func GoDocBindings() (string, error) {
 // engineOprBindingsFile is the file of the engine's conformance bindings of the Operators Rule
 // operations, relative to the directory of this package. It is a test file of package state of the
 // engine.
-const engineOprBindingsFile = "../../../../engine/state/opr_bind_exec_test.go"
+const engineOprBindingsFile = "../../../../runtime/state/opr_bind_exec_test.go"
 
 // printEngineOprBindings returns the Go test file of the conformance bindings of the Operators Rule
 // operations for package state of the engine.
@@ -234,7 +234,7 @@ var ctxBindingOps = []string{
 
 // engineCtxBindingsFile is the file of the engine's conformance bindings of the dependency memo,
 // relative to the directory of this package. It is a test file of package state of the engine.
-const engineCtxBindingsFile = "../../../../engine/state/ctx_bind_exec_test.go"
+const engineCtxBindingsFile = "../../../../runtime/state/ctx_bind_exec_test.go"
 
 // printEngineCtxBindings returns the Go test file of the conformance bindings of the dependency memo for
 // package state of the engine.
@@ -260,7 +260,7 @@ var frameBindingGoOps = slices.DeleteFunc(slices.Clone(frameBindingOps), func(n 
 
 // engineFrameBindingsFile is the file of the engine's conformance bindings of the capture frames,
 // relative to the directory of this package. It is a test file of package state of the engine.
-const engineFrameBindingsFile = "../../../../engine/state/frame_bind_exec_test.go"
+const engineFrameBindingsFile = "../../../../runtime/state/frame_bind_exec_test.go"
 
 // printEngineFrameBindings returns the Go test file of the conformance bindings of the capture frames for
 // package state of the engine.
@@ -282,7 +282,7 @@ func GoTypedFrameBindings() (string, error) {
 
 // engineRuleBindingsFile is the file of the engine's conformance bindings of the operations of the
 // rules, relative to the directory of this package. It is a test file of package state of the engine.
-const engineRuleBindingsFile = "../../../../engine/state/rule_bind_exec_test.go"
+const engineRuleBindingsFile = "../../../../runtime/state/rule_bind_exec_test.go"
 
 // ruleBindingEngineOps are the operations of the rules that the engine provides, with those of the
 // deferral of memoization (seen.defers, seen.first), which firstCall composes with rule.seen.
@@ -329,7 +329,7 @@ func GoObsBindings() (string, error) {
 
 // engineMissingBindingsFile is the file of the engine's conformance bindings of the missing-token
 // mode, relative to the directory of this package. It is a test file of package state of the engine.
-const engineMissingBindingsFile = "../../../../engine/state/missing_bind_exec_test.go"
+const engineMissingBindingsFile = "../../../../runtime/state/missing_bind_exec_test.go"
 
 // missingBindingOps are the operations of the missing-token mode.
 var missingBindingOps = []string{"missing.active", "missing.recompute", "missing.mark", "missing.reset", "missing.replay"}
@@ -345,7 +345,7 @@ var termStateBindingOps = []string{"act.push", "act.pushAll", "term.kids", "term
 
 // engineTermStateBindingsFile is the file of the engine's conformance bindings of the elements gathered and the
 // values made, relative to the directory of this package. It is a test file of package state of the engine.
-const engineTermStateBindingsFile = "../../../../engine/state/terms_bind_exec_test.go"
+const engineTermStateBindingsFile = "../../../../runtime/state/terms_bind_exec_test.go"
 
 // printEngineTermStateBindings returns the Go test file of the conformance bindings of the elements gathered
 // and the values made for package state of the engine, printed as the backends print them into their own

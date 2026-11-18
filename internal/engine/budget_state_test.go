@@ -15,8 +15,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/value"
+	value "zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 func stateBudgetParser(limits core.Limits) *state.Parser {

@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestCaptures(t *testing.T) {
@@ -165,15 +165,15 @@ rule num = -" "* n:[0-9]+ #atomic => $n`)
 	}
 	// The final result has the range of the whole rule; intermediate nodes have the ranges of their
 	// fields.
-	if value.D(n).Start != 0 || value.D(n).End != 9 {
-		t.Errorf("root [%d,%d)", value.D(n).Start, value.D(n).End)
+	if nodes.D(n).Start != 0 || nodes.D(n).End != 9 {
+		t.Errorf("root [%d,%d)", nodes.D(n).Start, nodes.D(n).End)
 	}
 	left := n.Field("Left").(*core.Node)
-	if value.D(left).Start != 1 || value.D(left).End != 7 {
-		t.Errorf("left [%d,%d)", value.D(left).Start, value.D(left).End)
+	if nodes.D(left).Start != 1 || nodes.D(left).End != 7 {
+		t.Errorf("left [%d,%d)", nodes.D(left).Start, nodes.D(left).End)
 	}
-	if r := left.Field("Right").(*core.Node); value.D(r).Start != 5 || value.D(r).End != 7 || value.D(r).Text != "22" {
-		t.Errorf("22 at [%d,%d) %q", value.D(r).Start, value.D(r).End, value.D(r).Text)
+	if r := left.Field("Right").(*core.Node); nodes.D(r).Start != 5 || nodes.D(r).End != 7 || nodes.D(r).Text != "22" {
+		t.Errorf("22 at [%d,%d) %q", nodes.D(r).Start, nodes.D(r).End, nodes.D(r).Text)
 	}
 }
 

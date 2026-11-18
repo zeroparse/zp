@@ -15,12 +15,12 @@ import (
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/backend/closure"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/internal/runtime/vm"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -260,16 +260,16 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 		}
 		c := *n
 		seen[n] = &c
-		value.D(&c).Start, value.D(&c).End = int32(cp[value.D(n).Start]), int32(cp[value.D(n).End])
-		if value.D(n).Children != nil {
-			value.D(&c).Children = make([]*core.Node, len(value.D(n).Children))
-			for i, ch := range value.D(n).Children {
-				value.D(&c).Children[i] = conv(ch)
+		nodes.D(&c).Start, nodes.D(&c).End = int32(cp[nodes.D(n).Start]), int32(cp[nodes.D(n).End])
+		if nodes.D(n).Children != nil {
+			nodes.D(&c).Children = make([]*core.Node, len(nodes.D(n).Children))
+			for i, ch := range nodes.D(n).Children {
+				nodes.D(&c).Children[i] = conv(ch)
 			}
 		}
-		if value.D(n).Fields != nil {
-			value.D(&c).Fields = make(coreimpl.Fields, len(value.D(n).Fields))
-			for i, f := range value.D(n).Fields {
+		if nodes.D(n).Fields != nil {
+			nodes.D(&c).Fields = make(coreimpl.Fields, len(nodes.D(n).Fields))
+			for i, f := range nodes.D(n).Fields {
 				switch v := f.Value.(type) {
 				case *core.Node:
 					f.Value = conv(v)
@@ -278,7 +278,7 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 						f.Value = fixMessage(v)
 					}
 				}
-				value.D(&c).Fields[i] = f
+				nodes.D(&c).Fields[i] = f
 			}
 		}
 		return &c

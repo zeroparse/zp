@@ -6,9 +6,9 @@ import (
 	ir "zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/frontend/check"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -162,7 +162,7 @@ func (b *Builder) literal(val string, fold bool, desc state.ExpID, build bool) s
 				return nil, true
 			}
 			// The node holds the input as matched: its letters may differ in case from the literal.
-			return p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+			return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 		}
 	}
 	rs, bs := []rune(val), []byte(val)
@@ -175,7 +175,7 @@ func (b *Builder) literal(val string, fold bool, desc state.ExpID, build bool) s
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, val), Terminal: true, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, val), Terminal: true, Fresh: true}), true
 	}
 }
 
@@ -210,7 +210,7 @@ func (b *Builder) seq(ms []state.Matcher, flat, valued []bool, n int, build bool
 			}
 			switch {
 			case flat[i]:
-				kids = append(kids, value.D(v).Children...)
+				kids = append(kids, nodes.D(v).Children...)
 			case valued[i]:
 				kids = append(kids, v)
 			}
@@ -218,7 +218,7 @@ func (b *Builder) seq(ms []state.Matcher, flat, valued []bool, n int, build bool
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}), true
 	}
 }
 
@@ -371,7 +371,7 @@ func (b *Builder) atomic(m state.Matcher, build bool) state.Matcher {
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 	}
 }
 
@@ -453,7 +453,7 @@ func single(build bool, desc state.ExpID, accept func(*state.Parser, rune) bool)
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 	}
 }
 
@@ -594,7 +594,7 @@ func (b *Builder) scanSiteList(m state.Matcher, elemValue func(*state.Parser, *c
 		if count >= span {
 			return p.FinishScanList(site, start, base, count, hot, hit, rec, hw0), true
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 	}
 }
 
@@ -788,7 +788,7 @@ func (b *Builder) repeat(n *ir.Repeat, m state.Matcher, elemScope *check.Scope, 
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 	}
 }
 
@@ -830,7 +830,7 @@ func (b *Builder) projectRepeat(min, max int, m state.Matcher, slot, n int) stat
 			p.DropKids(base)
 			return nil, false
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 	}
 }
 
@@ -889,7 +889,7 @@ func recoverAttr(m, skip state.Matcher, build bool) state.Matcher {
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: coreimpl.ErrorKind, Start: int32(m0.Pos), End: int32(p.Pos), Fields: coreimpl.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true}), true
+		return p.NewNode(nodes.Data{Kind: coreimpl.ErrorKind, Start: int32(m0.Pos), End: int32(p.Pos), Fields: coreimpl.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true}), true
 	}
 }
 
@@ -928,7 +928,7 @@ func captureMatcher(s ir.Shape, m state.Matcher) state.Matcher {
 			return nil, false
 		}
 		if v, ok = state.ShapeSingle(p, sh, mode, v, start); !ok {
-			v = p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
+			v = p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
 		}
 		return v, true
 	}

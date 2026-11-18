@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/document"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/document"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // NewDocument creates a Document that parses text with the rule start. Positions are in code

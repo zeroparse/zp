@@ -3085,8 +3085,8 @@ func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *
 	return n
 }
 
-// --- Iterative tree API: node_json (mirrors internal/value/node_json.go) ---
+// --- Iterative tree API: node_json (mirrors internal/runtime/nodes/node_json.go) ---
 
-// --- Iterative tree API: node_walk (mirrors internal/value/node_walk.go) ---
+// --- Iterative tree API: node_walk (mirrors internal/runtime/nodes/node_walk.go) ---
 
-// --- Iterative tree API: node_cursor (mirrors internal/engine/document/node_cursor.go) ---
+// --- Iterative tree API: node_cursor (mirrors internal/runtime/document/node_cursor.go) ---

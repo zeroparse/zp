@@ -6,12 +6,12 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -69,10 +69,10 @@ func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f state.Fami
 		r.InitVals = prog.Vars.ValuesOf(sr.Vars)
 		r.VarSlots = prog.Vars.Slots(sr.Vars)
 		if sr.NodeType != "" {
-			r.NodeKinds = value.NewNodeTypeKinds(sr.NodeType)
+			r.NodeKinds = nodes.NewNodeTypeKinds(sr.NodeType)
 		}
 		if sr.OpNodeType != "" {
-			r.OpKinds = value.NewNodeTypeKinds(sr.OpNodeType)
+			r.OpKinds = nodes.NewNodeTypeKinds(sr.OpNodeType)
 		}
 	}
 	return b.rules, nil

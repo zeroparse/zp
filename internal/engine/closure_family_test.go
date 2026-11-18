@@ -17,8 +17,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/closure"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

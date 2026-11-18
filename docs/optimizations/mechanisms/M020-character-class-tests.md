@@ -38,7 +38,7 @@ Evidence records: [011](../011-generated-parsers-catch-up-with-changes-410.md),
 [031](../031-specialized-character-class-tests-in-the-closure-backend.md).
 
 Source owners: [`closure.ClassAccept`](../../../internal/backend/closure/class_accept.go), [`newASCIISet
-and VM class tests`](../../../internal/engine/vm/vm.go), [`class test
+and VM class tests`](../../../internal/runtime/vm/vm.go), [`class test
 emission`](../../../internal/backend/codegen/golang/print/generator.go), [`TypeScript class test
 emission`](../../../internal/backend/codegen/typescript/print/generator.go).
 

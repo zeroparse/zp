@@ -1,0 +1,194 @@
+//go:build !zp_budget_controls_reference
+
+package vm
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"slices"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/impl"
+	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/grammar/ast"
+)
+
+// TestBudgetDiagnosticRecoveredLists checks the lists of recovered errors under the controls: a
+// snapshot (rec.since) copies the entries after its mark, charging each, and an interruption
+// publishes no part of it; a replay (rec.add) records the list as one entry, sharing it, at no
+// charge, so it has no copy to interrupt and runs only to completion.
+func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
+	for _, name := range []string{"memo replay", "memo snapshot", "LR snapshot", "LR replay", "OperatorsRule snapshot", "iterative OperatorsRule snapshot", "OperatorsRule replay"} {
+		for _, mode := range []string{"complete", "budget", "cancel"} {
+			replay := strings.HasSuffix(name, "replay")
+			if replay && mode != "complete" {
+				continue
+			}
+			t.Run(name+"/"+mode, func(t *testing.T) {
+				a := &core.SyntaxError{Messages: []string{"retained-a"}}
+				b := &core.SyntaxError{Expected: []string{"retained-b"}}
+				prefix := &core.SyntaxError{Messages: []string{"prefix"}}
+				records := make([]*core.SyntaxError, 320)
+				for i := range records {
+					records[i] = []*core.SyntaxError{a, b, a}[i%3]
+				}
+				before, _ := json.Marshal(records)
+				retained := nodes.Ptr(nodes.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "keep", Value: "stable"}}})
+				p := diagnosticParser(core.Limits{})
+				list := state.NewErrList(records)
+				p.Memo, p.Recovered = state.NewMemoTable(), []state.RecEntry{state.ErrEntry(prefix)}
+				p.Memo.Slots = make([]*state.MemoEntry, 1)
+				r := &state.Rule{ID: 7}
+				key := state.MemoKey{Rule: 7}
+				steps := uint64(len(records))
+				if replay {
+					steps = 0
+				}
+				var run, completed, aborted func()
+				assertReplay := func() {
+					if len(p.Recovered) != 2 || p.Recovered[0] != state.ErrEntry(prefix) || p.Recovered[1].List() != list.List() {
+						t.Fatal("recovered replay changed the prefix or did not share the list")
+					}
+					if !slices.Equal(p.RecoveredErrors(), append([]*core.SyntaxError{prefix}, records...)) {
+						t.Fatal("recovered replay changed pointer order")
+					}
+				}
+				assertSnapshot := func(got state.RecEntry) {
+					if got.List() == nil || !slices.Equal(got.Errors(), records) {
+						t.Fatal("snapshot lost pointers")
+					}
+				}
+				pushRecords := func() {
+					for _, e := range records {
+						p.PushRecovered(e)
+					}
+				}
+				aborted = func() {}
+				switch name {
+				case "memo replay":
+					p.Memo.Slots[0] = &state.MemoEntry{Rule: 7, Ok: true, End: 1, Node: retained, Errs: list}
+					steps += 2 // lookup and entry visit; the replay is free
+					var ok, hit bool
+					var val *core.Node
+					run = func() { val, ok, hit = p.CallBegin(r, 0, &state.CallState{}) }
+					completed = func() {
+						assertReplay()
+						if !ok || !hit || val != retained {
+							t.Fatal("memo hit result differs")
+						}
+					}
+				case "memo snapshot":
+					// A call at 0 that begins after the prefix and recovers the records.
+					var st state.CallState
+					p.CallBegin(r, 0, &st)
+					p.Pos = 1
+					pushRecords()
+					steps += 2 // atomic memo put after the snapshot
+					run = func() { p.CallEnd(r, &st, retained, true) }
+					completed = func() {
+						assertSnapshot(p.Memo.Slots[0].Errs)
+						if len(p.Recovered) != 2 || p.Recovered[1].List() != p.Memo.Slots[0].Errs.List() {
+							t.Fatal("the snapshot did not take the place of the records")
+						}
+					}
+					aborted = func() {
+						if p.Memo.Slots[0] != nil {
+							t.Fatal("partial memo snapshot published")
+						}
+					}
+				case "LR snapshot":
+					g := p.GrowBegin(key, &state.Rule{})
+					seed := g.Best
+					p.Pos = 1
+					pushRecords()
+					steps++ // the growth step
+					run = func() {
+						if p.GrowStep(&g, retained, true); !p.GrowNext(&g) {
+							t.Fatal("LR seed did not grow")
+						}
+					}
+					completed = func() {
+						assertSnapshot(g.Best.Errs)
+						if s, _ := p.GrowingSeed(key); s != g.Best || len(p.Recovered) != 1 {
+							t.Fatal("LR publication state differs")
+						}
+					}
+					aborted = func() {
+						if s, _ := p.GrowingSeed(key); s != seed {
+							t.Fatal("partial LR seed published")
+						}
+					}
+				case "LR replay":
+					g := state.GrowState{Rec: 1, Best: &state.MemoEntry{Ok: true, End: 1, Node: retained, Errs: list}}
+					run = func() { p.GrowEnd(r, &g) }
+					completed = assertReplay
+				case "OperatorsRule snapshot", "iterative OperatorsRule snapshot":
+					op := &state.OperatorsRuleOp{Kind: ast.Prefix, Line: &state.OperatorsRuleLine{Scope: &compile.Scope{}}}
+					var best state.OperatorsRuleAttempt
+					if name == "OperatorsRule snapshot" {
+						steps++ // the operator that the match tries
+						op.Line.M = func(p *state.Parser) (*core.Node, bool) {
+							p.Pos = 1
+							pushRecords()
+							return retained, true
+						}
+						run = func() { best = p.Longest([]*state.OperatorsRuleOp{op}) }
+					} else {
+						p.Pos = 1
+						pushRecords()
+						f := &longestFrame{started: true, st: state.LongestState{L: []*state.OperatorsRuleOp{op}, M0: state.Mark{Recovered: 1}, F: p.NewFrame(0)}}
+						run = func() { f.next(ivmMachineOf(p), nil, iresult{ok: true, v: retained}); best = ivmMachineOf(p).attempt }
+					}
+					completed = func() {
+						assertSnapshot(best.Errs)
+						if best.Op != op || best.V != retained || len(p.Recovered) != 1 {
+							t.Fatal("OperatorsRule winner or rollback differs")
+						}
+					}
+					aborted = func() {
+						if best.Op != nil || ivmMachineOf(p).attempt.Op != nil {
+							t.Fatal("partial OperatorsRule winner returned")
+						}
+					}
+				case "OperatorsRule replay":
+					run = func() { p.ApplyRecovered(&state.OperatorsRuleAttempt{End: 1, Errs: list}) }
+					completed = assertReplay
+				}
+				if mode == "complete" {
+					// A limit of 0 is no limit; a free replay runs under a limit of one unit.
+					p.Control = state.NewBudgetControl(nil, core.Limits{Compute: max(steps, 1)})
+				} else if mode == "budget" {
+					// Less than the copy itself, so failure cannot be at a later put.
+					p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 319})
+				} else {
+					p.Control = state.NewBudgetControl(newPollingContext(1), core.Limits{})
+				}
+				err := catchFatal(t, run)
+				if mode == "complete" {
+					if err != nil || p.Control.Used != steps {
+						t.Fatalf("copy error=%v steps=%d want%d", err, p.Control.Used, steps)
+					}
+					completed()
+				} else {
+					want := core.ErrLimit
+					if mode == "cancel" {
+						want = context.Canceled
+					}
+					if !errors.Is(err, want) {
+						t.Fatalf("copy interruption=%v want%v", err, want)
+					}
+					aborted()
+				}
+				after, _ := json.Marshal(records)
+				if string(before) != string(after) || records[0] != a || nodes.D(retained).Text != "retained" || nodes.D(retained).Fields[0].Value != "stable" {
+					t.Fatal("copy changed retained errors, alias pointers or Node")
+				}
+			})
+		}
+	}
+}

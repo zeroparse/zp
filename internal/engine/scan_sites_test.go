@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -556,7 +556,7 @@ rule ws = [ ]*`
 
 // TestScanSitesShareRecordsWithLookaheads checks that, in recognition, a walk in a lookahead is
 // answered from the record of a walk outside it: a site has one table for both, as their records
-// are the same (see scanSlots in internal/engine/state/scan_sites.go). A parse that builds values
+// are the same (see scanSlots in internal/runtime/state/scan_sites.go). A parse that builds values
 // walks lookaheads with a site of its own (the one without values), so they share nothing there;
 // the results are the same either way.
 func TestScanSitesShareRecordsWithLookaheads(t *testing.T) {

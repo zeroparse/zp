@@ -9,9 +9,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 const frameScratchGrammar = `rule main = h:"#head\n" #atomic items:record* #stream $$ {text($h) == "#head\n"}
@@ -144,7 +144,7 @@ func checkStreamFrameScratchRetainedResults(t *testing.T, src string) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := value.D(whole.Field("items").(*core.Node)).Children
+				want := nodes.D(whole.Field("items").(*core.Node)).Children
 				var retained []*core.Node
 				var snapshots [][]byte
 				err = prog.ParseStreamWith("main", strings.NewReader(input.String()), func(n *core.Node) error {
@@ -184,12 +184,12 @@ func TestStreamFrameScratchClearsDeadFrames(t *testing.T) {
 	}
 	p := state.NewParser(&mustCompile(t, `rule main = "a"`).sharedProgram, "a", core.CodePoints, false)
 	root := p.NewFrame(1)
-	root.Vals[0] = value.Ptr(value.Data{Text: "live root"})
+	root.Vals[0] = nodes.Ptr(nodes.Data{Text: "live root"})
 	p.Frame = root
 	dead := p.NewFrame(1)
-	dead.Vals[0] = value.Ptr(value.Data{Text: "previous element"})
+	dead.Vals[0] = nodes.Ptr(nodes.Data{Text: "previous element"})
 	p.ResetStreamFrames()
-	if value.D(root.Vals[0]).Text != "live root" || dead.Vals != nil {
+	if nodes.D(root.Vals[0]).Text != "live root" || dead.Vals != nil {
 		t.Fatal("commit lost the live root or retained a dead capture frame")
 	}
 	if next := p.NewFrame(1); next != dead || next.Vals[0] != nil {
@@ -198,10 +198,10 @@ func TestStreamFrameScratchClearsDeadFrames(t *testing.T) {
 	// The root can remain in an older chunk after a large element. The current
 	// chunk is then entirely dead, while the older live root must survive.
 	for range state.NodeChunk + 7 {
-		p.NewFrame(1).Vals[0] = value.Ptr(value.Data{Text: "large element"})
+		p.NewFrame(1).Vals[0] = nodes.Ptr(nodes.Data{Text: "large element"})
 	}
 	p.ResetStreamFrames()
-	if len(p.FrameSlab) != 0 || cap(p.FrameSlab) != state.NodeChunk || value.D(root.Vals[0]).Text != "live root" {
+	if len(p.FrameSlab) != 0 || cap(p.FrameSlab) != state.NodeChunk || nodes.D(root.Vals[0]).Text != "live root" {
 		t.Fatal("large element prevented scratch reuse or damaged the older root")
 	}
 	for _, f := range p.FrameSlab[:cap(p.FrameSlab)] {

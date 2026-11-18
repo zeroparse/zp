@@ -11,8 +11,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestWideRepetitionModuleValidation(t *testing.T) {
@@ -173,7 +173,7 @@ func TestWideRepetitionDocumentsAndStreams(t *testing.T) {
 					opts := ParseOptions{Backend: backend, Unit: unit}
 					count := 0
 					err := p.ParseStreamWith("main", strings.NewReader("éé"), func(n *core.Node) error {
-						if value.D(n).Text != "é" {
+						if nodes.D(n).Text != "é" {
 							t.Errorf("unexpected stream element: %s", codegentest.ResultJSON(n, nil))
 						}
 						count++

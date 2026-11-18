@@ -3,7 +3,7 @@ package engine
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // admitParse validates fixed metadata and resolves the limits (state.ResolveLimits) for the input text (empty for a stream) before caller Context methods. Callers

@@ -25,7 +25,7 @@ rule main N = ("é") #atomic`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixture, err := os.ReadFile("../../../../engine/state/expectation_records_test.go")
+	fixture, err := os.ReadFile("../../../../runtime/state/expectation_records_test.go")
 	if err != nil {
 		t.Fatal(err)
 	}

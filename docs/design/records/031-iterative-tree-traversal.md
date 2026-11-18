@@ -10,7 +10,7 @@ ZeroParse exposes mutable parse-result `Node` values. The Go API now provides it
 
 ## Motivation
 
-`internal/value/node.go` and the generated Go runtime in `codegen/go/lib/lib.go` expose nodes with `Children` and `Fields`; fields may refer to nodes and are mutable through the Go representation. `Node.Clone` preserves shared subtrees. Go `Node.MarshalJSON` and `Fields.MarshalJSON` now use an iterative writer for nested node graphs; `Node.WriteJSON` also streams that representation to an `io.Writer`. `Node.String` still descends through `writeNode`/`writeValue` recursively.
+`internal/runtime/nodes/node.go` and the generated Go runtime in `codegen/go/lib/lib.go` expose nodes with `Children` and `Fields`; fields may refer to nodes and are mutable through the Go representation. `Node.Clone` preserves shared subtrees. Go `Node.MarshalJSON` and `Fields.MarshalJSON` now use an iterative writer for nested node graphs; `Node.WriteJSON` also streams that representation to an `io.Writer`. `Node.String` still descends through `writeNode`/`writeValue` recursively.
 
 The TypeScript runtime in `codegen/ts/lib/lib.ts` already formats `toString()` and exports `marshal(Node | null)` iteratively with a `Pending` stack. `marshal` preserves Go-compatible JSON field order, BigInt number formatting, null children, and escaping. Separately, `toJSON()` constructs nested objects and converts BigInt to `Number`; native `JSON.stringify` controls recursion on that object representation. The core and generated Go runtimes now provide a common node walker and cursor; the parser-specific `alpha-parsers/duckdb/walk.go` helper remains separate.
 
@@ -160,7 +160,7 @@ The final Go JSON writer was compared with the same benchmark source at main `97
 | Shallow, 8 children | 6,341 ns/op | 5,320 ns/op (-16.1%) | 4,141 → 4,147 | 51 → 108 |
 | Deep, 512-node chain | 16,127,307 ns/op | 199,777 ns/op (about 80.7× faster) | variable 9.9–25.3 MB → about 301,948 | variable 1,567–6,042 → 3,109 |
 
-The deep baseline varied substantially between samples. These results cover only the two synthetic shapes and do not establish performance for representative parser workloads. Raw benchmark logs are kept outside the repository. Reproduce on each revision with the same `internal/value/node_json_bench_test.go` source using `go test -run '^$' -bench '^BenchmarkNodeJSON$' -benchmem -benchtime=200ms -count=5 ./internal/value`; alternate the main and candidate runs to match the paired method.
+The deep baseline varied substantially between samples. These results cover only the two synthetic shapes and do not establish performance for representative parser workloads. Raw benchmark logs are kept outside the repository. Reproduce on each revision with the same `internal/runtime/nodes/node_json_bench_test.go` source using `go test -run '^$' -bench '^BenchmarkNodeJSON$' -benchmem -benchtime=200ms -count=5 ./internal/runtime/nodes`; alternate the main and candidate runs to match the paired method.
 
 ## Limitations and Open Questions
 

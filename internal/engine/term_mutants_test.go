@@ -12,7 +12,7 @@ import (
 )
 
 // engineMutant changes the printed code of the operators of terms in the engine in one way: in the
-// compositions of internal/engine/state/term_exec.go, or in the primitives of term_value.go.
+// compositions of internal/runtime/state/term_exec.go, or in the primitives of term_value.go.
 type engineMutant struct {
 	name, file, fn, old, new string
 }
@@ -116,7 +116,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|ItemAtOpensBoxes|PushTable|CastTable)$", "./internal/engine/state")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|ItemAtOpensBoxes|PushTable|CastTable)$", "./internal/runtime/state")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

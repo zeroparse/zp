@@ -142,15 +142,15 @@ func TestNegativeControls(t *testing.T) {
 		p.Imports = append(p.Imports, to)
 	}
 	// Rule 1: a runtime-side package that a public one imports links the compiler.
-	addEdge(mod("internal/limits"), mod("internal/ir/core"))
+	addEdge(mod("internal/runtime/limits"), mod("internal/ir/core"))
 	// Rule 1: a runtime-side package imports a third-party package.
 	g.pkgs["example.org/thirdparty"] = &pkg{ImportPath: "example.org/thirdparty"}
 	addEdge(mod("pkg/runtime/schema"), "example.org/thirdparty")
 	// Rule 1a: the library links the VM, so do the parsers generated with -lib import.
-	addEdge(mod("codegen/go/lib"), mod("internal/engine/vm"))
+	addEdge(mod("codegen/go/lib"), mod("internal/runtime/vm"))
 	// Rule 1a: the node representation links the internal runtime, so do the parsers generated
 	// with -lib embed.
-	addEdge(mod("core/impl"), mod("internal/value"))
+	addEdge(mod("core/impl"), mod("internal/runtime/nodes"))
 	// Rule 2: the Code IR base imports a dialect.
 	addEdge(mod("internal/ir/code"), mod("internal/ir/flow"))
 	// Rule 2: the front end imports the analysis layer.
@@ -200,7 +200,7 @@ func TestNegativeControls(t *testing.T) {
 	g.pkgs[mod("internal/unplaced")] = &pkg{ImportPath: mod("internal/unplaced"), Module: &struct{ Path string }{modulePath}}
 	addEdge(mod("cmd/zp"), mod("internal/unplaced"))
 	// An allowlisted edge that disappears.
-	doc := g.pkgs[mod("internal/engine/document")]
+	doc := g.pkgs[mod("internal/runtime/document")]
 	doc.Imports = slices.DeleteFunc(doc.Imports, func(p string) bool { return p == mod("internal/compile") })
 
 	msgs := check([]*graph{g}, generatedParsers(t)).compare(allowlist, 1)
@@ -212,15 +212,15 @@ func TestNegativeControls(t *testing.T) {
 		key   string
 		parts []string
 	}{
-		{"rule 1: internal/limits -> internal/ir/core", []string{"\tbreaks: the runtime side (internal/runtime/limits) imports only the runtime side, not internal/ir/core\n", "\tchain: pkg/runtime/query -> internal/limits -> internal/ir/core\n"}},
+		{"rule 1: internal/runtime/limits -> internal/ir/core", []string{"\tbreaks: the runtime side (internal/runtime/limits) imports only the runtime side, not internal/ir/core\n", "\tchain: pkg/runtime/query -> internal/runtime/limits -> internal/ir/core\n"}},
 		{"rule 1: pkg/runtime/schema -> example.org/thirdparty", []string{"\tbreaks: the runtime side imports no third-party package\n", "\tchain: pkg/runtime/schema -> example.org/thirdparty\n"}},
 		// One failure for the edge, listing the generated parsers that reach it.
-		{"rule 1a: codegen/go/lib -> internal/engine/vm", []string{
+		{"rule 1a: codegen/go/lib -> internal/runtime/vm", []string{
 			"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not internal/runtime/vm",
 			"a generated parser links neither pkg/runtime/vm nor internal/runtime/**",
-			"\tchain: codegen/go/lib -> internal/engine/vm\n",
+			"\tchain: codegen/go/lib -> internal/runtime/vm\n",
 			"generated parser (-lib import)", "internal/bench/parsers/json,", "internal/frontend/parser/zpparser,"}},
-		{"rule 1a: core/impl -> internal/value", []string{"codegen/go/lib -> core/impl -> internal/value\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
+		{"rule 1a: core/impl -> internal/runtime/nodes", []string{"codegen/go/lib -> core/impl -> internal/runtime/nodes\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
 		{"rule 2: internal/ir/code -> internal/ir/flow", []string{"\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n"}},
 		{"rule 2: internal/frontend/desugar -> internal/analysis/lint", []string{"the front end layer does not import the analysis layer (internal/frontend/desugar -> internal/analysis/lint)"}},
 		{"rule 2: internal/analysis/lint -> dialects exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/analysis/lint)"}},
@@ -244,7 +244,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: internal/fakeaction -> internal/ir/code/exec", []string{"within internal/ir, code/action imports only code (internal/ir/code/action -> internal/ir/code/exec)"}},
 		{"rule 1a: internal/bench/parsers/json -> example.org/thirdparty", []string{"a generated parser imports no third-party package"}},
 		{"internal/unplaced: no row of layout places the package", nil},
-		{"rule 1: internal/engine/document -> internal/compile: no build has this edge any more; remove it from the allowlist", nil},
+		{"rule 1: internal/runtime/document -> internal/compile: no build has this edge any more; remove it from the allowlist", nil},
 	}
 	for _, w := range want {
 		i := slices.IndexFunc(msgs, func(m string) bool { return strings.HasPrefix(m, w.key) })

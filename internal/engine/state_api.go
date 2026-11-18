@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/runtime/state"
 )
 
 // The parse options, results, errors and trace events are declared in the state package, which

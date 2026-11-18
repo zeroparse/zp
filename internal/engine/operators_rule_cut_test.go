@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 func TestOperatorsRulePrefixPartCuts(t *testing.T) {
@@ -102,11 +102,11 @@ func leafText(n *core.Node) string {
 	if n == nil {
 		return ""
 	}
-	if value.ShapeOf(n) == coreimpl.ShapeString {
-		return value.D(n).Text
+	if nodes.ShapeOf(n) == coreimpl.ShapeString {
+		return nodes.D(n).Text
 	}
 	var b strings.Builder
-	for _, c := range value.D(n).Children {
+	for _, c := range nodes.D(n).Children {
 		b.WriteString(leafText(c))
 	}
 	return b.String()

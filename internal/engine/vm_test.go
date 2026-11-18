@@ -9,8 +9,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	"zeroparse.dev/zp/internal/value"
 )
 
 // TestBackendsMatchOnCorpus checks that the bytecode VM returns the same results as the closure
@@ -51,7 +51,7 @@ func TestBackendsMatchOnStream(t *testing.T) {
 			for i, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				var got []string
 				err := prog.ParseStreamWith("main", strings.NewReader(in), func(n *core.Node) error {
-					got = append(got, fmt.Sprintf("%s [%d,%d)", n, value.D(n).Start, value.D(n).End))
+					got = append(got, fmt.Sprintf("%s [%d,%d)", n, nodes.D(n).Start, nodes.D(n).End))
 					return nil
 				}, ParseOptions{Expectations: true, Unit: u, Backend: b})
 				out[i] = fmt.Sprint(strings.Join(got, "\n"), " ", err)
@@ -83,7 +83,7 @@ rule x = #operators {
 	defer debug.SetMaxStack(prev)
 	for _, in := range inputs {
 		n, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: BytecodeIterative})
-		if err != nil || int(value.D(n).End) != len(in) {
+		if err != nil || int(nodes.D(n).End) != len(in) {
 			t.Errorf("input %.10q...: %v", in, err)
 		}
 		if _, err := prog.ParseWith("main", in[:len(in)-1], ParseOptions{Expectations: true, Backend: BytecodeIterative}); err == nil && in[len(in)-1] == ')' {
@@ -113,7 +113,7 @@ rule x = #operators {
 		// Within the limit, the recursive backends parse such chains.
 		short := in[len(in)-2*(DefaultMaxDepth/4)-1:]
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if n, err := prog.ParseWith("main", short, ParseOptions{Expectations: true, Backend: b}); err != nil || int(value.D(n).End) != len(short) {
+			if n, err := prog.ParseWith("main", short, ParseOptions{Expectations: true, Backend: b}); err != nil || int(nodes.D(n).End) != len(short) {
 				t.Errorf("%v, input %.10q...: %v", b, short, err)
 			}
 		}
