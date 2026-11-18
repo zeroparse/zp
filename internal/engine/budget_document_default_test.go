@@ -360,7 +360,7 @@ func TestBudgetDocumentRunawayStoppedByDefaultWithPendingEdits(t *testing.T) {
 // documentWorkFactor is the factor by which the units of a Document parse after pending edits, all
 // counted as an explicit limit counts them, may exceed those of a parse of the same text from
 // scratch, for a grammar whose Document retains one memo entry per call. It does not depend on the
-// number of pending edits: a lookup applies at most ops.PendingEditLimit edits to the entry it finds.
+// number of pending edits: a lookup applies at most exec.PendingEditLimit edits to the entry it finds.
 const documentWorkFactor = 6
 
 // letterEdits replaces count letters of the text of a Document, spread over it, by another letter:

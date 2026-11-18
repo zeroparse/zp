@@ -166,7 +166,7 @@ func (m *Model) replayMissing(tokens []missingToken, errs any) {
 	}
 }
 
-// errsQuantity returns ops.QErrs for a call of o with args, in the state before the call.
+// errsQuantity returns exec.QErrs for a call of o with args, in the state before the call.
 func (m *Model) errsQuantity(o *code.Op, args []any) int64 {
 	switch o.Name {
 	case "missing.replay":
@@ -201,7 +201,7 @@ func (s *missingState) repeats(tokens []missingToken) bool {
 	return false
 }
 
-// tokensQuantity returns ops.QTokens for a call of o with args, in the state before the call.
+// tokensQuantity returns exec.QTokens for a call of o with args, in the state before the call.
 func (m *Model) tokensQuantity(o *code.Op, args []any) int64 {
 	switch o.Name {
 	case "missing.reset":

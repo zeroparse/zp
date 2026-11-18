@@ -151,7 +151,7 @@ func (p *Parser) ValueEqual(l, r any) bool {
 	return eq
 }
 
-// ValueBinary applies the binary operator op to l and r. An operator that is not one of ops.BinaryOps,
+// ValueBinary applies the binary operator op to l and r. An operator that is not one of exec.BinaryOps,
 // as only a corrupted program has, is an error.
 func (p *Parser) ValueBinary(op string, l, r any) (any, error) {
 	code, ok := binaryCode(op)

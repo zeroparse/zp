@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/core/impl"
 )
 
-// The value primitives of terms (the component values of ops.Parser) of the node and the typed library. The compositions
+// The value primitives of terms (the component values of exec.Parser) of the node and the typed library. The compositions
 // of the operators in term_exec.go decide which of them applies; each acts on one kind of value.
 
 // valKind is the operation val.kind: the kind of x. A node, a list, a tuple, a struct and a box are

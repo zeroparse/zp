@@ -1,5 +1,5 @@
-// Package codepass holds the passes of Exec IR (design 065): transformations of functions that keep
-// their behavior and that every backend prints the result of.
+// Package codepass holds the passes of Code IR that do not depend on a dialect (designs 065 and 072):
+// transformations of functions that keep their behavior and that every backend prints the result of.
 //
 // Specialize makes the copy of a function for one set of features, in which every feature is a
 // constant: the hand-written variants of one mechanism for each build (ordinary, budget-controlled,

@@ -188,7 +188,7 @@ func (m *Model) callExp(o *code.Op, args []any) ([]any, bool) {
 	return nil, false
 }
 
-// setSize returns ops.QSet for a call whose first argument is a set.
+// setSize returns exec.QSet for a call whose first argument is a set.
 func setSize(args []any) int64 {
 	switch x := args[0].(type) {
 	case *ExpSet:
