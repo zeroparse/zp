@@ -195,7 +195,7 @@ func TestSourceSpansAndDiagnostics(t *testing.T) {
 		}, [][2]ast.Pos{{{Line: 1, Col: 10}, {Line: 1, Col: 18}}, {{Line: 1, Col: 11}, {Line: 1, Col: 17}}}},
 		{"rule a = {x := 1}", func(g *ast.Grammar) []ast.SourceNode {
 			p := g.Rules()[0].Expr.(*ast.Predicate)
-			return []ast.SourceNode{p, p.Term.(*ast.Bind)}
+			return []ast.SourceNode{p, p.Action.(*ast.Bind)}
 		}, [][2]ast.Pos{{{Line: 1, Col: 10}, {Line: 1, Col: 18}}, {{Line: 1, Col: 11}, {Line: 1, Col: 17}}}},
 		{"rule a = \"あ\" => 1 + 2 * 3", func(g *ast.Grammar) []ast.SourceNode {
 			b := g.Rules()[0].Action.(*ast.Binary)

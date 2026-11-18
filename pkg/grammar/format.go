@@ -29,12 +29,12 @@ func FormatExprContext(ctx context.Context, e ast.Expr) (string, error) {
 	return fmt.FormatExprContext(ctx, e)
 }
 
-// FormatTerm writes the value expression t of an action or a predicate as grammar syntax.
-func FormatTerm(t ast.Term) string { return fmt.FormatTerm(t) }
+// FormatActionExpr writes the action expression t of an action or a predicate as grammar syntax.
+func FormatActionExpr(t ast.ActionExpr) string { return fmt.FormatActionExpr(t) }
 
-// FormatTermContext is FormatTerm with cooperative cancellation, as for FormatContext.
-func FormatTermContext(ctx context.Context, t ast.Term) (string, error) {
-	return fmt.FormatTermContext(ctx, t)
+// FormatActionExprContext is FormatActionExpr with cooperative cancellation, as for FormatContext.
+func FormatActionExprContext(ctx context.Context, t ast.ActionExpr) (string, error) {
+	return fmt.FormatActionExprContext(ctx, t)
 }
 
 // FormatType writes the type t as grammar syntax.

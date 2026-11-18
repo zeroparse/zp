@@ -63,7 +63,7 @@ type Rule struct {
 	Def   *ast.RuleDef
 	// Body is the expression the rule matches.
 	Body     ast.Expr
-	Action   ast.Term
+	Action   ast.ActionExpr
 	NodeType string
 	// Memo to Vars are the policy of the rule (core.Policy); Lean and Novalue decide whether the
 	// body builds its value.

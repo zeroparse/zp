@@ -38,7 +38,7 @@ func TestLintMetadataPhaseCancellation(t *testing.T) {
 	var typ ast.TypeExpr = &ast.TypeRef{Name: "Match"}
 	elems := make([]ast.Expr, 1024)
 	attrs := make([]*ast.Attribute, len(elems))
-	args := make([]ast.Term, len(elems))
+	args := make([]ast.ActionExpr, len(elems))
 	operands := make([]*ast.OperatorsRuleOperand, len(elems))
 	for i := range elems {
 		groups = &ast.Group{Expr: groups}

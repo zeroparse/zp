@@ -33,7 +33,7 @@ const (
 )
 
 // try evaluates t and reports whether its value, or the failure that stops it, is unknown.
-func (e *TermEnv) try(t ast.Term, p params) (v V, msg string, unknown bool) {
+func (e *TermEnv) try(t ast.ActionExpr, p params) (v V, msg string, unknown bool) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, ok := x.(unknownSignal); ok {
@@ -81,13 +81,13 @@ func (e *TermEnv) logic(t *ast.Binary, p params) V {
 }
 
 // logical returns the operand of t if t is &&, || or ! (through parentheses), and nil otherwise.
-func logical(t ast.Term) ast.Term {
+func logical(t ast.ActionExpr) ast.ActionExpr {
 	for {
-		g, ok := t.(*ast.TermGroup)
+		g, ok := t.(*ast.ActionGroup)
 		if !ok {
 			break
 		}
-		t = g.Term
+		t = g.Action
 	}
 	switch x := t.(type) {
 	case *ast.Binary:
@@ -103,7 +103,7 @@ func logical(t ast.Term) ast.Term {
 }
 
 // outcomes returns the outcomes that t may have as an operand of op, which is &&, || or !.
-func (e *TermEnv) outcomes(t ast.Term, p params, op string) outcome {
+func (e *TermEnv) outcomes(t ast.ActionExpr, p params, op string) outcome {
 	switch x := logical(t).(type) {
 	case *ast.Binary:
 		l := e.outcomes(x.L, p, x.Op)
@@ -155,7 +155,7 @@ func (e *TermEnv) outcomes(t ast.Term, p params, op string) outcome {
 // Decide decides the predicate t: holds is whether it holds, which it does on every value but false and
 // a failure, and known is false when holds depends on an unknown value. A failure is known when it
 // does not, since a predicate that fails does not hold.
-func (e *TermEnv) Decide(t ast.Term) (holds, known bool) {
+func (e *TermEnv) Decide(t ast.ActionExpr) (holds, known bool) {
 	if logical(t) != nil {
 		switch o := e.outcomes(t, nil, ""); {
 		case o == oTrue:

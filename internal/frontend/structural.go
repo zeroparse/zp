@@ -36,7 +36,7 @@ func structuralErrors(g *ast.Grammar, opts compile.Options, names desugar.Inline
 		var pos ast.Pos
 		switch x := origin[e.Node].(type) {
 		case *ast.Predicate:
-			pos = x.Term.(*ast.Bind).Diagnostic()
+			pos = x.Action.(*ast.Bind).Diagnostic()
 		case *ast.Attributed:
 			pos = x.Attrs[0].Diagnostic()
 		default:

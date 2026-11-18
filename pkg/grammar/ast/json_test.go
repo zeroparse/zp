@@ -30,10 +30,10 @@ func sampleGrammar() *Grammar {
 					&Repeat{Expr: &CharClass{Ranges: []CharRange{{Lo: 'a', Hi: 'z'}}, Negated: true}, Min: 1, Max: -1},
 					&Optional{Expr: &Choice{Alts: []Expr{&Literal{Value: "+"}, &Any{}, &Cut{}}}},
 					&Not{Expr: &And{Expr: &Atomic{Expr: &Discard{Expr: &Top{}}}}},
-					&Predicate{Term: &Binary{Op: ">", L: &Call{Func: "len", Args: []Term{&CaptureRef{Name: "l"}}}, R: &VarRef{Name: "indent"}}},
+					&Predicate{Action: &Binary{Op: ">", L: &Call{Func: "len", Args: []ActionExpr{&CaptureRef{Name: "l"}}}, R: &VarRef{Name: "indent"}}},
 					&Attributed{Expr: &Bottom{}, Attrs: []*Attribute{{Name: "error", KwArgs: map[string]any{"message": "x"}}}},
 				}},
-				Action: &Call{Func: "foldl", Args: []Term{
+				Action: &Call{Func: "foldl", Args: []ActionExpr{
 					&CaptureRef{Name: "l"},
 					&IntLit{Value: 2},
 					&Lambda{Params: []string{"acc", "i"}, Body: &New{Type: "Op", Fields: []*FieldInit{

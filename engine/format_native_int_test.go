@@ -15,7 +15,7 @@ func TestFormatNativeMinimumRoundTrip(t *testing.T) {
 	minimum := &ast.IntLit{Value: -max - 1}
 	for _, tc := range []struct {
 		name string
-		term ast.Term
+		term ast.ActionExpr
 		want int
 	}{
 		{"literal", minimum, minimum.Value},
