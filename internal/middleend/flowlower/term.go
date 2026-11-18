@@ -1,4 +1,4 @@
-package execlower
+package flowlower
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/compose"
 	ir "zeroparse.dev/zp/internal/ir/core"
@@ -62,7 +63,7 @@ type TermCast struct{ Cast *ir.Cast }
 func (c TermCast) String() string { return fmt.Sprintf("cast %d:%d", c.Cast.Line, c.Cast.Col) }
 
 // CtxParam is the parameter of a lowered term: the context the term is applied to. A term's results are those of
-// the callable type Term (exec.Term) unless the term is evaluated in place of an action (TermOptions.Result).
+// the callable type Term (action.Term) unless the term is evaluated in place of an action (TermOptions.Result).
 const CtxParam = "c"
 
 // Names of the operations that lowered terms call besides the compositions.
@@ -174,14 +175,14 @@ func Term(t ir.ActionExpr, o TermOptions) (*TermLowered, error) {
 		return nil, err
 	}
 	nOps, nFuncs := len(m.Ops), len(m.Funcs)
-	datum, failT := code.THandle(exec.Datum), code.THandle(exec.Fail)
+	datum, failT := code.THandle(exec.Datum), code.THandle(action.Fail)
 	var results []code.Type
 	if o.Result == "" {
 		results = []code.Type{datum, failT}
 	}
 	l := &termLowerer{m: m, steps: o.Steps, structCall: o.StructCall, unbounded: o.Unbounded, proj: o.Proj,
 		params: map[*ir.Lambda][]code.Expr{}, inPlace: o.Result != "", fieldCompare: o.FieldCompare}
-	fn := m.AddFunc("term", []code.Param{code.P(CtxParam, code.THandle(exec.Act))}, results, nil, func(b *code.Builder) {
+	fn := m.AddFunc("term", []code.Param{code.P(CtxParam, code.THandle(action.Act))}, results, nil, func(b *code.Builder) {
 		var res code.Expr
 		if o.Result != "" {
 			res = b.Var(o.Result, datum)
@@ -220,9 +221,9 @@ func Term(t ir.ActionExpr, o TermOptions) (*TermLowered, error) {
 // type Term of m, which is how the compositions apply a term: the lowered term is the definition of what an
 // application of a Term runs.
 func checkTermSignature(m *code.Module, f *code.Func) error {
-	h := m.HandleType(exec.Term)
+	h := m.HandleType(action.Term)
 	if h == nil || h.Callable == nil {
-		return fmt.Errorf("lower term: the module declares no callable type %s", exec.Term)
+		return fmt.Errorf("lower term: the module declares no callable type %s", action.Term)
 	}
 	sig := h.Callable
 	same := len(f.Params) == len(sig.Params) && len(f.Results) == len(sig.Results)
@@ -233,7 +234,7 @@ func checkTermSignature(m *code.Module, f *code.Func) error {
 		same = f.Results[i] == sig.Results[i]
 	}
 	if !same {
-		return fmt.Errorf("lower term: the function %s does not have the signature of %s", f.Name, exec.Term)
+		return fmt.Errorf("lower term: the function %s does not have the signature of %s", f.Name, action.Term)
 	}
 	return nil
 }
@@ -322,7 +323,7 @@ func termModule() (*code.Module, error) {
 		base := compose.Build()
 		m := &code.Module{Name: "term", Features: base.Features, Components: slices.Clip(base.Components),
 			Registers: base.Registers, Handles: slices.Clip(base.Handles), Ops: slices.Clip(base.Ops)}
-		m.AddComponent(Component, "The state of the hand-written runtime.")
+		m.AddComponent(termComponent, "The state of the hand-written runtime.")
 		addTermOps(m)
 		seen := map[string]bool{}
 		var add func(name string)
@@ -365,11 +366,11 @@ func termModule() (*code.Module, error) {
 
 // addTermOps declares the operations of the leaves of terms.
 func addTermOps(m *code.Module) {
-	datum, failT := code.THandle(exec.Datum), code.THandle(exec.Fail)
-	str := code.THandle(exec.Str)
-	reads := []string{Component}
+	datum, failT := code.THandle(exec.Datum), code.THandle(action.Fail)
+	str := code.THandle(action.Str)
+	reads := []string{termComponent}
 	op := func(o *code.Op) {
-		o.Component = Component
+		o.Component = termComponent
 		o.Kind = code.OpTransitional
 		m.AddOp(o)
 	}
@@ -377,13 +378,13 @@ func addTermOps(m *code.Module) {
 		Contract: "Returns the constant in Imm."})
 	op(&code.Op{Name: OpTermRead, Results: []code.Type{datum}, Reads: reads, Imm: "the capture, local or variable (TermRead)",
 		Contract: "Returns the value of the capture, the local or the variable in Imm, as the target reads a leaf of an action."})
-	op(&code.Op{Name: OpTermName, Results: []code.Type{code.THandle(exec.Name)}, Imm: "the name (a string)",
+	op(&code.Op{Name: OpTermName, Results: []code.Type{code.THandle(action.Name)}, Imm: "the name (a string)",
 		Contract: "Returns the name in Imm."})
-	op(&code.Op{Name: OpTermField, Results: []code.Type{code.THandle(exec.Name)}, Imm: "the member and the name it reads (TermField)",
+	op(&code.Op{Name: OpTermField, Results: []code.Type{code.THandle(action.Name)}, Imm: "the member and the name it reads (TermField)",
 		Contract: "Returns the name of the field or the capture that the member in Imm reads. A target whose comparisons of names charge less for the same string data than for equal bytes cuts it from the name of the member, as its evaluation of terms does, so that the charge does not depend on whether equal literals share their data."})
-	op(&code.Op{Name: OpTermNodeType, Results: []code.Type{code.THandle(exec.NodeType)}, Reads: reads, Imm: "the name of the node type (a string)",
+	op(&code.Op{Name: OpTermNodeType, Results: []code.Type{code.THandle(action.NodeType)}, Reads: reads, Imm: "the name of the node type (a string)",
 		Contract: "Returns the named node type in Imm."})
-	op(&code.Op{Name: OpTermCastType, Results: []code.Type{code.THandle(exec.FType)}, Imm: "the cast (TermCast)",
+	op(&code.Op{Name: OpTermCastType, Results: []code.Type{code.THandle(action.FType)}, Imm: "the cast (TermCast)",
 		Contract: "Returns the checked type of the cast in Imm."})
 	op(&code.Op{Name: OpTermRaise, Params: []code.Param{code.P("f", failT)}, Reads: reads, Writes: reads, NoReturn: true,
 		Contract: "Ends the parse with the failure f of a term evaluated in place of an action (TermOptions.Result), as the failure of an action does."})
@@ -395,7 +396,7 @@ func addTermOps(m *code.Module) {
 		Contract: "Charges one step of the budget for a subterm, under budget controls."})
 	op(&code.Op{Name: OpTermFromStr, Params: []code.Param{code.P("s", str)}, Results: []code.Type{datum},
 		Contract: "Returns the string s as a value."})
-	obj, seq := code.THandle(exec.Obj), code.THandle(exec.Seq)
+	obj, seq := code.THandle(action.Obj), code.THandle(action.Seq)
 	op(&code.Op{Name: OpTermFromObj, Params: []code.Param{code.P("n", obj)}, Results: []code.Type{datum},
 		Contract: "Returns the struct, list value or tuple value n as a value."})
 	op(&code.Op{Name: OpTermStruct, Results: []code.Type{obj}, Reads: reads, Writes: reads, NoReturn: true, Imm: "the struct literal (TermNew)",
@@ -405,7 +406,7 @@ func addTermOps(m *code.Module) {
 		Contract: "Sets the field in Imm of the struct n, which a term is making, to v. A target that bounds the work charges for the fields it scans and the bytes of the names it compares."})
 	op(&code.Op{Name: OpTermCopyList, Params: []code.Param{code.P("items", seq)}, Results: []code.Type{datum}, Reads: reads, Writes: reads,
 		Contract: "Returns a new list value of the elements items, which items returned, as they are, charging for copying them under budget controls."})
-	m.Handles = append(m.Handles, &code.HandleType{Name: HandleOperand, Component: Component,
+	m.Handles = append(m.Handles, &code.HandleType{Name: HandleOperand, Component: termComponent,
 		Doc: "An operand of a comparison: a value, or a string field read without making a value of it."})
 	operand := code.THandle(HandleOperand)
 	op(&code.Op{Name: OpTermFieldOperand, Params: []code.Param{code.P("x", datum)}, Results: []code.Type{operand, failT}, Reads: reads, Writes: reads,
@@ -462,7 +463,7 @@ func (l *termLowerer) local(p string) string {
 func (l *termLowerer) fallible(b *code.Builder, prefix string, c *code.Call) code.Expr {
 	n := l.local("")
 	r := b.LetN([]string{prefix + n, "tf" + n}, c)
-	b.If(code.Bin("!=", r[1], code.Null(code.THandle(exec.Fail))), func(b *code.Builder) { l.raise(b, r[1]) })
+	b.If(code.Bin("!=", r[1], code.Null(code.THandle(action.Fail))), func(b *code.Builder) { l.raise(b, r[1]) })
 	return r[0]
 }
 
@@ -505,7 +506,7 @@ func (l *termLowerer) value(b *code.Builder, t ir.ActionExpr) code.Expr {
 			imm(OpTermName, t.Name), imm(OpTermField, TermField{t.Name, field})))
 	case *ir.Unary:
 		x := l.value(b, t.X)
-		return l.fallible(b, "tv", code.C("unary", opCode(exec.UnaryOps, t.Op), x))
+		return l.fallible(b, "tv", code.C("unary", opCode(action.UnaryOps, t.Op), x))
 	case *ir.Binary:
 		switch t.Op {
 		case "&&", "||":
@@ -531,7 +532,7 @@ func (l *termLowerer) value(b *code.Builder, t ir.ActionExpr) code.Expr {
 		}
 		x := l.value(b, t.L)
 		y := l.value(b, t.R)
-		return l.fallible(b, "tv", code.C("binary", opCode(exec.BinaryOps, t.Op), x, y))
+		return l.fallible(b, "tv", code.C("binary", opCode(action.BinaryOps, t.Op), x, y))
 	case *ir.Tuple:
 		return l.sequence(b, true, "tuple", l.values(b, t.Elems))
 	case *ir.New:
@@ -624,7 +625,7 @@ func (l *termLowerer) values(b *code.Builder, ts []ir.ActionExpr) []code.Expr {
 // check lets the failure that the call c of a composition returns and raises it.
 func (l *termLowerer) check(b *code.Builder, c *code.Call) {
 	f := b.Let(l.local("tf"), c)
-	b.If(code.Bin("!=", f, code.Null(code.THandle(exec.Fail))), func(b *code.Builder) { l.raise(b, f) })
+	b.If(code.Bin("!=", f, code.Null(code.THandle(action.Fail))), func(b *code.Builder) { l.raise(b, f) })
 }
 
 // sequence makes the tuple value, if tuple, or the list value of vals, the values of the elements that
@@ -802,8 +803,8 @@ func (l *termLowerer) structLiteral(b *code.Builder, t *ir.New) code.Expr {
 			for i := range params {
 				params[i] = code.P("f"+strconv.Itoa(i), code.THandle(exec.Datum))
 			}
-			l.m.AddOp(&code.Op{Name: name, Component: Component, Kind: code.OpTransitional, Params: params,
-				Results: []code.Type{code.THandle(exec.Datum)}, Reads: []string{Component}, Writes: []string{Component},
+			l.m.AddOp(&code.Op{Name: name, Component: termComponent, Kind: code.OpTransitional, Params: params,
+				Results: []code.Type{code.THandle(exec.Datum)}, Reads: []string{termComponent}, Writes: []string{termComponent},
 				Imm: "the struct literal (TermNew)", Contract: "Returns the struct that the literal in Imm makes of the field values, given in the order its type declares them; nil for a field the literal does not give."})
 		}
 		args := make([]code.Expr, len(t.Declared))
@@ -844,7 +845,7 @@ func settled(e code.Expr) bool {
 // logic lowers l && r and l || r: logic checks each operand that is evaluated, and the right one is
 // evaluated only if the left one does not decide the result.
 func (l *termLowerer) logic(b *code.Builder, t *ir.Binary) code.Expr {
-	op := opCode(exec.LogicalOps, t.Op)
+	op := opCode(action.LogicalOps, t.Op)
 	left := l.fallible(b, "tb", code.C("logic", op, l.value(b, t.L)))
 	and := t.Op == "&&"
 	r := b.Let(l.local("tv"), code.C("val.fromBool", code.BoolC(!and)))
@@ -948,22 +949,25 @@ func textArg(t ir.ActionExpr) (ir.ActionExpr, bool) {
 	return nil, false
 }
 
-// memberKind returns the kind of the member read name (exec.MemberKinds) and the name of the field or
+// memberKind returns the kind of the member read name (action.MemberKinds) and the name of the field or
 // capture that it reads.
 func memberKind(name string) (int, string) {
 	prefix := -1
-	for code, k := range exec.MemberKinds {
+	for code, k := range action.MemberKinds {
 		switch {
-		case code == exec.MemberCapture:
+		case code == action.MemberCapture:
 			prefix = code
 		case k.Spelling != "" && name == k.Spelling:
 			return code, name
 		}
 	}
 	if prefix >= 0 {
-		if field, ok := strings.CutPrefix(name, exec.MemberKinds[prefix].Spelling); ok {
+		if field, ok := strings.CutPrefix(name, action.MemberKinds[prefix].Spelling); ok {
 			return prefix, field
 		}
 	}
-	return exec.MemberField, name
+	return action.MemberField, name
 }
+
+// termComponent is the state component of the leaves of terms: the state of the hand-written runtime.
+const termComponent = "runtime"

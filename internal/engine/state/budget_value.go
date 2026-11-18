@@ -7,7 +7,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
+	coreimpl "zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 )
@@ -151,7 +151,7 @@ func (p *Parser) ValueEqual(l, r any) bool {
 	return eq
 }
 
-// ValueBinary applies the binary operator op to l and r. An operator that is not one of exec.BinaryOps,
+// ValueBinary applies the binary operator op to l and r. An operator that is not one of action.BinaryOps,
 // as only a corrupted program has, is an error.
 func (p *Parser) ValueBinary(op string, l, r any) (any, error) {
 	code, ok := binaryCode(op)

@@ -6,24 +6,25 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
-// The harness of what terms make (exec.Gathered and exec.Made): the operations that conformance cases use
+// The harness of what terms make (action.Gathered and action.Made): the operations that conformance cases use
 // to make the context, the elements and the structs that the operations take, and the comparison of the
 // elements gathered and the values made after each call that writes them.
 
 // The conformance operations of what terms make. They are not operations of the parser VM.
 const (
-	// ActOp returns the context of the terms of a case (exec.Act); every call returns the same one.
+	// ActOp returns the context of the terms of a case (action.Act); every call returns the same one.
 	ActOp = "test.act"
-	// ElemOp returns a new element (exec.Elem) with a conformance identifier.
+	// ElemOp returns a new element (action.Elem) with a conformance identifier.
 	ElemOp = "test.elem"
-	// ItemsOp returns the elements of a new list (exec.Seq), n new elements with the identifiers from
+	// ItemsOp returns the elements of a new list (action.Seq), n new elements with the identifiers from
 	// first on.
 	ItemsOp = "test.items"
-	// StructOp returns a new struct (exec.Obj) with a conformance identifier.
+	// StructOp returns a new struct (action.Obj) with a conformance identifier.
 	StructOp = "test.struct"
 )
 
@@ -32,7 +33,7 @@ func isTermStateTestOp(name string) bool {
 }
 
 // Gathering is an Impl that provides the elements gathered for the lists and tuples that terms make
-// (exec.Gathered). After each call of an operation that writes them, the harness compares them with the
+// (action.Gathered). After each call of an operation that writes them, the harness compares them with the
 // model's.
 type Gathering interface {
 	// Act returns the context of the terms of a case.
@@ -50,7 +51,7 @@ type Gathering interface {
 	ItemIDs(items any) []int64
 }
 
-// Making is an Impl that provides the values that terms made (exec.Made). After each call of an operation
+// Making is an Impl that provides the values that terms made (action.Made). After each call of an operation
 // that writes them, the harness compares them with the model's.
 type Making interface {
 	// Act returns the context of the terms of a case.
@@ -92,12 +93,12 @@ func (p *pair) compareTermState(o *code.Op, want, got []any) {
 			panic(mismatch(fmt.Sprintf("elements taken off: model %v, implementation %v", w, x)))
 		}
 	}
-	if g, ok := p.impl.(Gathering); ok && slices.Contains(o.Writes, exec.Gathered) {
+	if g, ok := p.impl.(Gathering); ok && slices.Contains(o.Writes, action.Gathered) {
 		if w, x := p.model.Gathered(), g.Gathered(); !slices.Equal(w, x) {
 			panic(mismatch(fmt.Sprintf("elements gathered: model %v, implementation %v", w, x)))
 		}
 	}
-	if mk, ok := p.impl.(Making); ok && slices.Contains(o.Writes, exec.Made) {
+	if mk, ok := p.impl.(Making); ok && slices.Contains(o.Writes, action.Made) {
 		if w, x := p.model.Made(), mk.Made(); !slices.Equal(w, x) {
 			panic(mismatch(fmt.Sprintf("values made: model %v, implementation %v", w, x)))
 		}
@@ -107,15 +108,16 @@ func (p *pair) compareTermState(o *code.Op, want, got []any) {
 // TermStateModule returns the value declarations with the conformance operations of what terms make.
 func TermStateModule() *code.Module {
 	m := exec.Parser()
-	m.AddOp(&code.Op{Name: ActOp, Component: exec.Host, Results: []code.Type{code.THandle(exec.Act)},
+	action.Declare(m)
+	m.AddOp(&code.Op{Name: ActOp, Component: exec.Host, Results: []code.Type{code.THandle(action.Act)},
 		Contract: "Returns the context of the terms of the case; every call returns the same one."})
 	m.AddOp(&code.Op{Name: ElemOp, Component: exec.Host, Params: []code.Param{code.P("id", code.TInt)},
-		Results: []code.Type{code.THandle(exec.Elem)}, Contract: "Returns a new element with a conformance identifier."})
+		Results: []code.Type{code.THandle(action.Elem)}, Contract: "Returns a new element with a conformance identifier."})
 	m.AddOp(&code.Op{Name: ItemsOp, Component: exec.Host, Params: []code.Param{code.P("first", code.TInt), code.P("n", code.TInt)},
-		Results:  []code.Type{code.THandle(exec.Seq)},
+		Results:  []code.Type{code.THandle(action.Seq)},
 		Contract: "Returns the elements of a new list: n new elements with the conformance identifiers from first on."})
 	m.AddOp(&code.Op{Name: StructOp, Component: exec.Host, Params: []code.Param{code.P("id", code.TInt)},
-		Results: []code.Type{code.THandle(exec.Obj)}, Contract: "Returns a new struct with a conformance identifier."})
+		Results: []code.Type{code.THandle(action.Obj)}, Contract: "Returns a new struct with a conformance identifier."})
 	return m
 }
 
@@ -143,7 +145,7 @@ func GatheredCases() []Case {
 	i := code.Int
 	kids := func(n int64) code.Expr { return code.Eq(code.C("term.kids"), i(n)) }
 	push := func(b *code.Builder, c code.Expr, id int64) { b.Do("act.push", c, code.C(ElemOp, i(id))) }
-	null := code.Null(code.THandle(exec.Elem))
+	null := code.Null(code.THandle(action.Elem))
 	add("gathered_push", func(b *code.Builder, c code.Expr) {
 		k0 := b.Let("k0", code.C("term.kids"))
 		b.Assert(kids(0), "a parse starts with no elements gathered")
@@ -312,7 +314,7 @@ func randomTermState(name string, rng *rand.Rand, opNames []string, n int) Case 
 			switch op := opNames[rng.IntN(len(opNames))]; op {
 			case "act.push":
 				if rng.IntN(5) == 0 {
-					call(op, []any{ref.Act{}, nil}, c, code.Null(code.THandle(exec.Elem)))
+					call(op, []any{ref.Act{}, nil}, c, code.Null(code.THandle(action.Elem)))
 				} else {
 					e := id(1)
 					call(op, []any{ref.Act{}, ref.Elem{ID: e}}, c, code.C(ElemOp, code.Int(e)))

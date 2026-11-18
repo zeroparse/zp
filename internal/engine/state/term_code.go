@@ -3,10 +3,10 @@ package state
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/core/impl"
+	coreimpl "zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -87,9 +87,9 @@ const (
 	oStruct        // an index of Structs
 	oSlot          // a capture slot: not negative
 	oVar           // a variable of the module
-	oUnary         // a unary operator (exec.UnaryOps)
-	oBinary        // a binary operator (exec.BinaryOps)
-	oLogic         // a logical operator (exec.LogicalOps)
+	oUnary         // a unary operator (action.UnaryOps)
+	oBinary        // a binary operator (action.BinaryOps)
+	oLogic         // a logical operator (action.LogicalOps)
 	oFlag          // 0 or 1
 	oImm           // any integer
 )
@@ -234,7 +234,7 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 		if err != nil {
 			return err
 		}
-		if m.Kind < 0 || m.Kind >= len(exec.MemberKinds) {
+		if m.Kind < 0 || m.Kind >= len(action.MemberKinds) {
 			return fmt.Errorf("invalid member kind %d", m.Kind)
 		}
 		t.members = append(t.members, termMember{kind: m.Kind, name: name, field: field})
@@ -311,11 +311,11 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 		case oVar:
 			return vars, true
 		case oUnary:
-			return len(exec.UnaryOps), true
+			return len(action.UnaryOps), true
 		case oBinary:
-			return len(exec.BinaryOps), true
+			return len(action.BinaryOps), true
 		case oLogic:
-			return len(exec.LogicalOps), true
+			return len(action.LogicalOps), true
 		case oFlag:
 			return 2, true
 		}

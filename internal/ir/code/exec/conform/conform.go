@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
@@ -110,6 +111,7 @@ const ErrOp = "test.err"
 // that make the handles of cases, ready for cases.
 func Module() *code.Module {
 	m := exec.Parser()
+	action.Declare(m)
 	m.AddOp(&code.Op{Name: ValuesOp, Component: exec.Env, Params: []code.Param{code.P("id", code.TInt)},
 		Results:  []code.Type{code.THandle(exec.Values)},
 		Contract: "Returns the Values handle of a conformance identifier; equal identifiers are equal values."})

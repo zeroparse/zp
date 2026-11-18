@@ -115,15 +115,14 @@ const (
 	Rule = "Rule"
 )
 
-// Parser returns the module of every operation of the parser VM, without functions: the state and
-// operations of a memoized rule call (memoizedCall), those with which rules parse the input and report
-// on it (addParsing), the value primitives (addValue) and the application of terms (addTermCode). The
-// compositions of the parser VM are written over it.
+// Parser returns the module of every operation of the Exec dialect, without functions: the state and
+// operations of a memoized rule call (memoizedCall) and those with which rules parse the input and report
+// on it (addParsing). The operations on values and the application of terms are those of the Action
+// dialect (internal/ir/code/action), which action.Declare adds to the module; the compositions of the
+// abstract machine are written over both.
 func Parser() *code.Module {
 	m := memoizedCall()
 	addParsing(m)
-	addValue(m)
-	addTermCode(m)
 	return m
 }
 

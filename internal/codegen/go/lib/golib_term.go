@@ -5,8 +5,8 @@ import (
 	"go/format"
 	"strings"
 
-	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/ir/code/exec"
+	gogen "zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec/compose"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 )
@@ -61,9 +61,9 @@ func goLibTermNames(names map[string]string) {
 // errOps returns the Go table of the names of the operators that the failure code indexes.
 func errOps(code int) string {
 	switch code {
-	case exec.ErrUnary:
+	case action.ErrUnary:
 		return "termUnaryOps"
-	case exec.ErrLogical:
+	case action.ErrLogical:
 		return "termLogicalOps"
 	}
 	return "termBinaryOps"
@@ -73,22 +73,22 @@ func errOps(code int) string {
 func goTermConsts() string {
 	var b strings.Builder
 	b.WriteString("\n// The codes of the binary operators, as the compositions of terms take them, for generated parsers;\n// not a stable API.\nconst (\n")
-	for i := range exec.BinaryNames {
-		fmt.Fprintf(&b, "\t%s = %d // %s\n", exec.Ident(exec.BinaryNames[i]), i, exec.BinaryOps[i])
+	for i := range action.BinaryNames {
+		fmt.Fprintf(&b, "\t%s = %d // %s\n", action.Ident(action.BinaryNames[i]), i, action.BinaryOps[i])
 	}
 	b.WriteString(")\n\n// The codes of the unary operators, for generated parsers; not a stable API.\nconst (\n")
-	for i := range exec.UnaryNames {
-		fmt.Fprintf(&b, "\t%s = %d // %s\n", exec.Ident(exec.UnaryNames[i]), i, exec.UnaryOps[i])
+	for i := range action.UnaryNames {
+		fmt.Fprintf(&b, "\t%s = %d // %s\n", action.Ident(action.UnaryNames[i]), i, action.UnaryOps[i])
 	}
 	b.WriteString(")\n\n// The codes of the logical operators, for generated parsers; not a stable API.\nconst (\n")
-	for i := range exec.LogicalNames {
-		fmt.Fprintf(&b, "\t%s = %d // %s\n", exec.Ident(exec.LogicalNames[i]), i, exec.LogicalOps[i])
+	for i := range action.LogicalNames {
+		fmt.Fprintf(&b, "\t%s = %d // %s\n", action.Ident(action.LogicalNames[i]), i, action.LogicalOps[i])
 	}
 	b.WriteString(")\n\n")
 	for _, t := range []struct {
 		name string
 		list []string
-	}{{"termBinaryOps", exec.BinaryOps}, {"termUnaryOps", exec.UnaryOps}, {"termLogicalOps", exec.LogicalOps}} {
+	}{{"termBinaryOps", action.BinaryOps}, {"termUnaryOps", action.UnaryOps}, {"termLogicalOps", action.LogicalOps}} {
 		fmt.Fprintf(&b, "var %s = [...]string{", t.name)
 		for i, s := range t.list {
 			if i > 0 {
@@ -102,18 +102,18 @@ func goTermConsts() string {
 	for _, k := range []struct {
 		name string
 		code int
-	}{{"Nil", exec.KindNil}, {"Int", exec.KindInt}, {"String", exec.KindString}, {"Bool", exec.KindBool}, {"Other", exec.KindOther}} {
+	}{{"Nil", action.KindNil}, {"Int", action.KindInt}, {"String", action.KindString}, {"Bool", action.KindBool}, {"Other", action.KindOther}} {
 		fmt.Fprintf(&b, "\tvalKind%s = %d\n", k.name, k.code)
 	}
 	b.WriteString(")\n\n// The codes of the kinds of member reads, for generated parsers; not a stable API.\nconst (\n")
-	for code, k := range exec.MemberKinds {
+	for code, k := range action.MemberKinds {
 		fmt.Fprintf(&b, "\tMember%s = %d\n", k.Name, code)
 	}
 	b.WriteString(")\n\n// memberKind returns the kind of the member read name and the name of the field or capture that it\n// reads.\nfunc memberKind(name string) (int, string) {\n\tswitch name {\n")
 	var prefix []int
-	for code, k := range exec.MemberKinds {
+	for code, k := range action.MemberKinds {
 		switch {
-		case code == exec.MemberCapture:
+		case code == action.MemberCapture:
 			prefix = append(prefix, code)
 		case k.Spelling != "":
 			fmt.Fprintf(&b, "\tcase %q:\n\t\treturn Member%s, name\n", k.Spelling, k.Name)
@@ -121,22 +121,22 @@ func goTermConsts() string {
 	}
 	b.WriteString("\t}\n")
 	for _, code := range prefix {
-		k := exec.MemberKinds[code]
+		k := action.MemberKinds[code]
 		fmt.Fprintf(&b, "\tif field, ok := strings.CutPrefix(name, %q); ok {\n\t\treturn Member%s, field\n\t}\n", k.Spelling, k.Name)
 	}
-	fmt.Fprintf(&b, "\treturn Member%s, name\n}\n", exec.MemberKinds[exec.MemberField].Name)
+	fmt.Fprintf(&b, "\treturn Member%s, name\n}\n", action.MemberKinds[action.MemberField].Name)
 	return b.String()
 }
 
 // goTermError returns the function that makes the failure of a term for a library whose parser is
-// recv, with the types named by typeName. The text is that of exec.TermErrors. A failure of a term
+// recv, with the types named by typeName. The text is that of action.TermErrors. A failure of a term
 // that bounds its work is put together piece by piece by evalErrorValue, as it was before: the
 // message of == or != applied to operands that it does not accept is one piece, and every other
 // message, including that of the other operators, is cut at its placeholders.
 func goTermError(recv, typeName string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "\n// termError returns the failure of a term with the message exec.TermErrors[code]; it is a value that the\n// caller raises.\nfunc (p %s) termError(code int, a, b any, op, n int) any {\n\tswitch code {\n", recv)
-	for code, e := range exec.TermErrors {
+	for code, e := range action.TermErrors {
 		fmt.Fprintf(&b, "\tcase %d: // %s\n", code, e.Name)
 		var format strings.Builder
 		var args []string
@@ -161,16 +161,16 @@ func goTermError(recv, typeName string) string {
 				format.WriteString("%d")
 			}
 		}
-		if code == exec.ErrOperands || code == exec.ErrCompare {
+		if code == action.ErrOperands || code == action.ErrCompare {
 			hint := ""
 			if e.Hint != "" {
 				hint = fmt.Sprintf("+%q", e.Hint)
 			}
-			if code == exec.ErrOperands {
+			if code == action.ErrOperands {
 				// Only == and != put the message together first; the other operators charge it piece by
 				// piece.
 				fmt.Fprintf(&b, "\t\tif op != %d && op != %d {\n\t\t\treturn p.evalErrorValue(%q, %s)\n\t\t}\n",
-					exec.OpEq, exec.OpNe, format.String(), strings.Join(args, ", "))
+					action.OpEq, action.OpNe, format.String(), strings.Join(args, ", "))
 			}
 			fmt.Fprintf(&b, "\t\treturn p.evalErrorValue(\"%%s\", fmt.Sprintf(%q, %s)%s)\n", format.String(), strings.Join(args, ", "), hint)
 			continue
@@ -437,11 +437,11 @@ func printEngineTerms() (string, error) {
 }
 
 // engineTermError returns the function that makes the failure of a term in the engine: an error whose
-// text is that of exec.TermErrors, put together from the same fragments as the other libraries charge.
+// text is that of action.TermErrors, put together from the same fragments as the other libraries charge.
 func engineTermError() string {
 	var b strings.Builder
 	b.WriteString("\n// termError returns the failure of a term with the message exec.TermErrors[code]; it is an error that the\n// caller returns.\nfunc (p *Parser) termError(code int, a, b any, op, n int) error {\n\tswitch code {\n")
-	for code, e := range exec.TermErrors {
+	for code, e := range action.TermErrors {
 		fmt.Fprintf(&b, "\tcase %d: // %s\n", code, e.Name)
 		var parts []string
 		for _, seg := range e.Segments() {
@@ -460,7 +460,7 @@ func engineTermError() string {
 				parts = append(parts, "strconv.Itoa(n)")
 			}
 		}
-		if code == exec.ErrOperands || code == exec.ErrCompare {
+		if code == action.ErrOperands || code == action.ErrCompare {
 			// The hint is a fragment of its own even where it is empty: the controlled engine
 			// charges one unit for each fragment of an error.
 			parts = append(parts, fmt.Sprintf("%q", e.Hint))

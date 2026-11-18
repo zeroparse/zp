@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/spectest"
 )
@@ -314,7 +315,7 @@ func TestSpecStatements(t *testing.T) {
 var valueKinds = []struct {
 	code int
 	name string
-}{{exec.KindNil, "nil"}, {exec.KindInt, "int"}, {exec.KindString, "string"}, {exec.KindBool, "bool"}, {exec.KindOther, "other"}}
+}{{action.KindNil, "nil"}, {action.KindInt, "int"}, {action.KindString, "string"}, {action.KindBool, "bool"}, {action.KindOther, "other"}}
 
 // kindErrors returns the differences between the rows of the table of value kinds and the kinds of
 // the code: the number of rows, and the code and the name of each.
@@ -357,9 +358,9 @@ func TestSpecValues(t *testing.T) {
 		t.Error(e)
 	}
 	groups := map[string]struct{ syms, names []string }{
-		"Binary":  {exec.BinaryOps, exec.BinaryNames},
-		"Unary":   {exec.UnaryOps, exec.UnaryNames},
-		"Logical": {exec.LogicalOps, exec.LogicalNames},
+		"Binary":  {action.BinaryOps, action.BinaryNames},
+		"Unary":   {action.UnaryOps, action.UnaryNames},
+		"Logical": {action.LogicalOps, action.LogicalNames},
 	}
 	seen := 0
 	for _, r := range tables["Group Operators, by code from 0"].Rows {
@@ -381,27 +382,27 @@ func TestSpecValues(t *testing.T) {
 		t.Errorf("operators: %d groups, want %d", seen, len(groups))
 	}
 	members := tables["Code Kind Spelling Reads"]
-	if len(members.Rows) != len(exec.MemberKinds) {
-		t.Errorf("member kinds: %d rows, want %d", len(members.Rows), len(exec.MemberKinds))
+	if len(members.Rows) != len(action.MemberKinds) {
+		t.Errorf("member kinds: %d rows, want %d", len(members.Rows), len(action.MemberKinds))
 	}
 	for i, r := range members.Rows {
-		if i >= len(exec.MemberKinds) {
+		if i >= len(action.MemberKinds) {
 			break
 		}
-		k := exec.MemberKinds[i]
+		k := action.MemberKinds[i]
 		if r[0] != fmt.Sprint(i) || r[1] != strings.ToLower(k.Name) || (k.Spelling != "" && r[2] != k.Spelling && !strings.Contains(r[2], "`"+k.Spelling+"`")) {
 			t.Errorf("member kind %d: the specification has %q, the code has %+v", i, r, k)
 		}
 	}
 	fails := tables["Code Failure Text Hint Meaning"].Rows
-	if len(fails) != len(exec.TermErrors) {
-		t.Errorf("failures: %d rows, want %d", len(fails), len(exec.TermErrors))
+	if len(fails) != len(action.TermErrors) {
+		t.Errorf("failures: %d rows, want %d", len(fails), len(action.TermErrors))
 	}
 	for i, r := range fails {
-		if i >= len(exec.TermErrors) {
+		if i >= len(action.TermErrors) {
 			break
 		}
-		e := exec.TermErrors[i]
+		e := action.TermErrors[i]
 		if r[0] != fmt.Sprint(i) || r[1] != e.Name || r[2] != e.Text || r[3] != e.Hint {
 			t.Errorf("failure %d: the specification has %q, the code has %+v", i, r[:4], e)
 		}

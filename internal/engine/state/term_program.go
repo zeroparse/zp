@@ -3,20 +3,21 @@ package state
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/core/impl"
+	coreimpl "zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/middleend/execlower"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/value"
 )
 
 // Terms of the engine lowered from Exec IR.
 //
 // The engine evaluates an action, a predicate or the value of a binding as the function of Exec IR
-// that execlower.Term makes of its Core IR term, as generated parsers do: the same compositions of the
+// that flowlower.Term makes of its Core IR term, as generated parsers do: the same compositions of the
 // operators of terms (term_exec.go), in the same order, with the same failures. The function is
 // translated once, when the program is built, into the instructions of a TermProgram, which
 // TermProgram.Eval runs. Instructions read and write registers of four files, by the Exec IR type
@@ -45,7 +46,7 @@ type TermEnv struct {
 	Prog *compile.Program
 	// Scope holds the capture slots of the frame the term reads.
 	Scope *compile.Scope
-	// Proj are the projected captures of the rule whose action the term is (execlower.TermOptions.Proj),
+	// Proj are the projected captures of the rule whose action the term is (flowlower.TermOptions.Proj),
 	// nil for every other term.
 	Proj map[string]string
 }
@@ -146,7 +147,7 @@ type termReg struct {
 // and translates the function into the instructions of a TermProgram. An error is an internal
 // error: a term that the front end does not build, or a lowering this translation does not know.
 func CompileTerm(t ir.ActionExpr, env TermEnv) (*TermProgram, error) {
-	l, err := execlower.Term(t, execlower.TermOptions{Proj: env.Proj})
+	l, err := flowlower.Term(t, flowlower.TermOptions{Proj: env.Proj})
 	if err != nil {
 		return nil, err
 	}
@@ -175,11 +176,11 @@ func fileOf(t code.Type) (int, bool) {
 		return fileN, true
 	case code.KHandle:
 		switch t.Handle {
-		case exec.Datum, exec.Obj, exec.Fail:
+		case exec.Datum, action.Obj, action.Fail:
 			return fileA, true
-		case exec.Seq:
+		case action.Seq:
 			return fileS, true
-		case exec.Str:
+		case action.Str:
 			return fileT, true
 		}
 	}
@@ -277,7 +278,7 @@ func (c *termCompiler) block(b *code.Block) error {
 			call, isCall := s.Value.(*code.Call)
 			if isCall {
 				res := c.results(call.Callee)
-				if len(res) == len(s.Names) && len(res) > 0 && res[len(res)-1] == code.THandle(exec.Fail) {
+				if len(res) == len(s.Names) && len(res) > 0 && res[len(res)-1] == code.THandle(action.Fail) {
 					// A composition that can fail: its failure must be raised right after it.
 					fail := s.Names[len(s.Names)-1]
 					if !raises(next(), fail) {
@@ -324,7 +325,7 @@ func (c *termCompiler) block(b *code.Block) error {
 			}
 		case *code.Do:
 			res := c.results(s.Call.Callee)
-			if len(res) == 1 && res[0] == code.THandle(exec.Fail) {
+			if len(res) == 1 && res[0] == code.THandle(action.Fail) {
 				return fmt.Errorf("the failure of %s is discarded", s.Call.Callee)
 			}
 			if err := c.effect(s.Call); err != nil {
@@ -441,9 +442,9 @@ func (c *termCompiler) typeOf(e code.Expr) (code.Type, error) {
 		case fileN:
 			return code.TInt, nil
 		case fileS:
-			return code.THandle(exec.Seq), nil
+			return code.THandle(action.Seq), nil
 		default:
-			return code.THandle(exec.Str), nil
+			return code.THandle(action.Str), nil
 		}
 	case *code.Unary:
 		return code.TBool, nil
@@ -647,11 +648,11 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		name, err := immArg(e, 3, execlower.OpTermName)
+		name, err := immArg(e, 3, flowlower.OpTermName)
 		if err != nil {
 			return err
 		}
-		field, err := immArg(e, 4, execlower.OpTermField)
+		field, err := immArg(e, 4, flowlower.OpTermField)
 		if err != nil {
 			return err
 		}
@@ -659,7 +660,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		c.prog.members = append(c.prog.members, termMember{kind: int(kind), name: name.(string), field: field.(execlower.TermField).Field})
+		c.prog.members = append(c.prog.members, termMember{kind: int(kind), name: name.(string), field: field.(flowlower.TermField).Field})
 		in.op, in.a, in.b = tMember, rs[0], int32(len(c.prog.members)-1)
 	case "unary", "logic":
 		op, err := intImm(e, 0)
@@ -691,7 +692,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		}
 		in.op, in.a = map[string]termOp{"text": tText, "length": tLength, "filterKeep": tFilter}[e.Callee], rs[0]
 	case "convert":
-		nt, err := immArg(e, 0, execlower.OpTermNodeType)
+		nt, err := immArg(e, 0, flowlower.OpTermNodeType)
 		if err != nil {
 			return err
 		}
@@ -711,7 +712,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if e.Callee == "items" {
 			at, nameAt = 1, 0
 		}
-		name, err := immArg(e, nameAt, execlower.OpTermName)
+		name, err := immArg(e, nameAt, flowlower.OpTermName)
 		if err != nil {
 			return err
 		}
@@ -732,13 +733,13 @@ func (c *termCompiler) effect(e *code.Call) error {
 	switch e.Callee {
 	case "seq.step":
 		c.emit(termInstr{op: tStep})
-	case execlower.OpTermKeep:
+	case flowlower.OpTermKeep:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
 		}
 		c.emit(termInstr{op: tKeep, a: rs[0], b: rs[1]})
-	case execlower.OpTermSetField:
+	case flowlower.OpTermSetField:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
@@ -760,10 +761,10 @@ func (c *termCompiler) effect(e *code.Call) error {
 func (c *termCompiler) call(e *code.Call, dst termReg) error {
 	in := termInstr{dst: dst.r}
 	switch e.Callee {
-	case execlower.OpTermConst:
-		in.op, in.a = tConst, c.constant(e.Imm.(execlower.TermConst).Value)
-	case execlower.OpTermRead:
-		switch x := e.Imm.(execlower.TermRead).Term.(type) {
+	case flowlower.OpTermConst:
+		in.op, in.a = tConst, c.constant(e.Imm.(flowlower.TermConst).Value)
+	case flowlower.OpTermRead:
+		switch x := e.Imm.(flowlower.TermRead).Term.(type) {
 		case *ir.SlotRef:
 			slot, ok := c.env.Scope.Slots[x.Name]
 			if !ok {
@@ -793,23 +794,23 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 			return err
 		}
 		in.op, in.a = tFromB, rs[0]
-	case execlower.OpTermFromStr:
+	case flowlower.OpTermFromStr:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
 		in.op, in.a = tFromT, rs[0]
-	case execlower.OpTermFromObj:
+	case flowlower.OpTermFromObj:
 		// A struct, list or tuple is held as the value it is.
 		return c.exprInto(e.Args[0], dst)
-	case execlower.OpTermTextEqual:
+	case flowlower.OpTermTextEqual:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
 		}
 		in.op, in.a, in.b = tTextEq, rs[0], rs[1]
 	case "conforms":
-		ct, err := immArg(e, 0, execlower.OpTermCastType)
+		ct, err := immArg(e, 0, flowlower.OpTermCastType)
 		if err != nil {
 			return err
 		}
@@ -817,16 +818,16 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		in.op, in.a, in.b = tConforms, rs[0], c.cast(ct.(execlower.TermCast).Cast)
-	case execlower.OpTermCastError:
+		in.op, in.a, in.b = tConforms, rs[0], c.cast(ct.(flowlower.TermCast).Cast)
+	case flowlower.OpTermCastError:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
-		in.op, in.a, in.b = tCastErr, rs[0], c.cast(e.Imm.(execlower.TermCast).Cast)
+		in.op, in.a, in.b = tCastErr, rs[0], c.cast(e.Imm.(flowlower.TermCast).Cast)
 	case "term.kids":
 		in.op = tKids
-	case execlower.OpTermElemsAbove:
+	case flowlower.OpTermElemsAbove:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
@@ -858,14 +859,14 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 			return err
 		}
 		in.op, in.a = tSeqLen, rs[0]
-	case execlower.OpTermCopyList:
+	case flowlower.OpTermCopyList:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
 		in.op, in.a = tCopy, rs[0]
-	case execlower.OpTermStruct:
-		t := e.Imm.(execlower.TermNew).New
+	case flowlower.OpTermStruct:
+		t := e.Imm.(flowlower.TermNew).New
 		c.prog.structs = append(c.prog.structs, termStruct{kind: c.env.Prog.TypeKind(t.Type), fields: len(t.Fields)})
 		in.op, in.a = tStruct, int32(len(c.prog.structs)-1)
 	case "cover":

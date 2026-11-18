@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/compose"
 	"zeroparse.dev/zp/internal/middleend/codepass"
@@ -126,12 +127,12 @@ func tsMethodsFor(fs codegen.FeatureSet) ([]tsMethod, error) {
 
 // tsOpTable returns the TypeScript array of the names of the operators that the failure code indexes.
 func tsOpTable(code int) string {
-	list := exec.BinaryOps
+	list := action.BinaryOps
 	switch code {
-	case exec.ErrUnary:
-		list = exec.UnaryOps
-	case exec.ErrLogical:
-		list = exec.LogicalOps
+	case action.ErrUnary:
+		list = action.UnaryOps
+	case action.ErrLogical:
+		list = action.LogicalOps
 	}
 	q := make([]string, len(list))
 	for i, o := range list {
@@ -140,29 +141,29 @@ func tsOpTable(code int) string {
 	return "[" + strings.Join(q, ", ") + "]"
 }
 
-// tsMemberKind returns the methods that classify a member name by exec.MemberKinds: memberKind returns
+// tsMemberKind returns the methods that classify a member name by action.MemberKinds: memberKind returns
 // its kind, and memberName the name of the field or capture that a member of that kind reads.
 func tsMemberKind() (kind, name string) {
 	var b strings.Builder
-	b.WriteString("  // memberKind returns the kind of the member read name (exec.MemberKinds).\n  memberKind(name: string): number {\n    switch (name) {\n")
-	for code, k := range exec.MemberKinds {
-		if code != exec.MemberCapture && k.Spelling != "" {
+	b.WriteString("  // memberKind returns the kind of the member read name (action.MemberKinds).\n  memberKind(name: string): number {\n    switch (name) {\n")
+	for code, k := range action.MemberKinds {
+		if code != action.MemberCapture && k.Spelling != "" {
 			fmt.Fprintf(&b, "      case %q:\n        return %d; // %s\n", k.Spelling, code, k.Name)
 		}
 	}
 	b.WriteString("    }\n")
-	k := exec.MemberKinds[exec.MemberCapture]
-	fmt.Fprintf(&b, "    if (name.startsWith(%q)) {\n      return %d; // %s\n    }\n", k.Spelling, exec.MemberCapture, k.Name)
-	fmt.Fprintf(&b, "    return %d; // %s\n  }", exec.MemberField, exec.MemberKinds[exec.MemberField].Name)
+	k := action.MemberKinds[action.MemberCapture]
+	fmt.Fprintf(&b, "    if (name.startsWith(%q)) {\n      return %d; // %s\n    }\n", k.Spelling, action.MemberCapture, k.Name)
+	fmt.Fprintf(&b, "    return %d; // %s\n  }", action.MemberField, action.MemberKinds[action.MemberField].Name)
 	return b.String(), fmt.Sprintf("  // memberName returns the name of the field or capture that the member read name of the kind reads.\n  memberName(kind: number, name: string): string {\n    return kind === %d ? name.slice(%d) : name;\n  }",
-		exec.MemberCapture, len(k.Spelling))
+		action.MemberCapture, len(k.Spelling))
 }
 
-// tsTermError returns the method that makes the text of a failure of a term from exec.TermErrors.
+// tsTermError returns the method that makes the text of a failure of a term from action.TermErrors.
 func tsTermError() string {
 	var b strings.Builder
 	b.WriteString("  termError(code: number, a: Value, b: Value, op: number, n: number): string {\n    switch (code) {\n")
-	for code, e := range exec.TermErrors {
+	for code, e := range action.TermErrors {
 		var t strings.Builder
 		for _, seg := range e.Segments() {
 			switch seg.Hole {
@@ -206,9 +207,9 @@ var tsTarget = &Target{
 			exec.Ctx: "CtxCall", exec.Res: "CtxResult | null", exec.Grow: "GrowState",
 			exec.Frame: "Frame", exec.Scope: "Env | null", exec.Operators: "OperatorsRuleOp[]", exec.Operator: "OperatorsRuleOp",
 			exec.Line: "OperatorsRuleLine", exec.Attempt: "OperatorsRuleAttempt | null",
-			exec.Term: "Action", exec.Datum: "Value", exec.Seq: "readonly (Node | null)[]",
-			exec.Obj: "Node", exec.Name: "string", exec.Str: "string", exec.Act: "Actx", exec.Fail: "Value", exec.Elem: "Node | null",
-			exec.NodeType: "string", exec.FType: "FieldType",
+			action.Term: "Action", exec.Datum: "Value", action.Seq: "readonly (Node | null)[]",
+			action.Obj: "Node", action.Name: "string", action.Str: "string", action.Act: "Actx", action.Fail: "Value", action.Elem: "Node | null",
+			action.NodeType: "string", action.FType: "FieldType",
 		}[name]
 	},
 	FuncName: func(name string) string {

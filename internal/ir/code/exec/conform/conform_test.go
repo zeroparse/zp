@@ -10,6 +10,7 @@ import (
 	"unicode/utf16"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
@@ -550,11 +551,11 @@ func (b brokenValues) Call(o *code.Op, args []any) []any {
 	name := o.Name
 	switch o.Name {
 	case "binary":
-		name = exec.BinaryOps[args[0].(int64)]
+		name = action.BinaryOps[args[0].(int64)]
 	case "unary":
-		name = "unary " + exec.UnaryOps[args[0].(int64)]
+		name = "unary " + action.UnaryOps[args[0].(int64)]
 	case "logic":
-		name = "bool " + exec.LogicalOps[args[0].(int64)]
+		name = "bool " + action.LogicalOps[args[0].(int64)]
 	}
 	return b.mutate(name, vs, res)
 }

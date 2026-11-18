@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 	"zeroparse.dev/zp/internal/middleend/codepass"
@@ -212,15 +213,15 @@ func (m *machine) Call(o *code.Op, args []any) []any {
 	case "val.kind":
 		switch args[0].(type) {
 		case nil:
-			return []any{int64(exec.KindNil)}
+			return []any{int64(action.KindNil)}
 		case int64:
-			return []any{int64(exec.KindInt)}
+			return []any{int64(action.KindInt)}
 		case string:
-			return []any{int64(exec.KindString)}
+			return []any{int64(action.KindString)}
 		case bool:
-			return []any{int64(exec.KindBool)}
+			return []any{int64(action.KindBool)}
 		}
-		return []any{int64(exec.KindOther)}
+		return []any{int64(action.KindOther)}
 	case "val.toBool":
 		return []any{args[0].(bool)}
 	case "call.tracked":

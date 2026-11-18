@@ -8,14 +8,15 @@ import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	irc "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/middleend/execlower"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
 
 // Terms printed from Exec IR.
 //
-// Every term is lowered by execlower.Term and printed from Exec IR: the calls of the compositions of the
+// Every term is lowered by flowlower.Term and printed from Exec IR: the calls of the compositions of the
 // library (TermBinary, ...) with the failure of each checked after it, and the leaves, which read
 // the captures and variables of the action.
 
@@ -49,7 +50,7 @@ func (g *Generator) lowered(t irc.ActionExpr, s *check.Scope, locals map[string]
 	if t == nil {
 		panic(fmt.Errorf("rule %s: a term without Core IR", g.Cur.Name))
 	}
-	l, err := execlower.Term(t, execlower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget, Proj: g.Proj,
+	l, err := flowlower.Term(t, flowlower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget, Proj: g.Proj,
 		FieldCompare: g.Table == "trules" && g.Opt.On("field-compare"), TextDispatch: dispatch})
 	if err != nil {
 		panic(fmt.Errorf("rule %s: %w", g.Cur.Name, err))
@@ -92,9 +93,9 @@ func (g *Generator) leaf(name string, variable bool, s *check.Scope, locals map[
 // termTarget returns the Go implementation of the operations of a lowered term whose leaves the scope
 // s and the locals resolve.
 func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target {
-	handles := map[string]string{exec.Datum: "any", exec.Fail: "any", exec.Str: "string", exec.Name: "string",
-		exec.Act: "*" + g.ctxType(), exec.FType: "*FieldType", exec.NodeType: g.pick("*nodeTypeKinds", "uint16"),
-		exec.Seq: g.pick("[]*Node", "[]any"), exec.Obj: g.pick("*Node", "TVal"), execlower.HandleOperand: "TOperand"}
+	handles := map[string]string{exec.Datum: "any", action.Fail: "any", action.Str: "string", action.Name: "string",
+		action.Act: "*" + g.ctxType(), action.FType: "*FieldType", action.NodeType: g.pick("*nodeTypeKinds", "uint16"),
+		action.Seq: g.pick("[]*Node", "[]any"), action.Obj: g.pick("*Node", "TVal"), flowlower.HandleOperand: "TOperand"}
 	return &Target{
 		Handle: func(name string) string { return handles[name] },
 		FuncName: func(name string) string {
@@ -106,8 +107,8 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 		},
 		Op: func(c *code.Call, a []string) string {
 			switch c.Callee {
-			case execlower.OpTermConst:
-				switch v := c.Imm.(execlower.TermConst).Value.(type) {
+			case flowlower.OpTermConst:
+				switch v := c.Imm.(flowlower.TermConst).Value.(type) {
 				case nil:
 					return "any(nil)"
 				case string:
@@ -115,8 +116,8 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 				default:
 					return fmt.Sprintf("any(%v)", v)
 				}
-			case execlower.OpTermRead:
-				switch x := c.Imm.(execlower.TermRead).Term.(type) {
+			case flowlower.OpTermRead:
+				switch x := c.Imm.(flowlower.TermRead).Term.(type) {
 				case *irc.SlotRef:
 					return g.leaf(x.Name, false, s, locals)
 				case *irc.Local:
@@ -124,36 +125,36 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 				case *irc.VarRef:
 					return g.leaf(x.Name, true, s, locals)
 				}
-			case execlower.OpTermName:
+			case flowlower.OpTermName:
 				return strconv.Quote(c.Imm.(string))
-			case execlower.OpTermField:
+			case flowlower.OpTermField:
 				// The name is cut from the name of the member, as ActCtx.Member cuts it: compareTextControlled
 				// charges a constant for the same string data, and a literal of the bare name would share its
 				// data with the names of the captures, so a member would charge less here than in the library.
-				f := c.Imm.(execlower.TermField)
+				f := c.Imm.(flowlower.TermField)
 				if cut := len(f.Name) - len(f.Field); cut > 0 {
 					return fmt.Sprintf("%s[%d:]", strconv.Quote(f.Name), cut)
 				}
 				return strconv.Quote(f.Field)
-			case execlower.OpTermNodeType:
+			case flowlower.OpTermNodeType:
 				if g.Table == "trules" {
 					return g.nodeTypeID(c.Imm.(string))
 				}
 				return "c.P." + rtTermNodeType + "(" + strconv.Quote(c.Imm.(string)) + ")"
-			case execlower.OpTermCastType:
-				return g.castTypeVar(c.Imm.(execlower.TermCast).Cast)
-			case execlower.OpTermRaise:
+			case flowlower.OpTermCastType:
+				return g.castTypeVar(c.Imm.(flowlower.TermCast).Cast)
+			case flowlower.OpTermRaise:
 				return "c.TermRaise(" + a[0] + ")"
-			case execlower.OpTermCastError:
-				x := c.Imm.(execlower.TermCast).Cast
+			case flowlower.OpTermCastError:
+				x := c.Imm.(flowlower.TermCast).Cast
 				return fmt.Sprintf("c.%s(%s, %s, %d, %d)", rtTermCastFailed, a[0], g.castTypeVar(x), x.Line, x.Col)
-			case execlower.OpTermTextEqual:
+			case flowlower.OpTermTextEqual:
 				return "c.P.TextEqual(" + a[0] + ", " + a[1] + ")"
-			case execlower.OpTermFromStr, execlower.OpTermFromObj, "val.fromBool":
+			case flowlower.OpTermFromStr, flowlower.OpTermFromObj, "val.fromBool":
 				return "any(" + a[0] + ")"
 			case "term.kids":
 				return "len(c.P.KidStack)"
-			case execlower.OpTermElemsAbove:
+			case flowlower.OpTermElemsAbove:
 				return "c.P.Kids(" + a[0] + ")"
 			case "seq.step":
 				return "c.P.Spend()"
@@ -162,38 +163,38 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 			case "val.unbox":
 				// A parameter may hold a box, which stands for its value.
 				return g.pick("UnboxValue(", "(") + a[0] + ")"
-			case execlower.OpTermKeep:
+			case flowlower.OpTermKeep:
 				return fmt.Sprintf("c.P.KidStack = append(c.P.KidStack, %s[%s])", a[0], a[1])
-			case execlower.OpTermFieldOperand:
+			case flowlower.OpTermFieldOperand:
 				return fmt.Sprintf("c.TermFieldOperand(%s, %q)", a[0], c.Imm.(string))
-			case execlower.OpTermOperand:
+			case flowlower.OpTermOperand:
 				return "TOperand{V: " + a[0] + "}"
-			case execlower.OpTermCompare:
-				return fmt.Sprintf("c.TermCompare(%s.%s, %s, %s)", libAlias, exec.OperatorIdent(c.Imm.(string), false, false), a[0], a[1])
-			case execlower.OpTermUncontrolled:
+			case flowlower.OpTermCompare:
+				return fmt.Sprintf("c.TermCompare(%s.%s, %s, %s)", libAlias, action.OperatorIdent(c.Imm.(string), false, false), a[0], a[1])
+			case flowlower.OpTermUncontrolled:
 				return "c.P.Control == nil"
-			case execlower.OpTermTextIn:
+			case flowlower.OpTermTextIn:
 				var eqs []string
 				for _, lit := range c.Imm.([]string) {
 					eqs = append(eqs, a[0]+" == "+strconv.Quote(lit))
 				}
 				return "(" + strings.Join(eqs, " || ") + ")"
-			case execlower.OpTermCopyList:
+			case flowlower.OpTermCopyList:
 				return g.pick("any(c.NewList(", "(c.NewList(") + a[0] + "))"
-			case execlower.OpTermStruct:
-				t := c.Imm.(execlower.TermNew).New
+			case flowlower.OpTermStruct:
+				t := c.Imm.(flowlower.TermNew).New
 				return fmt.Sprintf("c.%s(%q, %d)", rtTermStruct, t.Type, len(t.Fields))
-			case execlower.OpTermSetField:
+			case flowlower.OpTermSetField:
 				return fmt.Sprintf("c.%s(%s, %q, %s)", rtTermSetField, a[0], c.Imm.(string), a[1])
 			}
-			if t, ok := c.Imm.(execlower.TermNew); ok && strings.HasPrefix(c.Callee, execlower.OpTermNew) {
+			if t, ok := c.Imm.(flowlower.TermNew); ok && strings.HasPrefix(c.Callee, flowlower.OpTermNew) {
 				// The typed library calls the constructor of the type (tmk_T, see typedLib).
 				return "tmk_" + t.New.Type + "(" + strings.Join(append([]string{"c", strconv.FormatBool(t.New.Final)}, a...), ", ") + ")"
 			}
 			panic("gogen: term operation " + c.Callee)
 		},
 		Stmt: func(c *code.Call, a []string, dst []string, define bool) (string, bool) {
-			if c.Callee != execlower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
+			if c.Callee != flowlower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
 				return "", false
 			}
 			// One switch over the literals, which the Go compiler can dispatch on the length and
@@ -212,8 +213,8 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 		Name: termConstName,
 		Pure: func(c *code.Call) bool {
 			switch c.Callee {
-			case execlower.OpTermConst, execlower.OpTermName, execlower.OpTermField, execlower.OpTermFromStr, "val.fromBool",
-				"val.unbox", "seq.len", execlower.OpTermOperand, execlower.OpTermTextIn:
+			case flowlower.OpTermConst, flowlower.OpTermName, flowlower.OpTermField, flowlower.OpTermFromStr, "val.fromBool",
+				"val.unbox", "seq.len", flowlower.OpTermOperand, flowlower.OpTermTextIn:
 				return true
 			}
 			return false
@@ -246,21 +247,21 @@ func termConstName(callee string, arg int, v int64) (string, bool) {
 	var names []string
 	switch {
 	case callee == "binary" && arg == 0:
-		names = exec.BinaryNames
+		names = action.BinaryNames
 	case callee == "unary" && arg == 0:
-		names = exec.UnaryNames
+		names = action.UnaryNames
 	case callee == "logic" && arg == 0:
-		names = exec.LogicalNames
+		names = action.LogicalNames
 	case callee == "member" && arg == 1:
-		if v < 0 || int(v) >= len(exec.MemberKinds) {
+		if v < 0 || int(v) >= len(action.MemberKinds) {
 			return "", false
 		}
-		return libAlias + ".Member" + exec.MemberKinds[v].Name, true
+		return libAlias + ".Member" + action.MemberKinds[v].Name, true
 	default:
 		return "", false
 	}
 	if v < 0 || int(v) >= len(names) {
 		return "", false
 	}
-	return libAlias + "." + exec.Ident(names[v]), true
+	return libAlias + "." + action.Ident(names[v]), true
 }

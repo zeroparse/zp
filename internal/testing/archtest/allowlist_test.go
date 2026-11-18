@@ -23,8 +23,9 @@ var allowlist = []string{
 	"rule 1: internal/engine/state -> internal/compile",
 	"rule 1: internal/engine/state -> internal/ir/core",
 	"rule 1: internal/engine/state -> internal/ir/code",
-	"rule 1: internal/engine/state -> internal/middleend/execlower",
+	"rule 1: internal/engine/state -> internal/middleend/flowlower",
 	"rule 1: internal/engine/state -> internal/ir/code/exec",
+	"rule 1: internal/engine/state -> internal/ir/code/action",
 	"rule 1: internal/engine/vm -> grammar",
 	"rule 1: internal/engine/vm -> internal/compile",
 	"rule 1: internal/engine/vm -> internal/ir/core",
@@ -46,8 +47,13 @@ var allowlist = []string{
 	// The Go and TypeScript generators drive the lowering to Flow and print Exec. With Flow
 	// and Action as dialects and the control decisions in Flow passes (S7a, S7b), the driver runs
 	// flowlower and the printers print the Exec stage only.
-	"rule 2: internal/codegen/go -> dialects exec, flow",
-	"rule 2: internal/codegen/ts -> dialects exec, flow",
+	"rule 2: internal/codegen/go -> dialects action, exec, flow",
+	"rule 2: internal/codegen/ts -> dialects action, exec, flow",
+	// The value operations of the abstract machine moved from the Exec dialect to the Action dialect,
+	// so the Go library printer and the parser state, which name them, import both dialects of the
+	// Exec stage. The state edge goes with the runtime separation (S5, #280).
+	"rule 2: internal/codegen/go/lib -> dialects action, exec",
+	"rule 2: internal/engine/state -> dialects action, exec",
 	// The flag names use the backend choice and the parse options of engine. The runtime and
 	// compiler API stage (S6b) removes engine: the options move to pkg/runtime, and the backend
 	// choice goes away (the constructor chooses the backend).

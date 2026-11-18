@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/compose"
 )
@@ -248,7 +249,7 @@ var siteCost = map[string][]string{
 	"Parser.ctxStore":              {exec.QTable},
 	"Parser.findJump":              {exec.QTable},
 	"Parser.memoKeyEqual":          {exec.QTable},
-	"Parser.compareTextControlled": {exec.QTable, exec.QValueBytes},
+	"Parser.compareTextControlled": {exec.QTable, action.QValueBytes},
 	"Parser.recordJumps":           {exec.QRun},
 	"Parser.jumpShadowed":          {exec.QRun},
 	"Parser.unionExpected":         {exec.QRun},
@@ -272,19 +273,19 @@ var siteCost = map[string][]string{
 	"Parser.streamLineCol": {exec.QStreamScan},
 
 	// The values of terms: the bytes of a string operation, and the fragments of the text of a failure.
-	"Parser.strAdd":  {exec.QValueBytes},
-	"Parser.unitLen": {exec.QValueBytes},
+	"Parser.strAdd":  {action.QValueBytes},
+	"Parser.unitLen": {action.QValueBytes},
 	// The text of a range of a stream, which node.text reads.
-	"Parser.streamText":          {exec.QValueBytes},
-	"Parser.streamCopy":          {exec.QValueBytes},
-	"Parser.detachedText":        {exec.QValueBytes},
-	"Parser.decodeSource":        {exec.QValueBytes},
-	"Parser.actionErrorText":     {exec.QErrParts},
-	"Parser.writeDiagnosticText": {exec.QErrParts},
+	"Parser.streamText":          {action.QValueBytes},
+	"Parser.streamCopy":          {action.QValueBytes},
+	"Parser.detachedText":        {action.QValueBytes},
+	"Parser.decodeSource":        {action.QValueBytes},
+	"Parser.actionErrorText":     {action.QErrParts},
+	"Parser.writeDiagnosticText": {action.QErrParts},
 
 	// The reads of fields.
-	"Parser.valueFieldControlled":  {exec.QFieldsRead},
-	"TParser.valueFieldControlled": {exec.QFieldsRead},
+	"Parser.valueFieldControlled":  {action.QFieldsRead},
+	"TParser.valueFieldControlled": {action.QFieldsRead},
 
 	// The capture frames.
 	"Parser.undoCaptures":  {exec.QTrail},

@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
+	coreimpl "zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/code"
-	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 	"zeroparse.dev/zp/internal/value"
@@ -73,13 +73,13 @@ func errDatum(err error) any {
 func (e engineValues) Call(o *code.Op, args []any) []any {
 	switch o.Name {
 	case "binary":
-		v, err := e.parser().ValueBinary(exec.BinaryOps[args[0].(int64)], args[1], args[2])
+		v, err := e.parser().ValueBinary(action.BinaryOps[args[0].(int64)], args[1], args[2])
 		return []any{v, errDatum(err)}
 	case "unary":
-		v, err := e.parser().ValueUnary(exec.UnaryOps[args[0].(int64)], args[1])
+		v, err := e.parser().ValueUnary(action.UnaryOps[args[0].(int64)], args[1])
 		return []any{v, errDatum(err)}
 	case "logic":
-		b, err := e.parser().ValueLogic(exec.LogicalOps[args[0].(int64)], args[1])
+		b, err := e.parser().ValueLogic(action.LogicalOps[args[0].(int64)], args[1])
 		return []any{b, errDatum(err)}
 	}
 	panic("engine does not provide " + o.Name)
@@ -109,7 +109,7 @@ func (b brokenEngineValues) Call(o *code.Op, args []any) []any {
 // in one way each fail the conformance run.
 func TestEngineValueConformanceDetectsBrokenEvaluation(t *testing.T) {
 	binary := func(o *code.Op, args []any, op string) (l, r int, ok bool) {
-		if o.Name != "binary" || exec.BinaryOps[args[0].(int64)] != op {
+		if o.Name != "binary" || action.BinaryOps[args[0].(int64)] != op {
 			return 0, 0, false
 		}
 		l, lok := args[1].(int)
@@ -130,7 +130,7 @@ func TestEngineValueConformanceDetectsBrokenEvaluation(t *testing.T) {
 			return res
 		},
 		"a string compares less than a longer string with it as prefix, not": func(o *code.Op, args []any, res []any) []any {
-			if o.Name == "binary" && exec.BinaryOps[args[0].(int64)] == "<" {
+			if o.Name == "binary" && action.BinaryOps[args[0].(int64)] == "<" {
 				if l, ok := args[1].(string); ok {
 					if r, ok := args[2].(string); ok && l != "" && len(r) > len(l) && r[:len(l)] == l {
 						return []any{false, nil}
