@@ -3303,9 +3303,7 @@ the check of those paths at their own start, apart from one case:
 
 When $U$ is an alternative of a choice in the body of another rule of the
 cycle of $R$, condition 2 compares it with $Q$ as an alternative that is not
-growing on all its paths, the one through $\rho$ included, since only for a
-unit of a leader does that check follow only the paths that examine the
-input before a left call
+growing on all its paths, the one through $\rho$ included
 ([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)),
 so the case before applies.
 

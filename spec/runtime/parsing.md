@@ -1270,7 +1270,16 @@ The conditions below use these terms.
   this way, from there, against the later alternatives of its choice. A body of a leader is evaluated only in the
   steps of its growth, and in the first step its own left calls read the
   failed seed, so for a unit of a leader this check follows only the paths
-  that examine the input before a left call of that leader, from there. A unit of another rule of the cycle is checked as an alternative that
+  that examine the input before a left call of that leader, from there.
+  A unit of another rule of the cycle whose paths can go on at its start in
+  this way is checked as an alternative that is not growing on all its
+  paths, those through its left calls included: in a later step of the
+  growth its left call reads the seed, the unit can fail after it, and the
+  later alternatives of its choice then run at the position where the rule
+  grows, as `"x" H` does in `E = F; F = (E [x]* / "") "x" / "x" H;
+  H = E ";"`, where on `x` n times and `;` each such step starts a growth
+  of `E` at the next position, whose later step scans the rest of the `x`
+  again, so the cost grows as n^2. A unit of another rule of the cycle is checked as an alternative that
   is not growing also when a call that is not a left call, or one after
   something that can match nothing, evaluates its rule,
   directly or through left calls of rules of the cycle other than leaders:
