@@ -356,6 +356,9 @@ rule r2 = r0 "b" / !r1? / "a"`, Inputs: []string{"a", "aac", "acb", "aaac", "aca
 // grammar 103. Its leader takes every growth step from the context and evaluates nothing, which the
 // engine reports as Memo=true and generated parsers as Memo=false
 // (https://github.com/zeroparse/zp/issues/295).
+// The second, reduced from random cycle grammar 210, needs the record of a growth step taken from
+// the context: without it, recognizing "ca" reports r2 at 0 with examined end 0, below its match
+// end 2, where the reference examines to 3.
 func examinedOnlyCases() []codegentest.Case {
 	return []codegentest.Case{
 		{Name: "last growth step taken from the context", Src: `rule main = r0
@@ -363,5 +366,10 @@ rule r0 = r3 / r1 / "a"
 rule r1 = !("c" / r4)* / r0
 rule r3 = r0 r3 / r4
 rule r4 = &"c" (r1 / r4?)`, Inputs: []string{"a", "c", "cc", "ca", "b", "ac", "cbbcbcaa"}},
+		{Name: "only record of an examined end in a growth step taken from the context", Src: `rule main = r0
+rule r0 = r4 / r0 r2
+rule r2 = &r4 r0
+rule r3 = r2 r0 / "a"
+rule r4 = r3 / !r0 / !r4 r2 / "c"`, Inputs: []string{"ca"}},
 	}
 }

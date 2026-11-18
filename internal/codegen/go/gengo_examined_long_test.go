@@ -41,9 +41,10 @@ var examinedMutants = []examinedMutant{
 		entries: []string{"parse"}},
 	{name: "a seed replay records nothing", file: "call_exec.go", old: "p.documentTouch(seed.examined)", new: "p.documentTouch(0)",
 		entries: []string{"parse"}},
-	// examinedOnlyCases reaches the last step of a growth taken from the context.
+	// examinedOnlyCases reaches the last step of a growth taken from the context; the known case that
+	// needs its record is a recognizer's (the grammar reduced from random cycle grammar 210).
 	{name: "a growth step taken from the context records nothing", file: "context_memo.go", old: "\t\t\tp.documentTouch(s.examined)\n", new: "\t\t\t_ = s\n",
-		entries: []string{"parse"}},
+		entries: []string{"recognize"}},
 	{name: "a skip record reused records nothing", file: "skip_runs.go", old: "p.documentTouch(r.examined)", new: "p.documentTouch(0)",
 		entries: []string{"parse"}},
 	{name: "a lookahead drops what it examined", file: "context_memo.go", old: "p.docExamined = max(l.examined, p.docExamined)", new: "p.docExamined = l.examined",
