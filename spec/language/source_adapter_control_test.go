@@ -10,10 +10,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The comparison of the frontends is only worth something if it sees a change
@@ -25,7 +25,7 @@ import (
 // It returns the number of leaves it changed. A leaf is a string, a number or
 // a boolean field, an element of a list of strings, and a value of a
 // positional or keyword attribute argument.
-func mutateLeaves(g *grammar.Grammar, check func(path string)) int {
+func mutateLeaves(g *ast.Grammar, check func(path string)) int {
 	count := 0
 	var walk func(path string, v reflect.Value)
 	flip := func(path string, v reflect.Value, set func(reflect.Value)) bool {
@@ -99,8 +99,8 @@ func mutateLeaves(g *grammar.Grammar, check func(path string)) int {
 // nodeSwaps are the groups of parser expressions that hold the same fields, so
 // that one can replace another in the AST and the JSON form stays the same.
 var nodeSwaps = [][]reflect.Type{
-	{typeOf[grammar.Optional](), typeOf[grammar.And](), typeOf[grammar.Not](), typeOf[grammar.Atomic](), typeOf[grammar.Stream](), typeOf[grammar.Discard](), typeOf[grammar.Group]()},
-	{typeOf[grammar.Any](), typeOf[grammar.Cut](), typeOf[grammar.Top](), typeOf[grammar.Bottom](), typeOf[grammar.BeginInput](), typeOf[grammar.EndInput](), typeOf[grammar.BeginLine](), typeOf[grammar.EndLine]()},
+	{typeOf[ast.Optional](), typeOf[ast.And](), typeOf[ast.Not](), typeOf[ast.Atomic](), typeOf[ast.Stream](), typeOf[ast.Discard](), typeOf[ast.Group]()},
+	{typeOf[ast.Any](), typeOf[ast.Cut](), typeOf[ast.Top](), typeOf[ast.Bottom](), typeOf[ast.BeginInput](), typeOf[ast.EndInput](), typeOf[ast.BeginLine](), typeOf[ast.EndLine]()},
 }
 
 func typeOf[T any]() reflect.Type { return reflect.TypeFor[T]() }
@@ -109,7 +109,7 @@ func typeOf[T any]() reflect.Type { return reflect.TypeFor[T]() }
 // that has an alternative in nodeSwaps by each alternative, which keeps the
 // fields the two have in common, and calls check after each replacement. It
 // returns the number of replacements.
-func swapNodeTypes(g *grammar.Grammar, check func(path string)) int {
+func swapNodeTypes(g *ast.Grammar, check func(path string)) int {
 	count := 0
 	var walk func(path string, v reflect.Value)
 	walk = func(path string, v reflect.Value) {
@@ -368,7 +368,7 @@ func TestGrammarComparisonSeesBrokenAdapters(t *testing.T) {
 	for _, b := range brokenTrees {
 		t.Run(b.name, func(t *testing.T) {
 			changed := 0
-			broken := func(src string) (*grammar.Grammar, error) {
+			broken := func(src string) (*ast.Grammar, error) {
 				text, invalid := parser.WithoutInvalidCharacters(src)
 				f, err := zpparser.ParseValue(text)
 				if err != nil || invalid {

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/pass"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A Feature is a mechanism of the library of generated parsers that a parser runs only if its grammar
@@ -134,14 +134,14 @@ func ruleFeatures(r *compile.Rule) Feature {
 	if r.Def == nil {
 		return f
 	}
-	if _, ok := r.Def.Expr.(*grammar.OperatorsRule); ok {
+	if _, ok := r.Def.Expr.(*ast.OperatorsRule); ok {
 		f |= FeatureOperators
 	}
-	astfacts.WalkExpr(r.Def.Expr, func(e grammar.Expr) {
+	astfacts.WalkExpr(r.Def.Expr, func(e ast.Expr) {
 		switch e := e.(type) {
-		case *grammar.Recovery:
+		case *ast.Recovery:
 			f |= FeatureRecovery
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			for _, a := range e.Attrs {
 				if a.Name == "recover" {
 					f |= FeatureRecovery

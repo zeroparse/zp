@@ -4,7 +4,7 @@ package state
 
 import (
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // OperatorsRuleParse parses an expression of the Operators Rule r with operators that bind tighter than
@@ -58,7 +58,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
 		}
 		op := a.Op
 		level := op.Level
-		if level <= min || level > bound || (op.Assoc == grammar.AssocNone) && level == lastNone {
+		if level <= min || level > bound || (op.Assoc == ast.AssocNone) && level == lastNone {
 			p.Reset(m0)
 			break
 		}
@@ -71,7 +71,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
 		if p.Missing != nil || !a.Errs.None() {
 			p.ApplyRecovered(&a)
 		}
-		if op.Kind == grammar.Postfix {
+		if op.Kind == ast.Postfix {
 			lhs = p.OperatorsRuleBuild(r, &a, lhs, nil)
 			lastNone = -1
 			bound = 1073741824
@@ -81,7 +81,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
 			continue
 		}
 		rmin := level
-		if op.Assoc == grammar.AssocRight {
+		if op.Assoc == ast.AssocRight {
 			rmin--
 		}
 		p.afterEmpty = p.Pos == start
@@ -95,11 +95,11 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
 		}
 		lhs = p.OperatorsRuleBuild(r, &a, lhs, rhs)
 		lastNone = -1
-		if op.Assoc == grammar.AssocNone {
+		if op.Assoc == ast.AssocNone {
 			lastNone = level
 		}
 		rbound := level
-		if op.Assoc == grammar.AssocRight {
+		if op.Assoc == ast.AssocRight {
 			rbound--
 		}
 		bound = rbound
@@ -187,7 +187,7 @@ func (p *Parser) Longest(l []*OperatorsRuleOp) OperatorsRuleAttempt {
 		cut := p.Cut
 		p.Frame = prevFrame
 		p.Cut = prevCut
-		matched := ok && !(p.Pos == start && (op.Kind != grammar.Infix))
+		matched := ok && !(p.Pos == start && (op.Kind != ast.Infix))
 		if matched && ((best.Op == nil) || p.Pos > best.End) {
 			best = OperatorsRuleAttempt{Op: op, Frame: f, V: v, Start: start, End: p.Pos, Env: p.Env, Cut: cut, Errs: p.recSince(m0.Recovered), missing: p.MissingEvents(m0.missing)}
 		}
@@ -313,7 +313,7 @@ func (p *Parser) LongestStep(st *LongestState, v *core.Node, ok bool) (*Operator
 	cut := p.Cut
 	p.Frame = st.PrevFrame
 	p.Cut = st.PrevCut
-	matched := ok && !(p.Pos == st.M0.Pos && (op.Kind != grammar.Infix))
+	matched := ok && !(p.Pos == st.M0.Pos && (op.Kind != ast.Infix))
 	if matched && ((st.Best.Op == nil) || p.Pos > st.Best.End) {
 		st.Best = OperatorsRuleAttempt{Op: op, Frame: st.F, V: v, Start: st.M0.Pos, End: p.Pos, Env: p.Env, Cut: cut, Errs: p.recSince(st.M0.Recovered), missing: p.MissingEvents(st.M0.missing)}
 	}
@@ -483,7 +483,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 	}
 	op := st.A.Op
 	level := op.Level
-	if level <= st.Min || level > st.Bound || (op.Assoc == grammar.AssocNone) && level == st.LastNone {
+	if level <= st.Min || level > st.Bound || (op.Assoc == ast.AssocNone) && level == st.LastNone {
 		p.Reset(st.M0)
 		return true, true, -1
 	}
@@ -496,7 +496,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 	if p.Missing != nil || !st.A.Errs.None() {
 		p.ApplyRecovered(&st.A)
 	}
-	if op.Kind == grammar.Postfix {
+	if op.Kind == ast.Postfix {
 		st.Lhs = p.OperatorsRuleBuild(r, &st.A, st.Lhs, nil)
 		st.LastNone = -1
 		st.Bound = 1073741824
@@ -506,7 +506,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 		return false, true, -1
 	}
 	rmin := level
-	if op.Assoc == grammar.AssocRight {
+	if op.Assoc == ast.AssocRight {
 		rmin--
 	}
 	p.afterEmpty = p.Pos == st.M0.Pos
@@ -529,11 +529,11 @@ func (p *Parser) ExprRhs(r *Rule, st *ExprState, rhs *core.Node, rok bool) (bool
 	}
 	st.Lhs = p.OperatorsRuleBuild(r, &st.A, st.Lhs, rhs)
 	st.LastNone = -1
-	if op.Assoc == grammar.AssocNone {
+	if op.Assoc == ast.AssocNone {
 		st.LastNone = op.Level
 	}
 	rbound := op.Level
-	if op.Assoc == grammar.AssocRight {
+	if op.Assoc == ast.AssocRight {
 		rbound--
 	}
 	st.Bound = rbound

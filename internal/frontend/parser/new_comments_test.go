@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestBlockCommentsNestedRanges(t *testing.T) {
@@ -12,10 +12,10 @@ func TestBlockCommentsNestedRanges(t *testing.T) {
 	if len(ts) != 4 {
 		t.Fatalf("tokens: %+v", ts)
 	}
-	if ts[0].Kind != TokenComment || ts[0].Text != "/*first\r\n/*inner*/\r\nlast*/" || ts[0].Pos != (grammar.Pos{Line: 1, Col: 1}) || ts[0].End != (grammar.Pos{Line: 3, Col: 7}) {
+	if ts[0].Kind != TokenComment || ts[0].Text != "/*first\r\n/*inner*/\r\nlast*/" || ts[0].Pos != (ast.Pos{Line: 1, Col: 1}) || ts[0].End != (ast.Pos{Line: 3, Col: 7}) {
 		t.Fatalf("nested comment: %+v", ts[0])
 	}
-	if ts[1].Text != "x" || ts[1].Pos != (grammar.Pos{Line: 3, Col: 8}) || ts[2].Text != "// trailing" || ts[2].End != (grammar.Pos{Line: 3, Col: 21}) || ts[3].Pos != (grammar.Pos{Line: 4, Col: 1}) {
+	if ts[1].Text != "x" || ts[1].Pos != (ast.Pos{Line: 3, Col: 8}) || ts[2].Text != "// trailing" || ts[2].End != (ast.Pos{Line: 3, Col: 21}) || ts[3].Pos != (ast.Pos{Line: 4, Col: 1}) {
 		t.Fatalf("trailing positions: %+v", ts)
 	}
 }
@@ -34,7 +34,7 @@ func TestBlockCommentsLiteralShielding(t *testing.T) {
 func TestBlockCommentsUnterminated(t *testing.T) {
 	err := &errorList{}
 	lex("a /*outer\n/*inner*/", err)
-	if len(err.list) != 1 || err.list[0].Msg != "unterminated block comment" || err.list[0].Pos != (grammar.Pos{Line: 1, Col: 3}) || err.list[0].End != (grammar.Pos{Line: 2, Col: 10}) {
+	if len(err.list) != 1 || err.list[0].Msg != "unterminated block comment" || err.list[0].Pos != (ast.Pos{Line: 1, Col: 3}) || err.list[0].End != (ast.Pos{Line: 2, Col: 10}) {
 		t.Fatalf("errors: %+v", err.list)
 	}
 }

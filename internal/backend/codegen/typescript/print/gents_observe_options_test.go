@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // observeOptionsScript checks the meaning of the observation options of a generated TypeScript parser:
@@ -108,7 +108,7 @@ rule part = [a-z]`)
 		t.Fatal(err)
 	}
 	// The mutants of the observation tests change the library through codegentest.TSLibPatchEnv.
-	bundle := func(g *grammar.Grammar, o common.GenOptions) ([]byte, error) {
+	bundle := func(g *ast.Grammar, o common.GenOptions) ([]byte, error) {
 		code, err := codegentest.GenerateTSBundle(g, codegentest.MutantOptions(o))
 		if err != nil {
 			return nil, err

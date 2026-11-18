@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // node[string] is the type of a string node, in fields, rules and casts, and is checked like one.
@@ -98,11 +98,11 @@ rule opt *TYPE = x:val? => $x`
 		if err != nil {
 			t.Fatal(err)
 		}
-		data, err := grammar.MarshalJSON(parsed)
+		data, err := ast.MarshalJSON(parsed)
 		if err != nil {
 			t.Fatal(err)
 		}
-		g, err := grammar.DecodeJSON(bytes.ReplaceAll(data, []byte(`"Bare"`), []byte(`"node"`)))
+		g, err := ast.DecodeJSON(bytes.ReplaceAll(data, []byte(`"Bare"`), []byte(`"node"`)))
 		if err != nil {
 			t.Fatal(err)
 		}

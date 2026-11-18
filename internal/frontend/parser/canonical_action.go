@@ -3,15 +3,15 @@ package parser
 import (
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Value expressions.
 
 // actionOrDefault builds the action of a rule or of an inline action: a value
 // expression, a block, or the default action, which has no term.
-func (c *canonical) actionOrDefault(n types.Action) (grammar.Term, bool) {
+func (c *canonical) actionOrDefault(n types.Action) (ast.Term, bool) {
 	if _, ok := n.(*types.DefaultAction); ok {
 		return nil, true
 	}
@@ -19,8 +19,8 @@ func (c *canonical) actionOrDefault(n types.Action) (grammar.Term, bool) {
 }
 
 // statements builds the statements of an action block.
-func (c *canonical) statements(list []types.ActionStmt) []grammar.Term {
-	out := []grammar.Term{}
+func (c *canonical) statements(list []types.ActionStmt) []ast.Term {
+	out := []ast.Term{}
 	for _, st := range list {
 		if isNil(st) {
 			c.fail("the source tree has a syntax error in an action block")
@@ -34,13 +34,13 @@ func (c *canonical) statements(list []types.ActionStmt) []grammar.Term {
 
 // predicate builds a predicate action. Its statements are a block of their own
 // unless there is exactly one.
-func (c *canonical) predicate(n *types.Predicate) *grammar.Predicate {
+func (c *canonical) predicate(n *types.Predicate) *ast.Predicate {
 	stmts := c.statements(n.Actions)
-	p := &grammar.Predicate{}
+	p := &ast.Predicate{}
 	if len(stmts) == 1 {
 		p.Term = stmts[0]
 	} else {
-		b := &grammar.Block{Statements: stmts}
+		b := &ast.Block{Statements: stmts}
 		c.span(&b.SourceInfo, n)
 		p.Term = b
 	}
@@ -50,34 +50,34 @@ func (c *canonical) predicate(n *types.Predicate) *grammar.Predicate {
 
 // terms builds the elements of a list of values, which the hand-written parser
 // holds in an empty list when there are none.
-func (c *canonical) terms(list []types.ActionExpr) []grammar.Term {
-	out := []grammar.Term{}
+func (c *canonical) terms(list []types.ActionExpr) []ast.Term {
+	out := []ast.Term{}
 	each(c, list, func(a types.ActionExpr) { out = append(out, c.action(a)) })
 	return out
 }
 
 // action builds a value expression: a types.ActionExpr, a types.ActionStmt or
 // a types.Action other than the default action.
-func (c *canonical) action(n any) grammar.Term {
+func (c *canonical) action(n any) ast.Term {
 	switch n := n.(type) {
 	case *types.Int:
-		t := &grammar.IntLit{Value: c.integer(n)}
+		t := &ast.IntLit{Value: c.integer(n)}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.String:
-		t := &grammar.StringLit{Value: c.stringValue(n)}
+		t := &ast.StringLit{Value: c.stringValue(n)}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.True:
-		t := &grammar.BoolLit{Value: true}
+		t := &ast.BoolLit{Value: true}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.False:
-		t := &grammar.BoolLit{Value: false}
+		t := &ast.BoolLit{Value: false}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.Nil:
-		t := &grammar.NilLit{}
+		t := &ast.NilLit{}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.CaptureRef:
@@ -86,21 +86,21 @@ func (c *canonical) action(n any) grammar.Term {
 		if slices.Contains(c.params, name) {
 			c.errorAt(n, "lambda parameters are written without $: write %s", name)
 		}
-		t := &grammar.CaptureRef{Name: name}
+		t := &ast.CaptureRef{Name: name}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.VarRef:
 		name := n.Value
 		if slices.Contains(c.params, name) {
-			t := &grammar.CaptureRef{Name: name, Param: true}
+			t := &ast.CaptureRef{Name: name, Param: true}
 			c.span(&t.SourceInfo, n)
 			return t
 		}
-		t := &grammar.VarRef{Name: name}
+		t := &ast.VarRef{Name: name}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.BinaryOp:
-		t := &grammar.Binary{Op: n.Op}
+		t := &ast.Binary{Op: n.Op}
 		t.L = c.action(n.L)
 		t.R = c.action(n.R)
 		c.created(c.span(&t.SourceInfo, n), c.nextToken(end(n.L.(ranged))))
@@ -108,16 +108,16 @@ func (c *canonical) action(n any) grammar.Term {
 	case *types.UnaryOp:
 		if x, ok := n.X.(*types.Int); ok && n.Op == "-" && x.Value == minimumIntegerText[1:] && x.Start == n.Start+1 {
 			// The minimum int is one token, whose magnitude alone is not an int.
-			t := &grammar.IntLit{Value: minimumIntegerValue}
+			t := &ast.IntLit{Value: minimumIntegerValue}
 			c.span(&t.SourceInfo, n)
 			return t
 		}
-		t := &grammar.Unary{Op: n.Op}
+		t := &ast.Unary{Op: n.Op}
 		t.X = c.action(n.X)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.FieldAccess:
-		t := &grammar.Member{Name: c.name(n.Name)}
+		t := &ast.Member{Name: c.name(n.Name)}
 		t.X = c.action(n.X)
 		if captureMember(t.Name) {
 			c.errorAt(n.Name, "a capture is read with .$%s", t.Name)
@@ -128,29 +128,29 @@ func (c *canonical) action(n any) grammar.Term {
 		if n.Capture == nil {
 			c.fail("the source tree has no capture of a member")
 		}
-		t := &grammar.Member{Name: n.Capture.Value}
+		t := &ast.Member{Name: n.Capture.Value}
 		t.X = c.action(n.X)
 		c.created(c.span(&t.SourceInfo, n), n.Capture.Start)
 		return t
 	case *types.Cast:
-		t := &grammar.Cast{}
+		t := &ast.Cast{}
 		t.X = c.action(n.X)
 		t.Type = c.typ(n.Type)
 		dot := c.nextToken(end(n.X.(ranged)))
 		c.created(c.span(&t.SourceInfo, n), c.nextToken(dot+1))
 		return t
 	case *types.Call:
-		t := &grammar.Call{Func: c.text(c.present(n.X))}
+		t := &ast.Call{Func: c.text(c.present(n.X))}
 		t.Args = c.terms(n.Args)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.Constructor:
-		t := &grammar.New{Type: c.text(c.present(n.X))}
+		t := &ast.New{Type: c.text(c.present(n.X))}
 		for _, f := range n.Inits {
 			if f == nil || f.SourceSpan == nil {
 				c.fail("the source tree has a syntax error in a constructor")
 			}
-			init := &grammar.FieldInit{Name: c.name(f.Name)}
+			init := &ast.FieldInit{Name: c.name(f.Name)}
 			init.Value = c.action(f.Val)
 			c.statement(&init.SourceInfo, f.SourceSpan, c.separators(f.SourceSpan.End, ',', 1), true)
 			t.Fields = append(t.Fields, init)
@@ -161,23 +161,23 @@ func (c *canonical) action(n any) grammar.Term {
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.ListConstructor:
-		t := &grammar.ListConstructor{}
+		t := &ast.ListConstructor{}
 		t.Elem = c.typ(n.Elem)
 		t.Items = c.terms(n.Items)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.ActionTuple:
-		t := &grammar.TupleLit{Elems: []grammar.Term{}}
+		t := &ast.TupleLit{Elems: []ast.Term{}}
 		t.Elems = append(t.Elems, c.terms(n.Elems)...)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.ActionGroup:
-		t := &grammar.TermGroup{}
+		t := &ast.TermGroup{}
 		t.Term = c.action(n.Expr)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.Lambda:
-		t := &grammar.Lambda{}
+		t := &ast.Lambda{}
 		for _, p := range n.Params {
 			t.Params = append(t.Params, c.name(p))
 		}
@@ -188,11 +188,11 @@ func (c *canonical) action(n any) grammar.Term {
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.ActionBlock:
-		t := &grammar.Block{Statements: c.statements(n.Actions)}
+		t := &ast.Block{Statements: c.statements(n.Actions)}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.ActionBind:
-		t := &grammar.Bind{Name: c.name(n.Name)}
+		t := &ast.Bind{Name: c.name(n.Name)}
 		t.Value = c.action(n.Expr)
 		c.span(&t.SourceInfo, n)
 		return t

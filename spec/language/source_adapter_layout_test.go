@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The formatter reads the raw comment tokens and line breaks that the parser
@@ -27,7 +27,7 @@ func rawLayout(lines []string, path string, v reflect.Value) []string {
 		if v.IsNil() {
 			return lines
 		}
-		if c, ok := v.Interface().(*grammar.Comment); ok {
+		if c, ok := v.Interface().(*ast.Comment); ok {
 			return append(lines, fmt.Sprintf("%s = %d:%d-%d:%d %q blank=%v header=%d:%d run=%d", path, c.Pos.Line, c.Pos.Col,
 				c.End.Line, c.End.Col, c.Text, c.Blank, c.Header.Line, c.Header.Col, len(c.Run)))
 		}
@@ -100,7 +100,7 @@ func layoutDifference(src string) (class, detail string) {
 		path, _, _ = strings.Cut(path, " = ")
 		return layoutIndex.ReplaceAllString(path, "[]"), fmt.Sprintf("\n manual:    %s\n canonical: %s", w, h)
 	}
-	if a, b := grammar.Format(manual), grammar.Format(got); a != b {
+	if a, b := ast.Format(manual), ast.Format(got); a != b {
 		return "format", fmt.Sprintf("\nmanual:\n%s\ncanonical:\n%s", a, b)
 	}
 	return "", ""

@@ -9,7 +9,6 @@
 package frontend
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
@@ -17,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/pass"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A fact error of the untyped module that the compiler does not report is added to its errors
@@ -29,7 +29,7 @@ type Result struct {
 	// Module is the Core IR of the program.
 	Module *core.Module
 	// Origin maps the nodes of Module to the expressions they were built from.
-	Origin map[core.Node]grammar.Expr
+	Origin map[core.Node]ast.Expr
 	// Facts are the grammar facts of Module, which Analyses holds.
 	Facts *corepass.Facts
 	// Analyses is the manager of the analyses of Module, which the tools read them through.
@@ -39,7 +39,7 @@ type Result struct {
 // Run checks g with the compiler's options opts. A non-nil control polls for cancellation. The
 // error is the compiler's error list, with the names of the hidden rules that inline actions
 // generate shown as written.
-func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Result, error) {
+func Run(g *ast.Grammar, opts compile.Options, control *cancel.Control) (*Result, error) {
 	names := desugar.InlineNames{}
 	prog, st, err := CheckStructural(g, opts, nil, names, control)
 	if err != nil {
@@ -53,7 +53,7 @@ func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Re
 // FromProgram builds the Result of a program that was compiled already, for a caller that keeps
 // the program for its own use and must not compile the grammar twice.
 func FromProgram(prog *compile.Program, control *cancel.Control) (*Result, error) {
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[core.Node]ast.Expr{}
 	m, err := elaborate.CoreFrom(prog, origin)
 	if err != nil {
 		return nil, err

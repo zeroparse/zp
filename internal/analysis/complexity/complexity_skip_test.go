@@ -3,10 +3,10 @@ package complexity
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestClassifyReusedSkips checks that a #recover skip whose repetitions are skip-run sites with
@@ -60,14 +60,14 @@ func TestReusedSkipSites(t *testing.T) {
 	} {
 		t.Run(skip, func(t *testing.T) {
 			prog := compiletest.Program(t, "rule main = \"b\" #recover(skip="+skip+")\nrule s = \"a\"\n", compile.Options{})
-			var marked []*grammar.Repeat
-			var skipExpr grammar.Expr
+			var marked []*ast.Repeat
+			var skipExpr ast.Expr
 			for _, r := range prog.RuleList {
-				astfacts.WalkExpr(r.Def.Expr, func(x grammar.Expr) {
+				astfacts.WalkExpr(r.Def.Expr, func(x ast.Expr) {
 					if s := skipOf(x); s != nil {
 						skipExpr = s
 					}
-					if rep, ok := x.(*grammar.Repeat); ok && prog.SkipSite(rep) != 0 {
+					if rep, ok := x.(*ast.Repeat); ok && prog.SkipSite(rep) != 0 {
 						marked = append(marked, rep)
 					}
 				})
@@ -84,7 +84,7 @@ func TestReusedSkipSites(t *testing.T) {
 			}
 			for i := range sites {
 				if sites[i] != marked[i] {
-					t.Errorf("repetition %s is not the site %s", grammar.FormatExpr(sites[i]), grammar.FormatExpr(marked[i]))
+					t.Errorf("repetition %s is not the site %s", ast.FormatExpr(sites[i]), ast.FormatExpr(marked[i]))
 				}
 			}
 		})

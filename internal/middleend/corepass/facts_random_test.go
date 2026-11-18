@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
@@ -15,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestFactsRandom checks the rule facts on random grammars: left recursion through options,
@@ -43,7 +43,7 @@ func TestFactsRandom(t *testing.T) {
 			continue // a binding before a left call, a type error
 		}
 		compiled++
-		origin := map[core.Node]grammar.Expr{}
+		origin := map[core.Node]ast.Expr{}
 		m, err := elaborate.CoreFrom(prog, origin)
 		if err != nil {
 			t.Fatalf("seed %d: %v\n%s", seed, err, src)
@@ -57,7 +57,7 @@ func TestFactsRandom(t *testing.T) {
 			t.Fatal(err)
 		}
 		defs, _ := desugar.UniqueRules(canon.Grammar, nil)
-		sorigin := map[core.Node]grammar.Expr{}
+		sorigin := map[core.Node]ast.Expr{}
 		sm, err := elaborate.Structural(compile.StructuralInput(canon.Grammar, defs, canon.Starts), sorigin)
 		if err != nil {
 			t.Fatalf("seed %d: %v\n%s", seed, err, src)

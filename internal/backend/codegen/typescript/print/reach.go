@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A generated parser prints only the rules that a parse can enter: the start rules, which parseRule
@@ -99,7 +99,7 @@ func (l *tsLive) equal(o *tsLive) bool {
 // (tsFlowPrinter.call) rather than through its constant. A parser with a Document calls every rule
 // through its constant, since a Document parse memoizes plain rules too.
 func callsPlain(r *compile.Rule, document bool) bool {
-	_, operatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
+	_, operatorsRule := r.Def.Expr.(*ast.OperatorsRule)
 	return !document && r.Plain && !operatorsRule
 }
 

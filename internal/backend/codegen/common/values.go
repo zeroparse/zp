@@ -4,10 +4,10 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Vrule is a reference to a rule whose Go type is that of its value in the value model; the rule's
@@ -25,7 +25,7 @@ type ValueResolver struct {
 	// resolved value types of the rules whose typed values come from them, and resolving the rules
 	// being resolved.
 	values    map[string]types.Ty
-	ruleDefs  map[string]*grammar.RuleDef
+	ruleDefs  map[string]*ast.RuleDef
 	Vres      map[string]types.Ty
 	resolving map[string]bool
 	// ownType reports that a legacy type has a typed representation of its own (a named join).
@@ -35,7 +35,7 @@ type ValueResolver struct {
 // NewValueResolver returns a resolver for the rules of p; ownType reports the legacy types that
 // have a typed representation of their own.
 func NewValueResolver(p *compile.Program, ownType func(types.Ty) bool) ValueResolver {
-	r := ValueResolver{Prog: p, info: p.Typed, values: p.ValueTypes(), ruleDefs: map[string]*grammar.RuleDef{}, Vres: map[string]types.Ty{}, resolving: map[string]bool{}, ownType: ownType}
+	r := ValueResolver{Prog: p, info: p.Typed, values: p.ValueTypes(), ruleDefs: map[string]*ast.RuleDef{}, Vres: map[string]types.Ty{}, resolving: map[string]bool{}, ownType: ownType}
 	for _, rl := range p.RuleList {
 		r.ruleDefs[rl.Name] = rl.Def
 	}
@@ -77,7 +77,7 @@ func (t *ValueResolver) usesValue(name string, legacy types.Ty) bool {
 	if def.Type != nil && def.Action != nil {
 		return false // the action's value has the declared type
 	}
-	if _, operators := def.Expr.(*grammar.OperatorsRule); operators && def.Type != nil {
+	if _, operators := def.Expr.(*ast.OperatorsRule); operators && def.Type != nil {
 		return false
 	}
 	if t.ownType(legacy) {
@@ -201,11 +201,11 @@ func (r *ValueResolver) AnonJoins() []anonJoin {
 	visited := map[string]bool{}
 	for _, d := range r.Prog.Grammar.File.Decls {
 		switch d := d.(type) {
-		case *grammar.TypeDef:
+		case *ast.TypeDef:
 			for _, f := range r.info.Fields[d.Name] {
 				collect(f.T)
 			}
-		case *grammar.TypeAlias:
+		case *ast.TypeAlias:
 			// The members of an alias are joined by the alias itself, but a member can be a join.
 			if u, ok := r.info.Aliases[d.Name].(types.JoinTy); ok {
 				for _, a := range u.Alts {
@@ -214,7 +214,7 @@ func (r *ValueResolver) AnonJoins() []anonJoin {
 			} else {
 				collect(r.info.Aliases[d.Name])
 			}
-		case *grammar.RuleDef:
+		case *ast.RuleDef:
 			if _, ok := r.ruleDefs[d.Name]; ok {
 				visited[d.Name] = true
 				collectRule(d.Name)

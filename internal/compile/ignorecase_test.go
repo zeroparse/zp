@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestIgnoreCasePragmaReachesArguments checks that the pragma folds the literals of a recovery
@@ -13,8 +13,8 @@ func TestIgnoreCasePragmaReachesArguments(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = ("ab" #recover(skip="x")) #ignorecase`)
 	found := map[string]bool{}
-	WalkExpr(prog.ByName["main"].Def.Expr, func(e grammar.Expr) {
-		if l, ok := e.(*grammar.Literal); ok {
+	WalkExpr(prog.ByName["main"].Def.Expr, func(e ast.Expr) {
+		if l, ok := e.(*ast.Literal); ok {
 			found[l.Value] = l.IgnoreCase
 		}
 	})

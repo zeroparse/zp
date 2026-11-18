@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"fmt"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // NodeMemberNames are the members of a node, and the removed ones that the checker reports: they are
@@ -41,15 +41,15 @@ type TermChecker struct {
 // whole-rule action.
 const OperatorsRuleValue = "value"
 
-func (c *TermChecker) errorf(pos grammar.Pos, format string, args ...any) {
+func (c *TermChecker) errorf(pos ast.Pos, format string, args ...any) {
 	*c.Errs = append(*c.Errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
 // CheckTerm resolves the names in a value expression and reports statically detectable errors.
-func (c *TermChecker) CheckTerm(t grammar.Term, s *Scope, locals []string) {
+func (c *TermChecker) CheckTerm(t ast.Term, s *Scope, locals []string) {
 	c.Control.Poll()
 	switch t := t.(type) {
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if slices.Contains(locals, t.Name) {
 			return
 		}
@@ -65,13 +65,13 @@ func (c *TermChecker) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 			}
 			c.errorf(t.Diagnostic(), "undefined capture $%s", t.Name)
 		}
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		if c.Prog.Vars().Lookup(t.Name) == nil {
 			c.errorf(t.Diagnostic(), "undefined variable %s; declare it with var %s at the top level", t.Name, t.Name)
 		}
-	case *grammar.Member:
+	case *ast.Member:
 		c.CheckTerm(t.X, s, locals)
-	case *grammar.New:
+	case *ast.New:
 		for _, x := range t.Args {
 			c.CheckTerm(x, s, locals)
 		}
@@ -105,7 +105,7 @@ func (c *TermChecker) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 			}
 			c.CheckTerm(fi.Value, s, locals)
 		}
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		k := &TypeResolver{control: c.Control, Prog: c.Prog, errs: c.Errs, report: true}
 		reported := len(*c.Errs)
 		elem := k.Resolve(t.Elem)
@@ -119,11 +119,11 @@ func (c *TermChecker) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 		for _, item := range t.Items {
 			c.CheckTerm(item, s, locals)
 		}
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		for _, x := range t.Elems {
 			c.CheckTerm(x, s, locals)
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		n, ok := builtins[t.Func]
 		if !ok {
 			c.errorf(t.Diagnostic(), "unknown function %s", t.Func)
@@ -133,24 +133,24 @@ func (c *TermChecker) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 		for _, a := range t.Args {
 			c.CheckTerm(a, s, locals)
 		}
-	case *grammar.Lambda:
+	case *ast.Lambda:
 		c.CheckTerm(t.Body, s, append(append([]string(nil), locals...), t.Params...))
-	case *grammar.Binary:
+	case *ast.Binary:
 		c.CheckTerm(t.L, s, locals)
 		c.CheckTerm(t.R, s, locals)
-	case *grammar.Unary:
+	case *ast.Unary:
 		c.CheckTerm(t.X, s, locals)
-	case *grammar.Cast:
+	case *ast.Cast:
 		k := &TypeResolver{control: c.Control, Prog: c.Prog, errs: c.Errs, report: true}
 		k.resolveLocation(t.Type, t.Diagnostic(), "the cast")
 		c.CheckTerm(t.X, s, locals)
-	case *grammar.Bind:
+	case *ast.Bind:
 		c.errorf(t.Diagnostic(), "binding %s := ... is only allowed as a whole predicate", t.Name)
 	}
 }
 
 // FieldOf returns the field name of the struct type st, or nil if st has no such field.
-func FieldOf(st *grammar.TypeDef, name string) *grammar.Field {
+func FieldOf(st *ast.TypeDef, name string) *ast.Field {
 	for _, f := range DefFields(st) {
 		if f.Name == name {
 			return f

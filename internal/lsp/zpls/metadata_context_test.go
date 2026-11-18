@@ -13,8 +13,8 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/lsp/protocol"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 type metadataPredicateContext struct {
@@ -100,38 +100,38 @@ func TestMetadataInteriorCancellation(t *testing.T) {
 	t.Run("definition", func(t *testing.T) {
 		a := metadataPrepared(t, "@start\nrule main = "+strings.Repeat("\"a\" ", n))
 		a.indexDeclarationStarts()
-		r := a.g.File.Decls[0].(*grammar.RuleDef)
+		r := a.g.File.Decls[0].(*ast.RuleDef)
 		assertMetadataPhaseCancels(t, func(c *renderControl) { a.define(kindRule, r.Name, r.Pos, r.Diagnostic(), c) })
 	})
 	t.Run("documentation", func(t *testing.T) {
 		a := metadataPrepared(t, strings.Repeat("// documentation\n", n)+"@start\nrule main = \"a\"")
 		a.indexDeclarationStarts()
-		r := a.g.File.Decls[0].(*grammar.RuleDef)
+		r := a.g.File.Decls[0].(*ast.RuleDef)
 		assertMetadataPhaseCancels(t, func(c *renderControl) { a.define(kindRule, r.Name, r.Pos, r.Diagnostic(), c) })
 	})
 	t.Run("comment-trim", func(t *testing.T) {
 		assertMetadataPhaseCancels(t, func(c *renderControl) { commentText("/*"+strings.Repeat(" \t\u2000", n)+"*/", c) })
 	})
 	t.Run("type", func(t *testing.T) {
-		u := &grammar.JoinType{}
+		u := &ast.JoinType{}
 		for range n {
-			u.Types = append(u.Types, &grammar.TypeRef{Name: "T"})
+			u.Types = append(u.Types, &ast.TypeRef{Name: "T"})
 		}
 		a := newAnalysis("")
 		assertMetadataPhaseCancels(t, func(c *renderControl) { a.walkType(u, c) })
 	})
 	t.Run("expression", func(t *testing.T) {
-		s := &grammar.Seq{}
+		s := &ast.Seq{}
 		for range n {
-			s.Items = append(s.Items, &grammar.Literal{Value: "a"})
+			s.Items = append(s.Items, &ast.Literal{Value: "a"})
 		}
 		a := newAnalysis("")
 		assertMetadataPhaseCancels(t, func(c *renderControl) { a.walkExpr(s, c) })
 	})
 	t.Run("action", func(t *testing.T) {
-		call := &grammar.Call{Func: "list"}
+		call := &ast.Call{Func: "list"}
 		for range n {
-			call.Args = append(call.Args, &grammar.IntLit{Value: 1})
+			call.Args = append(call.Args, &ast.IntLit{Value: 1})
 		}
 		a := newAnalysis("")
 		assertMetadataPhaseCancels(t, func(c *renderControl) { a.walkTerm(call, c) })
@@ -142,7 +142,7 @@ func TestMetadataInteriorCancellation(t *testing.T) {
 			name = "attribute-keywords"
 		}
 		t.Run(name, func(t *testing.T) {
-			at := &grammar.Attribute{Name: "custom", KwArgs: map[string]any{}}
+			at := &ast.Attribute{Name: "custom", KwArgs: map[string]any{}}
 			for i := range n {
 				if keyword {
 					at.KwArgs[fmt.Sprint(i)] = i
@@ -152,7 +152,7 @@ func TestMetadataInteriorCancellation(t *testing.T) {
 			}
 			a := newAnalysis("")
 			assertMetadataPhaseCancels(t, func(c *renderControl) {
-				a.walkExpr(&grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: []*grammar.Attribute{at}}, c)
+				a.walkExpr(&ast.Attributed{Expr: &ast.Literal{Value: "a"}, Attrs: []*ast.Attribute{at}}, c)
 			})
 		})
 	}
@@ -176,7 +176,7 @@ func TestMetadataInteriorCancellation(t *testing.T) {
 		for i := range n {
 			a.defs = append(a.defs, &definition{kwStart: i + 1})
 		}
-		assertMetadataPhaseCancels(t, func(c *renderControl) { a.errorRangeControlled(grammar.Pos{}, true, c) })
+		assertMetadataPhaseCancels(t, func(c *renderControl) { a.errorRangeControlled(ast.Pos{}, true, c) })
 	})
 	t.Run("occurrence-sort", func(t *testing.T) {
 		a := newAnalysis("")

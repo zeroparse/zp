@@ -5,21 +5,21 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestLintMetadataCollectionCancellation(t *testing.T) {
-	g := &grammar.Grammar{File: grammar.File{EndBreak: &grammar.LineBreak{}}}
-	a := &grammar.Attribute{Name: "error"}
-	var rules []*grammar.RuleDef
+	g := &ast.Grammar{File: ast.File{EndBreak: &ast.LineBreak{}}}
+	a := &ast.Attribute{Name: "error"}
+	var rules []*ast.RuleDef
 	for range 1024 {
-		r := &grammar.RuleDef{Name: "a", Expr: &grammar.Literal{Value: "a"}}
+		r := &ast.RuleDef{Name: "a", Expr: &ast.Literal{Value: "a"}}
 		rules = append(rules, r)
-		g.File.Decls = append(g.File.Decls, &grammar.TypeDef{Name: "T"}, r)
-		g.File.EndBreak.Comments = append(g.File.EndBreak.Comments, &grammar.Comment{})
+		g.File.Decls = append(g.File.Decls, &ast.TypeDef{Name: "T"}, r)
+		g.File.EndBreak.Comments = append(g.File.EndBreak.Comments, &ast.Comment{})
 		a.Args = append(a.Args, "label")
 	}
-	expr := &grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: []*grammar.Attribute{a}}
+	expr := &ast.Attributed{Expr: &ast.Literal{Value: "a"}, Attrs: []*ast.Attribute{a}}
 	for _, phase := range []struct {
 		name     string
 		run      func(*lintControl)
@@ -34,7 +34,7 @@ func TestLintMetadataCollectionCancellation(t *testing.T) {
 		// With no statements, two Err calls finish rule enumeration; the next
 		// collection must stop inside the large comment copy, before reporting.
 		{"suppression-comments", func(c *lintControl) {
-			(&linter{control: c}).suppress(&grammar.Grammar{File: grammar.File{EndBreak: g.File.EndBreak}})
+			(&linter{control: c}).suppress(&ast.Grammar{File: ast.File{EndBreak: g.File.EndBreak}})
 		}, 4},
 	} {
 		t.Run(phase.name, func(t *testing.T) {

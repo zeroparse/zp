@@ -9,35 +9,35 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The variables that the rule facts give each rule (Rule.Vars), against an independent closure of
 // the variables each rule reads, over the rules in any order.
 
 // parseTest parses src with every rule a start rule.
-func parseTest(src string) (*grammar.Grammar, error) { return compiletest.Parse(src) }
+func parseTest(src string) (*ast.Grammar, error) { return compiletest.Parse(src) }
 
 // RuleVariables returns the variables of each rule of rules, the rules of g, that reads some
 // (Rule.Vars), computed on the untyped Core IR module of the canonical rules of g: those of rules
 // in that order, then the rules that canonicalization adds.
-func RuleVariables(g *grammar.Grammar, rules []*grammar.RuleDef) map[string][]string {
+func RuleVariables(g *ast.Grammar, rules []*ast.RuleDef) map[string][]string {
 	canon, err := compile.Canonicalize(g, compile.Options{}, desugar.InlineNames{}, nil)
 	if err != nil {
 		panic(err)
 	}
 	defs, _ := desugar.UniqueRules(canon.Grammar, nil)
-	byName := map[string]*grammar.RuleDef{}
+	byName := map[string]*ast.RuleDef{}
 	for _, rd := range defs {
 		byName[rd.Name] = rd
 	}
-	var ordered []*grammar.RuleDef
+	var ordered []*ast.RuleDef
 	for _, r := range rules {
 		ordered = append(ordered, byName[r.Name])
 		delete(byName, r.Name)
@@ -63,13 +63,13 @@ func RuleVariables(g *grammar.Grammar, rules []*grammar.RuleDef) map[string][]st
 
 // ruleVariablesDFS retains the previous per-root closure as an independent
 // scheduling oracle. Missing rules have no direct reads or outgoing calls.
-func ruleVariablesDFS(rules []*grammar.RuleDef) map[string][]string {
+func ruleVariablesDFS(rules []*ast.RuleDef) map[string][]string {
 	direct := map[string]map[string]bool{}
 	calls := map[string][]string{}
 	for _, r := range rules {
 		set := map[string]bool{}
-		compile.WalkRuleTerms(r, func(t grammar.Term) {
-			if v, ok := t.(*grammar.VarRef); ok {
+		compile.WalkRuleTerms(r, func(t ast.Term) {
+			if v, ok := t.(*ast.VarRef); ok {
 				set[v.Name] = true
 			}
 		})
@@ -171,7 +171,7 @@ func TestVariableDependencyGrowingSets(t *testing.T) {
 			t.Fatalf("r0 only has %d variables", len(want["r0"]))
 		}
 		for seed := range int64(10) {
-			rules := append([]*grammar.RuleDef(nil), g.Rules()...)
+			rules := append([]*ast.RuleDef(nil), g.Rules()...)
 			rand.New(rand.NewSource(seed)).Shuffle(len(rules), func(i, j int) { rules[i], rules[j] = rules[j], rules[i] })
 			if got := RuleVariables(g, rules); !reflect.DeepEqual(got, want) {
 				t.Fatalf("cyclic=%v seed=%d: changed growing sets", cyclic, seed)
@@ -221,14 +221,14 @@ func TestVariableDependencyGraphs(t *testing.T) {
 			}
 		}
 		for seed := range int64(30) {
-			rules := append([]*grammar.RuleDef(nil), g.Rules()...)
+			rules := append([]*ast.RuleDef(nil), g.Rules()...)
 			rand.New(rand.NewSource(seed)).Shuffle(len(rules), func(i, j int) { rules[i], rules[j] = rules[j], rules[i] })
 			if got := RuleVariables(g, rules); !reflect.DeepEqual(got, want) {
 				t.Fatalf("cyclic=%v seed=%d: changed sets", cyclic, seed)
 			}
 		}
 	}
-	if got := RuleVariables(&grammar.Grammar{}, nil); got == nil || len(got) != 0 {
+	if got := RuleVariables(&ast.Grammar{}, nil); got == nil || len(got) != 0 {
 		t.Fatalf("empty grammar: %v", got)
 	}
 }

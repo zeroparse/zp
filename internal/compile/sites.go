@@ -1,8 +1,8 @@
 package compile
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Sites numbers the skip-run, run and scan sites of a program's repetitions: the repetitions whose
@@ -15,7 +15,7 @@ type Sites struct {
 	// Skip, Run and Scan number the skip-run sites from 1, the run sites after them and the scan
 	// sites after those, two numbers each: one for the walks that build a value and the next for
 	// those that do not.
-	Skip, Run, Scan map[*grammar.Repeat]int
+	Skip, Run, Scan map[*ast.Repeat]int
 	// NumSkip, NumRun and NumScan count them.
 	NumSkip, NumRun, NumScan int
 	// EnvFree[site] reports a skip-run or run site whose records are not keyed by the environment.
@@ -43,15 +43,15 @@ func (prog *Program) SetSites(s Sites) {
 }
 
 // SkipSite returns the number of the skip-run site e (from 1), or 0 if e is not one.
-func (prog *Program) SkipSite(e *grammar.Repeat) int { return prog.sites.Skip[e] }
+func (prog *Program) SkipSite(e *ast.Repeat) int { return prog.sites.Skip[e] }
 
 // RunSite returns the number of the run site e, or 0 if e is not one. Numbers follow those of the
 // skip-run sites, so a site's records share the parser's tables with them.
-func (prog *Program) RunSite(e *grammar.Repeat) int { return prog.sites.Run[e] }
+func (prog *Program) RunSite(e *ast.Repeat) int { return prog.sites.Run[e] }
 
 // ScanSite returns the number of the scan site e, or 0 if e is not one; the walks that build a
 // value use the next number.
-func (prog *Program) ScanSite(e *grammar.Repeat) int { return prog.sites.Scan[e] }
+func (prog *Program) ScanSite(e *ast.Repeat) int { return prog.sites.Scan[e] }
 
 // EnvFree reports whether the skip-run or run site is free of the environment: its records are
 // kept by position alone, and a walk that reuses one keeps its own environment. Otherwise the
@@ -79,7 +79,7 @@ func (prog *Program) SetRunKey(site int, k RunKey) {
 // DeclaredBeyondScan reports whether the declaration of rd keeps it from being a pure scan rule
 // (corepass.SiteRule.Declared): it has a type, an action, or an attribute or pragma other than
 // @start and @linear, which only add checks.
-func DeclaredBeyondScan(rd *grammar.RuleDef) bool {
+func DeclaredBeyondScan(rd *ast.RuleDef) bool {
 	if rd.Type != nil || rd.Action != nil {
 		return true
 	}

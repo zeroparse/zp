@@ -3,12 +3,12 @@ package frontend
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/pass"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // rejected are grammars that the compiler rejects for the errors that depend on the facts and on
@@ -97,7 +97,7 @@ func TestMergeErrors(t *testing.T) {
 	}
 }
 
-func grammarPos(line int) grammar.Pos { return grammar.Pos{Line: line, Col: 1} }
+func grammarPos(line int) ast.Pos { return ast.Pos{Line: line, Col: 1} }
 
 // TestRunRejectsStreamOnCycleInAnyRule requires Run to reject a #stream on a left-recursion cycle
 // in a rule that is not a start rule, with the message and position given here rather than the

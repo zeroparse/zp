@@ -3,7 +3,7 @@ package check
 import (
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // HasZero reports whether the type t has a zero value, the value that an unset field of a struct
@@ -83,7 +83,7 @@ func optionalOf(text string) string {
 
 // unsetFields reports the fields of the struct st that a constructor of it leaves unset although
 // their types have no zero value.
-func (v *ValueInference) unsetFields(t *grammar.New, st *grammar.TypeDef) {
+func (v *ValueInference) unsetFields(t *ast.New, st *ast.TypeDef) {
 	set := map[string]bool{}
 	for _, fi := range t.Fields {
 		set[fi.Name] = true
@@ -96,7 +96,7 @@ func (v *ValueInference) unsetFields(t *grammar.New, st *grammar.TypeDef) {
 		if ft == TyBottom || v.Prog.HasZero(ft) {
 			continue
 		}
-		text := grammar.FormatType(f.Type)
+		text := ast.FormatType(f.Type)
 		v.errorf(t.Diagnostic(), "field %s of %s has type %s, which has no zero value: set it in the constructor, or declare it as %s", f.Name, t.Type, text, optionalOf(text))
 	}
 }

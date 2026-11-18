@@ -3,9 +3,9 @@ package state
 import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // OperatorsRule is a compiled Operators Rule expression. Binding levels are numbered from 1 in declaration
@@ -29,7 +29,7 @@ type OperatorsRuleLine struct {
 	Single compile.SingleMode
 	Shape  compile.Shaper
 	Entry  int // start of the bytecode (bytecode backend only)
-	// Key is the line's *grammar.OperatorsRuleOperand or *grammar.OperatorsRuleOperator.
+	// Key is the line's *ast.OperatorsRuleOperand or *ast.OperatorsRuleOperator.
 	Key any
 }
 
@@ -143,7 +143,7 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	if lhs != nil {
 		start = int(value.D(lhs).Start)
 	}
-	if a.Op.Kind == grammar.Postfix {
+	if a.Op.Kind == ast.Postfix {
 		end = a.End
 	}
 	l := a.Op.Line
@@ -164,11 +164,11 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 		ls := &p.oplocals
 		ls[0] = Local{Name: "op", Val: NodeOrNil(opv)}
 		locals := &ls[0]
-		if a.Op.Kind != grammar.Prefix {
+		if a.Op.Kind != ast.Prefix {
 			ls[1] = Local{Name: "lhs", Val: NodeOrNil(lhs), Next: locals}
 			locals = &ls[1]
 		}
-		if a.Op.Kind != grammar.Postfix {
+		if a.Op.Kind != ast.Postfix {
 			ls[2] = Local{Name: "rhs", Val: NodeOrNil(rhs), Next: locals}
 			locals = &ls[2]
 		}
@@ -184,11 +184,11 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	var kids []*core.Node
 	var fields coreimpl.Fields
 	switch a.Op.Kind {
-	case grammar.Prefix:
+	case ast.Prefix:
 		kids = p.Nodes(2)
 		kids[0], kids[1] = opv, rhs
 		fields = coreimpl.Fields{{Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
-	case grammar.Postfix:
+	case ast.Postfix:
 		kids = p.Nodes(2)
 		kids[0], kids[1] = lhs, opv
 		fields = coreimpl.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}}

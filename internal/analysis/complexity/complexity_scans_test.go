@@ -8,9 +8,9 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestRunFlow checks the algebra of the transfer functions of the run length: a bound stays a bound
@@ -62,11 +62,11 @@ func boundedScans(t *testing.T, src string) map[string]bool {
 		t.Fatal(err)
 	}
 	k.collect()
-	var scans []*grammar.Repeat
+	var scans []*ast.Repeat
 	for _, r := range k.rules {
 		if r.Name != "main" {
-			astfacts.WalkExpr(r.Expr, func(e grammar.Expr) {
-				if x, ok := e.(*grammar.Repeat); ok && k.srcExprs[x] && k.again[x] != nil {
+			astfacts.WalkExpr(r.Expr, func(e ast.Expr) {
+				if x, ok := e.(*ast.Repeat); ok && k.srcExprs[x] && k.again[x] != nil {
 					scans = append(scans, x)
 				}
 			})
@@ -76,9 +76,9 @@ func boundedScans(t *testing.T, src string) map[string]bool {
 	out := map[string]bool{}
 	for _, r := range scans {
 		if !k.srcExprs[r] {
-			out[grammar.FormatExpr(r)] = true
+			out[ast.FormatExpr(r)] = true
 			if k.srcExprs[k.again[r]] {
-				t.Errorf("the later iterations of %s stay a scanning source", grammar.FormatExpr(r))
+				t.Errorf("the later iterations of %s stay a scanning source", ast.FormatExpr(r))
 			}
 		}
 	}
@@ -205,7 +205,7 @@ func TestScanRuns(t *testing.T) {
 			}
 			found := false
 			for r, d := range k.scanRun {
-				if text := grammar.FormatExpr(r); text == name || c.rep != "" && strings.Contains(text, name) {
+				if text := ast.FormatExpr(r); text == name || c.rep != "" && strings.Contains(text, name) {
 					found = true
 					if d != c.want {
 						t.Errorf("run %d, want %d", d, c.want)
@@ -229,7 +229,7 @@ func TestLooseCutInSkip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !k.looseCut(&grammar.Recovery{Expr: &grammar.Literal{Value: "a"}, Skip: &grammar.Cut{}}) {
+	if !k.looseCut(&ast.Recovery{Expr: &ast.Literal{Value: "a"}, Skip: &ast.Cut{}}) {
 		t.Error("a cut in the skip does not commit the choice around the recovery")
 	}
 }

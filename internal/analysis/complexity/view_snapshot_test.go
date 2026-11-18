@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 var update = flag.Bool("update", false, "rewrite testdata/cost-view.golden")
@@ -72,7 +72,7 @@ func TestViewSnapshot(t *testing.T) {
 // viewSnapshot writes the cost view of one grammar for the snapshot test: the rewrites it counts,
 // the rules it changes, and each expression it builds with its position and the source text it
 // stands for. source are the rules the view is built from and rules the view's rules.
-func viewSnapshot(source, rules []*grammar.RuleDef, text map[grammar.Expr]string, applied map[string]int) string {
+func viewSnapshot(source, rules []*ast.RuleDef, text map[ast.Expr]string, applied map[string]int) string {
 	var b strings.Builder
 	laws := slices.Sorted(maps.Keys(applied))
 	b.WriteString("applied:")
@@ -80,25 +80,25 @@ func viewSnapshot(source, rules []*grammar.RuleDef, text map[grammar.Expr]string
 		fmt.Fprintf(&b, " %s=%d", l, applied[l])
 	}
 	b.WriteString("\n")
-	src := map[grammar.Expr]bool{}
+	src := map[ast.Expr]bool{}
 	for _, r := range source {
-		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) { src[x] = true })
+		astfacts.WalkExpr(r.Expr, func(x ast.Expr) { src[x] = true })
 	}
 	for i, r := range rules {
 		if r.Expr == source[i].Expr {
 			continue
 		}
-		fmt.Fprintf(&b, "rule %s = %s\n", r.Name, grammar.FormatExpr(r.Expr))
+		fmt.Fprintf(&b, "rule %s = %s\n", r.Name, ast.FormatExpr(r.Expr))
 		var built []string
-		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
 			if src[x] {
 				return
 			}
-			pos := grammar.Pos{}
-			if s, ok := x.(interface{ Source() *grammar.SourceInfo }); ok && s.Source() != nil {
+			pos := ast.Pos{}
+			if s, ok := x.(interface{ Source() *ast.SourceInfo }); ok && s.Source() != nil {
 				pos = s.Source().Diagnostic()
 			}
-			built = append(built, fmt.Sprintf("  %d:%d %s = %q", pos.Line, pos.Col, grammar.FormatExpr(x), text[x]))
+			built = append(built, fmt.Sprintf("  %d:%d %s = %q", pos.Line, pos.Col, ast.FormatExpr(x), text[x]))
 		})
 		slices.Sort(built)
 		b.WriteString(strings.Join(built, "\n"))

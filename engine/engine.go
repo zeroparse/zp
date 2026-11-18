@@ -13,16 +13,16 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // ParseGrammar parses ZeroParse source code into a grammar AST.
-func ParseGrammar(src string) (*grammar.Grammar, error) {
+func ParseGrammar(src string) (*ast.Grammar, error) {
 	return parser.Parse(src)
 }
 
@@ -55,7 +55,7 @@ func WithDefaultValue() CompileOption {
 
 // Compile compiles the grammar g into a parser that starts parsing at the rule start, which must
 // be a start rule, a rule marked @start. An empty start selects the default start rule.
-func Compile(g *grammar.Grammar, start string, opts ...CompileOption) (*Parser, error) {
+func Compile(g *ast.Grammar, start string, opts ...CompileOption) (*Parser, error) {
 	var o engine.Options
 	for _, opt := range opts {
 		opt(&o)
@@ -588,7 +588,7 @@ func (p *Parser) Starts() []string { return p.prog.Starts() }
 func (p *Parser) DefaultStart() string { return p.prog.DefaultStart() }
 
 // Grammar returns the parser's grammar, or nil for a parser loaded from a compiled grammar.
-func (p *Parser) Grammar() *grammar.Grammar { return p.prog.SourceGrammar() }
+func (p *Parser) Grammar() *ast.Grammar { return p.prog.SourceGrammar() }
 
 // PrefixResult reports a rule's value and successful cursor. Consumption comes
 // from the runtime cursor, even when Node is nil or its span differs.

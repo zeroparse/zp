@@ -1,8 +1,8 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ruleFacts are the rule facts that the classifier reads, by rule name. They are the facts of the
@@ -28,7 +28,7 @@ type ruleFacts struct {
 }
 
 // classifierFacts returns the rule facts of rules, the unique rules of g.
-func classifierFacts(g *grammar.Grammar, rules []*grammar.RuleDef, control *cancel.Control) (*ruleFacts, error) {
+func classifierFacts(g *ast.Grammar, rules []*ast.RuleDef, control *cancel.Control) (*ruleFacts, error) {
 	src, err := costSource(g, rules, control)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func classifierFacts(g *grammar.Grammar, rules []*grammar.RuleDef, control *canc
 }
 
 // sourceFacts returns the rule facts of rules, the rules of the module of src in order.
-func sourceFacts(src *Source, rules []*grammar.RuleDef, control *cancel.Control) *ruleFacts {
+func sourceFacts(src *Source, rules []*ast.RuleDef, control *cancel.Control) *ruleFacts {
 	f := src.Facts
 	an := newRuleAnalysis(control)
 	rf := &ruleFacts{source: src, an: an, memo: map[string]bool{}, members: map[string]bool{}, vars: map[string][]string{},

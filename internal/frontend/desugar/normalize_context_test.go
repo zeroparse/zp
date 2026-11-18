@@ -8,50 +8,50 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestNormalizationContextCancellation(t *testing.T) {
 	t.Parallel()
 	const size = 2048
-	sequence := &grammar.Seq{Items: make([]grammar.Expr, size)}
+	sequence := &ast.Seq{Items: make([]ast.Expr, size)}
 	args := make([]any, size)
 	keywords := make(map[string]any, size)
-	block := &grammar.Block{Statements: make([]grammar.Term, size)}
-	fields := make([]*grammar.Field, size)
-	var groupedType grammar.TypeExpr = &grammar.TypeRef{Name: "Match"}
-	var groupedTerm grammar.Term = &grammar.IntLit{Value: 1}
+	block := &ast.Block{Statements: make([]ast.Term, size)}
+	fields := make([]*ast.Field, size)
+	var groupedType ast.TypeExpr = &ast.TypeRef{Name: "Match"}
+	var groupedTerm ast.Term = &ast.IntLit{Value: 1}
 	for i := 0; i < size; i++ {
-		sequence.Items[i] = &grammar.Literal{Value: "a"}
+		sequence.Items[i] = &ast.Literal{Value: "a"}
 		args[i] = i
 		keywords[fmt.Sprintf("K%d", i)] = i
-		block.Statements[i] = &grammar.BoolLit{Value: true}
-		fields[i] = &grammar.Field{Name: fmt.Sprintf("Field%d", i), Type: &grammar.TypeGroup{Type: &grammar.TypeRef{Name: "Match"}}}
-		groupedType = &grammar.TypeGroup{Type: groupedType}
-		groupedTerm = &grammar.TermGroup{Term: groupedTerm}
+		block.Statements[i] = &ast.BoolLit{Value: true}
+		fields[i] = &ast.Field{Name: fmt.Sprintf("Field%d", i), Type: &ast.TypeGroup{Type: &ast.TypeRef{Name: "Match"}}}
+		groupedType = &ast.TypeGroup{Type: groupedType}
+		groupedTerm = &ast.TermGroup{Term: groupedTerm}
 	}
-	fixtures := map[string]*grammar.Grammar{}
-	for name, expr := range map[string]grammar.Expr{
+	fixtures := map[string]*ast.Grammar{}
+	for name, expr := range map[string]ast.Expr{
 		"sequence":             sequence,
-		"positional-arguments": &grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: []*grammar.Attribute{{Name: "custom", Args: args}}},
-		"keyword-arguments":    &grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: []*grammar.Attribute{{Name: "custom", Args: []any{}, KwArgs: keywords}}},
-		"predicate-block":      &grammar.Predicate{Term: block},
+		"positional-arguments": &ast.Attributed{Expr: &ast.Literal{Value: "a"}, Attrs: []*ast.Attribute{{Name: "custom", Args: args}}},
+		"keyword-arguments":    &ast.Attributed{Expr: &ast.Literal{Value: "a"}, Attrs: []*ast.Attribute{{Name: "custom", Args: []any{}, KwArgs: keywords}}},
+		"predicate-block":      &ast.Predicate{Term: block},
 	} {
-		fixtures[name] = &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: expr}}}}
+		fixtures[name] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: expr}}}}
 	}
-	fixtures["type-groups"] = &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Type: groupedType, Expr: &grammar.Literal{Value: "a"}}}}}
-	fixtures["action-groups"] = &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Literal{Value: "a"}, Action: groupedTerm}}}}
-	fixtures["struct-fields"] = &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.TypeDef{Name: "T", Type: &grammar.StructType{Fields: fields}}}}}
-	union := &grammar.JoinType{Types: make([]grammar.TypeExpr, size)}
-	action := &grammar.Call{Func: "list", Args: make([]grammar.Term, size)}
+	fixtures["type-groups"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Type: groupedType, Expr: &ast.Literal{Value: "a"}}}}}
+	fixtures["action-groups"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Literal{Value: "a"}, Action: groupedTerm}}}}
+	fixtures["struct-fields"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.TypeDef{Name: "T", Type: &ast.StructType{Fields: fields}}}}}
+	union := &ast.JoinType{Types: make([]ast.TypeExpr, size)}
+	action := &ast.Call{Func: "list", Args: make([]ast.Term, size)}
 	for i := 0; i < size; i++ {
-		union.Types[i] = &grammar.TypeRef{Name: "Match"}
-		action.Args[i] = &grammar.BoolLit{Value: true}
+		union.Types[i] = &ast.TypeRef{Name: "Match"}
+		action.Args[i] = &ast.BoolLit{Value: true}
 	}
-	union.Types[0] = &grammar.TypeGroup{Type: union.Types[0]}
-	action.Args[0] = &grammar.TermGroup{Term: action.Args[0]}
-	fixtures["grouped-type-copy"] = &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Type: union, Expr: &grammar.Literal{Value: "a"}}}}}
-	fixtures["grouped-action-copy"] = &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Literal{Value: "a"}, Action: action}}}}
+	union.Types[0] = &ast.TypeGroup{Type: union.Types[0]}
+	action.Args[0] = &ast.TermGroup{Term: action.Args[0]}
+	fixtures["grouped-type-copy"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Type: union, Expr: &ast.Literal{Value: "a"}}}}}
+	fixtures["grouped-action-copy"] = &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Literal{Value: "a"}, Action: action}}}}
 	for name, g := range fixtures {
 		for _, eager := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/eager=%v", name, eager), func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestNormalizationContextCancellation(t *testing.T) {
 					t.Fatal(err)
 				}
 				ctx := pollTestContext(t, 3)
-				var result *grammar.Grammar
+				var result *ast.Grammar
 				var diagnostics error
 				defer func() {
 					failure := recover()
@@ -88,15 +88,15 @@ func TestNormalizationCopiesObserveCancellation(t *testing.T) {
 	const size = 2048
 	values := make([]int, size)
 	keywords := make(map[string]any, size)
-	attrs := make([]*grammar.Attribute, size)
-	terms := make([]grammar.Term, size)
-	expressions := make([]grammar.Expr, size)
+	attrs := make([]*ast.Attribute, size)
+	terms := make([]ast.Term, size)
+	expressions := make([]ast.Expr, size)
 	for i := range values {
 		values[i] = i
 		keywords[fmt.Sprint(i)] = i
-		attrs[i] = &grammar.Attribute{Name: "custom"}
-		terms[i] = &grammar.BoolLit{Value: true}
-		expressions[i] = &grammar.Predicate{Term: terms[i]}
+		attrs[i] = &ast.Attribute{Name: "custom"}
+		terms[i] = &ast.BoolLit{Value: true}
+		expressions[i] = &ast.Predicate{Term: terms[i]}
 	}
 	for _, phase := range []string{"slice", "keywords", "attribute-append", "predicate-flatten"} {
 		t.Run(phase, func(t *testing.T) {
@@ -123,10 +123,10 @@ func TestNormalizationCopiesObserveCancellation(t *testing.T) {
 			case "keywords":
 				cloneAttributeKeywords(keywords, control)
 			case "attribute-append":
-				appendNormalizedAttribute(attrs, &grammar.Attribute{Name: "other"}, control)
+				appendNormalizedAttribute(attrs, &ast.Attribute{Name: "other"}, control)
 			case "predicate-flatten":
-				source := []grammar.Expr{&grammar.Predicate{Term: &grammar.Block{Statements: terms}}}
-				normalized := []grammar.Expr{&grammar.Seq{Items: expressions}}
+				source := []ast.Expr{&ast.Predicate{Term: &ast.Block{Statements: terms}}}
+				normalized := []ast.Expr{&ast.Seq{Items: expressions}}
 				expandPredicateBlocks(source, normalized, control)
 			}
 			t.Fatal("copy finished without cancellation")
@@ -136,7 +136,7 @@ func TestNormalizationCopiesObserveCancellation(t *testing.T) {
 
 func TestNormalizationFinalCheckpoint(t *testing.T) {
 	t.Parallel()
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Literal{Value: "a"}}}}}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Literal{Value: "a"}}}}}
 	ctx := pollTestContext(t, 2)
 	defer func() {
 		cancelled, ok := recover().(cancel.Cancellation)

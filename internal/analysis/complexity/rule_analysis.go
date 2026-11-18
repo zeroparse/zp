@@ -1,9 +1,9 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ruleAnalysis holds the rule facts that the classifier reads by rule name, taken from the facts
@@ -31,40 +31,40 @@ func newRuleAnalysis(control *cancel.Control) *ruleAnalysis {
 		Positional: map[string]bool{}, Recovering: map[string]string{}}
 }
 
-func (a *ruleAnalysis) isNullable(e grammar.Expr) bool {
+func (a *ruleAnalysis) isNullable(e ast.Expr) bool {
 	a.control.Poll()
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		return a.Nullable[e.Name]
-	case *grammar.Literal:
+	case *ast.Literal:
 		return e.Value == ""
-	case *grammar.CharClass, *grammar.Any, *grammar.Bottom:
+	case *ast.CharClass, *ast.Any, *ast.Bottom:
 		return false
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !a.isNullable(it) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			if a.isNullable(alt) {
 				return true
 			}
 		}
 		return false
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return e.Min == 0 || e.Min == 1 && a.isNullable(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return a.isNullable(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return a.isNullable(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return a.isNullable(e.Expr)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return a.isNullable(e.Expr)
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		for _, o := range e.Operands {
 			if a.isNullable(o.Expr) {
 				return true
@@ -78,42 +78,42 @@ func (a *ruleAnalysis) isNullable(e grammar.Expr) bool {
 }
 
 // LeftCalls returns the rules that may be called before any input is consumed.
-func (a *ruleAnalysis) LeftCalls(e grammar.Expr, acc []string) []string {
+func (a *ruleAnalysis) LeftCalls(e ast.Expr, acc []string) []string {
 	a.control.Poll()
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		return append(acc, e.Name)
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			acc = a.LeftCalls(it, acc)
 			if !a.isNullable(it) {
 				break
 			}
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			acc = a.LeftCalls(alt, acc)
 			if a.AlwaysSucceeds(alt) {
 				break
 			}
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max != 0 {
 			acc = a.LeftCalls(e.Expr, acc)
 		}
-	case *grammar.Optional:
+	case *ast.Optional:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.And:
+	case *ast.And:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Not:
+	case *ast.Not:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Discard:
+	case *ast.Discard:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Capture:
+	case *ast.Capture:
 		acc = a.LeftCalls(e.Expr, acc)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		acc = a.LeftCalls(e.Expr, acc)
 		if !a.AlwaysSucceeds(e.Expr) {
 			for _, at := range e.Attrs {
@@ -124,7 +124,7 @@ func (a *ruleAnalysis) LeftCalls(e grammar.Expr, acc []string) []string {
 				}
 			}
 		}
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		if e.Skip != nil {
 			acc = a.LeftCalls(e.Skip, acc)
 		}
@@ -136,7 +136,7 @@ func (a *ruleAnalysis) LeftCalls(e grammar.Expr, acc []string) []string {
 		}
 		for _, l := range e.Levels {
 			for _, op := range l.Operators {
-				if op.Kind == grammar.Prefix {
+				if op.Kind == ast.Prefix {
 					acc = a.LeftCalls(op.Expr, acc)
 				}
 			}
@@ -146,7 +146,7 @@ func (a *ruleAnalysis) LeftCalls(e grammar.Expr, acc []string) []string {
 }
 
 // AlwaysSucceeds reports a proof that e cannot fail, with the always-succeeding rules.
-func (a *ruleAnalysis) AlwaysSucceeds(e grammar.Expr) bool {
+func (a *ruleAnalysis) AlwaysSucceeds(e ast.Expr) bool {
 	if a.control == nil {
 		return astfacts.AlwaysSucceeds(e, a.Succeeding)
 	}
@@ -156,7 +156,7 @@ func (a *ruleAnalysis) AlwaysSucceeds(e grammar.Expr) bool {
 // tarjan returns the strongly connected components of the graph of edges, starting from the rules
 // in order. A component comes after every component it reaches, so callees come before their
 // callers. A non-nil control polls for cancellation.
-func tarjan(rules []*grammar.RuleDef, edges map[string][]string, control *cancel.Control) [][]string {
+func tarjan(rules []*ast.RuleDef, edges map[string][]string, control *cancel.Control) [][]string {
 	index := map[string]int{}
 	low := map[string]int{}
 	onStack := map[string]bool{}

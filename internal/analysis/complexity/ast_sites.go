@@ -1,10 +1,10 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The classifier's model of the sites that the compiler numbers on Core IR
@@ -15,8 +15,8 @@ import (
 // that such an element calls, or that calls itself, directly or indirectly. Every other repetition is reached by a
 // derivation once, from the start rule through sequences, choices and calls, so one walk of it
 // starts at each position at most once per environment, and a record could not be reused.
-func restartableRepeats(names []string, exprOf func(string) grammar.Expr, calls map[string][]string) map[*grammar.Repeat]bool {
-	out := map[*grammar.Repeat]bool{}
+func restartableRepeats(names []string, exprOf func(string) ast.Expr, calls map[string][]string) map[*ast.Repeat]bool {
+	out := map[*ast.Repeat]bool{}
 	iterated := map[string]bool{}
 	var queue []string
 	mark := func(n string) {
@@ -26,16 +26,16 @@ func restartableRepeats(names []string, exprOf func(string) grammar.Expr, calls 
 		}
 	}
 	for _, n := range names {
-		astfacts.WalkExpr(exprOf(n), func(x grammar.Expr) {
-			r, ok := x.(*grammar.Repeat)
+		astfacts.WalkExpr(exprOf(n), func(x ast.Expr) {
+			r, ok := x.(*ast.Repeat)
 			if !ok || r.Max == 0 || r.Max == 1 {
 				return
 			}
-			astfacts.WalkExpr(r.Expr, func(y grammar.Expr) {
+			astfacts.WalkExpr(r.Expr, func(y ast.Expr) {
 				switch y := y.(type) {
-				case *grammar.Repeat:
+				case *ast.Repeat:
 					out[y] = true
-				case *grammar.Ref:
+				case *ast.Ref:
 					mark(y.Name)
 				}
 			})
@@ -68,8 +68,8 @@ func restartableRepeats(names []string, exprOf func(string) grammar.Expr, calls 
 		if !iterated[n] {
 			continue
 		}
-		astfacts.WalkExpr(exprOf(n), func(x grammar.Expr) {
-			if r, ok := x.(*grammar.Repeat); ok {
+		astfacts.WalkExpr(exprOf(n), func(x ast.Expr) {
+			if r, ok := x.(*ast.Repeat); ok {
 				out[r] = true
 			}
 		})
@@ -78,9 +78,9 @@ func restartableRepeats(names []string, exprOf func(string) grammar.Expr, calls 
 }
 
 // isScan reports whether e repeats a single character, which a scan walks without a record.
-func isScan(e *grammar.Repeat) bool {
+func isScan(e *ast.Repeat) bool {
 	switch e.Expr.(type) {
-	case *grammar.CharClass, *grammar.Any:
+	case *ast.CharClass, *ast.Any:
 		return true
 	}
 	return false
@@ -88,7 +88,7 @@ func isScan(e *grammar.Repeat) bool {
 
 // blocksRunAttrs reports whether the attributes of x keep a repetition that holds it from being a
 // run site: #stream, #missing, #error and #diagnostic.
-func blocksRunAttrs(x *grammar.Attributed) bool {
+func blocksRunAttrs(x *ast.Attributed) bool {
 	for _, a := range x.Attrs {
 		switch a.Name {
 		case "stream", "missing", "error", "diagnostic":
@@ -102,19 +102,19 @@ func blocksRunAttrs(x *grammar.Attributed) bool {
 // calls no rule, in order, with whether it is a scan site: it repeats a character class or any
 // character and does not deliver the elements of a #stream. A repetition in a #recover skip is
 // reported as a site; it is one unless it is a skip-run site, which records its walks as one.
-func scanSiteRepeats(e grammar.Expr, control *cancel.Control, f func(rep *grammar.Repeat, site bool)) {
-	streamed := map[*grammar.Repeat]bool{}
-	astfacts.WalkExprWithPoll(e, func(x grammar.Expr) {
+func scanSiteRepeats(e ast.Expr, control *cancel.Control, f func(rep *ast.Repeat, site bool)) {
+	streamed := map[*ast.Repeat]bool{}
+	astfacts.WalkExprWithPoll(e, func(x ast.Expr) {
 		switch x := x.(type) {
-		case *grammar.Attributed:
-			if rep, ok := x.Expr.(*grammar.Repeat); ok && check.IsStream(x) {
+		case *ast.Attributed:
+			if rep, ok := x.Expr.(*ast.Repeat); ok && check.IsStream(x) {
 				streamed[rep] = true
 			}
-		case *grammar.Stream:
-			if rep, ok := x.Expr.(*grammar.Repeat); ok {
+		case *ast.Stream:
+			if rep, ok := x.Expr.(*ast.Repeat); ok {
 				streamed[rep] = true
 			}
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			if x.Max < 0 {
 				f(x, isScan(x) && !streamed[x])
 			}

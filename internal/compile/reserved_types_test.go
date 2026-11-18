@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Tuple types and type arguments parse, format and round-trip through JSON. Tuple types and node[T]
@@ -17,33 +17,33 @@ func TestReservedTypeSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	if !strings.Contains(formatted, "type A ~ () | (B,) | (B, *C) | node[B] | []node[(B, C), D]") {
 		t.Fatalf("formatted:\n%s", formatted)
 	}
-	u := g.Types()[0].(*grammar.TypeAlias).Type.(*grammar.JoinType)
+	u := g.Types()[0].(*ast.TypeAlias).Type.(*ast.JoinType)
 	for i, n := range []int{0, 1, 2} {
-		if tt, ok := u.Types[i].(*grammar.TupleType); !ok || len(tt.Types) != n {
+		if tt, ok := u.Types[i].(*ast.TupleType); !ok || len(tt.Types) != n {
 			t.Fatalf("tuple %d: %#v", i, u.Types[i])
 		}
 	}
-	if a, ok := u.Types[3].(*grammar.TypeApp); !ok || a.Name != "node" || len(a.Args) != 1 {
+	if a, ok := u.Types[3].(*ast.TypeApp); !ok || a.Name != "node" || len(a.Args) != 1 {
 		t.Fatalf("type application %#v", u.Types[3])
 	}
-	l, ok := u.Types[4].(*grammar.ListType)
-	if a, ok2 := l.Elem.(*grammar.TypeApp); !ok || !ok2 || len(a.Args) != 2 {
+	l, ok := u.Types[4].(*ast.ListType)
+	if a, ok2 := l.Elem.(*ast.TypeApp); !ok || !ok2 || len(a.Args) != 2 {
 		t.Fatalf("list of type application %#v", u.Types[4])
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	back, err := grammar.UnmarshalJSON(data)
+	back, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// JSON keeps the tree but not the layout.
-	if got := grammar.Format(back); !strings.HasPrefix(got, "type A ~ () | (B,) | (B, *C) | node[B] | []node[(B, C), D]\n") {
+	if got := ast.Format(back); !strings.HasPrefix(got, "type A ~ () | (B,) | (B, *C) | node[B] | []node[(B, C), D]\n") {
 		t.Fatalf("JSON round trip:\n%s", got)
 	}
 
@@ -134,30 +134,30 @@ func TestReservedUnnamedStructType(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := "type A ~ {} | { X int; Y *A } | []{\n    // the name\n    Name  string\n    Inner { V int }\n}\ntype T = {\n    F {}\n    G (int, { H int })\n}\nrule main = \"a\"\n"
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	if formatted != want {
 		t.Fatalf("formatted:\n%s\nwant\n%s", formatted, want)
 	}
 	again, err := parser.Parse(formatted)
-	if err != nil || grammar.Format(again) != formatted {
+	if err != nil || ast.Format(again) != formatted {
 		t.Fatalf("formatting is not idempotent: %v", err)
 	}
-	u := g.Types()[0].(*grammar.TypeAlias).Type.(*grammar.JoinType)
-	if s, ok := u.Types[1].(*grammar.StructType); !ok || len(s.Fields) != 2 || s.Fields[1].Name != "Y" {
+	u := g.Types()[0].(*ast.TypeAlias).Type.(*ast.JoinType)
+	if s, ok := u.Types[1].(*ast.StructType); !ok || len(s.Fields) != 2 || s.Fields[1].Name != "Y" {
 		t.Fatalf("struct type %#v", u.Types[1])
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	back, err := grammar.UnmarshalJSON(data)
+	back, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// JSON carries the comment of the field, which takes the struct to lines.
 	// Without layout, the declarations are separated by blank lines.
 	wantJSON := strings.Replace(strings.Replace(want, "}\ntype T", "}\n\ntype T", 1), "}\nrule main", "}\n\nrule main", 1)
-	if got := grammar.Format(back); got != wantJSON {
+	if got := ast.Format(back); got != wantJSON {
 		t.Fatalf("JSON round trip:\n%s", got)
 	}
 	// Without comments the struct type stays on one line.
@@ -165,15 +165,15 @@ func TestReservedUnnamedStructType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err = grammar.MarshalJSON(plain)
+	data, err = ast.MarshalJSON(plain)
 	if err != nil {
 		t.Fatal(err)
 	}
-	back, err = grammar.UnmarshalJSON(data)
+	back, err = ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := grammar.Format(back); !strings.HasPrefix(got, "type A ~ []{ Name string; Inner { V int } }\n") {
+	if got := ast.Format(back); !strings.HasPrefix(got, "type A ~ []{ Name string; Inner { V int } }\n") {
 		t.Fatalf("JSON round trip without comments:\n%s", got)
 	}
 

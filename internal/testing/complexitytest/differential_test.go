@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 var differentialGrammars = flag.Int("differential", DefaultDifferentialGrammars, "number of random grammars TestLinearClaims generates")
@@ -230,7 +230,7 @@ func randomNestedScanGrammar(rng *rand.Rand) string {
 // backends (those of SharedContinuationInputs for the last family). It returns the number of
 // grammars checked, the number of them from SharedContinuationGrammars, and the failures; it stops
 // at the first failure if firstOnly is set.
-func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) bool, firstOnly bool) (checked, checkedShared int, failures []string) {
+func linearClaims(t *testing.T, count int, claimsLinear func(*ast.Grammar) bool, firstOnly bool) (checked, checkedShared int, failures []string) {
 	t.Helper()
 	rng := rand.New(rand.NewPCG(3, 5))
 	cycles := rand.New(rand.NewPCG(13, 17))
@@ -303,7 +303,7 @@ func TestLinearClaims(t *testing.T) {
 	if reduced() {
 		count /= 4
 	}
-	checked, checkedShared, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
+	checked, checkedShared, failures := linearClaims(t, count, func(g *ast.Grammar) bool {
 		c, err := complexity.ClassifyComplexity(context.Background(), g, "main")
 		if err != nil {
 			t.Fatal(err)
@@ -334,7 +334,7 @@ func TestLinearClaimsNegativeControl(t *testing.T) {
 	if reduced() {
 		count /= 4
 	}
-	_, _, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
+	_, _, failures := linearClaims(t, count, func(g *ast.Grammar) bool {
 		c, err := complexity.ClassifyComplexity(context.Background(), g, "main")
 		if err != nil {
 			t.Fatal(err)

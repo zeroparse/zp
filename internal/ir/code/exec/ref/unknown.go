@@ -1,6 +1,6 @@
 package ref
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // Unknown stands for a value that the caller of an evaluation does not know yet, such as a part of the
 // input that a generator has not produced. It enters an evaluation only through TermEnv.Captures and
@@ -33,7 +33,7 @@ const (
 )
 
 // try evaluates t and reports whether its value, or the failure that stops it, is unknown.
-func (e *TermEnv) try(t grammar.Term, p params) (v V, msg string, unknown bool) {
+func (e *TermEnv) try(t ast.Term, p params) (v V, msg string, unknown bool) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, ok := x.(unknownSignal); ok {
@@ -54,7 +54,7 @@ func (e *TermEnv) try(t grammar.Term, p params) (v V, msg string, unknown bool) 
 // logic applies && or ||. It evaluates as the language does unless an operand that it reads is
 // unknown; then the value is the one that every outcome the operands may have gives, and unknown if
 // they give more than one or may fail.
-func (e *TermEnv) logic(t *grammar.Binary, p params) V {
+func (e *TermEnv) logic(t *ast.Binary, p params) V {
 	var v V
 	unknown := func() (unknown bool) {
 		defer func() {
@@ -81,20 +81,20 @@ func (e *TermEnv) logic(t *grammar.Binary, p params) V {
 }
 
 // logical returns the operand of t if t is &&, || or ! (through parentheses), and nil otherwise.
-func logical(t grammar.Term) grammar.Term {
+func logical(t ast.Term) ast.Term {
 	for {
-		g, ok := t.(*grammar.TermGroup)
+		g, ok := t.(*ast.TermGroup)
 		if !ok {
 			break
 		}
 		t = g.Term
 	}
 	switch x := t.(type) {
-	case *grammar.Binary:
+	case *ast.Binary:
 		if x.Op == "&&" || x.Op == "||" {
 			return x
 		}
-	case *grammar.Unary:
+	case *ast.Unary:
 		if x.Op == "!" {
 			return x
 		}
@@ -103,9 +103,9 @@ func logical(t grammar.Term) grammar.Term {
 }
 
 // outcomes returns the outcomes that t may have as an operand of op, which is &&, || or !.
-func (e *TermEnv) outcomes(t grammar.Term, p params, op string) outcome {
+func (e *TermEnv) outcomes(t ast.Term, p params, op string) outcome {
 	switch x := logical(t).(type) {
-	case *grammar.Binary:
+	case *ast.Binary:
 		l := e.outcomes(x.L, p, x.Op)
 		out := l & oFail
 		if x.Op == "&&" {
@@ -124,7 +124,7 @@ func (e *TermEnv) outcomes(t grammar.Term, p params, op string) outcome {
 			}
 		}
 		return out
-	case *grammar.Unary:
+	case *ast.Unary:
 		in := e.outcomes(x.X, p, "!")
 		out := in & oFail
 		if in&oTrue != 0 {
@@ -155,7 +155,7 @@ func (e *TermEnv) outcomes(t grammar.Term, p params, op string) outcome {
 // Decide decides the predicate t: holds is whether it holds, which it does on every value but false and
 // a failure, and known is false when holds depends on an unknown value. A failure is known when it
 // does not, since a predicate that fails does not hold.
-func (e *TermEnv) Decide(t grammar.Term) (holds, known bool) {
+func (e *TermEnv) Decide(t ast.Term) (holds, known bool) {
 	if logical(t) != nil {
 		switch o := e.outcomes(t, nil, ""); {
 		case o == oTrue:

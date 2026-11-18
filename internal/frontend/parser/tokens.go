@@ -4,7 +4,7 @@ import (
 	"context"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // This file exposes the lexer and an error-tolerant parse to tools that work on source as it is
@@ -36,7 +36,7 @@ type Token struct {
 	Text string
 	// Pos is the position of the first character of the token, and End the position just after
 	// its last character.
-	Pos, End grammar.Pos
+	Pos, End ast.Pos
 }
 
 // Tokenize splits src into tokens, including comments, in source order. Characters that do not
@@ -54,9 +54,9 @@ func TokenizeContext(ctx context.Context, src string) ([]Token, error) {
 
 func tokenizeContext(ctx context.Context, src string) ([]Token, error) {
 	var out []Token
-	comment := func(c *grammar.Comment) {
+	comment := func(c *ast.Comment) {
 		end := c.End
-		if end == (grammar.Pos{}) {
+		if end == (ast.Pos{}) {
 			end = c.Pos
 			end.Col += utf8.RuneCountInString(c.Text)
 		}

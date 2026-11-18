@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestNormalViewMatches checks that the normal view of each bundled grammar matches what the
@@ -104,7 +104,7 @@ func TestNormalViewMatchesShapes(t *testing.T) {
 
 // checkViewMatches compares prefix parses of both views of g with those of g, compiled as prog,
 // on inputs.
-func checkViewMatches(t *testing.T, g *grammar.Grammar, prog *engine.Program, inputs []string) {
+func checkViewMatches(t *testing.T, g *ast.Grammar, prog *engine.Program, inputs []string) {
 	t.Helper()
 	for _, matching := range []bool{false, true} {
 		vg, err := complexity.NormalView(g, matching, nil)

@@ -3,16 +3,16 @@ package desugar
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // UniqueRules returns the first declaration of each rule name of g in order, and an error for each
 // later declaration of a name. The analyses key rules by name and loop on a rule list that holds a
 // name twice, so every entry point that analyzes a grammar takes its rules from here.
-func UniqueRules(g *grammar.Grammar, control *cancel.Control) ([]*grammar.RuleDef, diagnostic.ErrorList) {
-	var rules []*grammar.RuleDef
+func UniqueRules(g *ast.Grammar, control *cancel.Control) ([]*ast.RuleDef, diagnostic.ErrorList) {
+	var rules []*ast.RuleDef
 	var errs diagnostic.ErrorList
 	seen := map[string]bool{}
 	for _, rd := range control.Rules(g) {

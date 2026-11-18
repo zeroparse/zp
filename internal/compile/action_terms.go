@@ -1,6 +1,6 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // Fusable reports whether every argument of the concat call t is itself a call of list, map or a
 // fusable concat. Their elements can then be pushed directly, without building the intermediate
@@ -8,9 +8,9 @@ import "zeroparse.dev/zp/grammar"
 // still arise in the same order as when the arguments are evaluated first: each call checks its
 // elements as it makes them, and concat has nothing left to check. With any other argument,
 // concat would check it only after all arguments are evaluated.
-func Fusable(t *grammar.Call) bool {
+func Fusable(t *ast.Call) bool {
 	for _, a := range t.Args {
-		call, ok := a.(*grammar.Call)
+		call, ok := a.(*ast.Call)
 		switch {
 		case ok && call.Func == "list", ok && call.Func == "map" && len(call.Args) == 2:
 		case ok && call.Func == "concat" && Fusable(call):

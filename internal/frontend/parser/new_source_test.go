@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestExpressionRuleSource(t *testing.T) {
@@ -26,39 +26,39 @@ rule inferred = number:number => $number
 		t.Fatal(err)
 	}
 	rs := g.Rules()
-	if len(rs) != 4 || rs[0].Type.(*grammar.TypeRef).Name != "Box" || rs[3].Type != nil {
+	if len(rs) != 4 || rs[0].Type.(*ast.TypeRef).Name != "Box" || rs[3].Type != nil {
 		t.Fatalf("headers: %+v", rs)
 	}
-	if _, ok := rs[0].Action.(*grammar.New); !ok {
+	if _, ok := rs[0].Action.(*ast.New); !ok {
 		t.Fatalf("constructor: %T", rs[0].Action)
 	}
-	capture, ok := rs[1].Expr.(*grammar.Capture)
+	capture, ok := rs[1].Expr.(*ast.Capture)
 	if !ok {
 		t.Fatalf("capture: %T", rs[1].Expr)
 	}
-	if _, ok := capture.Expr.(*grammar.Atomic); !ok {
+	if _, ok := capture.Expr.(*ast.Atomic); !ok {
 		t.Fatalf("atomic: %T", capture.Expr)
 	}
-	if _, ok := rs[2].Expr.(*grammar.OperatorsRule); !ok {
+	if _, ok := rs[2].Expr.(*ast.OperatorsRule); !ok {
 		t.Fatalf("operators rule: %T", rs[2].Expr)
 	}
-	first, err := grammar.MarshalJSON(g)
+	first, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	again, err := Parse(formatted)
 	if err != nil {
 		t.Fatalf("formatted source: %v\n%s", err, formatted)
 	}
-	second, err := grammar.MarshalJSON(again)
+	second, err := ast.MarshalJSON(again)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(first) != string(second) {
 		t.Fatalf("AST changed after formatting\n%s\n%s\n%s", first, second, formatted)
 	}
-	if stable := grammar.Format(again); formatted != stable {
+	if stable := ast.Format(again); formatted != stable {
 		t.Fatalf("unstable format\n%s\n%s", formatted, stable)
 	}
 }
@@ -85,15 +85,15 @@ func TestExpressionRuleAttributeOrdering(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	recovery, ok := g.Rules()[0].Expr.(*grammar.Recovery)
+	recovery, ok := g.Rules()[0].Expr.(*ast.Recovery)
 	if !ok {
 		t.Fatalf("recovery: %T", g.Rules()[0].Expr)
 	}
-	attr := recovery.Expr.(*grammar.Attributed)
+	attr := recovery.Expr.(*ast.Attributed)
 	if len(attr.Attrs) != 1 || attr.Attrs[0].Name != "error" {
 		t.Fatalf("attributes: %+v", attr.Attrs)
 	}
-	if _, ok := attr.Expr.(*grammar.Atomic); !ok {
+	if _, ok := attr.Expr.(*ast.Atomic); !ok {
 		t.Fatalf("atomic: %T", attr.Expr)
 	}
 }
@@ -104,12 +104,12 @@ func TestMissingPragmaSourceAndFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seq := g.Rules()[0].Expr.(*grammar.Seq)
-	attrs := seq.Items[0].(*grammar.Attributed).Attrs
+	seq := g.Rules()[0].Expr.(*ast.Seq)
+	attrs := seq.Items[0].(*ast.Attributed).Attrs
 	if len(attrs) != 2 || attrs[0].Name != "error" || attrs[1].Name != "missing" || !attrs[1].Pragma {
 		t.Fatalf("attributes: %+v", attrs)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	if formatted != source+"\n" {
 		t.Fatalf("format changed pragma: %q", formatted)
 	}
@@ -130,7 +130,7 @@ func TestExpressionRuleAnnotationsPreserveBodyComments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		formatted := grammar.Format(g)
+		formatted := ast.Format(g)
 		if !strings.Contains(formatted, "// keep me") {
 			t.Fatalf("lost comment:\n%s", formatted)
 		}
@@ -138,7 +138,7 @@ func TestExpressionRuleAnnotationsPreserveBodyComments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if stable := grammar.Format(again); stable != formatted {
+		if stable := ast.Format(again); stable != formatted {
 			t.Fatalf("unstable format:\n%s\n%s", formatted, stable)
 		}
 	}
@@ -149,7 +149,7 @@ func TestExpressionRulePartialRecovery(t *testing.T) {
 	if len(errs) != 1 || len(g.Rules()) != 1 || g.Rules()[0].Name != "good" {
 		t.Fatalf("partial parse: %v, %+v", errs, g.Rules())
 	}
-	if _, ok := g.Rules()[0].Expr.(*grammar.Atomic); !ok {
+	if _, ok := g.Rules()[0].Expr.(*ast.Atomic); !ok {
 		t.Fatalf("lost pragma during recovery: %T", g.Rules()[0].Expr)
 	}
 }
@@ -159,10 +159,10 @@ func TestRecoverPragmaSpelling(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := g.Rules()[0].Expr.(*grammar.Recovery); !ok {
+	if _, ok := g.Rules()[0].Expr.(*ast.Recovery); !ok {
 		t.Fatalf("recovery expression: %T", g.Rules()[0].Expr)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	if !strings.Contains(formatted, "#recover(skip=") {
 		t.Fatalf("format: %s", formatted)
 	}

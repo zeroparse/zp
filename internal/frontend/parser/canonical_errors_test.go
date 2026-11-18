@@ -5,30 +5,30 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestSourceErrorsMoveToTheNextToken(t *testing.T) {
 	for _, c := range []struct {
 		name, src string
 		off       int
-		want      grammar.Pos
+		want      ast.Pos
 	}{
-		{"at a token", "rule a", 5, grammar.Pos{Line: 1, Col: 6}},
-		{"space", "rule  a", 4, grammar.Pos{Line: 1, Col: 7}},
-		{"newline", "type T\r\nrule", 6, grammar.Pos{Line: 2, Col: 1}},
-		{"line comment", "rule // x\n  a", 5, grammar.Pos{Line: 2, Col: 3}},
-		{"nested block comment", "rule /* a /* b */ c */ x", 4, grammar.Pos{Line: 1, Col: 24}},
-		{"inside a block comment", "rule /* a\n b */ x", 9, grammar.Pos{Line: 2, Col: 7}},
-		{"inside a nested block comment", "rule /* a /* b */\n c */ x", 16, grammar.Pos{Line: 2, Col: 7}},
-		{"end of input", "rule \n", 4, grammar.Pos{Line: 2, Col: 1}},
-		{"line comment marker in a block comment", "rule a b /* x\n // y */ c\n", 14, grammar.Pos{Line: 2, Col: 10}},
-		{"block comment marker in a line comment", "rule a // /* x\n b\n", 7, grammar.Pos{Line: 2, Col: 2}},
-		{"inside an unterminated block comment", "rule /* a\n // b", 12, grammar.Pos{Line: 1, Col: 6}},
-		{"unterminated block comment", "rule /* a", 4, grammar.Pos{Line: 1, Col: 6}},
-		{"inside a name", "rule abc", 6, grammar.Pos{Line: 1, Col: 6}},
-		{"inside a punctuation mark", "rule a := b", 8, grammar.Pos{Line: 1, Col: 8}},
-		{"inside a string", "rule a = \"xyz\"", 12, grammar.Pos{Line: 1, Col: 13}},
+		{"at a token", "rule a", 5, ast.Pos{Line: 1, Col: 6}},
+		{"space", "rule  a", 4, ast.Pos{Line: 1, Col: 7}},
+		{"newline", "type T\r\nrule", 6, ast.Pos{Line: 2, Col: 1}},
+		{"line comment", "rule // x\n  a", 5, ast.Pos{Line: 2, Col: 3}},
+		{"nested block comment", "rule /* a /* b */ c */ x", 4, ast.Pos{Line: 1, Col: 24}},
+		{"inside a block comment", "rule /* a\n b */ x", 9, ast.Pos{Line: 2, Col: 7}},
+		{"inside a nested block comment", "rule /* a /* b */\n c */ x", 16, ast.Pos{Line: 2, Col: 7}},
+		{"end of input", "rule \n", 4, ast.Pos{Line: 2, Col: 1}},
+		{"line comment marker in a block comment", "rule a b /* x\n // y */ c\n", 14, ast.Pos{Line: 2, Col: 10}},
+		{"block comment marker in a line comment", "rule a // /* x\n b\n", 7, ast.Pos{Line: 2, Col: 2}},
+		{"inside an unterminated block comment", "rule /* a\n // b", 12, ast.Pos{Line: 1, Col: 6}},
+		{"unterminated block comment", "rule /* a", 4, ast.Pos{Line: 1, Col: 6}},
+		{"inside a name", "rule abc", 6, ast.Pos{Line: 1, Col: 6}},
+		{"inside a punctuation mark", "rule a := b", 8, ast.Pos{Line: 1, Col: 8}},
+		{"inside a string", "rule a = \"xyz\"", 12, ast.Pos{Line: 1, Col: 13}},
 	} {
 		got := SourceErrors(c.src, []SourceError{{Offset: c.off, Msg: "m"}})
 		if len(got) == 0 || got[len(got)-1].Pos != c.want {
@@ -40,7 +40,7 @@ func TestSourceErrorsMoveToTheNextToken(t *testing.T) {
 func TestSourceErrorsStartWithTheLexicalErrors(t *testing.T) {
 	src := "rule a = x\nrule b = \"y"
 	got := SourceErrors(src, []SourceError{{Offset: 9, Msg: "syntax error"}})
-	if len(got) != 2 || got[0].Pos != (grammar.Pos{Line: 2, Col: 10}) || got[1].Pos != (grammar.Pos{Line: 1, Col: 10}) {
+	if len(got) != 2 || got[0].Pos != (ast.Pos{Line: 2, Col: 10}) || got[1].Pos != (ast.Pos{Line: 1, Col: 10}) {
 		t.Errorf("got %v", got)
 	}
 }
