@@ -222,6 +222,7 @@ The tests that build generated parsers (in `internal/codegen/go`, `internal/code
 | Kind of test | Runs | How |
 |:--|:--|:--|
 | Tests that build fixtures and check their behavior, output or equivalence with the engine | Both forms, as the subtests `controls` and `ordinary` | The test body runs under `codegentest.EachMode`, as the test's last statement; the two subtests run in parallel |
+| A test of that kind whose other form other tests run in both tiers, and whose size makes a second form most of its cost (`TestTermGeneratedTargets`) | One form, picked by the hash of its name, in both tiers | `codegentest.OneMode` |
 | Tests that pass a control option (`WithContext`, `WithLimits`) | With controls only | `codegentest.NeedsBudgetControls` |
 | Tests of output that exists only without limit controls (terminal programs, the Flow recognizer and Node rules, choice guards) | Without controls only | `codegentest.PinOrdinary` |
 | Tests that do not build fixtures | Not form-specific | |

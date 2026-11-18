@@ -149,10 +149,13 @@ func TestTermEngineBackends(t *testing.T) {
 }
 
 // TestTermGeneratedTargets checks that generated Go (node and typed) and generated TypeScript give the
-// engine's value or error for every generated term, in both position units.
+// engine's value or error for every generated term, in both position units. It runs in one fixture
+// form in every tier (codegentest.OneMode): its thousands of terms make it the largest test of the
+// long tier, and TestTermFixedGeneratedTargets and the negative controls below run the terms in both
+// forms.
 func TestTermGeneratedTargets(t *testing.T) {
 	t.Parallel()
-	codegentest.EachMode(t, testTermGeneratedTargets)
+	codegentest.OneMode(t, testTermGeneratedTargets)
 }
 
 func testTermGeneratedTargets(t *testing.T) {

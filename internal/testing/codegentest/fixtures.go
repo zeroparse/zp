@@ -134,12 +134,28 @@ var fixtureModes = []struct{ name, value string }{{"controls", "0"}, {"ordinary"
 // as a whole still cover both forms; the long tier runs both forms of every test.
 func EachMode(t *testing.T, body func(t *testing.T)) {
 	t.Helper()
+	eachMode(t, allCases, body)
+}
+
+// OneMode is EachMode as the default tier runs it, in every tier: body runs once, as the parallel
+// subtest of the form that the FNV-1a hash of the test name picks (or in the form of modeEnv when
+// it is set). It is for a test whose other form other tests already run in both tiers, and whose
+// size makes a second form the larger part of its cost.
+func OneMode(t *testing.T, body func(t *testing.T)) {
+	t.Helper()
+	eachMode(t, false, body)
+}
+
+// eachMode runs body in every form when all is set, and otherwise in the one that the hash of the
+// test name picks.
+func eachMode(t *testing.T, all bool, body func(t *testing.T)) {
+	t.Helper()
 	if EnvForm != "" {
 		body(t)
 		return
 	}
 	for _, m := range fixtureModes {
-		if !allCases && fixtureModes[hashOf(t.Name())%uint32(len(fixtureModes))] != m {
+		if !all && fixtureModes[hashOf(t.Name())%uint32(len(fixtureModes))] != m {
 			continue
 		}
 		t.Run(m.name, func(t *testing.T) {
