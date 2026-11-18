@@ -202,9 +202,11 @@ func rejectedSources(t *testing.T) []string {
 // keeps each case fast. For the sources that both frontends reject it counts
 // how the errors differ, as harmReport tells.
 func TestCanonicalFrontendMutations(t *testing.T) {
+	t.Parallel()
 	corpus := mutationCorpus(t)
 	for _, seed := range mutationSeeds {
 		t.Run(fmt.Sprintf("seed %d", seed), func(t *testing.T) {
+			t.Parallel()
 			rng := rand.New(rand.NewSource(seed))
 			failed := 0
 			accepted := 0 // sources the hand-written parser accepts
