@@ -194,6 +194,12 @@ func TestNegativeControls(t *testing.T) {
 	addEdge(mod("internal/ir/code/flow"), mod("internal/fakeaction"))
 	// Rule 2: the Action dialect imports another dialect.
 	addEdge(mod("internal/fakeaction"), mod("internal/ir/code/exec"))
+	// Rule 2: a printer of the Exec stage, which imports the Exec and Action dialects, imports the
+	// Flow dialect too.
+	addEdge(mod("internal/backend/codegen/golang/libprint"), mod("internal/ir/code/flow"))
+	// Rule 2: a pass imports the dialects of the Flow stage, Flow and Action: no failure.
+	addEdge(mod("internal/middleend/corepass"), mod("internal/ir/code/flow"))
+	addEdge(mod("internal/middleend/corepass"), mod("internal/fakeaction"))
 	// Rule 1a: a generated parser imports a third-party package.
 	addEdge(mod("internal/bench/parsers/json"), "example.org/thirdparty")
 	// A package that no layout row places.
@@ -223,7 +229,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 1a: core/impl -> internal/runtime/nodes", []string{"codegen/go/lib -> core/impl -> internal/runtime/nodes\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
 		{"rule 2: internal/ir/code -> internal/ir/code/flow", []string{"\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n"}},
 		{"rule 2: internal/frontend/desugar -> internal/analysis/lint", []string{"the front end layer does not import the analysis layer (internal/frontend/desugar -> internal/analysis/lint)"}},
-		{"rule 2: internal/analysis/lint -> dialects exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/analysis/lint)"}},
+		{"rule 2: internal/analysis/lint -> dialects exec, flow", []string{"only the conversions of the middle end and the back end and test support import the dialects of more than one stage (internal/analysis/lint)"}},
 		{"rule 2: internal/pass -> internal/ir/core", []string{"internal/pass imports nothing of the module (internal/pass -> internal/ir/core)"}},
 		{"rule 2: internal/ir/core -> internal/diagnostic", []string{"internal/ir/** imports only internal/ir/**, internal/pass, internal/cancel and pkg/grammar/ast (internal/ir/core -> internal/diagnostic)"}},
 		{"rule 2: internal/ir/code/flow -> internal/ir/code/exec", []string{"within internal/ir, code/flow imports only code and ir/core (internal/ir/code/flow -> internal/ir/code/exec)"}},
@@ -240,7 +246,8 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 1a: codegen/go/lib -> internal/fakevm", []string{"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not pkg/runtime/vm"}},
 		{"rule 2: internal/ir/code/exec -> internal/fakeaction", []string{"within internal/ir, code/exec imports only code (internal/ir/code/exec -> internal/ir/code/action)"}},
 		{"rule 2: internal/ir/code/flow -> internal/fakeaction", []string{"within internal/ir, code/flow imports only code and ir/core"}},
-		{"rule 2: internal/ir/code/flow -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/ir/code/flow)"}},
+		{"rule 2: internal/ir/code/flow -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import the dialects of more than one stage (internal/ir/code/flow)"}},
+		{"rule 2: internal/backend/codegen/golang/libprint -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import the dialects of more than one stage (internal/backend/codegen/golang/libprint)"}},
 		{"rule 2: internal/fakeaction -> internal/ir/code/exec", []string{"within internal/ir, code/action imports only code (internal/ir/code/action -> internal/ir/code/exec)"}},
 		{"rule 1a: internal/bench/parsers/json -> example.org/thirdparty", []string{"a generated parser imports no third-party package"}},
 		{"internal/unplaced: no row of layout places the package", nil},
@@ -258,10 +265,14 @@ func TestNegativeControls(t *testing.T) {
 			}
 		}
 	}
-	// A package under code/exec imports the Action dialect: no failure.
+	// A package under code/exec imports the Action dialect, and a pass imports the dialects of the
+	// Flow stage: no failure.
 	for _, m := range msgs {
 		if strings.HasPrefix(m, "rule 2: internal/ir/code/exec/compose -> internal/fakeaction") || strings.HasPrefix(m, "rule 2: internal/ir/code/exec/compose -> dialects") {
 			t.Errorf("a package under code/exec may import the Action dialect: %s", m)
+		}
+		if strings.HasPrefix(m, "rule 2: internal/middleend/corepass ->") {
+			t.Errorf("a package may import the Flow and Action dialects: %s", m)
 		}
 	}
 	if len(msgs) == 0 {

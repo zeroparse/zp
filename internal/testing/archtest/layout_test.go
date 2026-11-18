@@ -2,6 +2,7 @@ package archtest
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -406,8 +407,14 @@ func dialectOf(t string) string {
 	return ""
 }
 
-// multiDialect reports whether the package at the layout path t may import more than one
-// dialect: only the conversions of the middle end and the back end and test support may.
+// oneStage reports whether the dialects ds are all legal at one stage of Code IR: the Flow stage has
+// the Flow and Action dialects, the Exec stage the Exec and Action dialects.
+func oneStage(ds []string) bool {
+	return !slices.Contains(ds, "flow") || !slices.Contains(ds, "exec")
+}
+
+// multiDialect reports whether the package at the layout path t may import the dialects of more
+// than one stage: only the conversions of the middle end and the back end and test support may.
 func multiDialect(t string) bool {
 	return under(t, "internal/middleend/flowlower") || under(t, "internal/middleend/execlower") ||
 		under(t, "internal/backend/vmlower") || under(t, "internal/testing")
