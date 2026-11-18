@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
@@ -41,10 +42,10 @@ func TestFlowVerifiesCorpus(t *testing.T) {
 				if g.Observability {
 					observed++
 				}
-				check := func(f *flow.Func, err error) {
+				check := func(f *code.Module, err error) {
 					if err == nil {
-						err = flow.Verify(f)
-						skips += observeSkips(f.Body)
+						err = flow.VerifyModule(f)
+						skips += observeSkips(flow.FuncOf(f).Body)
 					}
 					if err != nil {
 						t.Errorf("%s: %v", gen.name, err)
@@ -80,20 +81,13 @@ func TestFlowVerifiesCorpus(t *testing.T) {
 	}
 }
 
-// observeSkips counts the ObserveSkip statements of ss and of the statements nested in them.
-func observeSkips(ss []flow.Stmt) int {
+// observeSkips counts the calls of observeSkip in b and in the blocks nested in it.
+func observeSkips(b *code.Block) int {
 	n := 0
-	for _, s := range ss {
-		switch s := s.(type) {
-		case *flow.ObserveSkip:
+	code.Walk(b, nil, func(x code.Expr) {
+		if c, ok := x.(*code.Call); ok && c.Callee == flow.OpObserveSkip {
 			n++
-		case *flow.Block:
-			n += observeSkips(s.Body)
-		case *flow.Loop:
-			n += observeSkips(s.Body)
-		case *flow.If:
-			n += observeSkips(s.Then) + observeSkips(s.Else)
 		}
-	}
+	})
 	return n
 }

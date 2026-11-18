@@ -235,7 +235,6 @@ docs/design/records/065-exec-ir-parser-vm.md	gofile	trace.go	2
 docs/design/records/065-exec-ir-parser-vm.md	gofile	typed.go	1
 docs/design/records/065-exec-ir-parser-vm.md	gofile	typed_document.go	1
 docs/design/records/065-exec-ir-parser-vm.md	gofile	value_runtime.go	1
-docs/design/records/065-exec-ir-parser-vm.md	qualified	flow.DropKids	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	callBody	4
 docs/design/records/065-exec-ir-parser-vm.md	unexport	callDocument	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	callFrame	1
@@ -676,7 +675,6 @@ docs/optimizations/mechanisms/G210-typescript-from-flow-ir.md	codelink	internal/
 docs/optimizations/mechanisms/G210-typescript-from-flow-ir.md	gofile	internal/codegen/ts/flow.go	2
 docs/optimizations/mechanisms/G210-typescript-from-flow-ir.md	gofile	internal/codegen/ts/outline.go	2
 docs/optimizations/mechanisms/G210-typescript-from-flow-ir.md	gofile	internal/middleend/flowlower/lower.go	1
-docs/optimizations/mechanisms/G210-typescript-from-flow-ir.md	qualified	flow.CallOutline	1
 docs/optimizations/mechanisms/G210-typescript-from-flow-ir.md	unexport	tsSharedKey	1
 docs/optimizations/mechanisms/M010-first-character-dispatch.md	codelink	internal/engine/closure/builder.go	1
 docs/optimizations/mechanisms/M010-first-character-dispatch.md	codelink	internal/codegen/go/generator.go	1

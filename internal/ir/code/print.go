@@ -9,7 +9,7 @@ import (
 // messages: its features, components, registers, handle types, operations with their contracts,
 // and functions, one statement per line, indented by block.
 func String(m *Module) string {
-	p := &printer{}
+	p := &printer{ops: m.Ops}
 	p.line(0, "module %s", m.Name)
 	if len(m.Features) > 0 {
 		p.line(0, "features %s", strings.Join(m.Features, ", "))
@@ -51,7 +51,29 @@ func FuncString(f *Func) string {
 	return p.b.String()
 }
 
-type printer struct{ b strings.Builder }
+// FuncStringIn returns the listing of the function f of the module m, whose operations print the
+// immediates of their calls (Op.FormatImm).
+func FuncStringIn(m *Module, f *Func) string {
+	p := &printer{ops: m.Ops}
+	p.fn(f)
+	return p.b.String()
+}
+
+type printer struct {
+	b strings.Builder
+	// ops are the operations whose FormatImm prints the immediates of their calls.
+	ops []*Op
+}
+
+// imm returns the immediate of the call c as the listing prints it.
+func (p *printer) imm(c *Call) string {
+	for _, o := range p.ops {
+		if o.Name == c.Callee && o.FormatImm != nil {
+			return o.FormatImm(c.Imm)
+		}
+	}
+	return fmt.Sprintf("%v", c.Imm)
+}
 
 func (p *printer) line(depth int, format string, args ...any) {
 	s := fmt.Sprintf(format, args...)
@@ -167,13 +189,13 @@ func (p *printer) stmt(s Stmt, depth int) {
 	case *Loop:
 		var clauses []string
 		if s.Init != nil {
-			clauses = append(clauses, "init "+setString(s.Init))
+			clauses = append(clauses, "init "+p.setString(s.Init))
 		}
 		if s.Cond != nil {
-			clauses = append(clauses, "while "+expr(s.Cond))
+			clauses = append(clauses, "while "+p.expr(s.Cond))
 		}
 		if s.Post != nil {
-			clauses = append(clauses, "post "+setString(s.Post))
+			clauses = append(clauses, "post "+p.setString(s.Post))
 		}
 		head := ""
 		if len(clauses) > 0 {
@@ -185,9 +207,9 @@ func (p *printer) stmt(s Stmt, depth int) {
 	case *If:
 		init := ""
 		if s.Init != nil {
-			init = setString(s.Init) + "; "
+			init = p.setString(s.Init) + "; "
 		}
-		p.line(depth, "if %s%s {", init, expr(s.Cond))
+		p.line(depth, "if %s%s {", init, p.expr(s.Cond))
 		p.stmts(s.Then.Stmts, depth+1)
 		if s.Else != nil {
 			p.line(depth, "} else {")
@@ -201,13 +223,13 @@ func (p *printer) stmt(s Stmt, depth int) {
 		p.stmts(s.Finally.Stmts, depth+1)
 		p.line(depth, "}")
 	case *Let:
-		p.line(depth, "let %s = %s", strings.Join(s.Names, ", "), expr(s.Value))
+		p.line(depth, "let %s = %s", strings.Join(s.Names, ", "), p.expr(s.Value))
 	case *Set:
-		p.line(depth, "%s", setString(s))
+		p.line(depth, "%s", p.setString(s))
 	case *Comment:
 		p.line(depth, "// %s", s.Text)
 	case *Do:
-		p.line(depth, "%s", expr(s.Call))
+		p.line(depth, "%s", p.expr(s.Call))
 	case *Exit:
 		p.line(depth, "exit %s", s.Label)
 	case *Break:
@@ -217,17 +239,17 @@ func (p *printer) stmt(s Stmt, depth int) {
 	case *Return:
 		vs := make([]string, len(s.Values))
 		for i, x := range s.Values {
-			vs[i] = expr(x)
+			vs[i] = p.expr(x)
 		}
 		p.line(depth, "return %s", strings.Join(vs, ", "))
 	case *Assert:
-		p.line(depth, "assert %s %q", expr(s.Cond), s.Msg)
+		p.line(depth, "assert %s %q", p.expr(s.Cond), s.Msg)
 	default:
 		p.line(depth, "?%T", s)
 	}
 }
 
-func setString(s *Set) string {
+func (p *printer) setString(s *Set) string {
 	dst := make([]string, len(s.Dst))
 	for i, d := range s.Dst {
 		switch {
@@ -241,12 +263,12 @@ func setString(s *Set) string {
 	}
 	vals := make([]string, len(s.Values))
 	for i, x := range s.Values {
-		vals[i] = expr(x)
+		vals[i] = p.expr(x)
 	}
 	return strings.Join(dst, ", ") + " = " + strings.Join(vals, ", ")
 }
 
-func expr(x Expr) string {
+func (p *printer) expr(x Expr) string {
 	switch x := x.(type) {
 	case *Const:
 		if x.Type.Kind == KHandle {
@@ -264,21 +286,21 @@ func expr(x Expr) string {
 	case *Feature:
 		return "feature(" + x.Name + ")"
 	case *Unary:
-		return x.Op + expr(x.X)
+		return x.Op + p.expr(x.X)
 	case *Binary:
-		return "(" + expr(x.X) + " " + x.Op + " " + expr(x.Y) + ")"
+		return "(" + p.expr(x.X) + " " + x.Op + " " + p.expr(x.Y) + ")"
 	case *Convert:
-		return x.To.String() + "(" + expr(x.X) + ")"
+		return x.To.String() + "(" + p.expr(x.X) + ")"
 	case *Call:
 		as := make([]string, len(x.Args))
 		for i, a := range x.Args {
-			as[i] = expr(a)
+			as[i] = p.expr(a)
 		}
 		if x.Imm != nil {
-			as = append([]string{fmt.Sprintf("[%v]", x.Imm)}, as...)
+			as = append([]string{"[" + p.imm(x) + "]"}, as...)
 		}
 		if x.Fn != nil {
-			return "apply " + expr(x.Fn) + "(" + strings.Join(as, ", ") + ")"
+			return "apply " + p.expr(x.Fn) + "(" + strings.Join(as, ", ") + ")"
 		}
 		return x.Callee + "(" + strings.Join(as, ", ") + ")"
 	}

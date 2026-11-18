@@ -16,7 +16,7 @@ import (
 // lines and skips of Operators Rules) begins with one Spend and has no other Spend before its first
 // loop (the steps that the code of a term charges, isTermStep, are not the rule's); a typed wrapper u<N> or i<N> that only saves and restores state around a call of another matcher
 // function charges nothing itself, and neither does the Document-dispatch wrapper s<N> of a plain rule,
-// which hands the call to DocumentCall or calls the body ds<N> that charges the entry. The lowered function of Flow IR charges no entry of its own (flow.Func.Entered); the method that holds it does, so a rule
+// which hands the call to DocumentCall or calls the body ds<N> that charges the entry. The lowered function of Flow IR charges no entry of its own (flow.Attrs.Entered); the method that holds it does, so a rule
 // whose method lost the charge would consume input uncharged without Verify noticing.
 func TestGeneratedRuleEntryCharge(t *testing.T) {
 	t.Parallel()

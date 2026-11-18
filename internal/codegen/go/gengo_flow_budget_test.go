@@ -19,7 +19,7 @@ import (
 )
 
 // The Node and recognizer tables of a parser with budget controls are printed from Flow IR, which makes
-// the charges explicit (Func.Budget, verified by flow.Verify). The spend of a parse depends on the backend,
+// the charges explicit (flow.Attrs.Budget, verified by flow.VerifyModule). The spend of a parse depends on the backend,
 // the position unit and the generated artifact, so the step totals are not compared with another
 // implementation: these tests build each parser, run it under limits and a polling context, check the
 // invariants that every build must keep (limits fail with a well-formed error at the counter they limit,
@@ -326,7 +326,7 @@ var budgetGoldenFile = codegentest.GoldenFile{
 // on about a third of the corpus reports and the generated charge is between 0.33 and 1.37 times the
 // engine's), and the charges depend on the backend and artifact by contract (spec/runtime/parsing.md).
 //
-// The bounded spend of the rule bodies is proved on the IR itself: flow.Verify rejects a function lowered
+// The bounded spend of the rule bodies is proved on the IR itself: flow.VerifyModule rejects a function lowered
 // with budget controls that consumes input or iterates a loop without charging (see TestVerifyBudgetCharges),
 // and every function of this corpus is verified when generated.
 func TestFlowNodeBudgetInvariants(t *testing.T) {

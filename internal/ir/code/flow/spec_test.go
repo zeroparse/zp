@@ -2,20 +2,19 @@ package flow
 
 import (
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
 )
 
 // The tests of this file hold the Flow IR specification (spec/flow-ir) current with this package:
-// every statement and expression kind, type and register has an entry in the specification, and
-// every entry names one that Flow IR has. They live beside the code, so that a change of Flow IR runs
-// them; the site's tests run only when documentation changes.
+// every operation of the Flow dialect, with its operands and immediate, every type and every register
+// has an entry in the specification, and every entry names one that the dialect has. They live beside
+// the code, so that a change of the dialect runs them; the site's tests run only when documentation
+// changes.
 
 // specDir is the directory of the Flow IR specification, relative to this package.
 const specDir = "../../../../spec/flow-ir"
@@ -93,145 +92,69 @@ func kindErrors(kind string, want, got []string) []string {
 	return errs
 }
 
-// packageFiles returns the syntax of the files of this package that are not tests.
-func packageFiles(t *testing.T) []*ast.File {
-	t.Helper()
-	names, err := filepath.Glob("*.go")
-	if err != nil || len(names) == 0 {
-		t.Fatalf("no files in the package: %v", err)
-	}
-	var out []*ast.File
-	for _, n := range names {
-		if strings.HasSuffix(n, "_test.go") {
-			continue
-		}
-		f, err := parser.ParseFile(token.NewFileSet(), n, nil, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		out = append(out, f)
-	}
-	return out
-}
-
-// kinds returns the names of the types of this package that implement the interface method method:
-// the statements (stmt) or the expressions (expr), declared in any file of the package.
-func kinds(t *testing.T, method string) []string {
-	t.Helper()
-	var out []string
-	for _, f := range packageFiles(t) {
-		for _, d := range f.Decls {
-			fn, ok := d.(*ast.FuncDecl)
-			if !ok || fn.Recv == nil || fn.Name.Name != method || len(fn.Recv.List) != 1 || fn.Type.Params.NumFields() != 0 || fn.Type.Results != nil {
-				// Not the marker method of a kind: a method of another name or with parameters or results.
-				continue
-			}
-			switch x := fn.Recv.List[0].Type.(type) {
-			case *ast.StarExpr:
-				out = append(out, x.X.(*ast.Ident).Name)
-			case *ast.Ident:
-				out = append(out, x.Name)
-			}
-		}
-	}
-	if len(out) == 0 {
-		t.Fatalf("no %s methods in the package", method)
-	}
-	return out
-}
-
-// fields returns the names of the fields of the struct types of this package, in order.
-func fields(t *testing.T) map[string][]string {
-	t.Helper()
-	out := map[string][]string{}
-	for _, f := range packageFiles(t) {
-		ast.Inspect(f, func(n ast.Node) bool {
-			ts, ok := n.(*ast.TypeSpec)
-			if !ok {
-				return true
-			}
-			if st, ok := ts.Type.(*ast.StructType); ok {
-				out[ts.Name.Name] = nil
-				for _, fl := range st.Fields.List {
-					for _, id := range fl.Names {
-						out[ts.Name.Name] = append(out[ts.Name.Name], id.Name)
-					}
-				}
-			}
-			return true
-		})
-	}
-	return out
-}
-
-// registers returns the number of registers: the constants of type Reg that the package declares.
-func registers(t *testing.T) int {
-	t.Helper()
-	n := 0
-	for _, f := range packageFiles(t) {
-		for _, d := range f.Decls {
-			gd, ok := d.(*ast.GenDecl)
-			if !ok || gd.Tok != token.CONST {
-				continue
-			}
-			typed := false
-			for i, sp := range gd.Specs {
-				vs := sp.(*ast.ValueSpec)
-				if id, ok := vs.Type.(*ast.Ident); ok {
-					typed = id.Name == "Reg"
-				} else if i == 0 || vs.Type != nil {
-					typed = false
-				}
-				if typed {
-					n += len(vs.Names)
-				}
-			}
-		}
-	}
-	if n == 0 {
-		t.Fatal("no registers in the package")
-	}
-	return n
-}
-
 // specKinds is what the specification is checked against.
-type specKinds struct{ stmts, exprs, types, regs []string }
+type specKinds struct{ ops, types, regs []string }
 
-func currentKinds(t *testing.T) specKinds {
-	k := specKinds{stmts: kinds(t, "stmt"), exprs: kinds(t, "expr")}
+func currentKinds() specKinds {
+	k := specKinds{regs: []string{Pos, Cut}}
+	for _, o := range Ops() {
+		k.ops = append(k.ops, o.Name)
+	}
 	for i := range typeNames {
 		k.types = append(k.types, Type(i).String())
-	}
-	p := &printer{}
-	for r := Reg(0); int(r) < registers(t); r++ {
-		k.regs = append(k.regs, p.expr(&Read{R: r}))
 	}
 	return k
 }
 
-// fieldErrors returns the differences between the fields that the statements and the expressions
-// declare and those that the Fields column of the specification lists for them, in order.
-func fieldErrors(t *testing.T, declared map[string][]string) []string {
+// operands returns, for each operation, its operands as the Operands column lists them ("name type",
+// with " (variadic)" after the last one of a variadic operation) and the name of its immediate (immName).
+func operands() map[string][2]string {
+	out := map[string][2]string{}
+	for _, o := range Ops() {
+		var ps []string
+		for _, p := range o.Params {
+			ps = append(ps, p.Name+" "+p.Type.String())
+		}
+		list := strings.Join(ps, ", ")
+		if o.Variadic {
+			list += " (variadic)"
+		}
+		imm := ""
+		if o.ImmType != nil {
+			imm = immName(o.ImmType)
+		}
+		out[o.Name] = [2]string{list, imm}
+	}
+	return out
+}
+
+// immName is the name by which the specification lists an immediate of the Go type t: the name of
+// the type, or of the type it points to, in lower case, which keeps code names out of the specification.
+func immName(t reflect.Type) string {
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	return strings.ToLower(t.Name())
+}
+
+// operandErrors returns the differences between the operands and immediates that the operations
+// declare and those that the specification lists for them.
+func operandErrors(t *testing.T, declared map[string][2]string) []string {
 	var errs []string
-	for _, c := range []struct{ file, head string }{{"statements.md", "Statement"}, {"expressions.md", "Expression"}} {
-		for _, r := range specRows(t, c.file, c.head) {
-			if len(r) < 2 {
-				errs = append(errs, fmt.Sprintf("%s: row without a Fields column", r[0]))
-				continue
-			}
-			want, ok := declared[r[0]]
-			if !ok {
-				continue // reported by kindErrors
-			}
-			var got []string
-			for _, f := range strings.Split(r[1], ",") {
-				if f = strings.TrimSpace(f); f != "" {
-					got = append(got, f)
-				}
-			}
-			if !slices.Equal(got, want) {
-				errs = append(errs, fmt.Sprintf("%s: the specification lists the fields %v, the code declares %v", r[0], got, want))
-			}
+	for _, r := range specRows(t, "operations.md", "Operation") {
+		if len(r) < 4 {
+			errs = append(errs, fmt.Sprintf("%s: row without the Operands and Immediate columns", r[0]))
+			continue
+		}
+		want, ok := declared[r[0]]
+		if !ok {
+			continue // reported by kindErrors
+		}
+		if r[1] != want[0] {
+			errs = append(errs, fmt.Sprintf("%s: the specification lists the operands %q, the code declares %q", r[0], r[1], want[0]))
+		}
+		if r[3] != want[1] {
+			errs = append(errs, fmt.Sprintf("%s: the specification lists the immediate %q, the code declares %q", r[0], r[3], want[1]))
 		}
 	}
 	return errs
@@ -239,38 +162,44 @@ func fieldErrors(t *testing.T, declared map[string][]string) []string {
 
 func specErrors(t *testing.T, k specKinds) []string {
 	var errs []string
-	errs = append(errs, kindErrors("statement", k.stmts, specColumn(t, "statements.md", "Statement"))...)
-	errs = append(errs, kindErrors("expression", k.exprs, specColumn(t, "expressions.md", "Expression"))...)
+	errs = append(errs, kindErrors("operation", k.ops, specColumn(t, "operations.md", "Operation"))...)
 	errs = append(errs, kindErrors("type", k.types, specColumn(t, "functions.md", "Type"))...)
 	errs = append(errs, kindErrors("register", k.regs, specColumn(t, "functions.md", "Register"))...)
-	errs = append(errs, fieldErrors(t, fields(t))...)
+	errs = append(errs, operandErrors(t, operands())...)
 	return errs
 }
 
-// TestSpecKinds checks the statements, expressions, types and registers of the specification.
+// TestSpecKinds checks the operations, types and registers of the specification.
 func TestSpecKinds(t *testing.T) {
-	for _, e := range specErrors(t, currentKinds(t)) {
+	for _, e := range specErrors(t, currentKinds()) {
 		t.Error(e)
 	}
 }
 
-// TestSpecFieldsNegative is the permanent negative control of the fields check: a field renamed in
-// the code, a field that the specification lacks and one that the code lacks are each reported.
-func TestSpecFieldsNegative(t *testing.T) {
-	d := fields(t)
-	d["Advance"] = []string{"Count"}
-	d["Block"] = append(slices.Clone(d["Block"]), "Extra")
-	d["Inc"] = nil
-	errs := strings.Join(fieldErrors(t, d), "\n")
-	for _, want := range []string{"Advance: the specification lists the fields [N], the code declares [Count]", "Block: ", "Inc: "} {
+// TestSpecOperandsNegative is the permanent negative control of the operands check: an operand
+// renamed in the code, an operand that the specification lacks, one that the code lacks and a changed
+// immediate are each reported.
+func TestSpecOperandsNegative(t *testing.T) {
+	d := operands()
+	d[OpAdvance] = [2]string{"count int", ""}
+	d[OpReset] = [2]string{d[OpReset][0] + ", extra int", ""}
+	d[OpPushKid] = [2]string{"", ""}
+	d[OpSkipBegin] = [2]string{"", "slot"}
+	errs := strings.Join(operandErrors(t, d), "\n")
+	for _, want := range []string{
+		`flow.advance: the specification lists the operands "n int", the code declares "count int"`,
+		"flow.reset: the specification lists the operands",
+		"flow.pushKid: the specification lists the operands",
+		`flow.skipBegin: the specification lists the immediate "site", the code declares "slot"`,
+	} {
 		if !strings.Contains(errs, want) {
 			t.Errorf("no error %q in:\n%s", want, errs)
 		}
 	}
 }
 
-// TestSpecNamesNegative is the permanent negative control for a register that the printer does not
-// name: it prints as another register, which kindErrors reports.
+// TestSpecNamesNegative is the permanent negative control for a name that the code gives twice: two
+// registers of one name are reported.
 func TestSpecNamesNegative(t *testing.T) {
 	errs := strings.Join(kindErrors("register", []string{"pos", "env", "pos"}, []string{"pos", "env"}), "\n")
 	if !strings.Contains(errs, "register pos: named twice by the code") {
@@ -278,17 +207,17 @@ func TestSpecNamesNegative(t *testing.T) {
 	}
 }
 
-// TestSpecKindsNegative is the permanent negative control of TestSpecKinds: a kind that the
-// specification does not list and a kind that Flow IR no longer has are each reported by name.
+// TestSpecKindsNegative is the permanent negative control of TestSpecKinds: an operation that the
+// specification does not list and one that the dialect no longer has are each reported by name.
 func TestSpecKindsNegative(t *testing.T) {
-	k := currentKinds(t)
-	k.stmts = append(k.stmts, "PlantedStmt")
-	k.exprs = slices.DeleteFunc(k.exprs, func(s string) bool { return s == "MatchLit" })
+	k := currentKinds()
+	k.ops = append(k.ops, "flow.planted")
+	k.ops = slices.DeleteFunc(k.ops, func(s string) bool { return s == OpMatchLit })
 	k.regs = append(k.regs, "planted")
 	errs := strings.Join(specErrors(t, k), "\n")
 	for _, want := range []string{
-		"statement PlantedStmt: in Flow IR but not in the specification",
-		"expression MatchLit: in the specification but not in Flow IR",
+		"operation flow.planted: in Flow IR but not in the specification",
+		"operation flow.matchLit: in the specification but not in Flow IR",
 		"register planted: in Flow IR but not in the specification",
 	} {
 		if !strings.Contains(errs, want) {

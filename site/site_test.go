@@ -699,7 +699,7 @@ func TestNavigation(t *testing.T) {
 		{"spec/language/parser-expressions", "Chapter 5", "5. Rule Expressions"},
 		{"spec/runtime/lint", "Chapter 9", "9. Grammar Lint"},
 		{"spec/core-ir/invariants", "Chapter 5", "5. Invariants"},
-		{"spec/flow-ir/invariants", "Chapter 4", "4. Invariants"},
+		{"spec/flow-ir/invariants", "Chapter 3", "3. Invariants"},
 		{"spec/exec-ir/lowering", "Chapter 8", "8. Lowering From Flow IR"},
 	} {
 		content, err := os.ReadFile(filepath.Join(out, filepath.FromSlash(tc.page), "index.html"))

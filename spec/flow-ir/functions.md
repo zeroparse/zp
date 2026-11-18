@@ -54,9 +54,10 @@ A register is a part of the state of a parse that functions read and assign dire
 | Register | Holds |
 |:--|:--|
 | `pos` | The position |
-| `env` | The variable environment |
-| `frame` | The current capture frame |
 | `cut` | The cut flag of the scope the runtime entered last |
+
+The variable environment and the current capture frame, which hold handles, are read and assigned through the
+operations `flow.env`, `flow.setEnv`, `flow.frame` and `flow.setFrame`.
 
 ## Variables, Labels and Places
 
