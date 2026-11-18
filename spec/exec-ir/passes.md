@@ -7,12 +7,12 @@ declarations of operations (their state, features and laws), never on how a targ
 
 ## Passes in the Pipeline
 
-The functions that a backend prints from Exec IR are lowered from Flow IR one at a time, each into a module of its own
-(see [Lowering From Flow IR](lowering.md)). Each such module then goes through the passes of the one compiler pipeline
-that run at the Exec stage, in their declared order. A pass has a name that no pass of Core IR or Flow IR has, and that
+The functions that a backend prints from the Exec stage are converted from the Flow stage one at a time, each into a module of its own
+(see [Lowering From the Flow Stage](lowering.md)). Each such module then goes through the passes of the one compiler pipeline
+that run at the Exec stage, in their declared order. A pass has a name that no pass of Core IR or of the Flow stage has, and that
 is also the name of the optimization that turns it off; a pass that is off, or that does not apply to the build, does
 not run. A pass changes the module in place: it keeps the function that lowering made in the module, and in it the
-locals that lowering declared for the variables of the Flow IR function, because the backend prints the body of that
+locals that lowering declared for the variables of the function of the Flow stage, because the backend prints the body of that
 function with those locals; it may change the body, add locals and add the declarations that its changes need. The
 module MUST satisfy the [invariants](invariants.md) where the pipeline leaves the stage: verification runs right after
 the lowering and again where the pipeline leaves the stage, and also after every pass when asked, and a violation names
@@ -49,7 +49,7 @@ dialect fold constant expressions and remove code that cannot run, in place:
   that no `Exit` names is removed.
 
 Backends also print an operator on constants as its value, because target languages evaluate constant expressions in
-arithmetic of their own: a constant expression of Exec IR that wraps would not be accepted, or would not wrap, there.
+arithmetic of their own: a constant expression of Code IR that wraps would not be accepted, or would not wrap, there.
 
 ## Dead Stores
 

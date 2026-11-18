@@ -248,7 +248,7 @@ in [Package Layering](layering.md), and the public packages are described in [Th
 | `internal/pass` | The generic pass infrastructure: manager, analysis manager, preserved sets, registry |
 | `internal/ir/core` | Core IR: the meaning tree, attributes, verifier, printer |
 | `internal/ir/code` | The Code IR base: structure, operation declarations, verifier, printer, reference interpreter, builder |
-| `internal/ir/code/flow` | The Flow dialect: grammar-control operations, reference expansions, its invariants |
+| `internal/ir/code/flow` | The Flow dialect: grammar-control operations with typed immediate operands, its invariants |
 | `internal/ir/code/action` | The Action dialect: operations that evaluate action expressions |
 | `internal/ir/code/exec` | The Exec dialect: operations of the abstract machine, with `compose` (compositions), `ref` (reference models), `conform` (conformance suite) and `spectest` (specification tests) below it |
 | `internal/frontend` | Drives the front end and returns the semantic model and Core IR; the facts are computed by the analyses of the Core passes |
@@ -392,6 +392,7 @@ These mechanisms change how a parse treats input and results, so they cut across
 - [Cost analysis](cost-analysis.md): the cost view and the complexity classification.
 - [Observability](observability.md): the run-time observation model.
 - [Record 072](records/072-release-package-layout.md): the decision on the release layout and its alternatives.
+- [Record 073](records/073-code-ir-dialects.md): the dialects of Code IR, stages, and the conversion between them.
 - [Design records](records/): decisions and their alternatives.
 - [Development](../development.md): the repository, tests and checks.
 - [Optimization catalog](../optimizations/README.md): measured mechanisms.

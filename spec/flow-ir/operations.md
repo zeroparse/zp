@@ -1,7 +1,7 @@
 # Operations
 
 A function at the Flow stage is Code IR: its structure (blocks, loops, branches, exits, breaks, continues and
-assignments) and the arithmetic and logic of its conditions are the base's ([Code IR](../exec-ir/README.md)), and
+assignments) and the arithmetic and logic of its conditions are the base's ([Code IR](../code-ir/README.md)), and
 every other step is a call of one of the operations below, which act on the state of a parse. An operation names its
 dynamic operands, which are arguments of the call, and its results; its static data (a literal, a class, a rule, a
 site) is the immediate of the call, of the kind the Immediate column names. A variadic operation repeats its last
@@ -59,7 +59,7 @@ the Exec stage and the backends rely on.
 | `flow.guardFails` | ch rune, more bool | bool | `first` | Reports that the guard skips its alternative: the character that more (there is one) and ch describe cannot begin it, and the nesting limit allows the guard's depth of calls. |
 | `flow.atAnchor` |  | bool | `anchorkind` | Reports whether the position is at the anchor. |
 | `flow.skipTerminal` |  | bool | `terminal` | Runs the terminal region as one program from the position and reports whether it matched; on a match the position moves past it. |
-| `flow.skipClasses` |  | bool | `classrun` | Matches the classes of the run in turn and reports whether they matched; on a match the position moves past them. |
+| `flow.skipClasses` |  | bool | `classrun` | Matches the classes of the run in turn and reports whether they matched; on a match the position moves past them. On failure the position is past the classes that matched, at the one that did not, whose expectation it records there; the code that fails returns to its mark. |
 | `flow.callRule` |  | value, bool | `rulecall` | Calls the rule from the Operators Rule level. Its results are the rule's value and whether it matched; on a match the position is the end of the rule's match, on failure it is unchanged. |
 | `flow.callOutline` |  | value, bool | `outline` | Runs the node, which a function of its own lowers, under the current frame. Its results are the value of the node, built if Build, and whether it matched. |
 | `flow.isolate` |  | expmark |  | Begins an expectation scope at the position and returns its mark. |
@@ -93,3 +93,61 @@ the Exec stage and the backends rely on.
 | `flow.bind` | caps value (variadic) | bool | `binding` | Binds the variable of the binding to the value of its expression, evaluated with the captures caps (or the current frame), and reports whether the evaluation succeeded. |
 | `flow.eval` | c ctx, caps value (variadic) | value | `action` | Returns the value of the action of the function's rule, evaluated in the context c with the captures caps (or the current frame). |
 | `flow.ctxFinish` | c ctx, x value | value |  | Returns the value x of an action finished in the context c. |
+
+## Immediate Operands
+
+The immediate of a call has a Go type that the declaration of the operation names and that verification checks (see
+[Immediate Operands](../code-ir/module.md#immediate-operands)). The Immediate column names the type by its lower-cased
+name without the package. The immediates are the following; a listing prints each in brackets before the arguments (see
+[Text Form](text-form.md)).
+
+- `silence`: the change of the silent depth, and for a lookahead its site and, at its end, whether its body matched.
+- `site`: the number of a skip-run or scan site.
+- `slot`: a capture slot of a frame.
+- `expectation`: an expectation of the grammar, and whether it is the message of a failed `@error`.
+- `expid`: the identifier of an expectation of the grammar.
+- `spread`: whether the children of a tuple node are appended instead of the node.
+- `rulecall`: the rule that a call names and the level of the Operators Rule it is called from.
+- `outline`: the node that a function of its own holds, the slots of the capture scope of the current frame, and whether
+  the call builds the node's value.
+- `chars`: a string: the text of a literal, a string or the name of a rule.
+- `list`: whether a node is a list, rather than a tuple.
+- `room`: the room of a new list of values.
+- `attach`: the slot names of a scope, and whether the captures are the values of a frame instead of variables.
+- `statemark`: which parts of the state besides the position the code between a mark and its reset may change: the
+  environment, the trail of capture writes and the recovered errors.
+- `conversion`: the rule of a result conversion, and whether the fresh node of the body is passed in place.
+- `names`: the slot names of a capture scope, which printers declare once.
+- `predicate`, `binding` and `action`: the predicate, the binding or the action of the rule, as a node of Core IR, with
+  the captures that it reads, which are the slot names of the scope or the current frame.
+- `lit`, `class`, `first`, `anchorkind`, `terminal`, `classrun`, `shape` and `node`: a node or a datum of Core IR that
+  the operation matches or builds: a literal, a character class, the terminal that a guard tests first, the kind of an
+  anchor, a value-free terminal region, a run of single characters of classes, the static shape of a value and a node of
+  the grammar.
+
+## Quantities
+
+The cost bound of a Flow operation (see [Costs](../code-ir/module.md#costs)) is in terms of the quantities below. An
+operation of constant work charges nothing, because the call or the step around it has paid. An operation that builds a
+value charges a unit for it, as [Cost](../runtime/parsing.md#cost) requires. An operation whose Go form is a
+[composition](../exec-ir/compositions.md) is bounded by what that composition charges.
+
+| Quantity | Measures |
+|:--|:--|
+| `lit` | The code points of the operation's literal. |
+| `classes` | The classes of the operation's class run. |
+| `terminal` | The steps of the operation's terminal program. |
+| `ranges` | The ranges of the operation's class that a membership test compares. |
+| `body` | The units that the body of a called rule, or the code of a predicate, binding or action, charges. |
+| `text` | The code points of the input that a value copies: in a [stream](../runtime/streaming.md) parse, the length of a text. |
+| `merge` | The units of the compositions over the expectation record (`expect`, `keep` and `mergeExpected`) for the expectations that the call records, keeps or merges, as the quantity `merge` of the [Exec dialect](../exec-ir/machine.md#quantities) measures them. |
+| `call` | The units of the call protocol around a rule body (the composition `call`): the first-call record, the memo's lookups and stores and the growth of their tables. |
+| `vals` | The values of the list that the call returns. |
+| `captures` | The capture names of the scope whose captures the call attaches. |
+| `capture_fields` | What setting the captures that matched as fields of the value charges: a unit for each field that the value already has. |
+| `stream` | The work of a stream parse at the call: loading, compacting and scanning its buffer, and the commit of a delivered element (the composition streamCommit); 0 outside a stream parse. |
+| `error` | Building a syntax error: a unit for each expectation, the steps of sorting their descriptions and of finding the line, and at the first error of a parse of a whole input, a unit for each code point that the table of line starts reads. |
+| `error_text` | The size of the message of a recovered error that a value holds: its bytes and a unit for each of its parts. |
+
+A conformance test of the generated Go parsers checks every call of a Flow operation against its bound and its
+contract, with the input read through the reference model of the input.

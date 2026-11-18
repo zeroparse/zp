@@ -9,10 +9,10 @@ controls or a Document), never on how a target prints it.
 ## Passes in the Pipeline
 
 The compiler is one pipeline of passes. Every function that lowering from Core IR produces, and that a backend prints
-from Flow IR, goes through the passes of that pipeline that run at the Flow stage, in their declared order, before the
-function is lowered to Exec IR or printed.
+from the Flow stage, goes through the passes of that pipeline that run at the Flow stage, in their declared order, before the
+function is converted to the Exec stage or printed.
 
-- A pass has a name that no pass of Core IR or Exec IR has. The name is also the name of the optimization that turns
+- A pass has a name that no pass of Core IR or of the Exec stage has. The name is also the name of the optimization that turns
   the pass off, and of the dump that shows the function after it.
 - A pass that is off does not run, and neither does one that does not apply to the build, whatever its optimization
   says. A build that reports rule events applies only the passes that keep them.

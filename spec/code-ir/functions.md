@@ -1,8 +1,9 @@
 # Functions
 
-A function of Exec IR is structured code over the operations of the parser VM, other functions and scalar values.
-Compositions are functions written once for every runtime (see [Compositions](compositions.md)); the rules of a
-grammar are functions lowered from Flow IR (see [Lowering From Flow IR](lowering.md)).
+A function of Code IR is structured code over the operations that the module declares, other functions and scalar
+values. At the Exec stage, compositions are functions written once for every runtime (see
+[Compositions](../exec-ir/compositions.md)); the rules of a grammar are functions at the Flow stage, converted to the
+Exec stage (see [Lowering From the Flow Stage](../exec-ir/lowering.md)).
 
 ## Function
 
@@ -10,7 +11,7 @@ grammar are functions lowered from Flow IR (see [Lowering From Flow IR](lowering
 |:--|:--|
 | Name | Unique in the module |
 | Parameters, results | Its parameters, each with a name and a type, and its result types, any number |
-| Locals | Locals declared at the function's entry, with the zero value of their type: false, 0 or the null handle. They are visible in the whole body. Code lowered from Flow IR declares its variables here; compositions declare theirs with `Let` where they are needed |
+| Locals | Locals declared at the function's entry, with the zero value of their type: false, 0 or the null handle. They are visible in the whole body. Code lowered from Core IR declares its variables here; compositions declare theirs with `Let` where they are needed |
 | Features | The features the function is specialized for. It may call an operation only if it is specialized for all of the operation's features |
 | Body | A block |
 | Doc | A description, which backends print as the comment of the printed function |
@@ -96,7 +97,7 @@ the reference interpreter treat a callable handle as a value that the machine th
 
 ## Interpretation
 
-Exec IR has a reference interpreter that runs a function against an implementation of the operations, by the meaning
+Code IR has a reference interpreter that runs a function against an implementation of the operations, by the meaning
 this chapter gives. The conformance suite runs its cases with it, against the reference models and against each
 implementation that a target binds to it, and the printer tests compare what printed code does with what the
-interpreter does for the same functions (see [Printing](printing.md#conformance)).
+interpreter does for the same functions (see [Printing](../exec-ir/printing.md#conformance)).

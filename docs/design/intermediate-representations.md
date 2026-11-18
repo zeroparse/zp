@@ -11,12 +11,15 @@ are not a public API.
 
 The whole system is in [Architecture](architecture.md). The exact definitions are in the
 [Core IR Specification](../../spec/core-ir/README.md), including the [text form](../../spec/core-ir/text-form.md),
-which prints a module in full, the [Flow specification](../../spec/flow-ir/README.md), which
-defines every statement and expression of a rule's body, and the [Exec specification](../../spec/exec-ir/README.md),
-which defines the abstract machine, every operation with its contract, the compositions and their lowering, passes and
-printing. The reasons behind the levels are in [record 062](records/062-backend-independent-optimization-ir.md), the
-abstract machine in [record 065](records/065-exec-ir-parser-vm.md), and the decision to make one Code IR with dialects
-in [record 072](records/072-release-package-layout.md).
+which prints a module in full, the [Code IR specification](../../spec/code-ir/README.md), which defines the module, the
+statements and expressions of functions, the operation kinds, dialects and stages, the [Flow dialect
+specification](../../spec/flow-ir/README.md), which defines the operations that say how a parser runs a rule, and the
+[Exec dialect specification](../../spec/exec-ir/README.md), which defines the abstract machine, every operation with its
+contract, the compositions and the conversion from the Flow stage, passes and printing. The reasons behind the levels are
+in [record 062](records/062-backend-independent-optimization-ir.md), the abstract machine in
+[record 065](records/065-exec-ir-parser-vm.md), the decision to make one Code IR with dialects in
+[record 072](records/072-release-package-layout.md), and how the dialects and the conversion between the stages are
+defined in [record 073](records/073-code-ir-dialects.md).
 
 ## Two Representations, Three Dialects
 
@@ -176,10 +179,12 @@ nest: every use of a mark is dominated by its definition, and the marks of one c
 The preconditions of the operations that take marks (truncating the recovered errors, resetting the record of missing
 input, ending the innermost isolation of expectations and the like) are checks of the verifier.
 
-Every Flow operation states its contract, its cost, the features it needs and its laws, and carries a **reference
-expansion** into Exec operations. The conformance suite compares each implementation of an operation with its
-expansion, so a backend that implements a Flow operation natively, as the VM does, is checked against the same meaning
-as one that prints its expansion.
+Every Flow operation states its contract, its cost, the features it needs and its laws, and an **immediate operand** of a
+declared type that holds its static data (a literal, a class, a rule), while its dynamic operands are arguments. At the
+Exec stage each Flow operation is a **primitive** that each target prints in place. The conformance of a target is
+checked for each Flow operation: probes around every printed primitive call check that the position moves as the
+contract says, that the cost stays within its bound and, for reads of the input, that the result agrees with a model of
+the input. A backend that implements a Flow operation natively, as the VM does, is held to the same contract.
 
 ## The Exec Stage
 
@@ -191,8 +196,10 @@ and not how. The second part is **compositions**: functions in structured code o
 every runtime: the call protocol of a rule with memoization, left-recursion growth, Operators Rules, the observation of a
 call, Documents and streams.
 
-`execlower`, a pass of Code IR, converts the Flow stage to the Exec stage completely: each Flow operation becomes its
-expansion, and the verifier checks the postcondition that no Flow operation remains. The rules of a grammar enter the
+`execlower`, a pass of Code IR, converts the Flow stage to the Exec stage completely: each call of a Flow operation
+becomes a call of the primitive that stands for it, with the same arguments and immediate operand, and the verifier at
+the Exec stage checks the postcondition that no Flow operation remains. Operations of the Action dialect are legal at both stages and
+are kept. The rules of a grammar enter the
 Exec stage only this way; the compositions are written in the Exec dialect directly.
 
 The properties that passes ask of an operation are derived from its declaration, not declared beside it, so they cannot

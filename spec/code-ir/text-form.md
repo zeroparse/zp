@@ -1,6 +1,6 @@
 # Text Form
 
-The text form of Exec IR is the readable listing of a module, which tests, golden files and the messages of
+The text form of Code IR is the readable listing of a module, which tests, golden files and the messages of
 verification show. It is an output: nothing parses it. This specification uses it to write declarations.
 
 ## Module Listing
@@ -26,7 +26,7 @@ handle Entry of memo
 
 An operation prints its kind (`op`, `host op` or `transitional op`), its name, its parameters and its results, and
 then, one level deeper, its component, the components and registers it reads and writes, its features, `noreturn` if
-it may end the parse, its cost bound after `cost <=` (see [Costs](machine.md#costs)), its contract, its precondition
+it may end the parse, its cost bound after `cost <=` (see [Costs](module.md#costs)), its contract, its precondition
 and each law.
 
 ```text
@@ -90,19 +90,3 @@ func skipTrivia(r Rule) [missing] {
   }
 }
 ```
-
-## Catalog Entries
-
-The tables of [Operations](operations.md), [Values](values.md) and [Compositions](compositions.md) declare each
-operation and function on one line, the header line of its listing, with the parts that the listing writes on lines
-of their own moved onto it.
-
-- An operation: its kind, its name, its parameters and its results, then its features in brackets, if it has any, and
-  `noreturn`, if it may end the parse, as in `op budget.charge(n u64) [budget] noreturn`. The table gives the state it
-  reads and writes, its cost bound and its contract in columns of their own.
-- A function: `func`, its name, its parameters, its results and its features in brackets, as in
-  `func grow(r Rule, min int) (Value, bool) [typed]`.
-
-Results print bare when there is one and in parentheses when there are several. A specialization of a composition is
-written as the composition's name followed by the set of features it is specialized for in brackets, as in
-`call [budget, document]`, with `[]` for the specialization with no feature on.

@@ -175,7 +175,7 @@ explains how they fit together.
 
 A **parser VM** is the abstract machine that runs a parse. It is not the bytecode VM: the bytecode VMs, the closure
 backend and every generated parser are hosts of the same parser VM. Exec IR specifies it in three parts, which
-[The Parser VM](../../../spec/exec-ir/machine.md) and [Functions](../../../spec/exec-ir/functions.md) define:
+[The Parser VM](../../../spec/exec-ir/machine.md) and [Functions](../../../spec/code-ir/functions.md) define:
 
 - **Abstract state**: a few scalar registers and state components such as the memo table, the expectation
   record, the variable environment and the budget. The state is abstract: a contract talks about it, a target
@@ -217,7 +217,7 @@ An operation is placed by four rules.
 4. **No re-entry.** An operation does not run grammar code. Where a mechanism must run a rule body in the middle — a
    memoized call, a growth step — it is a composition, or a begin and an end operation around the body. The
    transitional operations that invoke a rule's body or a line of an Operators Rule are the exception until their
-   mechanism is a composition; their contracts say so ([Operations](../../../spec/exec-ir/machine.md#operations)).
+   mechanism is a composition; their contracts say so ([Operations](../../../spec/code-ir/module.md#operations)).
 
 The measured history supports these rules. Each of the 22 core commits of [Changes Paid Several
 Times](#changes-paid-several-times) is placed below by the part of this design it would change (classified by hand
@@ -388,7 +388,7 @@ calls compositions over value operations ([Values](../../../spec/exec-ir/values.
 built-in function, constructor, conversion and cast, and its lambdas are loops; the tables of those operations are
 shared by every target and run on fixed fixtures. Generated Go and TypeScript print the function as code; the engine
 holds it as a term program, its own form of the same function. Exec IR names that form with the callable handle type
-`Term` and applies it with an application ([Application](../../../spec/exec-ir/functions.md#application)), which each
+`Term` and applies it with an application ([Application](../../../spec/code-ir/functions.md#application)), which each
 target prints as the call of its form; `term.ctx` makes the context that the term is applied to, which the lowered function takes as its one parameter, and the lowering checks that the function has the signature of `Term`. What surrounds the
 application, the predicate and the binding, is one composition on every runtime. On either, a term that fails is an
 ordinary failure of the expression: what it gathered and created is dropped, and the parse goes on to its next
@@ -520,7 +520,7 @@ it scans. An operation's cost contract is therefore a deterministic count per ta
 ([Decisions](#decisions)).
 
 A bound is a constant plus a sum of terms, each a positive coefficient times an abstract quantity that the reference
-model of the component defines ([Costs](../../../spec/exec-ir/machine.md#costs) lists them). A bound is the worst
+model of the component defines ([Costs](../../../spec/code-ir/module.md#costs) lists them). A bound is the worst
 case over the representations a target may choose: deferred memoization is bounded both by the regions a sparse
 record allocates and by the size of a dense record of calls in position order. An operation that copies a set or a
 list declares the copy in its bound. A transitional or host operation that charges declares a bound too, with no
@@ -540,7 +540,7 @@ bound could exceed the limit.
 Compositions, operation declarations and conformance cases are written with Go builder functions in
 `internal/ir/code` and `internal/ir/code/exec`. A builder returns Exec IR that the verifier checks against the
 [invariants](../../../spec/exec-ir/invariants.md). The IR has a text form for tests, golden files and error
-messages ([Text Form](../../../spec/exec-ir/text-form.md)), which nothing parses, and an interpreter that runs a
+messages ([Text Form](../../../spec/code-ir/text-form.md)), which nothing parses, and an interpreter that runs a
 function against a machine of operations, which is how Go runs conformance cases until a backend prints them. A
 textual syntax, parsed by a ZeroParse grammar, can be added later without changing the IR.
 
