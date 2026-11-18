@@ -831,7 +831,8 @@ func runPrintedMutantsOver(t *testing.T, path string, over map[string]string, mu
 			if err := os.WriteFile(ov, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			args := append([]string{"test", "-count=1", "-overlay", ov, "-run", m.tests}, m.pkgs...)
+			// -vet=off: the verdict reads what the tests report, and vet would only analyze the mutated code again.
+			args := append([]string{"test", "-count=1", "-vet=off", "-overlay", ov, "-run", m.tests}, m.pkgs...)
 			cmd := exec.Command("go", args...)
 			// The tests run in this module, which resolves without -mod=mod (TestMain).
 			cmd.Env = append(os.Environ(), "GOFLAGS=-trimpath")

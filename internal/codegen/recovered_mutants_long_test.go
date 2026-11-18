@@ -57,7 +57,8 @@ func TestRecoveredValueMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestTermFixedReference$", "./internal/codegen")
+			// -vet=off: the verdict reads what the tests report, and vet would only analyze the mutated code again.
+			cmd := exec.Command("go", "test", "-count=1", "-vet=off", "-overlay", overlayFile, "-run", "^TestTermFixedReference$", "./internal/codegen")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

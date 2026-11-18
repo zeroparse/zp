@@ -135,7 +135,8 @@ func TestPrintedOperatorMutants(t *testing.T) {
 				if !done {
 					t.Fatalf("the library has no %s%s with %q", head, m.fn, m.old)
 				}
-				out, err := goTestLib(overlay, "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|BoxedStringCharges|CompareStrings|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|PushTable|CastTable)$").CombinedOutput()
+				// -vet=off: the verdict reads what the tests report, and vet would only analyze the mutated code again.
+				out, err := goTestLib(overlay, "-count=1", "-vet=off", "-run", "^TestValue(Conformance|BoxedOperands|BoxedStringCharges|CompareStrings|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|PushTable|CastTable)$").CombinedOutput()
 				if err == nil {
 					t.Fatalf("the value tests pass with the mutant %q:\n%s", m.name, out)
 				}

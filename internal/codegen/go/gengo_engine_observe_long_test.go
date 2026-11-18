@@ -130,7 +130,8 @@ func TestEngineObservationMutants(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, r := range m.runs {
-				cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "test", "-count=1", "-overlay="+overlayFile, "-run", "^"+r.test+"$", r.pkg)
+				// -vet=off: the verdict reads what the tests report, and vet would only analyze the mutated code again.
+				cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "test", "-count=1", "-vet=off", "-overlay="+overlayFile, "-run", "^"+r.test+"$", r.pkg)
 				cmd.Dir = root
 				// The tests run in the module itself, as go test runs them here.
 				cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=")
