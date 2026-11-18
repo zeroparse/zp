@@ -59,9 +59,9 @@ func features(fs []string) string {
 func opEntry(o *code.Op) string {
 	kind := "op"
 	switch {
-	case o.Transitional:
+	case o.Kind == code.OpTransitional:
 		kind = "transitional op"
-	case o.Host:
+	case o.Kind == code.OpHost:
 		kind = "host op"
 	}
 	decl := fmt.Sprintf("%s %s(%s)%s%s", kind, o.Name, params(o.Params), results(o.Results), features(o.Features))

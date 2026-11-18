@@ -357,7 +357,7 @@ var makesValues = map[string]bool{"node.zero": true}
 func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 	pkg, callees, charges := libCalls(t)
 	for _, op := range compose.Build().Ops {
-		if !op.Transitional && !op.Host || runsGrammar[op.Name] || makesValues[op.Name] {
+		if op.Kind != code.OpTransitional && op.Kind != code.OpHost || runsGrammar[op.Name] || makesValues[op.Name] {
 			continue
 		}
 		found := false
@@ -368,7 +368,7 @@ func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 			fns = append(fns, f...)
 		}
 		if !found {
-			if op.Host && !engineOnly[op.Name] {
+			if op.Kind == code.OpHost && !engineOnly[op.Name] {
 				t.Errorf("host operation %s has no Go form to audit", op.Name)
 			}
 			continue

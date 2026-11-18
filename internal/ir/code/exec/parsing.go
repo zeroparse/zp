@@ -134,7 +134,7 @@ that read a seed), or the last result of a growth.`)
 	result := []code.Type{value, code.TBool}
 	regs := []string{Pos, Silent}
 	add := func(o *code.Op) {
-		o.Transitional = true
+		o.Kind = code.OpTransitional
 		m.AddOp(o)
 	}
 	ruleArg := []code.Param{code.P("r", rule)}

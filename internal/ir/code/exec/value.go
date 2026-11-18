@@ -371,7 +371,7 @@ for a bool and KindOther for every other value, a box that holds one of these in
 		Contract: `Returns the bool that x is.`, Requires: `x is a bool: val.kind(x) is KindBool.`})
 	pure(&code.Op{Name: "val.fail", Params: []code.Param{code.P("code", code.TInt), code.P("a", datum), code.P("b", datum),
 		code.P("op", code.TInt), code.P("n", code.TInt)},
-		Results: []code.Type{code.THandle(Fail)}, NoReturn: true, Host: true,
+		Results: []code.Type{code.THandle(Fail)}, NoReturn: true, Kind: code.OpHost,
 		Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QErrParts}}},
 		Contract: `Returns the failure with the message TermErrors[code]: {a} and {b} read as the names of the types of
 a and b, {op} as the name of the operator that op indexes (BinaryOps for ErrOperands and ErrCompare, UnaryOps for ErrUnary,
@@ -408,7 +408,7 @@ assembles the text piece by piece, charging for each piece.`,
 		Contract: `Returns x as an int and true if 0 <= x < n, and 0 and false otherwise.`, Requires: `x is an int.`,
 		Laws: []string{"pure: equal arguments give equal results"}})
 	str := func(o *code.Op) {
-		o.Host, o.NoReturn, o.Cost = true, true, bytes
+		o.Kind, o.NoReturn, o.Cost = code.OpHost, true, bytes
 		pure(o)
 	}
 	str(&code.Op{Name: "str.add", Params: []code.Param{l, r}, Results: []code.Type{datum},
@@ -445,12 +445,12 @@ node or an error, and not a struct, a list value or a tuple value.`})
 	pure(&code.Op{Name: "node.isStruct", Params: []code.Param{n}, Results: []code.Type{code.TBool},
 		Contract: `Reports whether n is a value of a struct type.`})
 	pure(&code.Op{Name: "node.field", Params: []code.Param{n, nm}, Results: []code.Type{datum, code.TBool},
-		Host: true, NoReturn: true, Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QFieldsRead}, {Coef: 4, Quantity: QValueBytes}}},
+		Kind: code.OpHost, NoReturn: true, Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QFieldsRead}, {Coef: 4, Quantity: QValueBytes}}},
 		Contract: `Returns the field name of n and true if n holds it, and nil and false otherwise. A struct of a
 target that represents it with every field holds them all. A target that bounds the work charges for the fields
 it scans and the bytes of the names it compares.`})
 	pure(&code.Op{Name: "node.zero", Params: []code.Param{code.P("c", act), n, nm}, Results: []code.Type{datum, code.TBool},
-		Host: true, NoReturn: true, Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QZeroParts}}},
+		Kind: code.OpHost, NoReturn: true, Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QZeroParts}}},
 		Contract: `Returns the zero value of the declared type of the field name of the struct n, made in c, and
 true, or nil and false if the type of n declares no such field or the target holds every field of a struct
 (node.field then holds it). A target that bounds the work charges for the values it makes.`,
@@ -463,7 +463,7 @@ true, or nil and false if the type of n declares no such field or the target hol
 		Contract: `Returns n as an element of a list or a tuple: n itself.`,
 		Laws:     []string{"pure: equal arguments give equal results"}})
 	pure(&code.Op{Name: "val.box", Params: []code.Param{code.P("c", act), x}, Results: []code.Type{code.THandle(Elem)},
-		Host: true, NoReturn: true, Cost: code.Cost{Const: 1},
+		Kind: code.OpHost, NoReturn: true, Cost: code.Cost{Const: 1},
 		Contract: `Returns x as an element of a list or a tuple: in a target whose elements are nodes, a box that holds x
 with the range of the input of c, made in c, and x itself in a target whose elements are any values. A target that
 bounds the work charges for the box it makes.`,
@@ -478,11 +478,11 @@ bounds the work charges for the box it makes.`,
 		Contract: `Returns the text that n holds and true if n is a string node or an error, and false otherwise. The
 text is meaningful only for a string node.`})
 	pure(&code.Op{Name: "node.rangeText", Params: []code.Param{n}, Results: []code.Type{code.THandle(Str)},
-		Host: true, NoReturn: true, Cost: code.Cost{Const: 1, Terms: []code.CostTerm{{Coef: 1, Quantity: QValueBytes}}},
+		Kind: code.OpHost, NoReturn: true, Cost: code.Cost{Const: 1, Terms: []code.CostTerm{{Coef: 1, Quantity: QValueBytes}}},
 		Contract: `Returns the input of the range of n. A target that bounds the work may charge for the read of the
 input, and for the bytes it copies out of a stream.`})
 	pure(&code.Op{Name: "str.len", Params: []code.Param{x}, Results: []code.Type{datum},
-		Host: true, NoReturn: true, Cost: code.Cost{Terms: []code.CostTerm{{Coef: 1, Quantity: QValueBytes}}},
+		Kind: code.OpHost, NoReturn: true, Cost: code.Cost{Terms: []code.CostTerm{{Coef: 1, Quantity: QValueBytes}}},
 		Contract: `Returns the length of the string x in the position unit as an int. A target that bounds the work and
 counts characters charges for the bytes it reads.`,
 		Requires: `x is a string.`})
@@ -511,7 +511,7 @@ ints.`})
 	addMade(m, act, n)
 	addGathered(m, act, items)
 	pure(&code.Op{Name: "val.seq", Params: []code.Param{code.P("c", act), code.P("tuple", code.TBool), code.P("kids", items)},
-		Results: []code.Type{code.THandle(Obj)}, Host: true, NoReturn: true, Cost: code.Cost{Const: 1},
+		Results: []code.Type{code.THandle(Obj)}, Kind: code.OpHost, NoReturn: true, Cost: code.Cost{Const: 1},
 		Contract: `Returns a new tuple value if tuple and a new list value otherwise, made in c, whose elements are kids, which it
 takes over, and whose range is empty. A target that bounds the work charges for the value it makes.`})
 	pure(&code.Op{Name: "seq.span", Params: []code.Param{code.P("c", act), code.P("items", items), code.P("i", code.TInt)},
@@ -546,7 +546,7 @@ ShapeListValue or ShapeStruct, which a value of a node type has by its base.`,
 	pure(&code.Op{Name: "node.children", Params: []code.Param{n}, Results: []code.Type{code.THandle(Seq)},
 		Contract: `Returns the elements of the list value or the tuple value n, and the children of any other node.`,
 		Laws:     []string{"pure: equal arguments give equal results"}})
-	pure(&code.Op{Name: "seq.step", Host: true, NoReturn: true, Cost: code.Cost{Const: 1},
+	pure(&code.Op{Name: "seq.step", Kind: code.OpHost, NoReturn: true, Cost: code.Cost{Const: 1},
 		Contract: `Charges the step of one element of a list or a tuple: an element that is examined against its type,
 walked by a built-in function or made by a constructor. A target that bounds the work charges one unit; a target
 that does not charges nothing.`})

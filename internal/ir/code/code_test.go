@@ -1,6 +1,7 @@
 package code
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -100,9 +101,17 @@ func TestVerifyRejects(t *testing.T) {
 				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Let("x", Ap(L("t"), Int(1))) })
 			})
 		}, "a cleanup calls application, which is not an operation"},
-		{"host and transitional", func(m *Module) {
-			m.AddOp(&Op{Name: "counter.h", Component: "counter", Contract: "h", Host: true, Transitional: true})
-		}, "both host and transitional"},
+		{"invalid kind", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.h", Component: "counter", Contract: "h", Kind: OpKind(9)})
+		}, "invalid kind 9"},
+		{"operation of a dialect not legal at the stage", func(m *Module) {
+			m.Stage, m.Dialects = "exec", []string{"exec"}
+			m.AddOp(&Op{Name: "counter.f", Component: "counter", Contract: "f", Dialect: "flow"})
+		}, `op counter.f: an operation of the dialect "flow", which is not legal at the exec stage`},
+		{"immediate of another type", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.i", Component: "counter", Contract: "i", Imm: "a count", ImmType: reflect.TypeOf(0)})
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Append(&Do{Call: &Call{Callee: "counter.i", Imm: "x"}}) })
+		}, "call of counter.i: immediate operand of type string, want int"},
 		{"undeclared handle", func(m *Module) {
 			m.AddOp(&Op{Name: "counter.z", Component: "counter", Results: []Type{THandle("Nope")}, Contract: "z"})
 		}, "undeclared handle type Nope"},

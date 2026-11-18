@@ -155,10 +155,10 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 func tsRuns(l *execlower.Lowered) {
 	m := l.Module
 	m.AddOp(&code.Op{Name: tsFailedOp, Component: execlower.Component, Results: []code.Type{code.TBool}, Reads: []string{execlower.Component},
-		Transitional: true, Imm: "the bool the Init sets",
+		Kind: code.OpTransitional, Imm: "the bool the Init sets",
 		Contract: "Reports that the call of the Init of the If failed: that the bool it sets is false."})
 	m.AddOp(&code.Op{Name: tsSpendOp, Component: execlower.Component, Writes: []string{execlower.Component}, NoReturn: true,
-		Transitional: true, Imm: "the number of charges", Contract: "Charges a step as many times as Imm says."})
+		Kind: code.OpTransitional, Imm: "the number of charges", Contract: "Charges a step as many times as Imm says."})
 	// The merge reads what the end of the record reads: one operation for each operation of the end.
 	merges := map[string]string{}
 	merge := func(end *code.Op) string {
@@ -171,7 +171,7 @@ func tsRuns(l *execlower.Lowered) {
 		}
 		merges[end.Name] = name
 		m.AddOp(&code.Op{Name: name, Component: execlower.Component, Params: end.Params,
-			Reads: []string{execlower.Component}, Writes: []string{execlower.Component}, NoReturn: true, Transitional: true,
+			Reads: []string{execlower.Component}, Writes: []string{execlower.Component}, NoReturn: true, Kind: code.OpTransitional,
 			Imm: "the end of the expectation record", Contract: "Ends the expectation record and merges its expectations into the enclosing record."})
 		return name
 	}

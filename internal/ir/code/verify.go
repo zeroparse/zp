@@ -3,6 +3,7 @@ package code
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 )
 
@@ -10,12 +11,15 @@ import (
 //
 //   - declarations: names are unique; handle types, operations and their reads and writes name
 //     declared components, registers, handle types and features; an operation writes only its own
-//     component and registers; cost terms have a positive coefficient and a quantity;
+//     component and registers (a transitional or primitive one may write others); cost terms have
+//     a positive coefficient and a quantity; a module of a stage declares only operations of the
+//     dialects legal at it;
 //   - functions: every expression has a type and every operator, call, assignment and return
 //     matches the declared types; a local is declared before it is read or assigned, and is
 //     neither declared twice in one scope nor shadows another; an Exit names an enclosing block,
 //     a Break or a Continue an enclosing loop; a function calls only operations of the features
-//     it is specialized for, with an immediate operand exactly where the operation declares one.
+//     it is specialized for, with an immediate operand exactly where the operation declares one,
+//     of the operation's immediate type if it declares one.
 func Verify(m *Module) error {
 	v := &verifier{m: m}
 	v.decls()
@@ -166,7 +170,7 @@ func (v *verifier) op(o *Op) {
 		case m.register(s) != nil:
 		case m.component(s) == nil:
 			v.errorf("%s: writes undeclared state %s", where, s)
-		case s != o.Component && !o.Transitional:
+		case s != o.Component && o.Kind != OpTransitional && o.Kind != OpPrimitive:
 			v.errorf("%s: writes component %s, which is not its own (%s)", where, s, o.Component)
 		}
 	}
@@ -175,11 +179,17 @@ func (v *verifier) op(o *Op) {
 			v.errorf("%s: undeclared feature %s", where, f)
 		}
 	}
-	if o.Contract == "" && !o.Transitional {
+	if o.Contract == "" && o.Kind != OpTransitional {
 		v.errorf("%s: no contract", where)
 	}
-	if o.Host && o.Transitional {
-		v.errorf("%s: both host and transitional", where)
+	if o.Kind > OpTransitional {
+		v.errorf("%s: invalid kind %d", where, o.Kind)
+	}
+	if m.Stage != "" && !slices.Contains(m.Dialects, o.Dialect) {
+		v.errorf("%s: an operation of the dialect %q, which is not legal at the %s stage", where, o.Dialect, m.Stage)
+	}
+	if o.ImmType != nil && o.Imm == "" {
+		v.errorf("%s: an immediate type without an immediate operand", where)
 	}
 	for _, t := range o.Cost.Terms {
 		if t.Coef <= 0 || t.Quantity == "" {
@@ -527,6 +537,8 @@ func (v *verifier) call(c *Call, s *scope) []Type {
 		params, results = o.Params, o.Results
 		if (o.Imm != "") != (c.Imm != nil) {
 			v.errorf("call of %s: immediate operand %v, want %q", o.Name, c.Imm, o.Imm)
+		} else if t := o.ImmType; t != nil && !immHas(c.Imm, t) {
+			v.errorf("call of %s: immediate operand of type %T, want %s", o.Name, c.Imm, t)
 		}
 	} else if f := v.m.Func(c.Callee); f != nil {
 		params, results = f.Params, f.Results
@@ -701,4 +713,14 @@ func (v *verifier) expr(x Expr, s *scope) (Type, bool) {
 		v.errorf("unknown expression %T", x)
 	}
 	return Type{}, false
+}
+
+// immHas reports whether the immediate operand x has the type t, or implements t if t is an
+// interface.
+func immHas(x any, t reflect.Type) bool {
+	xt := reflect.TypeOf(x)
+	if t.Kind() == reflect.Interface {
+		return xt.Implements(t)
+	}
+	return xt == t
 }
