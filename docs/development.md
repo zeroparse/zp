@@ -41,10 +41,10 @@ This document describes the repository layout and architecture, how to run tests
 | `core/impl/` | The representation of `core.Node` that the parsers build and read; not a stable API |
 | `internal/codegen/go/` | Go generator: prints the parser, its types package and the library copy from the compiled program and the Exec form, and leaves out what the entry points cannot reach |
 | `internal/codegen/ts/` | TypeScript generator: prints the parser, its types and its library file from the compiled program and the Exec form |
-| `internal/pass/` | The runner of declared passes: a pipeline of passes over one unit, with the analyses they read and invalidate, where they apply, their order, and verification |
+| `internal/pass/` | The runner of declared passes: a pipeline of passes over one unit, with the analyses they read and invalidate, where they apply, their order, and verification; and the registry of the optimizations (flags with a kind and a `speed` value), which each part of the pipeline fills with its own |
 | `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR), `code/` (the structured code that Code IR shares, with the Exec dialect in `code/exec/`: the operations of the abstract machine, the compositions in `code/exec/compose/`, the reference models and conformance suite in `code/exec/ref/` and `code/exec/conform/`, and the specification-table reader of the tests in `code/exec/spectest/`), `flow/` (the Flow form, which the target layout makes the Flow dialect of Code IR) and `exec/lower/` (the lowering from the Flow form to the Exec dialect). See [Core IR and Code IR](design/intermediate-representations.md) |
+| `internal/driver/` | The `speed`, `memory` and `size` profiles over the registered optimizations, and the driver that runs the IR pass pipelines under them with their dumps and verification |
 | `internal/middleend/` | The passes and lowerings between the representations: `corepass/` (the Core passes and the rule facts), `flowlower/` (the lowering from Core IR to the Flow form, and which compiled rules it lowers) and `codepass/` (the passes of Code IR that do not depend on a dialect) |
-| `internal/ir/opt/` | The registry of the optimizations (flags with a kind and a `speed` value) and of the `speed`, `memory` and `size` profiles, and the driver that runs the IR pass pipelines under them with their dumps and verification |
 | `codegen/ts/lib/` | Source of `lib.ts`, the library that generated TypeScript parsers import (joined from `lib.ts`, `budget.ts`, `trace.ts` and `profile.ts`) |
 | `cmd/zp/` | Command-line tool |
 | `examples/` | Small example grammars that show the features, with golden tests |
@@ -127,13 +127,14 @@ Generated Go `-stream` adds a Node `ParseStream` that follows the engine's Reade
 call counts with the engine across chunkings, units, controls, observability and Document generation; changes to
 the stream runtime should keep it and the bounded-memory consumer in `TestGeneratedStreamAPI` passing.
 
-Optimizations are the flags of one registry (`internal/ir/opt`), and the Core passes are a pipeline
-declared in `internal/middleend/corepass/pipeline.go`, run by the generic manager in `internal/pass` under the settings of
-the driver in `internal/ir/opt`
+Optimizations are the flags of one registry (`internal/pass`), which each part of the pipeline fills with its own
+when it is initialized, and the Core passes are a pipeline declared in `internal/middleend/corepass/pipeline.go`, run by
+the generic manager in `internal/pass` under the settings of the driver in `internal/driver`
 ([design 063](design/records/063-configurable-optimization-pass-pipeline.md)). To add an optimization:
 
 1. Declare a pass with its `Requires`, `Invalidates`, `After`, `Applies` and `Obligation`, or add a lowering or
-   runtime flag; register its name, kind, description and `speed` value in the registry.
+   runtime flag; register its name, kind, description and `speed` value in the registry from the package that reads
+   it (`pass.Register` in an `init` function; the Core passes register theirs in `internal/middleend/corepass/flags.go`).
 2. Add its entry to `optimizationTests` in `internal/codegen/go/optimization_flags_test.go`. The entry names the test of
    the parser generated without it, or leaves it to `TestOptimizationDisabledParity`, which compares such parsers with the
    engine and fails for a flag that changes neither the code nor the Core IR.

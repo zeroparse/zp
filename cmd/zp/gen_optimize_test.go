@@ -43,7 +43,7 @@ func TestGenOptimize(t *testing.T) {
 		want string
 	}{
 		{[]string{"-optimize", "nosuch"}, `-optimize: unknown optimization profile "nosuch" (valid: speed, memory, size)`},
-		{[]string{"-no-opt", "nosuch"}, `-no-opt: unknown optimization "nosuch" (valid: terminals, text-dispatch,`},
+		{[]string{"-no-opt", "nosuch"}, `-no-opt: unknown optimization "nosuch" (valid: class-runs, guarded-classes,`},
 		{[]string{"-no-opt", "guards,nosuch"}, `unknown optimization "nosuch"`},
 		{[]string{"-print-after", "nosuch"}, `-print-after: unknown pass "nosuch" to print after (valid: core, terminals,`},
 	} {
@@ -156,7 +156,7 @@ func TestGenOpt(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"-opt", "nosuch"}, `-opt: unknown optimization "nosuch" (valid: terminals, text-dispatch,`},
+		{[]string{"-opt", "nosuch"}, `-opt: unknown optimization "nosuch" (valid: class-runs, guarded-classes,`},
 		{[]string{"-opt", "guards,nosuch=2"}, `-opt: unknown optimization "nosuch"`},
 		{[]string{"-opt", "class-tables=x"}, `-opt:`},
 		{[]string{"-opt", "guards=2"}, `-opt: optimization guards does not take the value 2`},

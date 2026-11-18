@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/check"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/types"
@@ -14,10 +15,10 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/flow"
-	"zeroparse.dev/zp/internal/ir/opt"
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // Generator is the state that the Go and TypeScript generators share: the program and rule being
@@ -49,7 +50,7 @@ type Generator struct {
 	literalKeys  []string
 	// Driver runs the pipelines of the IR with the optimizations that are on (GenOptions.Optimize, Opt
 	// and NoOpt), the dumps of GenOptions.PrintAfter and the verification of GenOptions.VerifyEachPass.
-	opt.Driver
+	driver.Driver
 	// Flow holds the Core IR of the typed rules while they are printed from Flow IR, or nil;
 	// flowRules counts the rules printed from Flow IR as flat rules and flowFrames the bodies
 	// and lines printed as matchers of runtime-owned frames.
@@ -93,7 +94,7 @@ func (g *Generator) FieldTypeVar(key any, ft types.Ty, decl func(v string, t *ty
 
 // UseSparseMemo removes the representation selector entirely when neither
 // emitted rule table can cross the sparse-storage threshold.
-func UseSparseMemo(o opt.Settings, prog, rec *compile.Program) bool {
+func UseSparseMemo(o pass.Settings, prog, rec *compile.Program) bool {
 	return o.On("sparse-memo") && (prog.NSeen > 64 || rec != nil && rec.NSeen > 64)
 }
 

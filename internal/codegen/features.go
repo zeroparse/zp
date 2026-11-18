@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // A Feature is a mechanism of the library of generated parsers that a parser runs only if its grammar
@@ -178,7 +178,7 @@ func reachedRules(p *compile.Program, start string) ([]*compile.Rule, error) {
 
 // ParserFeatures returns the features of the parser generated with opts and the optimization settings
 // s: those Analyze finds, or AllFeatures with the optimization UsedFeatures off.
-func ParserFeatures(prog, rec *compile.Program, opts GenOptions, s opt.Settings) (FeatureSet, error) {
+func ParserFeatures(prog, rec *compile.Program, opts GenOptions, s pass.Settings) (FeatureSet, error) {
 	if !s.On(UsedFeatures) {
 		return FeatureSet(AllFeatures), nil
 	}

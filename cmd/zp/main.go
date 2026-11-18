@@ -41,8 +41,9 @@ import (
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	igen "zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/driver"
 	iengine "zeroparse.dev/zp/internal/engine"
-	iropt "zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 const usage = `usage: zp <command> [flags] [arguments]
@@ -749,9 +750,9 @@ func genCmd(args []string, stdout io.Writer) error {
 	sourceInfo := fs.Bool("source-info", false, "make the generated parser record the rule of each node and the names of captures")
 	defaultValue := fs.Bool("default-value", false, "make the generated parser drop value actions and declared rule types and return the default node tree (incompatible with -types)")
 	optimize := fs.String("optimize", "", "optimization profile: "+profileHelp()+"; no profile changes what the parser returns")
-	opt := fs.String("opt", "", "optimizations to give a value, separated by commas, as name or name=count: a name alone turns on an optimization that the profile leaves off, and 0 turns one off; applied after the profile and before -no-opt; the optimizations, with kind and default: "+iropt.Summaries())
-	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization; the optimizations, with kind and default: "+iropt.Summaries())
-	printAfter := fs.String("print-after", "", "write the IR to standard error after the named steps and passes, separated by commas: core and the Core passes print the Core IR of each table, flow and the Flow passes each function printed from Flow IR, exec and the Exec passes each function printed from Exec IR; a pass that does not apply to the parser prints nothing: "+strings.Join(iropt.PrintNames(), ", "))
+	opt := fs.String("opt", "", "optimizations to give a value, separated by commas, as name or name=count: a name alone turns on an optimization that the profile leaves off, and 0 turns one off; applied after the profile and before -no-opt; the optimizations, with kind and default: "+pass.Summaries())
+	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization; the optimizations, with kind and default: "+pass.Summaries())
+	printAfter := fs.String("print-after", "", "write the IR to standard error after the named steps and passes, separated by commas: core and the Core passes print the Core IR of each table, flow and the Flow passes each function printed from Flow IR, exec and the Exec passes each function printed from Exec IR; a pass that does not apply to the parser prints nothing: "+strings.Join(driver.PrintNames(), ", "))
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -825,11 +826,11 @@ func genCmd(args []string, stdout io.Writer) error {
 	if *noOpt != "" {
 		noOptNames = strings.Split(*noOpt, ",")
 	}
-	profile, err := iropt.Profile(*optimize)
+	profile, err := driver.Profile(*optimize)
 	if err != nil {
 		return fmt.Errorf("-optimize: %w", err)
 	}
-	optValues, err := iropt.ParseValues(*opt)
+	optValues, err := driver.ParseValues(*opt)
 	if err != nil {
 		return fmt.Errorf("-opt: %w", err)
 	}
@@ -841,7 +842,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	if _, err := profile.Without(noOptNames...); err != nil {
 		return fmt.Errorf("-no-opt: %w", err)
 	}
-	if _, err := iropt.ParsePrintAfter(*printAfter); err != nil {
+	if _, err := driver.ParsePrintAfter(*printAfter); err != nil {
 		return fmt.Errorf("-print-after: %w", err)
 	}
 	var printTo io.Writer
@@ -1144,8 +1145,8 @@ func firstLine(data []byte) string {
 // profileHelp describes the optimization profiles for the usage of -optimize: each name with what it is for.
 func profileHelp() string {
 	var parts []string
-	for _, name := range iropt.Profiles() {
-		parts = append(parts, name+" ("+iropt.ProfileDoc(name)+")")
+	for _, name := range driver.Profiles() {
+		parts = append(parts, name+" ("+driver.ProfileDoc(name)+")")
 	}
 	return strings.Join(parts, "; ")
 }

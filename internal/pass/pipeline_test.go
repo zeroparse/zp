@@ -93,6 +93,12 @@ func TestDumpCallsEachPassInOrder(t *testing.T) {
 	if !slices.Equal(seen, want) {
 		t.Fatalf("dump %v, want %v", seen, want)
 	}
+	// A dump without a stage would print the unit as built unnamed: the run refuses it before any pass.
+	u := &unit{}
+	ran, err := p.Run(u, mode{}, Options[*unit]{Dump: func(string, *unit) {}})
+	if err == nil || !strings.Contains(err.Error(), "names no stage") || len(ran) != 0 || len(u.log) != 0 {
+		t.Errorf("a dump without a stage: ran %v, log %v, err %v", ran, u.log, err)
+	}
 }
 
 // With VerifyEach the error names the first pass that broke an invariant; without it the break is

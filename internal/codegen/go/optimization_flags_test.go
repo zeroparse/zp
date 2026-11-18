@@ -14,7 +14,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	genopt "zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/driver"
+	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -86,9 +87,9 @@ var outputFlagTests = map[string]string{}
 // a test of its disabled form (or, if it changes the output, of its changed contract), an output
 // change that is also in the parity tests, a test that names an unregistered optimization, and a
 // contract test for a flag that does not change the output.
-func flagTestProblems(flags []genopt.Flag, keeps, changes map[string]string) []string {
+func flagTestProblems(flags []pass.Flag, keeps, changes map[string]string) []string {
 	var out []string
-	known := map[string]genopt.Flag{}
+	known := map[string]pass.Flag{}
 	for _, f := range flags {
 		known[f.Name] = f
 		if f.ChangesOutput {
@@ -124,17 +125,17 @@ func flagTestProblems(flags []genopt.Flag, keeps, changes map[string]string) []s
 // disabled form (or, if it changes the output, of its changed contract), and for a test that names an
 // optimization that does not exist.
 func TestOptimizationsHaveTests(t *testing.T) {
-	for _, p := range flagTestProblems(genopt.Flags, optimizationTests, outputFlagTests) {
+	for _, p := range flagTestProblems(pass.Flags(), optimizationTests, outputFlagTests) {
 		t.Error(p)
 	}
 }
 
 // A registry with an optimization that changes the output, which no flag of the real one does yet,
 // shows the test check on its positive path: such a flag must name a contract test in place of a
-// disabled-form test (TestOutputChangingFlagRegistry in internal/ir/opt checks the opt-in rule).
+// disabled-form test (TestOutputChangingFlagRegistry in internal/driver checks the opt-in rule).
 func TestOutputChangingFlagChecks(t *testing.T) {
-	fake := genopt.Flag{Name: "fake-output", Kind: genopt.Printer, Doc: "changes the generated API", ChangesOutput: true}
-	flags := append(slices.Clone(genopt.Flags), fake)
+	fake := pass.Flag{Name: "fake-output", Kind: pass.KindPrinter, Doc: "changes the generated API", ChangesOutput: true}
+	flags := append(slices.Clone(pass.Flags()), fake)
 
 	has := func(problems []string, want string) bool {
 		return slices.ContainsFunc(problems, func(p string) bool { return strings.Contains(p, want) })
@@ -151,33 +152,78 @@ func TestOutputChangingFlagChecks(t *testing.T) {
 	if got := flagTestProblems(flags, both, contract); !has(got, "parity tests of the flags that keep behavior do not apply") {
 		t.Errorf("in the parity tests too: %v", got)
 	}
-	if got := flagTestProblems(genopt.Flags, optimizationTests, contract); !has(got, "not a registered optimization") {
+	if got := flagTestProblems(pass.Flags(), optimizationTests, contract); !has(got, "not a registered optimization") {
 		t.Errorf("a contract test for an unregistered flag: %v", got)
 	}
-	if got := flagTestProblems(genopt.Flags, optimizationTests, map[string]string{"guards": "TestX"}); !has(got, "does not change the output") {
+	if got := flagTestProblems(pass.Flags(), optimizationTests, map[string]string{"guards": "TestX"}); !has(got, "does not change the output") {
 		t.Errorf("a contract test for a flag that keeps behavior: %v", got)
 	}
 }
 
-// The guide lists every registered optimization, with the name that -no-opt takes, and the row
-// carries the kind and the default of the registry (and "changes output" for a flag that does).
+// A program that links the generators has the flags of every part of the pipeline, listed by kind
+// (pass, lowering, flow pass, exec pass, printer, runtime) and by name within a kind, which is the
+// order of the usage text of -opt and -no-opt and of the errors that list the names. The registry
+// and the profiles over it are valid, and the profiles resolve to the values they declare.
+func TestRegistryOfTheGenerators(t *testing.T) {
+	want := []string{
+		"class-runs", "guarded-classes", "guards", "scans", "terminals",
+		"class-tables", "field-compare", "inline-literals", "text-dispatch",
+		"literal-sharing", "method-sharing", "ts-literal-sharing", "used-features",
+		"sparse-memo", "typed-list-slabs", "typed-object-slabs", "typed-output-bootstrap",
+	}
+	if got := pass.Names(); !slices.Equal(got, want) {
+		t.Errorf("the registry lists\n%v\nwant\n%v", got, want)
+	}
+	if err := driver.Check(); err != nil {
+		t.Error(err)
+	}
+	mem, err := driver.Profile("memory")
+	if err != nil || mem.On("typed-object-slabs") || mem.On("typed-list-slabs") || !mem.On("typed-output-bootstrap") || !mem.On("guards") {
+		t.Errorf("memory: %v", err)
+	}
+	size, err := driver.Profile("size")
+	if err != nil || size.Value("inline-literals") != 0 || size.Value("class-tables") != 5 || !size.On("guards") {
+		t.Errorf("size: %v", err)
+	}
+	// A profile is a preset of flags that keep behavior: it never sets one that changes the output.
+	for _, name := range driver.Profiles() {
+		s, err := driver.Profile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range pass.Flags() {
+			if f.ChangesOutput && s.Value(f.Name) != f.Default {
+				t.Errorf("profile %s sets %s, which changes the output", name, f.Name)
+			}
+		}
+	}
+}
+
+// The guide lists every registered optimization, with the name that -no-opt takes, in the order of
+// the registry, and the row carries the kind and the default of the registry (and "changes output"
+// for a flag that does).
 func TestOptimizationsAreInTheGuide(t *testing.T) {
 	doc, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "guide", "code-generation.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range genopt.Flags {
+	last, lastName := -1, ""
+	for _, f := range pass.Flags() {
 		prefix := "| `" + f.Name + "` | "
-		row := ""
-		for _, line := range strings.Split(string(doc), "\n") {
+		row, at := "", -1
+		for i, line := range strings.Split(string(doc), "\n") {
 			if strings.HasPrefix(line, prefix) {
-				row = line
+				row, at = line, i
 			}
 		}
 		if row == "" {
 			t.Errorf("the guide has no row for the optimization %s", f.Name)
 			continue
 		}
+		if at < last {
+			t.Errorf("the guide lists %s before %s, against the order of the registry", f.Name, lastName)
+		}
+		last, lastName = at, f.Name
 		if want := prefix + f.Kind.String() + " | " + f.DefaultText() + " | "; !strings.HasPrefix(row, want) {
 			t.Errorf("the guide row of %s does not start with %q (the kind and the default of the registry): %.80s", f.Name, want, row)
 		}
@@ -218,7 +264,7 @@ func TestOptimizationDisabledParity(t *testing.T) {
 	t.Parallel()
 	codegentest.PinOrdinary(t)
 	cases := optimizationCases()
-	for _, f := range genopt.Flags {
+	for _, f := range pass.Flags() {
 		if optimizationTests[f.Name] != "" || f.ChangesOutput {
 			continue
 		}
@@ -257,7 +303,7 @@ func TestIntegerOptimizationValuesParity(t *testing.T) {
 	codegentest.PinOrdinary(t)
 	cases := optimizationCases()
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	for _, f := range genopt.Flags {
+	for _, f := range pass.Flags() {
 		if !f.Int || f.ChangesOutput {
 			continue
 		}
@@ -280,8 +326,8 @@ func TestOptimizationCombinationsParity(t *testing.T) {
 	t.Parallel()
 	codegentest.PinOrdinary(t)
 	var names []string
-	for _, f := range genopt.Flags {
-		if f.Kind != genopt.Runtime && !f.ChangesOutput {
+	for _, f := range pass.Flags() {
+		if f.Kind != pass.KindRuntime && !f.ChangesOutput {
 			names = append(names, f.Name)
 		}
 	}
@@ -320,8 +366,8 @@ func TestOptimizationDisabledNodeRouteParity(t *testing.T) {
 	codegentest.PinOrdinary(t)
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	var all []string
-	for _, f := range genopt.Flags {
-		if f.Kind != genopt.Runtime && !f.ChangesOutput {
+	for _, f := range pass.Flags() {
+		if f.Kind != pass.KindRuntime && !f.ChangesOutput {
 			all = append(all, f.Name)
 		}
 	}
@@ -379,7 +425,7 @@ func TestProfilesParity(t *testing.T) {
 	codegentest.PinOrdinary(t)
 	cases := optimizationCases()
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	for _, name := range genopt.Profiles() {
+	for _, name := range driver.Profiles() {
 		t.Run(name, func(t *testing.T) {
 			opts := off()
 			opts.Optimize = name
@@ -405,7 +451,7 @@ func TestProfilesRouteParity(t *testing.T) {
 	t.Parallel()
 	codegentest.PinOrdinary(t)
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	for _, name := range genopt.Profiles()[1:] {
+	for _, name := range driver.Profiles()[1:] {
 		for _, mode := range profileRouteModes {
 			t.Run(name+"/"+mode.name, func(t *testing.T) {
 				t.Parallel()
@@ -460,7 +506,7 @@ func TestProfilesStreamParity(t *testing.T) {
 				cases = append(cases, c)
 			}
 		}
-		for _, name := range genopt.Profiles()[1:] {
+		for _, name := range driver.Profiles()[1:] {
 			t.Run(name, func(t *testing.T) { testGeneratedStreams(t, goBin, cases, codegen.GenOptions{Optimize: name}) })
 		}
 	})
@@ -470,7 +516,7 @@ func TestProfilesStreamParity(t *testing.T) {
 func TestProfilesChangeTheCode(t *testing.T) {
 	t.Parallel()
 	codegentest.PinOrdinary(t)
-	for _, name := range genopt.Profiles()[1:] {
+	for _, name := range driver.Profiles()[1:] {
 		changed := false
 		for _, c := range optimizationCases() {
 			g, err := parseTest(c.Src)
@@ -495,11 +541,11 @@ func TestProfilesAreInTheGuide(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, n := range genopt.Profiles() {
+	for _, n := range driver.Profiles() {
 		if !strings.Contains(string(doc), "| `"+n+"` | ") {
 			t.Errorf("the guide has no row for the profile %s", n)
 		}
-		for flag := range genopt.ProfileValues(n) {
+		for flag := range driver.ProfileValues(n) {
 			row := ""
 			for _, line := range strings.Split(string(doc), "\n") {
 				if strings.HasPrefix(line, "| `"+n+"` | ") {

@@ -15,12 +15,13 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
-	"zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
@@ -90,15 +91,15 @@ type Hooks struct {
 	// functions printed from Exec IR (execRoute) it leaves undeclared the locals that no statement
 	// other than an assignment reads.
 	FlowVarsMutantUses bool
-	// CoreRun runs the Core passes in place of corepass.Run (opt.Driver.CoreRun), so that a test
+	// CoreRun runs the Core passes in place of corepass.Run (driver.Driver.CoreRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks the module added.
 	CoreRun func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error)
-	// FlowRun runs the Flow passes in place of flow.Run (opt.Driver.FlowRun), as CoreRun does for the
+	// FlowRun runs the Flow passes in place of flow.Run (driver.Driver.FlowRun), as CoreRun does for the
 	// Core passes.
 	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
-	// ExecRun runs the Exec passes in place of code.RunPasses (opt.Driver.ExecRun), as CoreRun does
+	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as CoreRun does
 	// for the Core passes.
-	ExecRun func(table string, m *code.Module, env *code.Env, o code.RunOptions) ([]string, error)
+	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)
 }
 
 // GenerateParser generates the files of Generate (other than for LibOnly). It generates twice: the
@@ -174,7 +175,7 @@ func generateOnce(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOption
 	// Only the pass that writes the output prints the Core IR.
 	var printAfter []string
 	if collect == nil {
-		printAfter, _ = opt.ParsePrintAfter(opts.PrintAfter)
+		printAfter, _ = driver.ParsePrintAfter(opts.PrintAfter)
 	}
 	info, err := loadLib(opts)
 	if err != nil {

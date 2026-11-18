@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	genopt "zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/driver"
+	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -27,8 +28,8 @@ func TestOptimizationDisabledTSParity(t *testing.T) {
 	t.Parallel()
 	node := codegentest.RequireNode(t)
 	var all []string
-	for _, f := range genopt.Flags {
-		if f.Kind != genopt.Runtime && !f.ChangesOutput {
+	for _, f := range pass.Flags() {
+		if f.Kind != pass.KindRuntime && !f.ChangesOutput {
 			all = append(all, f.Name)
 		}
 	}
@@ -64,7 +65,7 @@ func TestOptimizationDisabledTSParity(t *testing.T) {
 func TestProfilesTSParity(t *testing.T) {
 	t.Parallel()
 	node := codegentest.RequireNode(t)
-	for _, name := range genopt.Profiles()[1:] {
+	for _, name := range driver.Profiles()[1:] {
 		for _, mode := range tsModes {
 			t.Run(name+"/"+mode.name, func(t *testing.T) {
 				t.Parallel()
