@@ -372,6 +372,26 @@ takes the rest of a walk from a record of a [skip run](#skip-runs), a
 charges the iterations and characters that it skips. A parser generated without
 limit controls counts no units.
 
+Some values are built by the runtime rather than by an action, and each backend
+charges them as follows:
+
+- **Gathered values.** Every value that a repetition or a sequence gathers into
+  a list is charged at most two units. A backend may charge them when it pushes
+  the value, when it collects the list, or both.
+- **Syntax errors.** A syntax error that a recovery builds is charged:
+  - one unit for each expectation that it is given;
+  - the steps of sorting their descriptions;
+  - the steps of finding its line in a table of line starts.
+
+  The first such error of a parse of a whole input also charges one unit for
+  each code point of the input, which builds that table. The table is built
+  lazily, so a parse without errors does not charge for it. A
+  [stream](streaming.md) finds the line from its own record of line starts.
+- **Error messages.** The message of a recovered error that a value holds is
+  charged as a value of its size: one unit, one for each byte of its text and
+  one for each of its parts. The value is an error node of the Node runtime or
+  the value of the error in a typed parse.
+
 Compute units also count work that the cost does not, and the budget caps it too.
 In a parse that recovers errors, a memo entry, a result of a growth or an
 attempt of an Operators Rule shares the list of the errors recovered in it, and

@@ -58,12 +58,13 @@ const (
 	// the growth of their tables, as the operations of the Exec stage that the protocol calls declare
 	// them.
 	QCall = "call"
-	// QVals is the number of values that the call returns in its list.
+	// QVals is the number of values that the call returns in its list; spec/runtime/parsing.md#cost bounds
+	// each gathered value by two units.
 	QVals = "vals"
 	// QError is the work of building a syntax error: one unit for each expectation that the call is
 	// passed, the steps of sorting their descriptions and of finding the line of the error's position
 	// in a table of the line starts, and, at the first error of a parse of a whole input, one unit for
-	// each code point of the input, which builds that table.
+	// each code point of the input, which builds that table (spec/runtime/parsing.md#cost).
 	QError = "error"
 	// QRanges is the number of ranges of the operation's class.
 	QRanges = "ranges"
@@ -80,7 +81,8 @@ const (
 	QStream = "stream"
 	// QErrorText is the size of the message of the recovered error that a value holds: the bytes of its
 	// text and one for each of its parts, which a target that bounds the work assembles piece by piece
-	// (the quantity error_parts of the Exec stage).
+	// (the quantity error_parts of the Exec stage); spec/runtime/parsing.md#cost charges the message as a
+	// value of that size, with one unit more for the value.
 	QErrorText = "error_text"
 )
 
@@ -377,7 +379,7 @@ parse what loading the input charges; in a Document parse it records how far the
 		Contract: "Merges the expectations exps, recorded at far, into the enclosing scope, renamed to the expectation of the immediate (@diagnostic), as the composition expect does for it (spec/exec-ir/compositions.md#expectations)."}),
 		"the expectation (core.ExpID)", immOf[core.ExpID]())
 	op(&code.Op{Name: OpPushKid, Params: []code.Param{P("x", value)}, Writes: []string{State}, Cost: unit,
-		Contract: "Pushes x on the stack of gathered values. It charges at most a unit for the value."})
+		Contract: "Pushes x on the stack of gathered values. It charges at most a unit for the value, within the bound of gathered values (spec/runtime/parsing.md#cost)."})
 	op(&code.Op{Name: OpDropKids, Params: []code.Param{P("base", i)}, Writes: []string{State},
 		Contract: "Truncates the stack of gathered values to base.", Requires: "base is at most the height of the stack."})
 	op(&code.Op{Name: OpStreamStart, Writes: []string{State}, NoReturn: true,
@@ -468,7 +470,8 @@ recorded count; otherwise it returns count.`}), "the site (Site)", immOf[Site]()
 		Contract: `Returns the elements of a walk of the scan site that began at start, gathered on the stack from
 base, which matched count characters: for a walk that reached ScanHotSpan characters it ends the walk as
 flow.scanEnd does, and the result is the elements of the record that the walk took, if it took one (the
-stack is dropped to base), or the gathered elements, which the record that it makes shares.`}), "the site (Site)", immOf[Site]())
+stack is dropped to base), or the gathered elements, which the record that it makes shares. It charges at most two
+units for each value of its result, the bound of gathered values (spec/runtime/parsing.md#cost).`}), "the site (Site)", immOf[Site]())
 	withImm(op(&code.Op{Name: OpHasLit, Results: []code.Type{b}, Reads: pos, Writes: []string{State}, NoReturn: true, Cost: per(QLit),
 		Contract: `Reports that the input at the position begins with the literal, read in place without recording
 anything; false where the input cannot be read in place. With budget controls a match charges a unit per
@@ -533,7 +536,7 @@ position is the end of the rule's match, on failure it is unchanged. The body ch
 		Contract: "Returns an empty list of values with room for the immediate."}), "the room (Room)", immOf[Room]())
 	op(&code.Op{Name: OpKids, Params: []code.Param{P("base", i)}, Results: []code.Type{vals}, Writes: []string{State},
 		Cost:     code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QVals}}},
-		Contract: "Returns the list of the values gathered above base, which it removes from the stack. It charges at most two units for each value of the list."})
+		Contract: "Returns the list of the values gathered above base, which it removes from the stack. It charges at most two units for each value of the list, the bound of gathered values (spec/runtime/parsing.md#cost)."})
 	withImm(op(&code.Op{Name: OpShapeSingle, Params: []code.Param{P("x", value), P("start", i)}, Results: []code.Type{value, b}, Reads: pos, Writes: []string{State},
 		Contract: "Returns the value of x, matched from start by an expression of the shape, where it takes one element, and whether it is a single element (not used)."}),
 		"the shape (core.Shape)", immOf[core.Shape]())
@@ -563,11 +566,11 @@ position is the end of the rule's match, on failure it is unchanged. The body ch
 	op(&code.Op{Name: OpKeep, Params: []code.Param{P("exps", expids)}, Results: []code.Type{expids}, Writes: []string{State}, Cost: per(QMerge),
 		Contract: "Returns the expectations exps, kept beyond the scope that recorded them, as the composition keep does (spec/exec-ir/compositions.md#expectations)."})
 	op(&code.Op{Name: OpMakeError, Params: []code.Param{P("far", i), P("exps", expids)}, Results: []code.Type{errT}, Writes: []string{State}, Cost: per(QError),
-		Contract: "Returns the syntax error at far with the expectations exps."})
+		Contract: "Returns the syntax error at far with the expectations exps, charged as spec/runtime/parsing.md#cost specifies for syntax errors."})
 	op(&code.Op{Name: OpErrorValue, Params: []code.Param{P("start", i), P("x", errT)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: plus(value1, QErrorText),
-		Contract: "Returns the value of the recovered error x over the input from start to the position."})
+		Contract: "Returns the value of the recovered error x over the input from start to the position. Its message is charged as a value of its size (spec/runtime/parsing.md#cost)."})
 	op(&code.Op{Name: OpNewErrorNode, Params: []code.Param{P("start", i), P("x", errT)}, Results: []code.Type{value}, Reads: pos, Writes: []string{State}, Cost: plus(value1, QErrorText),
-		Contract: "Returns the error node of the recovered error x in the Node runtime, over the input from start to the position."})
+		Contract: "Returns the error node of the recovered error x in the Node runtime, over the input from start to the position. Its message is charged as a value of its size (spec/runtime/parsing.md#cost)."})
 	op(&code.Op{Name: OpFreshNode, Params: []code.Param{P("x", value)}, Results: []code.Type{value},
 		Contract: "Returns x if it is a node its maker still owns, or nil.", Laws: []string{pure}})
 	withImm(op(&code.Op{Name: OpConvertResult, Params: []code.Param{P("x", value), P("owned", value)}, Variadic: true, Results: []code.Type{value}, Writes: []string{State}, NoReturn: true,
