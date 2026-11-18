@@ -1,0 +1,46 @@
+package print
+
+import (
+	"zeroparse.dev/zp/grammar"
+	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
+	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
+)
+
+// TypedCore builds the Core IR of the typed Go rules and runs the pipeline of Core passes on it:
+// terminal regions (in rules lowered to Go-local code of lean parsers without observability), term
+// rewrites (with literal text dispatch and unboxed field comparisons unless disabled), choice guards
+// (with guarded classes in ordinary parsers), scans and, in lean parsers, class runs. With a hook
+// (opt.Driver.CoreHook, tests), it calls the hook with the module after it is built and after each
+// pass.
+func (g *Generator) TypedCore(origin map[core.Node]grammar.Expr) (*core.Module, error) {
+	m, err := irbuild.CoreFrom(g.Prog, origin)
+	if err != nil {
+		return nil, err
+	}
+	mode := corepass.Mode{Lean: g.Ordinary, Ordinary: g.Ordinary, Observe: g.Observability}
+	if err := g.RunCore(g.IRTable(), m, mode, CoreLocalRule, nil); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// CoreLocalRule reports whether the typed Go backend lowers the rule r to Go-local code: its
+// captures are variables of the rule's function rather than a library frame. Left-recursion
+// leaders, whose growth the library owns, Operators Rules and rules with recovery keep runtime
+// frames.
+func CoreLocalRule(r *core.Rule) bool {
+	if r.Policy.Leader {
+		return false
+	}
+	if _, ok := r.Body.(*core.OperatorsRule); ok {
+		return false
+	}
+	recovers := false
+	core.Walk(r.Body, func(n core.Node) {
+		if _, ok := n.(*core.Recover); ok {
+			recovers = true
+		}
+	})
+	return !recovers
+}

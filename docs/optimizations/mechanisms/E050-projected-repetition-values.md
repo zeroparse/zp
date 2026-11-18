@@ -39,7 +39,7 @@ Evidence records: [052](../052-projected-repetitions-in-generated-parse.md),
 [053](../053-projected-repetitions-in-the-engine-and-the-vms.md).
 
 Source owners: [`RuleProjections`](../../../internal/compile/project.go),
-[`closure.Builder.ProjectRepeat`](../../../internal/engine/closure/builder.go), the projected
+[`closure.Builder.ProjectRepeat`](../../../internal/backend/closure/builder.go), the projected
 repetitions of the bytecode compiler,
 [`Flow projectRepeat`](../../../internal/middleend/flowlower/lower.go), which lowers the
 projected repetitions of generated Go and TypeScript.

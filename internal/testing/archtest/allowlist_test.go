@@ -19,7 +19,7 @@ var allowlist = []string{
 	// the rule facts and the site numbers from the Core IR; S5 moves it to the driver with the rest.
 	"rule 1: internal/engine -> internal/frontend",
 	"rule 1: internal/engine -> internal/diagnostic",
-	"rule 1: internal/engine -> internal/engine/closure",
+	"rule 1: internal/engine -> internal/backend/closure",
 	"rule 1: internal/engine -> internal/ir/core",
 	"rule 1: internal/engine/document -> internal/compile",
 	"rule 1: internal/engine/state -> grammar",
@@ -43,14 +43,14 @@ var allowlist = []string{
 	// moves them under internal/backend, and the runtime separation (S5, #280) moves the compile
 	// entry into the driver, which then resolves the settings and calls the back ends; the edges
 	// go with it.
-	"rule 2: internal/codegen -> internal/driver",
-	"rule 2: internal/codegen/go -> internal/driver",
-	"rule 2: internal/codegen/ts -> internal/driver",
+	"rule 2: internal/backend/codegen/common -> internal/driver",
+	"rule 2: internal/backend/codegen/golang/print -> internal/driver",
+	"rule 2: internal/backend/codegen/typescript/print -> internal/driver",
 	// The Go and TypeScript generators drive the lowering to Flow and print Exec. With Flow
 	// and Action as dialects and the control decisions in Flow passes (S7a, S7b), the driver runs
 	// flowlower and the printers print the Exec stage only.
-	"rule 2: internal/codegen/go -> dialects exec, flow",
-	"rule 2: internal/codegen/ts -> dialects exec, flow",
+	"rule 2: internal/backend/codegen/golang/print -> dialects exec, flow",
+	"rule 2: internal/backend/codegen/typescript/print -> dialects exec, flow",
 	// The flag names use the backend choice and the parse options of engine. The runtime and
 	// compiler API stage (S6b) removes engine: the options move to pkg/runtime, and the backend
 	// choice goes away (the constructor chooses the backend).

@@ -36,8 +36,8 @@ Evidence records:
 Source owners: [`LeanLine` and the Operators Rule
 walk](../../../internal/compile/compile_walk.go),
 the line emission of the bytecode compiler, [`Operators Rule line
-emission`](../../../internal/codegen/go/generator.go), [`TypeScript line
-emission`](../../../internal/codegen/ts/generator.go).
+emission`](../../../internal/backend/codegen/golang/print/generator.go), [`TypeScript line
+emission`](../../../internal/backend/codegen/typescript/print/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

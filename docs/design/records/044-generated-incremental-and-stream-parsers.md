@@ -356,7 +356,7 @@ Node fixture found median candidate/main ratios of 0.984–1.003 across fresh ba
 cases in both units; paired ranges were 0.975–1.025. Allocations per operation were unchanged and bytes per
 operation differed by at most two bytes. This supports no measurable Node-path regression on that fixture.
 
-The new [typed benchmark fixture](../../../internal/codegen/go/testdata/generated_document_bench/typed_bench_test.go)
+The new [typed benchmark fixture](../../../internal/backend/codegen/golang/print/testdata/generated_document_bench/typed_bench_test.go)
 uses 256 or 4,096 records of `é😀=123;`. Five 200 ms samples of the same generated revision measured direct
 typed `ParseValue`, a warm `Document.ParseValue` without an edit, and near-EOF `Edit+Document.ParseValue`. The edit
 benchmark includes the edit and conversion; direct inputs are prebuilt. Values were compared against a fresh

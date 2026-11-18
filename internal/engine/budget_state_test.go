@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/engine/closure"
+	"zeroparse.dev/zp/internal/backend/closure"
 	ir "zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/core"

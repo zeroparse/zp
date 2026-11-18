@@ -37,10 +37,10 @@ Evidence records: [011](../011-generated-parsers-catch-up-with-changes-410.md),
 [017](../017-ascii-bitmaps-for-character-classes-in-the-vms.md),
 [031](../031-specialized-character-class-tests-in-the-closure-backend.md).
 
-Source owners: [`closure.ClassAccept`](../../../internal/engine/closure/class_accept.go), [`newASCIISet
+Source owners: [`closure.ClassAccept`](../../../internal/backend/closure/class_accept.go), [`newASCIISet
 and VM class tests`](../../../internal/engine/vm/vm.go), [`class test
-emission`](../../../internal/codegen/go/generator.go), [`TypeScript class test
-emission`](../../../internal/codegen/ts/generator.go).
+emission`](../../../internal/backend/codegen/golang/print/generator.go), [`TypeScript class test
+emission`](../../../internal/backend/codegen/typescript/print/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.
