@@ -11,9 +11,9 @@ import (
 	"testing"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The canonical grammar and the hand-written frontend must assign the same
@@ -23,22 +23,22 @@ import (
 
 // manualOwners reads the owners of the hand-written parse from the AST values.
 // The JSON form does not tag concrete list elements, so it cannot key them.
-func manualOwners(t *testing.T, g *grammar.Grammar) map[string]grammar.SourceInfo {
+func manualOwners(t *testing.T, g *ast.Grammar) map[string]ast.SourceInfo {
 	t.Helper()
 	kinds := map[string]string{
 		"Pkg": "Pkg", "TypeDef": "TypeDef", "TypeAlias": "TypeAlias", "VarDef": "VarDef", "RuleDef": "RuleDef", "Field": "Field",
 		"OperatorsRuleOperand": "OperatorsOperand", "OperatorsRuleLevel": "OperatorsLevel",
 		"OperatorsRuleOperator": "OperatorsOperator", "FieldInit": "InitField",
 	}
-	owners := map[string]grammar.SourceInfo{}
-	add := func(kind string, s grammar.SourceInfo) {
+	owners := map[string]ast.SourceInfo{}
+	add := func(kind string, s ast.SourceInfo) {
 		s.Layout = nil
 		if kind == "Pkg" && !s.Pos.IsValid() {
 			return // no package clause
 		}
 		owners[fmt.Sprintf("%s@%d:%d", kind, s.Pos.Line, s.Pos.Col)] = s
 	}
-	sourceType := reflect.TypeOf(grammar.SourceInfo{})
+	sourceType := reflect.TypeOf(ast.SourceInfo{})
 	var walk func(reflect.Value)
 	walk = func(v reflect.Value) {
 		switch v.Kind() {
@@ -55,10 +55,10 @@ func manualOwners(t *testing.T, g *grammar.Grammar) map[string]grammar.SourceInf
 				return
 			}
 			if kind, ok := kinds[v.Type().Name()]; ok {
-				add(kind, v.FieldByName("SourceInfo").Interface().(grammar.SourceInfo))
+				add(kind, v.FieldByName("SourceInfo").Interface().(ast.SourceInfo))
 			}
 			if v.Type().Name() == "OperatorsRule" {
-				if s := v.FieldByName("SkipSource").Interface().(grammar.SourceInfo); s.Pos.IsValid() {
+				if s := v.FieldByName("SkipSource").Interface().(ast.SourceInfo); s.Pos.IsValid() {
 					add("OperatorsSkip", s)
 				}
 			}
@@ -90,10 +90,10 @@ func canonicalLead(t *testing.T, n *core.Node) sourceast.Lead {
 }
 
 // canonicalOwners converts the ownership records of the canonical tree.
-func canonicalOwners(t *testing.T, src string, root *core.Node) map[string]grammar.SourceInfo {
+func canonicalOwners(t *testing.T, src string, root *core.Node) map[string]ast.SourceInfo {
 	t.Helper()
 	positions := sourceast.NewPositions(src)
-	owners := map[string]grammar.SourceInfo{}
+	owners := map[string]ast.SourceInfo{}
 	kinds := map[string]string{
 		"TypeDef": "TypeDef", "TypeAlias": "TypeAlias", "VarDef": "VarDef", "RuleDef": "RuleDef", "Field": "Field",
 		"OperatorsOperand": "OperatorsOperand", "OperatorsLevel": "OperatorsLevel",
@@ -207,7 +207,7 @@ func canonicalOwners(t *testing.T, src string, root *core.Node) map[string]gramm
 	return owners
 }
 
-func sortedKeys(m map[string]grammar.SourceInfo) []string {
+func sortedKeys(m map[string]ast.SourceInfo) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

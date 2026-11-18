@@ -7,12 +7,12 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func sourceInfoAt(line, col, endLine, endCol int) grammar.SourceInfo {
-	return grammar.SourceInfo{Pos: grammar.Pos{Line: line, Col: col}, End: grammar.Pos{Line: endLine, Col: endCol}}
+func sourceInfoAt(line, col, endLine, endCol int) ast.SourceInfo {
+	return ast.SourceInfo{Pos: ast.Pos{Line: line, Col: col}, End: ast.Pos{Line: endLine, Col: endCol}}
 }
 
 // nodeBases are sources with every kind of expression and type. A comment is

@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestDecideAlt checks the comparison of the exclusion analysis on the first choice of rule main:
@@ -74,9 +74,9 @@ func TestDecideAlt(t *testing.T) {
 		}
 		k.computeBounded()
 		k.computeFirst()
-		var ch *grammar.Choice
-		astfacts.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
-			if y, ok := x.(*grammar.Choice); ok && ch == nil {
+		var ch *ast.Choice
+		astfacts.WalkExpr(k.byName["main"].Expr, func(x ast.Expr) {
+			if y, ok := x.(*ast.Choice); ok && ch == nil {
 				ch = y
 			}
 		})
@@ -127,9 +127,9 @@ func TestDecideAltTrivia(t *testing.T) {
 			}
 			k.computeBounded()
 			k.computeFirst()
-			var ch *grammar.Choice
-			astfacts.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
-				if y, ok := x.(*grammar.Choice); ok && ch == nil {
+			var ch *ast.Choice
+			astfacts.WalkExpr(k.byName["main"].Expr, func(x ast.Expr) {
+				if y, ok := x.(*ast.Choice); ok && ch == nil {
 					ch = y
 				}
 			})
@@ -178,7 +178,7 @@ func TestTriviaCheap(t *testing.T) {
 			t.Fatal(err)
 		}
 		k.classify()
-		if got := newExcl(k, true, 3).cheap(&grammar.Ref{Name: "ws2"}); got != on {
+		if got := newExcl(k, true, 3).cheap(&ast.Ref{Name: "ws2"}); got != on {
 			t.Errorf("memo %v: cheap %v", on, got)
 		}
 	}
@@ -198,7 +198,7 @@ func TestCollapseTrivia(t *testing.T) {
 		t.Fatal(err)
 	}
 	x := newExcl(k, true, 3)
-	ws, ws2, lit := &grammar.Ref{Name: "ws"}, &grammar.Ref{Name: "ws2"}, &grammar.Literal{Value: "x"}
+	ws, ws2, lit := &ast.Ref{Name: "ws"}, &ast.Ref{Name: "ws2"}, &ast.Literal{Value: "x"}
 	p := []sym{{symMatch, ws, 0}, {symSkip, nil, 0}, {symMatch, ws, 1}, {symNot, lit, 1}, {symMatch, ws, 2},
 		{symMatch, ws2, 2}, {symMatch, ws, 3}, {symMatch, lit, 3}, {symMatch, ws, 4}}
 	if got, want := fmtPath(x.collapseTrivia(p, 0)), fmtPath([]sym{p[0], p[1], p[3], p[5], p[6], p[7], p[8]}); got != want {
@@ -223,7 +223,7 @@ func TestCollapseTriviaBinding(t *testing.T) {
 		t.Fatal(err)
 	}
 	x := newExcl(k, true, 3)
-	wv, ws := &grammar.Ref{Name: "wv"}, &grammar.Ref{Name: "ws"}
+	wv, ws := &ast.Ref{Name: "wv"}, &ast.Ref{Name: "ws"}
 	for _, c := range []struct {
 		name string
 		p    []sym
@@ -350,9 +350,9 @@ func TestDecideAltVariables(t *testing.T) {
 		}
 		k.computeBounded()
 		k.computeFirst()
-		var ch *grammar.Choice
-		astfacts.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
-			if y, ok := x.(*grammar.Choice); ok && ch == nil {
+		var ch *ast.Choice
+		astfacts.WalkExpr(k.byName["main"].Expr, func(x ast.Expr) {
+			if y, ok := x.(*ast.Choice); ok && ch == nil {
 				ch = y
 			}
 		})
@@ -525,7 +525,7 @@ func stopKind(k *classifier, s sym) string {
 	switch e := s.e.(type) {
 	case nil:
 		return "end of continuation"
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		switch e {
 		case stopFollow:
 			return "follow bound"
@@ -533,9 +533,9 @@ func stopKind(k *classifier, s sym) string {
 			return "length bound"
 		}
 		return "bottom"
-	case *grammar.Choice, *grammar.Optional, *grammar.Repeat:
+	case *ast.Choice, *ast.Optional, *ast.Repeat:
 		return "part that is not cheap"
-	case *grammar.Ref:
+	case *ast.Ref:
 		switch {
 		case e.Level != "":
 			return "operator level call"
@@ -543,9 +543,9 @@ func stopKind(k *classifier, s sym) string {
 			return "left-recursive call"
 		}
 		return "call"
-	case *grammar.CharClass, *grammar.Any, *grammar.Literal:
+	case *ast.CharClass, *ast.Any, *ast.Literal:
 		return "character"
-	case *grammar.Attributed, *grammar.OperatorsRule, *grammar.Recovery:
+	case *ast.Attributed, *ast.OperatorsRule, *ast.Recovery:
 		return "attributed, Operators Rule or #recover"
 	}
 	return fmt.Sprintf("%T", s.e)
@@ -562,7 +562,7 @@ type exclStats struct {
 
 // exclusionStats decides each alternative of each choice of the reachable rules of g against the
 // later alternatives, within up to five symbols.
-func exclusionStats(g *grammar.Grammar, start string) (exclStats, error) {
+func exclusionStats(g *ast.Grammar, start string) (exclStats, error) {
 	k, _, err := prepareClassifier(g, start, nil)
 	if err != nil {
 		return exclStats{}, err
@@ -575,8 +575,8 @@ func exclusionStats(g *grammar.Grammar, start string) (exclStats, error) {
 		if !k.reach[r.Name] {
 			continue
 		}
-		astfacts.WalkExpr(r.Expr, func(e grammar.Expr) {
-			ch, ok := e.(*grammar.Choice)
+		astfacts.WalkExpr(r.Expr, func(e ast.Expr) {
+			ch, ok := e.(*ast.Choice)
 			if !ok || len(ch.Alts) < 2 {
 				return
 			}
@@ -670,7 +670,7 @@ func TestExclusionReport(t *testing.T) {
 			if s.h.trivia {
 				var rules []string
 				for _, r := range k.rules {
-					if k.reach[r.Name] && k.isTrivia(&grammar.Ref{Name: r.Name}) {
+					if k.reach[r.Name] && k.isTrivia(&ast.Ref{Name: r.Name}) {
 						rules = append(rules, r.Name)
 					}
 				}
@@ -722,13 +722,13 @@ func fmtPath(p []sym) string {
 		case symUp:
 			b = append(b, "UP")
 		case symNot:
-			b = append(b, "!"+grammar.FormatExpr(s.e))
+			b = append(b, "!"+ast.FormatExpr(s.e))
 		case symAnd:
-			b = append(b, "&"+grammar.FormatExpr(s.e))
+			b = append(b, "&"+ast.FormatExpr(s.e))
 		case symSkip:
 			b = append(b, "_")
 		default:
-			b = append(b, grammar.FormatExpr(s.e))
+			b = append(b, ast.FormatExpr(s.e))
 		}
 	}
 	return strings.Join(b, " ")
@@ -1045,7 +1045,7 @@ func TestExclusionBudget(t *testing.T) {
 		}
 		k.computeBounded()
 		k.computeFirst()
-		ch := ungroup(ungroup(k.byName["main"].Expr).(*grammar.Seq).Items[0]).(*grammar.Choice)
+		ch := ungroup(ungroup(k.byName["main"].Expr).(*ast.Seq).Items[0]).(*ast.Choice)
 		start := time.Now()
 		d := k.decideAlt(ch, 0, 5)
 		if d.decided != c.decided || (k.exclOverBudget > 0) != c.exceeded {

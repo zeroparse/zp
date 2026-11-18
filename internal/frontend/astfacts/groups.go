@@ -1,41 +1,41 @@
 package astfacts
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // UngroupType removes source-only grouping without changing its input.
-func UngroupType(t grammar.TypeExpr) grammar.TypeExpr {
+func UngroupType(t ast.TypeExpr) ast.TypeExpr {
 	return ungroupType(t, nil)
 }
 
 // UngroupTypeWithPoll also visits each traversed node and copied slice element.
 // The callback may panic to interrupt lowering; the source is never modified.
-func UngroupTypeWithPoll(t grammar.TypeExpr, poll func()) grammar.TypeExpr {
+func UngroupTypeWithPoll(t ast.TypeExpr, poll func()) ast.TypeExpr {
 	return ungroupType(t, poll)
 }
 
-func ungroupType(t grammar.TypeExpr, poll func()) grammar.TypeExpr {
+func ungroupType(t ast.TypeExpr, poll func()) ast.TypeExpr {
 	if poll != nil {
 		poll()
 	}
 	switch t := t.(type) {
-	case *grammar.TypeGroup:
+	case *ast.TypeGroup:
 		return ungroupType(t.Type, poll)
-	case *grammar.ListType:
+	case *ast.ListType:
 		child := ungroupType(t.Elem, poll)
 		if child != t.Elem {
 			v := *t
 			v.Elem = child
 			return &v
 		}
-	case *grammar.OptionalType:
+	case *ast.OptionalType:
 		child := ungroupType(t.Elem, poll)
 		if child != t.Elem {
 			v := *t
 			v.Elem = child
 			return &v
 		}
-	case *grammar.JoinType:
-		var children []grammar.TypeExpr
+	case *ast.JoinType:
+		var children []ast.TypeExpr
 		for i, x := range t.Types {
 			child := ungroupType(x, poll)
 			if child != x {
@@ -50,8 +50,8 @@ func ungroupType(t grammar.TypeExpr, poll func()) grammar.TypeExpr {
 			v.Types = children
 			return &v
 		}
-	case *grammar.MeetType:
-		var children []grammar.TypeExpr
+	case *ast.MeetType:
+		var children []ast.TypeExpr
 		for i, x := range t.Types {
 			child := ungroupType(x, poll)
 			if child != x {
@@ -66,20 +66,20 @@ func ungroupType(t grammar.TypeExpr, poll func()) grammar.TypeExpr {
 			v.Types = children
 			return &v
 		}
-	case *grammar.TupleType:
+	case *ast.TupleType:
 		if children := ungroupTypes(t.Types, poll); children != nil {
 			v := *t
 			v.Types = children
 			return &v
 		}
-	case *grammar.TypeApp:
+	case *ast.TypeApp:
 		if children := ungroupTypes(t.Args, poll); children != nil {
 			v := *t
 			v.Args = children
 			return &v
 		}
-	case *grammar.StructType:
-		var fields []*grammar.Field
+	case *ast.StructType:
+		var fields []*ast.Field
 		for i, f := range t.Fields {
 			child := ungroupType(f.Type, poll)
 			if child != f.Type {
@@ -101,8 +101,8 @@ func ungroupType(t grammar.TypeExpr, poll func()) grammar.TypeExpr {
 }
 
 // ungroupTypes ungroups each of ts, returning a copy if any changed and nil otherwise.
-func ungroupTypes(ts []grammar.TypeExpr, poll func()) []grammar.TypeExpr {
-	var children []grammar.TypeExpr
+func ungroupTypes(ts []ast.TypeExpr, poll func()) []ast.TypeExpr {
+	var children []ast.TypeExpr
 	for i, x := range ts {
 		child := ungroupType(x, poll)
 		if child != x {
@@ -116,38 +116,38 @@ func ungroupTypes(ts []grammar.TypeExpr, poll func()) []grammar.TypeExpr {
 }
 
 // UngroupTerm removes source-only grouping without changing its input.
-func UngroupTerm(t grammar.Term) grammar.Term {
+func UngroupTerm(t ast.Term) ast.Term {
 	return ungroupTerm(t, nil)
 }
 
 // UngroupTermWithPoll is UngroupTerm with the same polling contract as
 // UngroupTypeWithPoll, including nested type expressions and slice copies.
-func UngroupTermWithPoll(t grammar.Term, poll func()) grammar.Term {
+func UngroupTermWithPoll(t ast.Term, poll func()) ast.Term {
 	return ungroupTerm(t, poll)
 }
 
-func ungroupTerm(t grammar.Term, poll func()) grammar.Term {
+func ungroupTerm(t ast.Term, poll func()) ast.Term {
 	if poll != nil {
 		poll()
 	}
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return ungroupTerm(t.Term, poll)
-	case *grammar.Member:
+	case *ast.Member:
 		child := ungroupTerm(t.X, poll)
 		if child != t.X {
 			v := *t
 			v.X = child
 			return &v
 		}
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		elems := ungroupTerms(t.Elems, poll)
 		if elems != nil {
 			v := *t
 			v.Elems = elems
 			return &v
 		}
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		elem, items := ungroupType(t.Elem, poll), ungroupTerms(t.Items, poll)
 		if elem != t.Elem || items != nil {
 			v := *t
@@ -157,8 +157,8 @@ func ungroupTerm(t grammar.Term, poll func()) grammar.Term {
 			}
 			return &v
 		}
-	case *grammar.New:
-		var fields []*grammar.FieldInit
+	case *ast.New:
+		var fields []*ast.FieldInit
 		for i, f := range t.Fields {
 			child := ungroupTerm(f.Value, poll)
 			if child != f.Value {
@@ -170,7 +170,7 @@ func ungroupTerm(t grammar.Term, poll func()) grammar.Term {
 				fields[i] = &v
 			}
 		}
-		var args []grammar.Term
+		var args []ast.Term
 		for i, x := range t.Args {
 			child := ungroupTerm(x, poll)
 			if child != x {
@@ -190,49 +190,49 @@ func ungroupTerm(t grammar.Term, poll func()) grammar.Term {
 			}
 			return &v
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		args := ungroupTerms(t.Args, poll)
 		if args != nil {
 			v := *t
 			v.Args = args
 			return &v
 		}
-	case *grammar.Lambda:
+	case *ast.Lambda:
 		child := ungroupTerm(t.Body, poll)
 		if child != t.Body {
 			v := *t
 			v.Body = child
 			return &v
 		}
-	case *grammar.Binary:
+	case *ast.Binary:
 		l, r := ungroupTerm(t.L, poll), ungroupTerm(t.R, poll)
 		if l != t.L || r != t.R {
 			v := *t
 			v.L, v.R = l, r
 			return &v
 		}
-	case *grammar.Cast:
+	case *ast.Cast:
 		child, typ := ungroupTerm(t.X, poll), ungroupType(t.Type, poll)
 		if child != t.X || typ != t.Type {
 			v := *t
 			v.X, v.Type = child, typ
 			return &v
 		}
-	case *grammar.Unary:
+	case *ast.Unary:
 		child := ungroupTerm(t.X, poll)
 		if child != t.X {
 			v := *t
 			v.X = child
 			return &v
 		}
-	case *grammar.Bind:
+	case *ast.Bind:
 		child := ungroupTerm(t.Value, poll)
 		if child != t.Value {
 			v := *t
 			v.Value = child
 			return &v
 		}
-	case *grammar.Block:
+	case *ast.Block:
 		children := ungroupTerms(t.Statements, poll)
 		if children != nil {
 			v := *t
@@ -243,8 +243,8 @@ func ungroupTerm(t grammar.Term, poll func()) grammar.Term {
 	return t
 }
 
-func ungroupTerms(ts []grammar.Term, poll func()) []grammar.Term {
-	var children []grammar.Term
+func ungroupTerms(ts []ast.Term, poll func()) []ast.Term {
+	var children []ast.Term
 	for i, x := range ts {
 		child := ungroupTerm(x, poll)
 		if child != x {

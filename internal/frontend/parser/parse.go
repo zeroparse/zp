@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // sourceLimits are the limits of the source parser. The lexer rejects a source that nests deeper
@@ -26,7 +26,7 @@ var sourceLimits = zpparser.WithLimits(zpparser.Limits{Compute: zpparser.Unlimit
 // values. A rejected source returns an ErrorList: the lexical errors, then the
 // syntax errors and the errors of the checks that the grammar does not make,
 // in the order of the source.
-func Parse(src string) (*grammar.Grammar, error) {
+func Parse(src string) (*ast.Grammar, error) {
 	lx := lexSource(src)
 	text, invalid := lx.withoutInvalidCharacters()
 	f, err := zpparser.ParseValue(text, zpparser.WithExpectations(), sourceLimits)
@@ -50,14 +50,14 @@ func Parse(src string) (*grammar.Grammar, error) {
 // not catch, such as an invalid escape sequence, leave the declaration in the
 // grammar. The errors are the syntax errors, then the errors of the checks on
 // the declarations kept.
-func ParsePartial(src string) (*grammar.Grammar, ErrorList) {
+func ParsePartial(src string) (*ast.Grammar, ErrorList) {
 	g, errs, _ := ParsePartialContext(context.Background(), src)
 	return g, errs
 }
 
 // ParsePartialContext is ParsePartial with cancellation during parsing.
 // Cancelled calls return no grammar or diagnostics.
-func ParsePartialContext(ctx context.Context, src string) (*grammar.Grammar, ErrorList, error) {
+func ParsePartialContext(ctx context.Context, src string) (*ast.Grammar, ErrorList, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}

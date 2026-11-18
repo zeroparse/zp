@@ -1,10 +1,10 @@
 package print
 
 import (
-	"zeroparse.dev/zp/grammar"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TypedCore builds the Core IR of the typed Go rules and runs the pipeline of Core passes on it:
@@ -13,7 +13,7 @@ import (
 // (with guarded classes in ordinary parsers), scans and, in lean parsers, class runs. With a hook
 // (opt.Driver.CoreHook, tests), it calls the hook with the module after it is built and after each
 // pass.
-func (g *Generator) TypedCore(origin map[core.Node]grammar.Expr) (*core.Module, error) {
+func (g *Generator) TypedCore(origin map[core.Node]ast.Expr) (*core.Module, error) {
 	m, err := irbuild.CoreFrom(g.Prog, origin)
 	if err != nil {
 		return nil, err

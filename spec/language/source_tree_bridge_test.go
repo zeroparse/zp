@@ -1,7 +1,7 @@
 package language_test
 
 import (
-	"go/ast"
+	goast "go/ast"
 	goparser "go/parser"
 	"go/token"
 	"reflect"
@@ -11,9 +11,9 @@ import (
 	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The adapter reads the typed values of the generated parser of zp.zp. A
@@ -144,13 +144,13 @@ func TestTreeTypesComplete(t *testing.T) {
 	}
 	var missing []string
 	for _, d := range f.Decls {
-		g, ok := d.(*ast.GenDecl)
+		g, ok := d.(*goast.GenDecl)
 		if !ok || g.Tok != token.TYPE {
 			continue
 		}
 		for _, s := range g.Specs {
-			ts := s.(*ast.TypeSpec)
-			if _, ok := ts.Type.(*ast.StructType); !ok || !ts.Name.IsExported() {
+			ts := s.(*goast.TypeSpec)
+			if _, ok := ts.Type.(*goast.StructType); !ok || !ts.Name.IsExported() {
 				continue
 			}
 			if _, ok := treeTypes[ts.Name.Name]; !ok {
@@ -254,8 +254,8 @@ func fill(t testing.TB, n *core.Node, s reflect.Value) {
 
 // bridgedFrontend returns the frontend of a changed copy of zp.zp compiled by
 // the engine: the parse, the move into the typed values and the adapter.
-func bridgedFrontend(t testing.TB, p *engine.Parser) func(string) (*grammar.Grammar, error) {
-	return func(src string) (*grammar.Grammar, error) {
+func bridgedFrontend(t testing.TB, p *engine.Parser) func(string) (*ast.Grammar, error) {
+	return func(src string) (*ast.Grammar, error) {
 		text, invalid := parser.WithoutInvalidCharacters(src)
 		n, err := p.Parse(text)
 		if err != nil {

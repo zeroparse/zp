@@ -7,9 +7,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // --- Formatting ---
@@ -40,7 +40,7 @@ func formatEdits(a *analysis) []protocol.TextEdit {
 	if len(a.syntaxErrs) > 0 {
 		return []protocol.TextEdit{}
 	}
-	out := grammar.Format(a.g)
+	out := ast.Format(a.g)
 	if nl := lineEnd(a.text); nl != "\n" {
 		out = strings.ReplaceAll(out, "\n", nl)
 	}
@@ -222,7 +222,7 @@ func (a *analysis) symbolsControlled(control *renderControl) []protocol.Document
 			}
 		} else {
 			sym.Kind, sym.Detail = typeSymbolKindControlled(d.typ, control)
-			if st, ok := d.typ.(*grammar.TypeDef); ok {
+			if st, ok := d.typ.(*ast.TypeDef); ok {
 				sym.Children = a.fieldSymbolsControlled(d, st, control)
 			}
 		}
@@ -231,12 +231,12 @@ func (a *analysis) symbolsControlled(control *renderControl) []protocol.Document
 	return syms
 }
 
-func typeSymbolKindControlled(td grammar.TypeDecl, control *renderControl) (int, string) {
+func typeSymbolKindControlled(td ast.TypeDecl, control *renderControl) (int, string) {
 	control.poll()
 	switch spec := td.(type) {
-	case *grammar.TypeDef:
+	case *ast.TypeDef:
 		return protocol.SymbolKindStruct, "struct"
-	case *grammar.TypeAlias:
+	case *ast.TypeAlias:
 		return protocol.SymbolKindInterface, "~ " + control.formatType(spec.Type)
 	}
 	return protocol.SymbolKindClass, ""
@@ -244,7 +244,7 @@ func typeSymbolKindControlled(td grammar.TypeDecl, control *renderControl) (int,
 
 // fieldSymbols returns the symbols of the fields of the struct type d: each spans from its name to
 // the last token before the next field (or the closing brace).
-func (a *analysis) fieldSymbolsControlled(d *definition, st *grammar.TypeDef, control *renderControl) []protocol.DocumentSymbol {
+func (a *analysis) fieldSymbolsControlled(d *definition, st *ast.TypeDef, control *renderControl) []protocol.DocumentSymbol {
 	control.poll()
 	var out []protocol.DocumentSymbol
 	for k, f := range st.Fields() {
@@ -355,7 +355,7 @@ func (a *analysis) ruleHoverControlled(d *definition, control *renderControl) st
 	default:
 		head += " " + t
 	}
-	if pr, _ := grammar.RuleOperators(d.rule.Expr); pr != nil {
+	if pr, _ := ast.RuleOperators(d.rule.Expr); pr != nil {
 		head += " = #operators { ... }"
 	}
 	parts := []string{code(head)}
@@ -371,20 +371,20 @@ func (a *analysis) ruleHoverControlled(d *definition, control *renderControl) st
 func typeHoverControlled(d *definition, control *renderControl) string {
 	control.poll()
 	// The declaration without the comments before it.
-	var td grammar.Decl
+	var td ast.Decl
 	switch t := d.typ.(type) {
-	case *grammar.TypeDef:
+	case *ast.TypeDef:
 		v := *t
 		v.Break = nil
 		v.LeadingComments, v.TrailingComments, v.LeadingDetachedComments, v.HeaderComments = "", nil, nil, nil
 		td = &v
-	case *grammar.TypeAlias:
+	case *ast.TypeAlias:
 		v := *t
 		v.Break = nil
 		v.LeadingComments, v.TrailingComments, v.LeadingDetachedComments, v.HeaderComments = "", nil, nil, nil
 		td = &v
 	}
-	src := control.trimSpace(control.formatGrammar(&grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{td}}}))
+	src := control.trimSpace(control.formatGrammar(&ast.Grammar{File: ast.File{Decls: []ast.Decl{td}}}))
 	parts := []string{code(src)}
 	if d.doc != "" {
 		parts = append(parts, d.doc)

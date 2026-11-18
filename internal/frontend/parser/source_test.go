@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Expected groups are shared with the executable boundary grammar's contract.
@@ -104,7 +104,7 @@ func TestSourceCommentOwners(t *testing.T) {
 		t.Fatal(err)
 	}
 	checks := []struct {
-		source            *grammar.SourceInfo
+		source            *ast.SourceInfo
 		leading, trailing string
 		detached          []string
 	}{
@@ -117,18 +117,18 @@ func TestSourceCommentOwners(t *testing.T) {
 			t.Fatalf("source=%+v", s)
 		}
 	}
-	child := g.Rules()[0].Expr.(grammar.SourceNode).Source()
+	child := g.Rules()[0].Expr.(ast.SourceNode).Source()
 	if child.LeadingComments != "" || len(child.TrailingComments) != 0 {
 		t.Fatalf("comments duplicated on child: %+v", child)
 	}
 	if len(g.AllComments()) != 10 {
 		t.Fatalf("raw comments lost: %d", len(g.AllComments()))
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, decode := range []func([]byte) (*grammar.Grammar, error){grammar.UnmarshalJSON, grammar.DecodeJSON} {
+	for _, decode := range []func([]byte) (*ast.Grammar, error){ast.UnmarshalJSON, ast.DecodeJSON} {
 		copy, err := decode(data)
 		if err != nil {
 			t.Fatal(err)
@@ -162,10 +162,10 @@ rule main = #operators {
 	if err != nil {
 		t.Fatal(err)
 	}
-	field := g.Types()[0].(*grammar.TypeDef).Struct().Fields[0].Source()
-	op := g.Rules()[0].Expr.(*grammar.OperatorsRule)
+	field := g.Types()[0].(*ast.TypeDef).Struct().Fields[0].Source()
+	op := g.Rules()[0].Expr.(*ast.OperatorsRule)
 	for _, check := range []struct {
-		s    *grammar.SourceInfo
+		s    *ast.SourceInfo
 		name string
 	}{
 		{field, "field"}, {&op.SkipSource, "skip"}, {op.Operands[0].Source(), "operand"}, {op.Levels[0].Source(), "level"}, {op.Levels[0].Operators[0].Source(), "operator"},
@@ -179,32 +179,32 @@ rule main = #operators {
 func TestSourceSpansAndDiagnostics(t *testing.T) {
 	cases := []struct {
 		input string
-		nodes func(*grammar.Grammar) []grammar.SourceNode
-		spans [][2]grammar.Pos
+		nodes func(*ast.Grammar) []ast.SourceNode
+		spans [][2]ast.Pos
 	}{
-		{"rule a = x+ #atomic @error(\"bad\")", func(g *grammar.Grammar) []grammar.SourceNode {
+		{"rule a = x+ #atomic @error(\"bad\")", func(g *ast.Grammar) []ast.SourceNode {
 			rd := g.Rules()[0]
-			a := rd.Expr.(*grammar.Attributed)
-			atomic := a.Expr.(*grammar.Atomic)
-			repeat := atomic.Expr.(*grammar.Repeat)
-			return []grammar.SourceNode{rd, a, atomic, repeat, repeat.Expr.(*grammar.Ref), a.Attrs[0]}
-		}, [][2]grammar.Pos{{{Line: 1, Col: 1}, {Line: 1, Col: 34}}, {{Line: 1, Col: 10}, {Line: 1, Col: 34}}, {{Line: 1, Col: 10}, {Line: 1, Col: 20}}, {{Line: 1, Col: 10}, {Line: 1, Col: 12}}, {{Line: 1, Col: 10}, {Line: 1, Col: 11}}, {{Line: 1, Col: 21}, {Line: 1, Col: 34}}}},
-		{"rule a = (x => 1)", func(g *grammar.Grammar) []grammar.SourceNode {
-			gr := g.Rules()[0].Expr.(*grammar.Group)
-			return []grammar.SourceNode{gr, gr.Expr.(*grammar.InlineAction)}
-		}, [][2]grammar.Pos{{{Line: 1, Col: 10}, {Line: 1, Col: 18}}, {{Line: 1, Col: 11}, {Line: 1, Col: 17}}}},
-		{"rule a = {x := 1}", func(g *grammar.Grammar) []grammar.SourceNode {
-			p := g.Rules()[0].Expr.(*grammar.Predicate)
-			return []grammar.SourceNode{p, p.Term.(*grammar.Bind)}
-		}, [][2]grammar.Pos{{{Line: 1, Col: 10}, {Line: 1, Col: 18}}, {{Line: 1, Col: 11}, {Line: 1, Col: 17}}}},
-		{"rule a = \"あ\" => 1 + 2 * 3", func(g *grammar.Grammar) []grammar.SourceNode {
-			b := g.Rules()[0].Action.(*grammar.Binary)
-			return []grammar.SourceNode{b, b.R.(*grammar.Binary)}
-		}, [][2]grammar.Pos{{{Line: 1, Col: 17}, {Line: 1, Col: 26}}, {{Line: 1, Col: 21}, {Line: 1, Col: 26}}}},
-		{"rule a = \"x\" => $x.A.B", func(g *grammar.Grammar) []grammar.SourceNode {
-			b := g.Rules()[0].Action.(*grammar.Member)
-			return []grammar.SourceNode{b, b.X.(*grammar.Member)}
-		}, [][2]grammar.Pos{{{Line: 1, Col: 17}, {Line: 1, Col: 23}}, {{Line: 1, Col: 17}, {Line: 1, Col: 21}}}},
+			a := rd.Expr.(*ast.Attributed)
+			atomic := a.Expr.(*ast.Atomic)
+			repeat := atomic.Expr.(*ast.Repeat)
+			return []ast.SourceNode{rd, a, atomic, repeat, repeat.Expr.(*ast.Ref), a.Attrs[0]}
+		}, [][2]ast.Pos{{{Line: 1, Col: 1}, {Line: 1, Col: 34}}, {{Line: 1, Col: 10}, {Line: 1, Col: 34}}, {{Line: 1, Col: 10}, {Line: 1, Col: 20}}, {{Line: 1, Col: 10}, {Line: 1, Col: 12}}, {{Line: 1, Col: 10}, {Line: 1, Col: 11}}, {{Line: 1, Col: 21}, {Line: 1, Col: 34}}}},
+		{"rule a = (x => 1)", func(g *ast.Grammar) []ast.SourceNode {
+			gr := g.Rules()[0].Expr.(*ast.Group)
+			return []ast.SourceNode{gr, gr.Expr.(*ast.InlineAction)}
+		}, [][2]ast.Pos{{{Line: 1, Col: 10}, {Line: 1, Col: 18}}, {{Line: 1, Col: 11}, {Line: 1, Col: 17}}}},
+		{"rule a = {x := 1}", func(g *ast.Grammar) []ast.SourceNode {
+			p := g.Rules()[0].Expr.(*ast.Predicate)
+			return []ast.SourceNode{p, p.Term.(*ast.Bind)}
+		}, [][2]ast.Pos{{{Line: 1, Col: 10}, {Line: 1, Col: 18}}, {{Line: 1, Col: 11}, {Line: 1, Col: 17}}}},
+		{"rule a = \"あ\" => 1 + 2 * 3", func(g *ast.Grammar) []ast.SourceNode {
+			b := g.Rules()[0].Action.(*ast.Binary)
+			return []ast.SourceNode{b, b.R.(*ast.Binary)}
+		}, [][2]ast.Pos{{{Line: 1, Col: 17}, {Line: 1, Col: 26}}, {{Line: 1, Col: 21}, {Line: 1, Col: 26}}}},
+		{"rule a = \"x\" => $x.A.B", func(g *ast.Grammar) []ast.SourceNode {
+			b := g.Rules()[0].Action.(*ast.Member)
+			return []ast.SourceNode{b, b.X.(*ast.Member)}
+		}, [][2]ast.Pos{{{Line: 1, Col: 17}, {Line: 1, Col: 23}}, {{Line: 1, Col: 17}, {Line: 1, Col: 21}}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
@@ -225,8 +225,8 @@ func TestSourceSpansAndDiagnostics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b := g.Rules()[0].Action.(*grammar.Binary)
-	if b.Diagnostic() != (grammar.Pos{Line: 1, Col: 19}) {
+	b := g.Rules()[0].Action.(*ast.Binary)
+	if b.Diagnostic() != (ast.Pos{Line: 1, Col: 19}) {
 		t.Fatalf("diagnostic=%v", b.Diagnostic())
 	}
 	g, err = Parse("// doc\r\nrule a = \"あ\" // tail\r\n")
@@ -234,7 +234,7 @@ func TestSourceSpansAndDiagnostics(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := g.Rules()[0]
-	if r.Pos != (grammar.Pos{Line: 2, Col: 1}) || r.End != (grammar.Pos{Line: 2, Col: 13}) || r.LeadingComments != " doc\r\n" || !slices.Equal(r.TrailingComments, []string{" tail\r\n"}) {
+	if r.Pos != (ast.Pos{Line: 2, Col: 1}) || r.End != (ast.Pos{Line: 2, Col: 13}) || r.LeadingComments != " doc\r\n" || !slices.Equal(r.TrailingComments, []string{" tail\r\n"}) {
 		t.Fatalf("CRLF/rune metadata=%+v", r.SourceInfo)
 	}
 }

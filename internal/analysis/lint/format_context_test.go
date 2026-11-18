@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestLintFormattingCancelsWithinDiagnostics(t *testing.T) {
-	term := &grammar.StringLit{Value: strings.Repeat("😀", 4096)}
-	expr := &grammar.Literal{Value: strings.Repeat("😀", 4096)}
+	term := &ast.StringLit{Value: strings.Repeat("😀", 4096)}
+	expr := &ast.Literal{Value: strings.Repeat("😀", 4096)}
 	for _, name := range []string{"show", "predicate-comparison", "attribute-comparison"} {
 		t.Run(name, func(t *testing.T) {
 			// Admission succeeds; the next check must come from within formatting.
@@ -26,10 +26,10 @@ func TestLintFormattingCancelsWithinDiagnostics(t *testing.T) {
 			case "show":
 				show(expr, c)
 			case "predicate-comparison":
-				same(&grammar.Predicate{Term: term}, &grammar.Predicate{Term: term}, false, c)
+				same(&ast.Predicate{Term: term}, &ast.Predicate{Term: term}, false, c)
 			case "attribute-comparison":
-				attr := &grammar.Attribute{Name: "recover", Pragma: true, KwArgs: map[string]any{"skip": expr}}
-				e := &grammar.Attributed{Expr: expr, Attrs: []*grammar.Attribute{attr}}
+				attr := &ast.Attribute{Name: "recover", Pragma: true, KwArgs: map[string]any{"skip": expr}}
+				e := &ast.Attributed{Expr: expr, Attrs: []*ast.Attribute{attr}}
 				same(e, e, false, c)
 			}
 			t.Fatal("formatting completed without cancellation")
@@ -39,8 +39,8 @@ func TestLintFormattingCancelsWithinDiagnostics(t *testing.T) {
 
 func TestLintShortMessageParity(t *testing.T) {
 	for _, text := range []string{"", strings.Repeat("😀", 36), strings.Repeat("x", 37), strings.Repeat("😀", 38), strings.Repeat("x", 41), strings.Repeat("😀", 8192), strings.Repeat("\xff", 60)} {
-		expr := &grammar.Ref{Name: text}
-		want := grammar.FormatExpr(expr)
+		expr := &ast.Ref{Name: text}
+		want := ast.FormatExpr(expr)
 		if r := []rune(want); len(r) > 40 {
 			want = string(r[:37]) + "..."
 		}

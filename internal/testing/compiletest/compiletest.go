@@ -7,23 +7,23 @@ package compiletest
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Parse parses ZeroParse source for a test whose subject is not start rules: unless the source has
 // declaration attributes, every rule becomes a start rule, the first one the default.
-func Parse(src string) (*grammar.Grammar, error) {
+func Parse(src string) (*ast.Grammar, error) {
 	g, err := parser.Parse(src)
 	return starttest.MarkAll(g), err
 }
 
 // Compile compiles g as the engine does, without building matchers. The errors name the hidden
 // rules of inline actions as the engine's do.
-func Compile(g *grammar.Grammar, opts compile.Options) (*compile.Program, error) {
+func Compile(g *ast.Grammar, opts compile.Options) (*compile.Program, error) {
 	names := desugar.InlineNames{}
 	p, err := compile.Check(g, opts, nil, names, nil)
 	if err != nil {

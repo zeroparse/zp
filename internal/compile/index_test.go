@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestIndexTypeErrors(t *testing.T) {
@@ -59,19 +59,19 @@ rule item = [a-z]`)
 		t.Fatal(err)
 	}
 	r := g.Rules()[0]
-	outer, ok := r.Action.(*grammar.Binary)
+	outer, ok := r.Action.(*ast.Binary)
 	if !ok || outer.Op != "[]" {
 		t.Fatalf("action %T", r.Action)
 	}
-	if inner, ok := outer.L.(*grammar.Binary); !ok || inner.Op != "[]" {
+	if inner, ok := outer.L.(*ast.Binary); !ok || inner.Op != "[]" {
 		t.Fatalf("inner %T", outer.L)
 	}
-	if got := grammar.Format(g); !strings.Contains(got, "list($xs, $xs)[1][0]") {
+	if got := ast.Format(g); !strings.Contains(got, "list($xs, $xs)[1][0]") {
 		t.Fatalf("formatted:\n%s", got)
 	}
 	// Parentheses that the source does not keep are added where "[" would not index.
-	for _, x := range []grammar.Term{&grammar.IntLit{Value: 1}, &grammar.StringLit{Value: "a"}, &grammar.New{Type: "T"}} {
-		formatted := grammar.Format(&grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Any{}, Action: &grammar.Binary{Op: "[]", L: x, R: &grammar.IntLit{Value: 0}}}}}})
+	for _, x := range []ast.Term{&ast.IntLit{Value: 1}, &ast.StringLit{Value: "a"}, &ast.New{Type: "T"}} {
+		formatted := ast.Format(&ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Any{}, Action: &ast.Binary{Op: "[]", L: x, R: &ast.IntLit{Value: 0}}}}}})
 		if !strings.Contains(formatted, ")[0]") {
 			t.Errorf("formatted %T index: %s", x, formatted)
 		}

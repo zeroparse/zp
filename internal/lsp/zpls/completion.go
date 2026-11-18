@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Completion works on tokens rather than on the grammar: the definition being written usually
@@ -759,7 +759,7 @@ func (a *analysis) memberItemsControlled(control *renderControl) []protocol.Comp
 		if d.typ == nil {
 			continue
 		}
-		st, ok := d.typ.(*grammar.TypeDef)
+		st, ok := d.typ.(*ast.TypeDef)
 		if !ok {
 			continue
 		}

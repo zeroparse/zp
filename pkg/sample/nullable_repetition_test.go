@@ -3,12 +3,12 @@ package sample
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestNullableRepetitionMatcher(t *testing.T) {
 	for _, minimum := range []int{0, 1, 2, 3} {
-		e := &grammar.Repeat{Expr: &grammar.Top{}, Min: minimum, Max: -1}
+		e := &ast.Repeat{Expr: &ast.Top{}, Min: minimum, Max: -1}
 		m := &matcher{}
 		got, end := m.run(e, nil, 0, true)
 		want := matched

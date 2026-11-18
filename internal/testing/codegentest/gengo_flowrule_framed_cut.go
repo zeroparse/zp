@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TypedFramedCutCases(t *testing.T) []Case {
@@ -22,9 +22,9 @@ func TypedFramedCutCases(t *testing.T) []Case {
 			}
 			// Move the existing expression and action into a runtime-owned
 			// operand frame, exercising the same cut/rollback contracts.
-			r.Expr = &grammar.OperatorsRule{Operands: []*grammar.OperatorsRuleOperand{{Expr: r.Expr, Action: r.Action}}}
+			r.Expr = &ast.OperatorsRule{Operands: []*ast.OperatorsRuleOperand{{Expr: r.Expr, Action: r.Action}}}
 			r.Action = nil
-			cases = append(cases, Case{strings.Replace(c.Name, "direct_cut", "framed_cut", 1), grammar.Format(g), c.Inputs})
+			cases = append(cases, Case{strings.Replace(c.Name, "direct_cut", "framed_cut", 1), ast.Format(g), c.Inputs})
 		}
 	}
 	cases = append(cases, Case{"typed/framed_cut_LR_elements", `type Doc = { Items []node[string]; N int }

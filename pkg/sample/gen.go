@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The generator walks the grammar AST and writes a candidate input, making a random decision at each
@@ -56,7 +56,7 @@ type cont func(v val) bool
 // (a persistent list).
 type check struct {
 	pos           int
-	e             grammar.Expr
+	e             ast.Expr
 	operatorsRule *operatorsRuleCheck
 	neg           bool // e must not match (otherwise it must match)
 	progress      bool // with neg, only a match that consumes input violates the check
@@ -147,7 +147,7 @@ func (g *gen) attempt() (string, []int, bool) {
 		g.triedB.clear(t)
 	}
 	g.tried = g.tried[:0]
-	ok := g.genRef(&grammar.Ref{Name: g.in.start.def.Name}, func(val) bool { return g.finish() }, false)
+	ok := g.genRef(&ast.Ref{Name: g.in.start.def.Name}, func(val) bool { return g.finish() }, false)
 	return g.result, g.resultTrail, ok
 }
 
@@ -322,7 +322,7 @@ func (g *gen) addOperatorsRuleCheck(p *operatorsRuleCheck) bool {
 
 // addCheck adds a check at the current position. It returns false if the check already fails. The
 // caller restores g.pending.
-func (g *gen) addCheck(e grammar.Expr, neg, progress bool) bool {
+func (g *gen) addCheck(e ast.Expr, neg, progress bool) bool {
 	if neg && !progress && g.in.alwaysMatches(e) {
 		// It matches whatever follows: the matcher would only find out once the text after it is
 		// written.
@@ -391,39 +391,39 @@ func (g *gen) emitText(s string, k cont) bool {
 	return g.emit(s, func(start int) bool { return k(val{kind: vText, start: start, end: start + len(s)}) })
 }
 
-func (g *gen) gen(e grammar.Expr, k cont) bool {
+func (g *gen) gen(e ast.Expr, k cont) bool {
 	g.steps++
 	if g.exhausted() {
 		return false
 	}
 	pos := len(g.out)
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		return g.emitText(e.Value, k)
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return g.genClass(e, k)
-	case *grammar.Any:
+	case *ast.Any:
 		return g.genAny(k)
-	case *grammar.Seq:
+	case *ast.Seq:
 		return g.genSeq(e.Items, pos, k)
-	case *grammar.Choice:
+	case *ast.Choice:
 		return g.genChoice(e, k)
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return g.genRepeat(e, k)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return g.genOptional(e, k)
-	case *grammar.And:
+	case *ast.And:
 		return g.genAnd(e, k)
-	case *grammar.Not:
+	case *ast.Not:
 		pending := g.pending
 		ok := g.addCheck(e.Expr, true, false) && k(val{kind: vNone, start: pos, end: pos})
 		g.pending = pending
 		return ok
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return g.gen(e.Expr, func(v val) bool { return k(val{kind: vText, start: pos, end: len(g.out)}) })
-	case *grammar.Discard:
+	case *ast.Discard:
 		return g.gen(e.Expr, func(v val) bool { return k(val{kind: vNone, start: pos, end: len(g.out)}) })
-	case *grammar.Capture:
+	case *ast.Capture:
 		bind := func(v val) bool {
 			caps := g.caps
 			g.caps = &capture{name: e.Name, v: v, next: caps}
@@ -431,15 +431,15 @@ func (g *gen) gen(e grammar.Expr, k cont) bool {
 			g.caps = caps
 			return ok
 		}
-		if r, ok := e.Expr.(*grammar.Ref); ok && g.in.compared[e] {
+		if r, ok := e.Expr.(*ast.Ref); ok && g.in.compared[e] {
 			return g.genRef(r, bind, true)
 		}
 		return g.gen(e.Expr, bind)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return g.gen(e.Expr, k)
-	case *grammar.Ref:
+	case *ast.Ref:
 		return g.genRef(e, k, false)
-	case *grammar.Predicate:
+	case *ast.Predicate:
 		ok, def := g.predicate(e)
 		if !ok {
 			g.cutPredicate()
@@ -454,17 +454,17 @@ func (g *gen) gen(e grammar.Expr, k cont) bool {
 		ok = k(val{kind: vNone, start: pos, end: pos})
 		g.vars = vars
 		return ok
-	case *grammar.Top:
+	case *ast.Top:
 		return k(val{kind: vNode, start: pos, end: pos})
-	case *grammar.Cut:
+	case *ast.Cut:
 		return k(val{kind: vNone, start: pos, end: pos})
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		return false
-	case *grammar.BeginInput:
+	case *ast.BeginInput:
 		return pos == 0 && k(val{kind: vNone, start: pos, end: pos})
-	case *grammar.BeginLine:
+	case *ast.BeginLine:
 		return (pos == 0 || g.out[pos-1] == '\n') && k(val{kind: vNone, start: pos, end: pos})
-	case *grammar.EndInput:
+	case *ast.EndInput:
 		if g.forced != "" || (g.endAt >= 0 && g.endAt != pos) {
 			return false
 		}
@@ -473,19 +473,19 @@ func (g *gen) gen(e grammar.Expr, k cont) bool {
 		ok := g.recheck() && k(val{kind: vNone, start: pos, end: pos})
 		g.endAt, g.pending = endAt, pending
 		return ok
-	case *grammar.EndLine:
+	case *ast.EndLine:
 		pending := g.pending
 		ok := g.addCheck(e, false, false) && k(val{kind: vNone, start: pos, end: pos})
 		g.pending = pending
 		return ok
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		// Only reachable as a rule body, which genRef handles.
 		return false
 	}
 	return false
 }
 
-func (g *gen) genSeq(items []grammar.Expr, start int, k cont) bool {
+func (g *gen) genSeq(items []ast.Expr, start int, k cont) bool {
 	if len(items) == 0 {
 		return k(val{kind: vNode, start: start, end: len(g.out)})
 	}
@@ -539,7 +539,7 @@ func (g *gen) order(opts []option) []int {
 	return idx
 }
 
-func (g *gen) genChoice(e *grammar.Choice, k cont) bool {
+func (g *gen) genChoice(e *ast.Choice, k cont) bool {
 	base := g.in.altBase[e]
 	opts := make([]option, len(e.Alts))
 	for i, a := range e.Alts {
@@ -569,7 +569,7 @@ func (g *gen) genChoice(e *grammar.Choice, k cont) bool {
 	return false
 }
 
-func (g *gen) genOptional(e *grammar.Optional, k cont) bool {
+func (g *gen) genOptional(e *ast.Optional, k cont) bool {
 	pos := len(g.out)
 	take := func() bool { return g.gen(e.Expr, k) }
 	skip := func() bool {
@@ -592,7 +592,7 @@ func (g *gen) genOptional(e *grammar.Optional, k cont) bool {
 	return skip() || (g.retry(s0) && take())
 }
 
-func (g *gen) genRepeat(e *grammar.Repeat, k cont) bool {
+func (g *gen) genRepeat(e *ast.Repeat, k cont) bool {
 	start := len(g.out)
 	// The number of iterations to aim for; the search may end up with another.
 	want := e.Min
@@ -697,7 +697,7 @@ type item struct {
 // no captures and defines no variables, it then only requires, with a check, that e match the text that
 // follows, so that the text generated after the lookahead decides: &(. .) "ab" cannot guess "ab" in
 // advance.
-func (g *gen) genAnd(e *grammar.And, k cont) bool {
+func (g *gen) genAnd(e *ast.And, k cont) bool {
 	pos := len(g.out)
 	s0 := g.steps
 	forced := g.gen(e.Expr, func(val) bool {
@@ -732,7 +732,7 @@ var niceRunes = func() []rune {
 // negated class, code points below U+3000. Otherwise it picks a range of the code points that the class
 // actually matches (see classRanges) and a code point in it, so that classes with few or unusual code
 // points (the complement of almost everything, ranges that span the surrogates) are generated too.
-func (g *gen) classRune(c *grammar.CharClass) (rune, bool) {
+func (g *gen) classRune(c *ast.CharClass) (rune, bool) {
 	if g.rng.IntN(4) != 0 {
 		for range 8 {
 			if r := niceRunes[g.rng.IntN(len(niceRunes))]; inClass(c, r) {
@@ -772,7 +772,7 @@ func (g *gen) classRune(c *grammar.CharClass) (rune, bool) {
 	return rg.Lo + rune(g.rng.Int64N(int64(rg.Hi-rg.Lo)+1)), true
 }
 
-func (g *gen) genClass(c *grammar.CharClass, k cont) bool {
+func (g *gen) genClass(c *ast.CharClass, k cont) bool {
 	if g.forced != "" {
 		r, n := utf8.DecodeRuneInString(g.forced)
 		return inClass(c, r) && g.emitText(g.forced[:n], k)
@@ -834,7 +834,7 @@ func (g *gen) genAny(k cont) bool {
 // predicate reads: the call may then repeat the text of an earlier such call of the same rule in the
 // same rule invocation, which is how inputs where a predicate requires two texts to be equal (such as
 // matching start and end tags) are found.
-func (g *gen) genRef(e *grammar.Ref, k cont, compared bool) bool {
+func (g *gen) genRef(e *ast.Ref, k cont, compared bool) bool {
 	ri := g.in.rules[e.Name]
 	if ri == nil || ri.height >= inf {
 		return false

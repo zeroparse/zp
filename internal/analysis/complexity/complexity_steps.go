@@ -5,7 +5,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // --- Steps of a growth ---
@@ -87,7 +87,7 @@ func (k *classifier) addStepUnits() {
 // source when one of its items can, or when an item that can fail follows one that contains a
 // source.
 func (k *classifier) tailFailsAfterSource(t *cont) *source {
-	var items []grammar.Expr
+	var items []ast.Expr
 	for c := t; c != nil; c = c.next {
 		for _, it := range c.items {
 			if it != nil {
@@ -113,9 +113,9 @@ func (k *classifier) tailFailsAfterSource(t *cont) *source {
 
 // sourceIn returns the first scanning source in e: one that the walk recorded at an expression
 // in e, or the source of a rule that e calls.
-func (k *classifier) sourceIn(e grammar.Expr) *source {
+func (k *classifier) sourceIn(e ast.Expr) *source {
 	var found *source
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x ast.Expr) {
 		if found != nil {
 			return
 		}
@@ -125,7 +125,7 @@ func (k *classifier) sourceIn(e grammar.Expr) *source {
 				return
 			}
 		}
-		if r, ok := x.(*grammar.Ref); ok && k.ruleSrc[r.Name] != nil {
+		if r, ok := x.(*ast.Ref); ok && k.ruleSrc[r.Name] != nil {
 			found = k.ruleSrc[r.Name]
 		}
 	})
@@ -136,7 +136,7 @@ func (k *classifier) sourceIn(e grammar.Expr) *source {
 }
 
 // walkedAt returns the source that the walk recorded at the expression x, or nil.
-func (k *classifier) walkedAt(x grammar.Expr) *source {
+func (k *classifier) walkedAt(x ast.Expr) *source {
 	pos := exprPos(x)
 	for _, r := range k.rules {
 		for _, s := range k.walked[r.Name] {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // shape returns the structure of v: node kinds and semantic fields, without
@@ -28,7 +28,7 @@ func writeShape(b *strings.Builder, v reflect.Value) {
 			b.WriteString("nil")
 			return
 		}
-		if g, ok := v.Interface().(*grammar.Group); ok {
+		if g, ok := v.Interface().(*ast.Group); ok {
 			writeShape(b, reflect.ValueOf(g.Expr))
 			return
 		}
@@ -57,50 +57,50 @@ func writeShape(b *strings.Builder, v reflect.Value) {
 	}
 }
 
-func lit(s string) grammar.Expr { return &grammar.Literal{Value: s} }
+func lit(s string) ast.Expr { return &ast.Literal{Value: s} }
 
 // operands and postfix operators built by code, as a decoded JSON grammar or an
 // API user builds them: without the Group nodes that parsing parentheses makes.
-func operandKinds() map[string]grammar.Expr {
-	a, b := func() grammar.Expr { return &grammar.Ref{Name: "a"} }, func() grammar.Expr { return &grammar.Ref{Name: "b"} }
-	attr := func(name string, pragma bool) []*grammar.Attribute {
-		return []*grammar.Attribute{{Name: name, Pragma: pragma}}
+func operandKinds() map[string]ast.Expr {
+	a, b := func() ast.Expr { return &ast.Ref{Name: "a"} }, func() ast.Expr { return &ast.Ref{Name: "b"} }
+	attr := func(name string, pragma bool) []*ast.Attribute {
+		return []*ast.Attribute{{Name: name, Pragma: pragma}}
 	}
-	return map[string]grammar.Expr{
+	return map[string]ast.Expr{
 		"ref":        a(),
-		"seq":        &grammar.Seq{Items: []grammar.Expr{a(), b()}},
-		"choice":     &grammar.Choice{Alts: []grammar.Expr{a(), b()}},
-		"capture":    &grammar.Capture{Name: "x", Expr: a()},
-		"and":        &grammar.And{Expr: a()},
-		"not":        &grammar.Not{Expr: a()},
-		"discard":    &grammar.Discard{Expr: a()},
-		"star":       &grammar.Repeat{Expr: a(), Min: 0, Max: -1},
-		"plus":       &grammar.Repeat{Expr: a(), Min: 1, Max: -1},
-		"repeat":     &grammar.Repeat{Expr: a(), Min: 2, Max: 3},
-		"optional":   &grammar.Optional{Expr: a()},
-		"atomic":     &grammar.Atomic{Expr: a()},
-		"stream":     &grammar.Stream{Expr: a()},
-		"recover":    &grammar.Recovery{Expr: a(), Skip: b()},
-		"attributed": &grammar.Attributed{Expr: a(), Attrs: attr("error", false)},
-		"ignorecase": &grammar.Attributed{Expr: lit("a"), Attrs: attr("ignorecase", true)},
-		"missing":    &grammar.Attributed{Expr: a(), Attrs: attr("missing", true)},
-		"two attrs":  &grammar.Attributed{Expr: a(), Attrs: append(attr("error", false), attr("note", false)...)},
+		"seq":        &ast.Seq{Items: []ast.Expr{a(), b()}},
+		"choice":     &ast.Choice{Alts: []ast.Expr{a(), b()}},
+		"capture":    &ast.Capture{Name: "x", Expr: a()},
+		"and":        &ast.And{Expr: a()},
+		"not":        &ast.Not{Expr: a()},
+		"discard":    &ast.Discard{Expr: a()},
+		"star":       &ast.Repeat{Expr: a(), Min: 0, Max: -1},
+		"plus":       &ast.Repeat{Expr: a(), Min: 1, Max: -1},
+		"repeat":     &ast.Repeat{Expr: a(), Min: 2, Max: 3},
+		"optional":   &ast.Optional{Expr: a()},
+		"atomic":     &ast.Atomic{Expr: a()},
+		"stream":     &ast.Stream{Expr: a()},
+		"recover":    &ast.Recovery{Expr: a(), Skip: b()},
+		"attributed": &ast.Attributed{Expr: a(), Attrs: attr("error", false)},
+		"ignorecase": &ast.Attributed{Expr: lit("a"), Attrs: attr("ignorecase", true)},
+		"missing":    &ast.Attributed{Expr: a(), Attrs: attr("missing", true)},
+		"two attrs":  &ast.Attributed{Expr: a(), Attrs: append(attr("error", false), attr("note", false)...)},
 	}
 }
 
-var postfixKinds = map[string]func(grammar.Expr) grammar.Expr{
-	"*":        func(e grammar.Expr) grammar.Expr { return &grammar.Repeat{Expr: e, Min: 0, Max: -1} },
-	"+":        func(e grammar.Expr) grammar.Expr { return &grammar.Repeat{Expr: e, Min: 1, Max: -1} },
-	"?":        func(e grammar.Expr) grammar.Expr { return &grammar.Optional{Expr: e} },
-	"#repeat":  func(e grammar.Expr) grammar.Expr { return &grammar.Repeat{Expr: e, Min: 2, Max: 3} },
-	"#atomic":  func(e grammar.Expr) grammar.Expr { return &grammar.Atomic{Expr: e} },
-	"#stream":  func(e grammar.Expr) grammar.Expr { return &grammar.Stream{Expr: e} },
-	"#recover": func(e grammar.Expr) grammar.Expr { return &grammar.Recovery{Expr: e, Skip: &grammar.Ref{Name: "s"}} },
-	"@attribute": func(e grammar.Expr) grammar.Expr {
-		return &grammar.Attributed{Expr: e, Attrs: []*grammar.Attribute{{Name: "warn"}}}
+var postfixKinds = map[string]func(ast.Expr) ast.Expr{
+	"*":        func(e ast.Expr) ast.Expr { return &ast.Repeat{Expr: e, Min: 0, Max: -1} },
+	"+":        func(e ast.Expr) ast.Expr { return &ast.Repeat{Expr: e, Min: 1, Max: -1} },
+	"?":        func(e ast.Expr) ast.Expr { return &ast.Optional{Expr: e} },
+	"#repeat":  func(e ast.Expr) ast.Expr { return &ast.Repeat{Expr: e, Min: 2, Max: 3} },
+	"#atomic":  func(e ast.Expr) ast.Expr { return &ast.Atomic{Expr: e} },
+	"#stream":  func(e ast.Expr) ast.Expr { return &ast.Stream{Expr: e} },
+	"#recover": func(e ast.Expr) ast.Expr { return &ast.Recovery{Expr: e, Skip: &ast.Ref{Name: "s"}} },
+	"@attribute": func(e ast.Expr) ast.Expr {
+		return &ast.Attributed{Expr: e, Attrs: []*ast.Attribute{{Name: "warn"}}}
 	},
-	"#ignorecase": func(e grammar.Expr) grammar.Expr {
-		return &grammar.Attributed{Expr: e, Attrs: []*grammar.Attribute{{Name: "ignorecase", Pragma: true}}}
+	"#ignorecase": func(e ast.Expr) ast.Expr {
+		return &ast.Attributed{Expr: e, Attrs: []*ast.Attribute{{Name: "ignorecase", Pragma: true}}}
 	},
 }
 
@@ -111,7 +111,7 @@ func TestFormatExprPostfixOperandRoundTrip(t *testing.T) {
 		for kindName := range operandKinds() {
 			t.Run(opName+" of "+kindName, func(t *testing.T) {
 				e := wrap(operandKinds()[kindName])
-				text := grammar.FormatExpr(e)
+				text := ast.FormatExpr(e)
 				back, err := parser.ParseExpr(text)
 				if err != nil {
 					t.Fatalf("%q does not parse: %v", text, err)
@@ -129,20 +129,20 @@ func TestFormatExprPostfixOperandRoundTrip(t *testing.T) {
 func TestFormatExprNestedRoundTrip(t *testing.T) {
 	for opName, wrap := range postfixKinds {
 		for kindName := range operandKinds() {
-			for ctxName, ctx := range map[string]func(grammar.Expr) grammar.Expr{
-				"not":     func(e grammar.Expr) grammar.Expr { return &grammar.Not{Expr: e} },
-				"capture": func(e grammar.Expr) grammar.Expr { return &grammar.Capture{Name: "x", Expr: e} },
-				"discard": func(e grammar.Expr) grammar.Expr { return &grammar.Discard{Expr: e} },
-				"seq": func(e grammar.Expr) grammar.Expr {
-					return &grammar.Seq{Items: []grammar.Expr{&grammar.Ref{Name: "p"}, e, &grammar.Ref{Name: "q"}}}
+			for ctxName, ctx := range map[string]func(ast.Expr) ast.Expr{
+				"not":     func(e ast.Expr) ast.Expr { return &ast.Not{Expr: e} },
+				"capture": func(e ast.Expr) ast.Expr { return &ast.Capture{Name: "x", Expr: e} },
+				"discard": func(e ast.Expr) ast.Expr { return &ast.Discard{Expr: e} },
+				"seq": func(e ast.Expr) ast.Expr {
+					return &ast.Seq{Items: []ast.Expr{&ast.Ref{Name: "p"}, e, &ast.Ref{Name: "q"}}}
 				},
-				"choice": func(e grammar.Expr) grammar.Expr {
-					return &grammar.Choice{Alts: []grammar.Expr{&grammar.Ref{Name: "p"}, e}}
+				"choice": func(e ast.Expr) ast.Expr {
+					return &ast.Choice{Alts: []ast.Expr{&ast.Ref{Name: "p"}, e}}
 				},
 			} {
 				t.Run(ctxName+" of "+opName+" of "+kindName, func(t *testing.T) {
 					e := ctx(wrap(operandKinds()[kindName]))
-					text := grammar.FormatExpr(e)
+					text := ast.FormatExpr(e)
 					back, err := parser.ParseExpr(text)
 					if err != nil {
 						t.Fatalf("%q does not parse: %v", text, err)
@@ -180,7 +180,7 @@ func TestFormatBundledGrammarsRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Skipf("does not parse on its own: %v", err)
 			}
-			text := grammar.Format(g)
+			text := ast.Format(g)
 			g2, err := parser.Parse(text)
 			if err != nil {
 				t.Fatalf("printed grammar does not parse: %v", err)
@@ -188,7 +188,7 @@ func TestFormatBundledGrammarsRoundTrip(t *testing.T) {
 			if got, want := shape(g2), shape(g); got != want {
 				t.Errorf("printed grammar parses back differently")
 			}
-			if again := grammar.Format(g2); again != text {
+			if again := ast.Format(g2); again != text {
 				t.Errorf("printing is not stable")
 			}
 		})
@@ -207,7 +207,7 @@ func TestFormatExprNoUnneededParentheses(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
-		if got := grammar.FormatExpr(e); got != src {
+		if got := ast.FormatExpr(e); got != src {
 			t.Errorf("FormatExpr(%s) = %q", src, got)
 		}
 	}
@@ -216,23 +216,23 @@ func TestFormatExprNoUnneededParentheses(t *testing.T) {
 // Prefix operators, sequences and choices of every operand kind, and of each
 // other, print as text that parses back to the same expression.
 func TestFormatExprPrefixOperandRoundTrip(t *testing.T) {
-	ctxs := map[string]func(grammar.Expr) grammar.Expr{
-		"not":     func(e grammar.Expr) grammar.Expr { return &grammar.Not{Expr: e} },
-		"and":     func(e grammar.Expr) grammar.Expr { return &grammar.And{Expr: e} },
-		"capture": func(e grammar.Expr) grammar.Expr { return &grammar.Capture{Name: "x", Expr: e} },
-		"discard": func(e grammar.Expr) grammar.Expr { return &grammar.Discard{Expr: e} },
-		"seq": func(e grammar.Expr) grammar.Expr {
-			return &grammar.Seq{Items: []grammar.Expr{e, &grammar.Ref{Name: "q"}}}
+	ctxs := map[string]func(ast.Expr) ast.Expr{
+		"not":     func(e ast.Expr) ast.Expr { return &ast.Not{Expr: e} },
+		"and":     func(e ast.Expr) ast.Expr { return &ast.And{Expr: e} },
+		"capture": func(e ast.Expr) ast.Expr { return &ast.Capture{Name: "x", Expr: e} },
+		"discard": func(e ast.Expr) ast.Expr { return &ast.Discard{Expr: e} },
+		"seq": func(e ast.Expr) ast.Expr {
+			return &ast.Seq{Items: []ast.Expr{e, &ast.Ref{Name: "q"}}}
 		},
-		"choice": func(e grammar.Expr) grammar.Expr {
-			return &grammar.Choice{Alts: []grammar.Expr{&grammar.Ref{Name: "p"}, e}}
+		"choice": func(e ast.Expr) ast.Expr {
+			return &ast.Choice{Alts: []ast.Expr{&ast.Ref{Name: "p"}, e}}
 		},
 	}
 	for ctxName, ctx := range ctxs {
 		for kindName := range operandKinds() {
 			t.Run(ctxName+" of "+kindName, func(t *testing.T) {
 				e := ctx(operandKinds()[kindName])
-				text := grammar.FormatExpr(e)
+				text := ast.FormatExpr(e)
 				back, err := parser.ParseExpr(text)
 				if err != nil {
 					t.Fatalf("%q does not parse: %v", text, err)
@@ -248,21 +248,21 @@ func TestFormatExprPrefixOperandRoundTrip(t *testing.T) {
 // An attributed operand of an attribute needs parentheses; the same operand of
 // any other operator does not.
 func TestFormatExprNestedAttributed(t *testing.T) {
-	inner := func() *grammar.Attributed {
-		return &grammar.Attributed{Expr: &grammar.Ref{Name: "a"}, Attrs: []*grammar.Attribute{{Name: "x"}}}
+	inner := func() *ast.Attributed {
+		return &ast.Attributed{Expr: &ast.Ref{Name: "a"}, Attrs: []*ast.Attribute{{Name: "x"}}}
 	}
 	for _, tc := range []struct {
-		expr grammar.Expr
+		expr ast.Expr
 		want string
 	}{
-		{&grammar.Attributed{Expr: inner(), Attrs: []*grammar.Attribute{{Name: "y"}}}, "(a @x) @y"},
-		{&grammar.And{Expr: &grammar.And{Expr: &grammar.Ref{Name: "a"}}}, "& &a"},
-		{&grammar.Not{Expr: &grammar.Not{Expr: &grammar.Ref{Name: "a"}}}, "!!a"},
-		{&grammar.Repeat{Expr: inner(), Min: 0, Max: -1}, "a @x*"},
-		{&grammar.Atomic{Expr: inner()}, "a @x #atomic"},
-		{&grammar.Attributed{Expr: &grammar.Atomic{Expr: inner()}, Attrs: []*grammar.Attribute{{Name: "y"}}}, "a @x #atomic @y"},
+		{&ast.Attributed{Expr: inner(), Attrs: []*ast.Attribute{{Name: "y"}}}, "(a @x) @y"},
+		{&ast.And{Expr: &ast.And{Expr: &ast.Ref{Name: "a"}}}, "& &a"},
+		{&ast.Not{Expr: &ast.Not{Expr: &ast.Ref{Name: "a"}}}, "!!a"},
+		{&ast.Repeat{Expr: inner(), Min: 0, Max: -1}, "a @x*"},
+		{&ast.Atomic{Expr: inner()}, "a @x #atomic"},
+		{&ast.Attributed{Expr: &ast.Atomic{Expr: inner()}, Attrs: []*ast.Attribute{{Name: "y"}}}, "a @x #atomic @y"},
 	} {
-		if got := grammar.FormatExpr(tc.expr); got != tc.want {
+		if got := ast.FormatExpr(tc.expr); got != tc.want {
 			t.Errorf("FormatExpr = %q, want %q", got, tc.want)
 		}
 	}

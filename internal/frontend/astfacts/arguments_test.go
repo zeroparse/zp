@@ -5,15 +5,15 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestExpressionArgsPollingOrderAndOwnership(t *testing.T) {
-	x, y, z := &grammar.Literal{Value: "x"}, &grammar.Literal{Value: "y"}, &grammar.Literal{Value: "z"}
-	a := &grammar.Attribute{Args: []any{1, x, nil}, KwArgs: map[string]any{"z": z, "a": y, "scalar": true}}
+	x, y, z := &ast.Literal{Value: "x"}, &ast.Literal{Value: "y"}, &ast.Literal{Value: "z"}
+	a := &ast.Attribute{Args: []any{1, x, nil}, KwArgs: map[string]any{"z": z, "a": y, "scalar": true}}
 	for _, poll := range []func(){nil, func() {}} {
 		got := ExpressionArgsWithPoll(a, poll)
-		if !reflect.DeepEqual(got, []grammar.Expr{x, y, z}) || !reflect.DeepEqual(got, a.ExpressionArgs()) {
+		if !reflect.DeepEqual(got, []ast.Expr{x, y, z}) || !reflect.DeepEqual(got, a.ExpressionArgs()) {
 			t.Fatalf("argument order changed: %v", got)
 		}
 		got[0] = nil
@@ -26,7 +26,7 @@ func TestExpressionArgsPollingOrderAndOwnership(t *testing.T) {
 func TestExpressionArgsPollingStopsDuringBudget(t *testing.T) {
 	for _, keywords := range []bool{false, true} {
 		t.Run(fmt.Sprint(keywords), func(t *testing.T) {
-			a := &grammar.Attribute{KwArgs: map[string]any{}}
+			a := &ast.Attribute{KwArgs: map[string]any{}}
 			for i := range 1024 {
 				if keywords {
 					a.KwArgs[fmt.Sprint(i)] = i

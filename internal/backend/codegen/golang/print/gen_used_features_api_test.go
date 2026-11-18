@@ -16,10 +16,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestUsedFeaturesKeepUserAPI checks that narrowing the library copy keeps every method that a user
@@ -66,7 +66,7 @@ func TestUsedFeaturesKeepUserAPI(t *testing.T) {
 }
 
 // testUserAPI runs the subtest name of TestUsedFeaturesKeepUserAPI for grammar g and options opts.
-func testUserAPI(t *testing.T, goBin, name string, g *grammar.Grammar, opts common.GenOptions) {
+func testUserAPI(t *testing.T, goBin, name string, g *ast.Grammar, opts common.GenOptions) {
 	t.Run(name, func(t *testing.T) {
 		t.Parallel()
 		surface := func(off bool) []string {

@@ -9,10 +9,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A render control belongs to one analysis or immutable-snapshot request. It is
@@ -68,21 +68,21 @@ func (c *renderControl) check() {
 	}
 }
 
-func (c *renderControl) formatType(t grammar.TypeExpr) string {
+func (c *renderControl) formatType(t ast.TypeExpr) string {
 	if c == nil {
-		return grammar.FormatType(t)
+		return ast.FormatType(t)
 	}
-	out, err := grammar.FormatTypeContext(c.ctx, t)
+	out, err := ast.FormatTypeContext(c.ctx, t)
 	if err != nil {
 		panic(renderCancellation{err})
 	}
 	return out
 }
-func (c *renderControl) formatGrammar(g *grammar.Grammar) string {
+func (c *renderControl) formatGrammar(g *ast.Grammar) string {
 	if c == nil {
-		return grammar.Format(g)
+		return ast.Format(g)
 	}
-	out, err := grammar.FormatContext(c.ctx, g)
+	out, err := ast.FormatContext(c.ctx, g)
 	if err != nil {
 		panic(renderCancellation{err})
 	}

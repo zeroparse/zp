@@ -1,13 +1,13 @@
 package closure
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ClassAccept returns the membership test of a character class. Classes of one or two ranges,
 // which are most of them, compare against constants; others test ASCII characters with a bitmap.
-func ClassAccept(e *grammar.CharClass) func(*state.Parser, rune) bool {
+func ClassAccept(e *ast.CharClass) func(*state.Parser, rune) bool {
 	neg := e.Negated
 	switch len(e.Ranges) {
 	case 1:
@@ -17,7 +17,7 @@ func ClassAccept(e *grammar.CharClass) func(*state.Parser, rune) bool {
 		lo1, hi1, lo2, hi2 := e.Ranges[0].Lo, e.Ranges[0].Hi, e.Ranges[1].Lo, e.Ranges[1].Hi
 		return func(_ *state.Parser, r rune) bool { return (lo1 <= r && r <= hi1 || lo2 <= r && r <= hi2) != neg }
 	}
-	ranges := append([]grammar.CharRange(nil), e.Ranges...)
+	ranges := append([]ast.CharRange(nil), e.Ranges...)
 	slow := func(r rune) bool {
 		for _, rg := range ranges {
 			if rg.Lo <= r && r <= rg.Hi {

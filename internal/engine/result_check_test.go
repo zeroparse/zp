@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // resultCheckRoutes maps an input's route character to the rule it reaches.
@@ -23,7 +23,7 @@ func TestRuleResultChecks(t *testing.T) {
 	for _, model := range []struct {
 		name    string
 		grammar func(typ, rt string) string
-		parse   func(string) (*grammar.Grammar, error)
+		parse   func(string) (*ast.Grammar, error)
 		fields  map[string]string
 	}{
 		{"text struct", codegentest.ResultCheckGrammar, parseTest, codegentest.FieldCheckFields},
@@ -36,7 +36,7 @@ func TestRuleResultChecks(t *testing.T) {
 	}
 }
 
-func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt string) string, parseFn func(string) (*grammar.Grammar, error), fields map[string]string) {
+func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt string) string, parseFn func(string) (*ast.Grammar, error), fields map[string]string) {
 	{
 		{
 			g, err := parseFn(resultGrammar(typ, typ))

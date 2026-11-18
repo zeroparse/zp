@@ -4,15 +4,15 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func typeOf(s string) grammar.TypeExpr {
+func typeOf(s string) ast.TypeExpr {
 	switch s {
 	case "*error":
-		return &grammar.OptionalType{Elem: tref("error")}
+		return &ast.OptionalType{Elem: tref("error")}
 	case "error | int":
-		return &grammar.JoinType{Types: []grammar.TypeExpr{tref("error"), tref("int")}}
+		return &ast.JoinType{Types: []ast.TypeExpr{tref("error"), tref("int")}}
 	case "node[_]":
 		return nodeOf(tref("_"))
 	case "node[string]":
@@ -27,7 +27,7 @@ func typeOf(s string) grammar.TypeExpr {
 func TestErrorValueCast(t *testing.T) {
 	skipped, missing := ErrorValue("b;", 1, 3, "1:2: syntax error"), MissingToken(3, ";", "1:4: syntax error")
 	env := &TermEnv{Captures: map[string]V{"s": skipped, "m": missing, "n": Node(StringNode, "ab", 0, 2, nil, nil)},
-		Aliases: map[string]grammar.TypeExpr{"E": tref("error"), "M": &grammar.TypeGroup{Type: tref("missing")}}}
+		Aliases: map[string]ast.TypeExpr{"E": tref("error"), "M": &ast.TypeGroup{Type: tref("missing")}}}
 	for _, c := range []struct {
 		typ        string
 		skip, miss bool // whether the skipped range and the missing token are admitted
@@ -61,14 +61,14 @@ func TestErrorValueTerms(t *testing.T) {
 	env := &TermEnv{Captures: map[string]V{"e": ErrorValue("b;", 1, 3, "1:2: syntax error"), "m": MissingToken(3, ";", `1:4: syntax error: expected ";"`)}}
 	for _, c := range []struct {
 		name string
-		term grammar.Term
+		term ast.Term
 		want string
 	}{
-		{"e != nil", bin("!=", capt("e"), &grammar.NilLit{}), "true"},
-		{"e == nil", bin("==", capt("e"), &grammar.NilLit{}), "false"},
+		{"e != nil", bin("!=", capt("e"), &ast.NilLit{}), "true"},
+		{"e == nil", bin("==", capt("e"), &ast.NilLit{}), "false"},
 		{"map(e)", fn("map", capt("e"), lam(param("i"), "i")), "[]"},
 		{"foldl(0, e)", fn("foldl", ilit(7), capt("e"), lam(param("a"), "a", "i")), "7"},
-		{"filter(e)", fn("filter", capt("e"), lam(&grammar.BoolLit{Value: true}, "i")), "[]"},
+		{"filter(e)", fn("filter", capt("e"), lam(&ast.BoolLit{Value: true}, "i")), "[]"},
 		{"concat(e)", fn("concat", capt("e")), "[]"},
 		{"e.Start", mem(capt("e"), "Start"), "1"},
 		{"e.End", mem(capt("e"), "End"), "3"},
@@ -104,7 +104,7 @@ func TestErrorValueTerms(t *testing.T) {
 					t.Errorf("N{%s}: panic %q, want a term that does not type-check", name, s)
 				}
 			}()
-			env.Eval(&grammar.New{Type: "N", Args: []grammar.Term{capt(name)}})
+			env.Eval(&ast.New{Type: "N", Args: []ast.Term{capt(name)}})
 		}()
 	}
 }

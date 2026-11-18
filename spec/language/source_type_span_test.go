@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestCanonicalTypeDeclarationSpans(t *testing.T) {
@@ -31,7 +31,7 @@ func TestCanonicalTypeDeclarationSpans(t *testing.T) {
 			}
 			// Formatting changes offsets but each frontend must still report the
 			// same syntax-only span on the newly formatted source.
-			assertCanonicalTypeSpans(t, p, grammar.Format(manual), nil)
+			assertCanonicalTypeSpans(t, p, ast.Format(manual), nil)
 		})
 	}
 }
@@ -58,7 +58,7 @@ func assertCanonicalTypeSpans(t *testing.T, p *engine.Parser, source string, exp
 			}
 			span := sourceField(t, def, "SourceSpan")
 			got = append(got, string([]rune(source)[int(span.Start()):int(span.End())]))
-			want := *manual.Types()[index].(grammar.SourceNode).Source()
+			want := *manual.Types()[index].(ast.SourceNode).Source()
 			adapted := want
 			if err := sourceast.NewPositions(source).SetSpan(&adapted, int(span.Start()), int(span.End())); err != nil {
 				t.Fatal(err)

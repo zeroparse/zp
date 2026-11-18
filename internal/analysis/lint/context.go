@@ -3,9 +3,9 @@ package lint
 import (
 	"context"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // runContext lints g, which the front end checked to the result res, from start.
@@ -15,7 +15,7 @@ import (
 // Shared success proofs, metadata walks, character-range work and diagnostic
 // formatting also poll. Other individual operations retain unpolled spans; no
 // wall-clock bound is promised.
-func runContext(ctx context.Context, res *frontend.Result, g *grammar.Grammar, start string, opts options) (findings []Finding, err error) {
+func runContext(ctx context.Context, res *frontend.Result, g *ast.Grammar, start string, opts options) (findings []Finding, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (c *lintControl) poll() {
 	}
 }
 
-func (c *lintControl) rules(g *grammar.Grammar) []*grammar.RuleDef {
+func (c *lintControl) rules(g *ast.Grammar) []*ast.RuleDef {
 	if c == nil {
 		return g.Rules()
 	}
@@ -73,7 +73,7 @@ func (c *lintControl) rules(g *grammar.Grammar) []*grammar.RuleDef {
 	return result
 }
 
-func (c *lintControl) types(g *grammar.Grammar) []grammar.TypeDecl {
+func (c *lintControl) types(g *ast.Grammar) []ast.TypeDecl {
 	if c == nil {
 		return g.Types()
 	}
@@ -84,7 +84,7 @@ func (c *lintControl) types(g *grammar.Grammar) []grammar.TypeDecl {
 	return result
 }
 
-func (c *lintControl) comments(g *grammar.Grammar) []*grammar.Comment {
+func (c *lintControl) comments(g *ast.Grammar) []*ast.Comment {
 	if c == nil {
 		return g.AllComments()
 	}
@@ -95,30 +95,30 @@ func (c *lintControl) comments(g *grammar.Grammar) []*grammar.Comment {
 	return result
 }
 
-func (c *lintControl) expressionArgs(a *grammar.Attribute) []grammar.Expr {
+func (c *lintControl) expressionArgs(a *ast.Attribute) []ast.Expr {
 	if c == nil {
 		return a.ExpressionArgs()
 	}
 	return astfacts.ExpressionArgsWithPoll(a, c.poll)
 }
 
-func (c *lintControl) formatExpr(e grammar.Expr) string {
+func (c *lintControl) formatExpr(e ast.Expr) string {
 	if c == nil {
-		return grammar.FormatExpr(e)
+		return ast.FormatExpr(e)
 	}
-	result, err := grammar.FormatExprContext(c.ctx, e)
+	result, err := ast.FormatExprContext(c.ctx, e)
 	if err != nil {
 		panic(lintCancellation{err})
 	}
 	return result
 }
 
-func (c *lintControl) formatTerm(t grammar.Term) string {
+func (c *lintControl) formatTerm(t ast.Term) string {
 	if c == nil {
-		return grammar.FormatTerm(astfacts.UngroupTerm(t))
+		return ast.FormatTerm(astfacts.UngroupTerm(t))
 	}
 	t = astfacts.UngroupTermWithPoll(t, c.poll)
-	result, err := grammar.FormatTermContext(c.ctx, t)
+	result, err := ast.FormatTermContext(c.ctx, t)
 	if err != nil {
 		panic(lintCancellation{err})
 	}

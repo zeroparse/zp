@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // An oprForm runs the Operators Rule loop in one of its two printed forms. The recursive form calls
@@ -162,51 +162,51 @@ func TestOperatorsLoop(t *testing.T) {
 		}
 	}
 	infix := func(c byte, assoc string, level int) func(string) *OperatorsRuleOp {
-		return func(text string) *OperatorsRuleOp { return oprOp(grammar.Infix, assoc, level, oprLit(text, c)) }
+		return func(text string) *OperatorsRuleOp { return oprOp(ast.Infix, assoc, level, oprLit(text, c)) }
 	}
 	postfix := func(c byte, level int) func(string) *OperatorsRuleOp {
-		return func(text string) *OperatorsRuleOp { return oprOp(grammar.Postfix, "", level, oprLit(text, c)) }
+		return func(text string) *OperatorsRuleOp { return oprOp(ast.Postfix, "", level, oprLit(text, c)) }
 	}
 	prefixed := func(c byte, level int, r rule) rule {
 		return func(text string) *OperatorsRule {
 			pr := r(text)
-			pr.Prefix = []*OperatorsRuleOp{oprOp(grammar.Prefix, "", level, oprLit(text, c))}
+			pr.Prefix = []*OperatorsRuleOp{oprOp(ast.Prefix, "", level, oprLit(text, c))}
 			return pr
 		}
 	}
 	nothing := func(*Parser) (*core.Node, bool) { return nil, true }
-	empty := func(string) *OperatorsRuleOp { return oprOp(grammar.Infix, grammar.AssocLeft, 1, nothing) }
+	empty := func(string) *OperatorsRuleOp { return oprOp(ast.Infix, ast.AssocLeft, 1, nothing) }
 	for _, c := range []struct {
 		name, text string
 		rule       rule
 		min, end   int
 		ok         bool
 	}{
-		{"a left operator repeats", "a+a+a", led(infix('+', grammar.AssocLeft, 1)), 0, 5, true},
-		{"an operator at the minimum stays out", "a+a", led(infix('+', grammar.AssocLeft, 1)), 1, 1, true},
-		{"a right operator takes its own level on the right", "a^a^a", led(infix('^', grammar.AssocRight, 1)), 0, 5, true},
-		{"a non-associative operator does not repeat", "a=a=a", led(infix('=', grammar.AssocNone, 1)), 0, 3, true},
-		{"a postfix application clears the non-associative level", "a=a!=a", led(infix('=', grammar.AssocNone, 2), postfix('!', 1)), 0, 6, true},
-		{"an infix application clears the non-associative level", "a=a&a=a", led(infix('=', grammar.AssocNone, 1), infix('&', grammar.AssocLeft, 1)), 0, 7, true},
-		{"a looser infix operator starts a new non-associative chain", "a=a|a=a", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1)), 0, 7, true},
-		{"a non-associative operator does not chain in the operand of a looser left infix", "a|a=a=a", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1)), 0, 5, true},
-		{"a non-associative operator does not chain in the operand of a looser right infix", "a^a=a=a", led(infix('=', grammar.AssocNone, 2), infix('^', grammar.AssocRight, 1)), 0, 5, true},
-		{"a non-associative operator does not chain in the operand of a prefix operator", "~a=a=a", prefixed('~', 1, led(infix('=', grammar.AssocNone, 2))), 0, 4, true},
-		{"a non-associative operator does not chain below a postfix operator in an operand", "a|a=a!=a", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1), postfix('!', 3)), 0, 6, true},
-		{"a postfix application lifts the bound of the infix before it", "a+a!*a", led(infix('+', grammar.AssocLeft, 1), postfix('!', 1), infix('*', grammar.AssocLeft, 2)), 0, 6, true},
-		{"a right operator bounds the operators after it below its own level", "a^a=a=a", led(infix('^', grammar.AssocRight, 1), infix('=', grammar.AssocNone, 1)), 0, 5, true},
-		{"a tighter operator whose operand fails is not retried", "a|a=", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1)), 0, 3, true},
-		{"a missing right operand ends the loop before the operator", "a+", led(infix('+', grammar.AssocLeft, 1)), 0, 1, true},
+		{"a left operator repeats", "a+a+a", led(infix('+', ast.AssocLeft, 1)), 0, 5, true},
+		{"an operator at the minimum stays out", "a+a", led(infix('+', ast.AssocLeft, 1)), 1, 1, true},
+		{"a right operator takes its own level on the right", "a^a^a", led(infix('^', ast.AssocRight, 1)), 0, 5, true},
+		{"a non-associative operator does not repeat", "a=a=a", led(infix('=', ast.AssocNone, 1)), 0, 3, true},
+		{"a postfix application clears the non-associative level", "a=a!=a", led(infix('=', ast.AssocNone, 2), postfix('!', 1)), 0, 6, true},
+		{"an infix application clears the non-associative level", "a=a&a=a", led(infix('=', ast.AssocNone, 1), infix('&', ast.AssocLeft, 1)), 0, 7, true},
+		{"a looser infix operator starts a new non-associative chain", "a=a|a=a", led(infix('=', ast.AssocNone, 2), infix('|', ast.AssocLeft, 1)), 0, 7, true},
+		{"a non-associative operator does not chain in the operand of a looser left infix", "a|a=a=a", led(infix('=', ast.AssocNone, 2), infix('|', ast.AssocLeft, 1)), 0, 5, true},
+		{"a non-associative operator does not chain in the operand of a looser right infix", "a^a=a=a", led(infix('=', ast.AssocNone, 2), infix('^', ast.AssocRight, 1)), 0, 5, true},
+		{"a non-associative operator does not chain in the operand of a prefix operator", "~a=a=a", prefixed('~', 1, led(infix('=', ast.AssocNone, 2))), 0, 4, true},
+		{"a non-associative operator does not chain below a postfix operator in an operand", "a|a=a!=a", led(infix('=', ast.AssocNone, 2), infix('|', ast.AssocLeft, 1), postfix('!', 3)), 0, 6, true},
+		{"a postfix application lifts the bound of the infix before it", "a+a!*a", led(infix('+', ast.AssocLeft, 1), postfix('!', 1), infix('*', ast.AssocLeft, 2)), 0, 6, true},
+		{"a right operator bounds the operators after it below its own level", "a^a=a=a", led(infix('^', ast.AssocRight, 1), infix('=', ast.AssocNone, 1)), 0, 5, true},
+		{"a tighter operator whose operand fails is not retried", "a|a=", led(infix('=', ast.AssocNone, 2), infix('|', ast.AssocLeft, 1)), 0, 3, true},
+		{"a missing right operand ends the loop before the operator", "a+", led(infix('+', ast.AssocLeft, 1)), 0, 1, true},
 		{"an application that consumes nothing ends the loop", "", func(string) *OperatorsRule {
 			return &OperatorsRule{Operands: []*OperatorsRuleLine{oprLine(nothing)}, Led: []*OperatorsRuleOp{empty("")}}
 		}, 0, 0, true},
 		{"a postfix operator that consumes nothing does not apply", "a", led(func(string) *OperatorsRuleOp {
-			return oprOp(grammar.Postfix, "", 1, nothing)
+			return oprOp(ast.Postfix, "", 1, nothing)
 		}), 0, 1, true},
 		{"a prefix operator that consumes nothing does not apply", "a", func(text string) *OperatorsRule {
-			return &OperatorsRule{Operands: operand(text), Prefix: []*OperatorsRuleOp{oprOp(grammar.Prefix, "", 1, nothing)}}
+			return &OperatorsRule{Operands: operand(text), Prefix: []*OperatorsRuleOp{oprOp(ast.Prefix, "", 1, nothing)}}
 		}, 0, 1, true},
-		{"a failed start fails", "+", led(infix('+', grammar.AssocLeft, 1)), 0, 0, false},
+		{"a failed start fails", "+", led(infix('+', ast.AssocLeft, 1)), 0, 0, false},
 	} {
 		for _, form := range oprForms {
 			t.Run(c.name+"/"+form.name, func(t *testing.T) {
@@ -266,7 +266,7 @@ func TestOperatorsLongestLineState(t *testing.T) {
 					return nil, ok
 				}
 			}
-			a := form.longest(p, []*OperatorsRuleOp{oprOp(grammar.Infix, "", 1, line(false)), oprOp(grammar.Infix, "", 1, line(true)), oprOp(grammar.Infix, "", 1, line(false))})
+			a := form.longest(p, []*OperatorsRuleOp{oprOp(ast.Infix, "", 1, line(false)), oprOp(ast.Infix, "", 1, line(true)), oprOp(ast.Infix, "", 1, line(false))})
 			if lines != 3 || a.Op == nil || !a.Cut {
 				t.Fatalf("lines=%d attempt=%+v", lines, a)
 			}
@@ -282,7 +282,7 @@ func TestOperatorsLongestLineState(t *testing.T) {
 		t.Run(form.name+"/a match after a cut is no failure", func(t *testing.T) {
 			p := oprParser()
 			p.cutFailed = true
-			a := form.longest(p, []*OperatorsRuleOp{oprOp(grammar.Infix, "", 1, func(p *Parser) (*core.Node, bool) {
+			a := form.longest(p, []*OperatorsRuleOp{oprOp(ast.Infix, "", 1, func(p *Parser) (*core.Node, bool) {
 				p.Cut = true
 				return nil, true
 			})})
@@ -314,7 +314,7 @@ func TestOperatorsAttemptKeepsItsState(t *testing.T) {
 		t.Run(form.name, func(t *testing.T) {
 			p := oprParser()
 			p.Missing = &MissingTokenState{Limit: 8}
-			a := form.longest(p, []*OperatorsRuleOp{oprOp(grammar.Infix, "", 1, func(p *Parser) (*core.Node, bool) {
+			a := form.longest(p, []*OperatorsRuleOp{oprOp(ast.Infix, "", 1, func(p *Parser) (*core.Node, bool) {
 				oprMissing(p)
 				p.Env = env
 				p.Pos = 2
@@ -347,9 +347,9 @@ func TestOperatorsAttemptKeepsItsState(t *testing.T) {
 				pr := &OperatorsRule{Operands: []*OperatorsRuleLine{oprLine(oprLit(text, 'a'))}}
 				start := 0
 				if level == "infix" {
-					pr.Led = []*OperatorsRuleOp{oprOp(grammar.Infix, grammar.AssocLeft, 1, line('+'))}
+					pr.Led = []*OperatorsRuleOp{oprOp(ast.Infix, ast.AssocLeft, 1, line('+'))}
 				} else {
-					pr.Prefix = []*OperatorsRuleOp{oprOp(grammar.Prefix, "", 1, line('+'))}
+					pr.Prefix = []*OperatorsRuleOp{oprOp(ast.Prefix, "", 1, line('+'))}
 					start = 1
 				}
 				p.Pos = start

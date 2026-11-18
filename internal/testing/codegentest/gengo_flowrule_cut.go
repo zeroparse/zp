@@ -1,8 +1,8 @@
 package codegentest
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 var TypedDirectCutCases = []Case{
@@ -51,10 +51,10 @@ rule main Doc = (&probe:("a" #cut "b") #atomic v:"abx" #atomic / v:"aby" #atomic
 }
 
 // DirectCuts reports whether the expression contains a cut.
-func DirectCuts(e grammar.Expr) bool {
+func DirectCuts(e ast.Expr) bool {
 	found := false
-	compile.WalkExpr(e, func(e grammar.Expr) {
-		if _, ok := e.(*grammar.Cut); ok {
+	compile.WalkExpr(e, func(e ast.Expr) {
+		if _, ok := e.(*ast.Cut); ok {
 			found = true
 		}
 	})

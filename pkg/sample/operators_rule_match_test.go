@@ -3,7 +3,7 @@ package sample
 import (
 	"testing"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestOperatorsRuleStopSelectionStatus(t *testing.T) {
@@ -24,12 +24,12 @@ func TestOperatorsRuleStopSelectionStatus(t *testing.T) {
 		{"unsupported part", `level { postfix "!?" #cut }; level { postfix "!" }`, "!?a", 1, false, true, unknown},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			ast, err := engine.ParseGrammar(`rule main = e $$
+			tree, err := engine.ParseGrammar(`rule main = e $$
 rule e = #operators { skip " "*; operand "a"; ` + c.levels + ` }`)
 			if err != nil {
 				t.Fatal(err)
 			}
-			in := analyze(ast, "main")
+			in := analyze(tree, "main")
 			g := newGen(in, &config{})
 			ri := in.rules["e"]
 			lastNone := -1
@@ -53,8 +53,8 @@ rule e = #operators { skip " "*; operand "a"; ` + c.levels + ` }`)
 }
 
 func TestOperatorsRuleStopSharedBudgetBudget(t *testing.T) {
-	op := &grammar.OperatorsRuleOperator{Kind: grammar.Postfix, Expr: &grammar.Literal{Value: "!"}}
-	s := &operatorsRuleStop{pr: &grammar.OperatorsRule{}}
+	op := &ast.OperatorsRuleOperator{Kind: ast.Postfix, Expr: &ast.Literal{Value: "!"}}
+	s := &operatorsRuleStop{pr: &ast.OperatorsRule{}}
 	for range matchSteps + 1 {
 		s.ops = append(s.ops, operatorsRuleOp{op: op})
 	}

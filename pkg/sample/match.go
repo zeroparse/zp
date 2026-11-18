@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // status is the result of matching an expression against a prefix of the input that is still being
@@ -51,7 +51,7 @@ type activeCall struct {
 }
 
 // run matches e at pos in text. m.steps is then the work it took.
-func (m *matcher) run(e grammar.Expr, text []byte, pos int, final bool) (status, int) {
+func (m *matcher) run(e ast.Expr, text []byte, pos int, final bool) (status, int) {
 	m.text, m.final, m.steps, m.active = text, final, 0, m.active[:0]
 	return m.match(e, pos)
 }
@@ -77,7 +77,7 @@ func (m *matcher) runOperatorsRuleStop(c *operatorsRuleCheck, text []byte, pos i
 	if owner == nil {
 		return failed, pos
 	}
-	if best.op.Kind == grammar.Postfix {
+	if best.op.Kind == ast.Postfix {
 		return matched, end
 	}
 	st, end = m.operatorsRuleExpr(s, operatorsRuleRHSMin(best), end)
@@ -106,7 +106,7 @@ func (m *matcher) operatorsRuleLongest(ops []operatorsRuleOp, pos int) (status, 
 		case more:
 			incomplete = true
 		case matched:
-			if p == pos && o.op.Kind != grammar.Infix {
+			if p == pos && o.op.Kind != ast.Infix {
 				continue
 			}
 			if best == nil || p > end {
@@ -136,7 +136,7 @@ func (m *matcher) operatorsRuleSkip(s *operatorsRuleStop, pos int) (status, int)
 }
 
 func operatorsRuleRHSMin(o *operatorsRuleOp) int {
-	if o.op.Assoc == grammar.AssocRight {
+	if o.op.Assoc == ast.AssocRight {
 		return o.level
 	}
 	return o.level + 1
@@ -207,11 +207,11 @@ func (m *matcher) operatorsRuleExpr(s *operatorsRuleStop, minLevel, pos int) (st
 		case failed:
 			return matched, lhsEnd
 		}
-		if op.level < minLevel || op.level > bound || op.op.Assoc == grammar.AssocNone && lastNone == op.level {
+		if op.level < minLevel || op.level > bound || op.op.Assoc == ast.AssocNone && lastNone == op.level {
 			return matched, lhsEnd
 		}
 		end = partEnd
-		if op.op.Kind == grammar.Infix {
+		if op.op.Kind == ast.Infix {
 			st, end = m.operatorsRuleExpr(s, operatorsRuleRHSMin(op), partEnd)
 			if st == operatorsRuleStableSuccess {
 				return st, end
@@ -226,9 +226,9 @@ func (m *matcher) operatorsRuleExpr(s *operatorsRuleStop, minLevel, pos int) (st
 		}
 		lastNone = -1
 		bound = math.MaxInt
-		if op.op.Kind == grammar.Infix {
+		if op.op.Kind == ast.Infix {
 			bound = operatorsRuleRHSMin(op) - 1
-			if op.op.Assoc == grammar.AssocNone {
+			if op.op.Assoc == ast.AssocNone {
 				lastNone = op.level
 			}
 		}
@@ -246,7 +246,7 @@ func (m *matcher) end() status {
 	return more
 }
 
-func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
+func (m *matcher) match(e ast.Expr, pos int) (status, int) {
 	m.steps++
 	if m.steps > matchSteps {
 		return unknown, pos
@@ -255,7 +255,7 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 		return m.end(), pos
 	}
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		rest := m.text[pos:]
 		if len(rest) >= len(e.Value) {
 			if string(rest[:len(e.Value)]) == e.Value {
@@ -267,7 +267,7 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 			return m.end(), pos
 		}
 		return failed, pos
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		if pos == len(m.text) {
 			return m.end(), pos
 		}
@@ -276,13 +276,13 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 			return matched, pos + n
 		}
 		return failed, pos
-	case *grammar.Any:
+	case *ast.Any:
 		if pos == len(m.text) {
 			return m.end(), pos
 		}
 		_, n := utf8.DecodeRune(m.text[pos:])
 		return matched, pos + n
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			st, p := m.match(it, pos)
 			if st != matched {
@@ -291,7 +291,7 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 			pos = p
 		}
 		return matched, pos
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, a := range e.Alts {
 			st, p := m.match(a, pos)
 			if st != failed {
@@ -299,7 +299,7 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 			}
 		}
 		return failed, pos
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		n := 0
 		for e.Max < 0 || n < e.Max {
 			st, p := m.match(e.Expr, pos)
@@ -319,16 +319,16 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 			return failed, pos
 		}
 		return matched, pos
-	case *grammar.Optional:
+	case *ast.Optional:
 		st, p := m.match(e.Expr, pos)
 		if st == failed {
 			return matched, pos
 		}
 		return st, p
-	case *grammar.And:
+	case *ast.And:
 		st, _ := m.match(e.Expr, pos)
 		return st, pos
-	case *grammar.Not:
+	case *ast.Not:
 		switch st, _ := m.match(e.Expr, pos); st {
 		case matched:
 			return failed, pos
@@ -337,20 +337,20 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 		default:
 			return st, pos
 		}
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return m.match(e.Expr, pos)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return m.match(e.Expr, pos)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return m.match(e.Expr, pos)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		for _, a := range e.Attrs {
 			if a.Name == "recover" {
 				return unknown, pos
 			}
 		}
 		return m.match(e.Expr, pos)
-	case *grammar.Ref:
+	case *ast.Ref:
 		ri := m.in.rules[e.Name]
 		if ri == nil || ri.operatorsRule != nil || e.Level != "" {
 			return unknown, pos
@@ -363,16 +363,16 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 		st, p := m.match(ri.def.Expr, pos)
 		m.active = m.active[:len(m.active)-1]
 		return st, p
-	case *grammar.Top:
+	case *ast.Top:
 		return matched, pos
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		return failed, pos
-	case *grammar.BeginInput:
+	case *ast.BeginInput:
 		if pos == 0 {
 			return matched, pos
 		}
 		return failed, pos
-	case *grammar.EndInput:
+	case *ast.EndInput:
 		if pos < len(m.text) {
 			return failed, pos
 		}
@@ -380,12 +380,12 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 			return matched, pos
 		}
 		return more, pos
-	case *grammar.BeginLine:
+	case *ast.BeginLine:
 		if pos == 0 || m.text[pos-1] == '\n' {
 			return matched, pos
 		}
 		return failed, pos
-	case *grammar.EndLine:
+	case *ast.EndLine:
 		if pos == len(m.text) {
 			if m.final {
 				return matched, pos
@@ -402,7 +402,7 @@ func (m *matcher) match(e grammar.Expr, pos int) (status, int) {
 }
 
 // inClass reports whether the class matches r.
-func inClass(c *grammar.CharClass, r rune) bool {
+func inClass(c *ast.CharClass, r rune) bool {
 	in := false
 	for _, rg := range c.Ranges {
 		if rg.Lo <= r && r <= rg.Hi {
