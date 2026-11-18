@@ -15,7 +15,7 @@ parser of the grammar is `parser.ts`, and its types (`-types`) are `types.ts`.
 
 ### The Same Generator, Another Runtime
 
-The TypeScript generator (`internal/codegen/ts/generator.go`) is the Go generator with a different output: it compiles the
+The TypeScript generator (`internal/backend/codegen/typescript/print/generator.go`) is the Go generator with a different output: it compiles the
 grammar with the engine, walks the same analysis results (memoized rules, left-recursion leaders, value-free twins,
 plain rules, projected repetitions, first-character dispatch, the recognizer) and emits a function per parsing
 expression and a function per action and predicate. It shares the expectation table, the naming and `first` with the
@@ -111,7 +111,7 @@ without a build step, and only the ES2020 library (for `BigInt`), so it needs no
 
 ### Verifying Identical Behavior
 
-`TestGeneratedTSParsersMatchEngine` (`internal/codegen/ts/gents_test.go`) generates a module for every grammar of the
+`TestGeneratedTSParsersMatchEngine` (`internal/backend/codegen/typescript/print/gents_test.go`) generates a module for every grammar of the
 corpus of the Go generator's test (the grammars of the code generator test support, its `testdata/typed` and `examples/`), plus a grammar of ints
 and strings that exercises wrapping, big ints, negative division and code-point comparison, and the nested-parentheses
 grammar exactly at and beyond the nesting limit. Node.js runs every input in both units, as bytes and (when valid UTF-8)

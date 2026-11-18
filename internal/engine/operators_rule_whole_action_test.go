@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/value"
@@ -61,19 +61,19 @@ func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 						},
 						"saved AST rebuild": func() error { _, err := build(input.g, compile.Options{}, []compile.RuleFlags{{}}); return err },
 						"Go generator": func() error {
-							_, err := codegentest.GenerateCode(t, input.g, codegen.GenOptions{Start: "main", Package: "p"})
+							_, err := codegentest.GenerateCode(t, input.g, common.GenOptions{Start: "main", Package: "p"})
 							return err
 						},
 						"typed Go generator": func() error {
-							_, err := codegentest.GenerateCode(t, input.g, codegen.GenOptions{Start: "main", Package: "p", Types: true})
+							_, err := codegentest.GenerateCode(t, input.g, common.GenOptions{Start: "main", Package: "p", Types: true})
 							return err
 						},
 						"TS generator": func() error {
-							_, err := codegentest.GenerateTSBundle(input.g, codegen.GenOptions{Start: "main"})
+							_, err := codegentest.GenerateTSBundle(input.g, common.GenOptions{Start: "main"})
 							return err
 						},
 						"typed TS generator": func() error {
-							_, err := codegentest.GenerateTSBundle(input.g, codegen.GenOptions{Start: "main", Types: true})
+							_, err := codegentest.GenerateTSBundle(input.g, common.GenOptions{Start: "main", Types: true})
 							return err
 						},
 					} {

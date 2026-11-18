@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
-	igen "zeroparse.dev/zp/internal/codegen"
+	igen "zeroparse.dev/zp/internal/backend/codegen/common"
 )
 
 func call[T any](t *testing.T, method string, req any) T {

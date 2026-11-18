@@ -6,7 +6,7 @@ generated Go uses, so a rewrite of the Core or Flow IR reaches both.
 ## Mechanism and Invariants
 
 Every rule of the Node and recognizer tables is lowered by `Lower`, `LowerFrame` or `LowerOutline` of
-`internal/middleend/flowlower` and printed by `internal/codegen/ts/flow.go`: a block becomes a labeled block, a loop `for (;;)`,
+`internal/middleend/flowlower` and printed by `internal/backend/codegen/typescript/print/flow.go`: a block becomes a labeled block, a loop `for (;;)`,
 a condition a Flow IR expression. A rule that Flow IR does not print fails generation; there is no second
 printer.
 
@@ -22,7 +22,7 @@ The printer keeps the text small and the functions few:
   literal tables themselves are not shared (`tsSharedKey`).
 - Framed nodes that are large, or whose structure occurs more than once, run as functions of their own
   (`flow.CallOutline`), so no function grows with the grammar and equal nodes share a body
-  (`internal/codegen/ts/outline.go`).
+  (`internal/backend/codegen/typescript/print/outline.go`).
 - A recovered error carries the header line only in `stack`; `recoveredError` suspends
   `Error.stackTraceLimit` while it builds the error, because capturing a stack per recovered error
   dominated recovery time. The error of a failed parse keeps its stack.
@@ -62,7 +62,7 @@ below sets it against the new default form, without limit controls, and the like
 
 Evidence records: [122](../122-typescript-from-flow-ir.md).
 
-Source owners: [`Flow IR printer`](../../../internal/codegen/ts/flow.go), [`outlining`](../../../internal/codegen/ts/outline.go), [`Flow IR lowering`](../../../internal/middleend/flowlower/lower.go).
+Source owners: [`Flow IR printer`](../../../internal/backend/codegen/typescript/print/flow.go), [`outlining`](../../../internal/backend/codegen/typescript/print/outline.go), [`Flow IR lowering`](../../../internal/middleend/flowlower/lower.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

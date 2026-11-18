@@ -9,7 +9,7 @@
 #   code    go build ./..., go vet ./..., and go test of the packages that changed since REV and of every package that
 #           depends on them (hack/affected-tests.sh, which uses go list).
 #   engine  code, with the default-tier tests replaced by the same packages in the long tier (-tags zp_long, which
-#           includes the default tier), then go generate ./internal/codegen/... ./bench ./internal/frontend/parser
+#           includes the default tier), then go generate ./internal/backend/... ./bench ./internal/frontend/parser
 #           ./spec/language with a check that it changed nothing, hack/test-alpha-parsers.sh and
 #           hack/test-reference-tags.sh.
 #   full    go test -tags zp_long ./... (the whole tree, in the long tier).
@@ -98,9 +98,9 @@ if want code || want engine; then
 fi
 if want engine; then
 	step test-long 'go test -tags zp_long of the affected packages' "$(affected_cmd '-tags zp_long -timeout 90m')"
-	step generate 'go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language; the tree must not change' "$snap_def"'
+	step generate 'go generate ./internal/backend/... ./bench ./internal/frontend/parser ./spec/language; the tree must not change' "$snap_def"'
 before=$(snap)
-go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language
+go generate ./internal/backend/... ./bench ./internal/frontend/parser ./spec/language
 [ "$(snap)" = "$before" ] || { echo "gate: go generate changed the tree; commit the regenerated files" >&2; git status --short >&2; exit 1; }'
 	step alpha-parsers 'hack/test-alpha-parsers.sh' hack/test-alpha-parsers.sh
 	step reference-tags 'hack/test-reference-tags.sh' hack/test-reference-tags.sh

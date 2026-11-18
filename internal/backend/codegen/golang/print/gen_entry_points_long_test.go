@@ -1,0 +1,15 @@
+//go:build zp_long
+
+package print_test
+
+import (
+	"testing"
+
+	"zeroparse.dev/zp/internal/testing/codegentest"
+)
+
+// Every combination of entry points over the grammars whose typed entry points convert Nodes.
+func TestGeneratedEntryPointCombinationsConverted(t *testing.T) {
+	t.Parallel()
+	testEntryCombinations(t, codegentest.TypedOnlyConverted)
+}

@@ -15,8 +15,8 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/backend/closure"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/state"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -400,7 +400,7 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 // closures (closure.Core).
 func inCoreBuild() bool {
 	buf := make([]byte, 64<<10)
-	return strings.Contains(string(buf[:runtime.Stack(buf, false)]), "/internal/engine/closure.Core(")
+	return strings.Contains(string(buf[:runtime.Stack(buf, false)]), "/internal/backend/closure.Core(")
 }
 
 // buildHookContext is a live context whose Err calls hook when it is called from inside the build

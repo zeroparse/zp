@@ -169,7 +169,7 @@ func TestNegativeControls(t *testing.T) {
 	addEdge(mod("grammar"), mod("internal/diagnostic"))                         // the utilities are above the grammar AST
 	// Rule 2: edges against the arrows of the layer graph (TestLayerGraph checks every pair).
 	addEdge(mod("internal/frontend/desugar"), mod("internal/ir/exec/lower"))
-	addEdge(mod("internal/engine/closure"), mod("internal/analysis/lint"))
+	addEdge(mod("internal/backend/closure"), mod("internal/analysis/lint"))
 	// Packages at paths that no current package has: an Action dialect package and the public VM.
 	fake := func(path, target string) {
 		layout = append(layout, place{pkg: path, target: target})
@@ -228,7 +228,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: internal/analysis/lint -> internal/testing/starttest", []string{"only internal/testing/** imports internal/testing/** outside tests (internal/analysis/lint -> internal/testing/starttest)"}},
 		{"rule 2: grammar -> internal/diagnostic", []string{"the grammar layer does not import the utility layer (pkg/grammar -> internal/diagnostic)"}},
 		{"rule 2: internal/frontend/desugar -> internal/ir/exec/lower", []string{"the front end layer does not import the middle end layer"}},
-		{"rule 2: internal/engine/closure -> internal/analysis/lint", []string{"the back end layer does not import the analysis layer"}},
+		{"rule 2: internal/backend/closure -> internal/analysis/lint", []string{"the back end layer does not import the analysis layer"}},
 		{"rule 1a: codegen/go/lib -> internal/fakevm", []string{"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not pkg/runtime/vm"}},
 		{"rule 2: internal/ir/code/exec -> internal/fakeaction", []string{"within internal/ir, code/exec imports only code (internal/ir/code/exec -> internal/ir/code/action)"}},
 		{"rule 2: internal/ir/flow -> internal/fakeaction", []string{"within internal/ir, code/flow imports only code and ir/core"}},
@@ -270,7 +270,7 @@ func TestLayerGraph(t *testing.T) {
 	// One package of each layer.
 	rep := map[layer]string{
 		layerCmd: "cmd/zp", layerPublic: "lint", layerLSP: "internal/lsp/zpls", layerDriver: "internal/driver",
-		layerAnalysis: "internal/analysis/lint", layerBackend: "internal/codegen", layerMiddle: "internal/middleend/flowlower",
+		layerAnalysis: "internal/analysis/lint", layerBackend: "internal/backend/codegen/common", layerMiddle: "internal/middleend/flowlower",
 		layerFront: "internal/frontend/desugar", layerIR: "internal/ir/core", layerPass: "internal/pass",
 		layerGrammar: "grammar", layerUtil: "internal/diagnostic", layerTesting: "internal/testing/starttest",
 		layerOutside: "bench/report", layerRuntime: "query",

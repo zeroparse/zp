@@ -12,7 +12,7 @@ Add opt-in rule-call tracing and per-rule profiling to standalone generated Go, 
 
 Design 014 provides `engine.WithTrace`, `engine.Profile`, `engine.WithProfile`, and the `trace`, `profile` and `explain` CLI commands for the engine. Generated Go Node, typed Go, Go Document and TypeScript batch parsers support generation-time opt-in tracing and profiling. Generated APIs have their own event/profile contracts and do not promise engine equivalence. The engine event reports rule, position, binding level, depth, match, memo use, body evaluations and examined input; callbacks are synchronous, and their panic is re-raised unchanged. Profiles accumulate per-rule call/evaluation/memo/match/failure counts, consumed positions, repeats and inclusive/self time.
 
-Generated Go and TypeScript runtimes specialize calls into direct generated methods/functions and common call sites bypass the generic `call` path (`internal/codegen/go/generator.go`, `internal/codegen/go/flowrule.go`, `internal/codegen/ts/generator.go`, `codegen/go/lib/lib.go`, `codegen/ts/lib/lib.ts`). Generated Go has ordinary and typed runtimes; TypeScript has its own runtime and can convert node results to typed values. Literal/first-character dispatch can skip a call, and deferred memoization changes which calls evaluate a body. Adding a hook only to `parser.call` would therefore miss optimized calls and produce incomplete counts. The Go and TypeScript slices have focused synthetic measurements below; broader workload measurements remain unavailable.
+Generated Go and TypeScript runtimes specialize calls into direct generated methods/functions and common call sites bypass the generic `call` path (`internal/backend/codegen/golang/print/generator.go`, `internal/backend/codegen/golang/print/flowrule.go`, `internal/backend/codegen/typescript/print/generator.go`, `codegen/go/lib/lib.go`, `codegen/ts/lib/lib.ts`). Generated Go has ordinary and typed runtimes; TypeScript has its own runtime and can convert node results to typed values. Literal/first-character dispatch can skip a call, and deferred memoization changes which calls evaluate a body. Adding a hook only to `parser.call` would therefore miss optimized calls and produce incomplete counts. The Go and TypeScript slices have focused synthetic measurements below; broader workload measurements remain unavailable.
 
 ### Go Node Batch Trace
 
@@ -335,7 +335,7 @@ generated output remained byte-identical to baseline `63dab7d`; opt-in source
 grew 5.02%/4.39% for direct/conversion calculator, 9.14%/7.12% for JSON, and
 10.04%/8.00% for XML. Broad workload, binary-size, retained-heap and generation
 costs were not measured for this typed extension. The source is
-`internal/codegen/go/gengo_typed_observe_bench_test.go`; exported temporary fixtures
+`internal/backend/codegen/golang/print/gengo_typed_observe_bench_test.go`; exported temporary fixtures
 and raw measurement logs are not repository artifacts.
 
 ### Generated Go Profile Measurements
@@ -383,7 +383,7 @@ per-API estimates. Each benchmark reused one `Profile` per case and excluded
 `Snapshot`. Generated source grew versus the prior trace-enabled generator by
 0.870–4.530% for Node and 0.545–3.018% for typed output, depending on fixture.
 Binary size, retained heap and generation time were not measured. The benchmark
-source is `internal/codegen/go/gengo_profile_bench_test.go`; exported fixtures and
+source is `internal/backend/codegen/golang/print/gengo_profile_bench_test.go`; exported fixtures and
 raw results are not repository artifacts.
 
 To reproduce the candidate measurements, export the fixtures and run each
@@ -391,7 +391,7 @@ ordinary/observed package in a separate process, alternating their order for
 each fixture and unit:
 
 ```sh
-ZP_PROFILE_BENCH_DIR=/tmp/zp-profile-bench go test ./internal/codegen/go -run '^TestExportGeneratedGoProfileBenchmarks$' -count=1
+ZP_PROFILE_BENCH_DIR=/tmp/zp-profile-bench go test ./internal/backend/codegen/golang/print -run '^TestExportGeneratedGoProfileBenchmarks$' -count=1
 cd /tmp/zp-profile-bench/json/node/ordinary || exit 1
 go test -run '^$' -bench '^(Benchmark(Parse|ParseValue|Recognize|TraceParse)|BenchmarkProfile(Parse|Recognize|ParseValue))$' -benchmem -benchtime=150ms
 # Repeat from json/node/observed and the typed routes, then alternate order for xml and calc.
@@ -415,7 +415,7 @@ package benchmark in separate processes, alternating ordinary and observed
 order across repeated samples:
 
 ```sh
-ZP_TRACE_BENCH_DIR=/tmp/zp-trace-bench go test ./internal/codegen/go -run '^TestExportGeneratedTraceBenchmarks$' -count=1
+ZP_TRACE_BENCH_DIR=/tmp/zp-trace-bench go test ./internal/backend/codegen/golang/print -run '^TestExportGeneratedTraceBenchmarks$' -count=1
 cd /tmp/zp-trace-bench/json/ordinary || exit 1
 go test -run '^$' -bench '^(BenchmarkParse|BenchmarkRecognize|BenchmarkTrace)$' -benchmem -benchtime=200ms
 # Repeat from json/observed, then alternate order for xml and calc.
@@ -426,10 +426,10 @@ filter the ordinary and observed subbenchmarks into separate processes and
 alternate their order:
 
 ```sh
-go test ./internal/codegen/go -run '^$' -bench '^BenchmarkGeneratedObservabilityGeneration$' -benchmem -benchtime=200ms -count=3
+go test ./internal/backend/codegen/golang/print -run '^$' -bench '^BenchmarkGeneratedObservabilityGeneration$' -benchmem -benchtime=200ms -count=3
 ```
 
-The benchmark source is `internal/codegen/go/gengo_observe_bench_test.go`; the
+The benchmark source is `internal/backend/codegen/golang/print/gengo_observe_bench_test.go`; the
 generated fixtures and raw results are not repository artifacts.
 
 ### TypeScript Batch Measurements
@@ -461,13 +461,13 @@ ordinary generated Node/typed sources were byte-identical to baseline
 calculator Node/typed, 7.455%/7.147% for JSON and 8.541%/8.187% for XML.
 Allocations, retained memory, binary size and generation time were not measured
 for this TypeScript slice. Benchmark sources are
-`internal/codegen/ts/gents_observe_bench_test.go` and the generated
+`internal/backend/codegen/typescript/print/gents_observe_bench_test.go` and the generated
 `bench.mjs`; raw results and generated fixtures are not repository artifacts.
 Export the controls, then alternate ordinary and observed processes across
 three pairs for each fixture:
 
 ```sh
-ZP_TS_TRACE_BENCH_DIR=/tmp/zp-ts-trace go test ./internal/codegen/ts -run '^TestExportGeneratedTSTraceBenchmarks$' -count=1
+ZP_TS_TRACE_BENCH_DIR=/tmp/zp-ts-trace go test ./internal/backend/codegen/typescript/print -run '^TestExportGeneratedTSTraceBenchmarks$' -count=1
 cd /tmp/zp-ts-trace/json/typed/ordinary || exit 1
 node --expose-gc bench.mjs
 # Repeat from json/typed/observed, then alternate order for xml and calc.
@@ -509,7 +509,7 @@ package in a separate Node process, alternating ordinary and observed order
 for three pairs:
 
 ```sh
-ZP_TS_TRACE_BENCH_DIR=/tmp/zp-ts-profile go test ./internal/codegen/ts -run '^TestExportGeneratedTSTraceBenchmarks$' -count=1
+ZP_TS_TRACE_BENCH_DIR=/tmp/zp-ts-profile go test ./internal/backend/codegen/typescript/print -run '^TestExportGeneratedTSTraceBenchmarks$' -count=1
 cd /tmp/zp-ts-profile/json/node/ordinary || exit 1
 node --expose-gc profile-bench.mjs
 cd /tmp/zp-ts-profile/json/node/observed || exit 1
@@ -519,7 +519,7 @@ ZP_PROFILE_MODES=none,trace,profile node --expose-gc profile-bench.mjs
 Repeat for typed JSON, XML and calculator fixtures. The driver defaults to
 75 ms warmup and 150 ms timing; `ZP_PROFILE_WARM_MS` and
 `ZP_PROFILE_BENCH_MS` override these durations. The exporter is
-`TestExportGeneratedTSTraceBenchmarks`; the benchmark source is committed in `internal/codegen/ts/gents_profile_bench_test.go`. Exported
+`TestExportGeneratedTSTraceBenchmarks`; the benchmark source is committed in `internal/backend/codegen/typescript/print/gents_profile_bench_test.go`. Exported
 sources and raw results are not repository artifacts.
 
 ## Limitations and Open Questions

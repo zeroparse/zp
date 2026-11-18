@@ -27,7 +27,7 @@ The retained-output fixture exports direct and conversion variants, including th
 
 ```sh
 ZP_TYPED_OUTPUT_RETENTION_DIR=/tmp/retention \
-  go test ./internal/codegen/go -run '^TestGeneratedTypedOutputRetentionFixture$' -count=1
+  go test ./internal/backend/codegen/golang/print -run '^TestGeneratedTypedOutputRetentionFixture$' -count=1
 ```
 
 Measure retained output separately for each exported variant:

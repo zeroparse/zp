@@ -13,7 +13,7 @@ import (
 
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	igen "zeroparse.dev/zp/internal/codegen"
+	igen "zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

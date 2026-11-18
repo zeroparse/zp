@@ -1,0 +1,37 @@
+package print_test
+
+import (
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/testing/codegentest"
+)
+
+func TestGeneratedTypedRecoveryBodies(t *testing.T) {
+	t.Parallel()
+	codegentest.NeedsBudgetControls(t)
+	if testing.Short() {
+		t.Skip("builds generated code")
+	}
+	marker := "// Recovery inlined under the runtime-owned frame."
+	for _, c := range codegentest.TypedRecoveryCases {
+		g, err := parseTest(c.Src)
+		if err != nil {
+			t.Fatalf("%s: %v", c.Name, err)
+		}
+		opts := common.GenOptions{Package: "recoverybody", Start: "main", Types: true, Recognize: true}
+		candidate, err := codegentest.GenerateCode(t, g, opts)
+		if err != nil {
+			t.Fatalf("%s: %v", c.Name, err)
+		}
+		if !strings.Contains(string(candidate), "TParse(trules") || !strings.Contains(string(candidate), marker) {
+			t.Fatalf("%s: typed recovery route not exercised", c.Name)
+		}
+	}
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedRecoveryCases, common.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedRecoveryCases, common.GenOptions{ConvertTypes: true})
+}

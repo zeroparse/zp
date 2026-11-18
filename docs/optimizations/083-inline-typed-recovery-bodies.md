@@ -93,7 +93,7 @@ Generate same-generator direct and reference fixtures and check their parity:
 
 ```sh
 export ZP_TYPED_RECOVERY_DIR=/tmp/zp-typed-recovery
-go test ./internal/codegen/go -run '^TestGeneratedTypedRecoveryWorkloads$' -count=1
+go test ./internal/backend/codegen/golang/print -run '^TestGeneratedTypedRecoveryWorkloads$' -count=1
 ```
 
 Build each workload and route as a separate benchmark binary:

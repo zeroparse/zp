@@ -8,10 +8,11 @@ import (
 	"sync/atomic"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/backend/closure"
+	"zeroparse.dev/zp/internal/backend/vmlower"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/frontend/desugar"
@@ -226,7 +227,7 @@ func (prog *Program) Module() *bytecode.Module {
 	if s.HasMissing {
 		panic(compile.MissingUnsupported("bytecode module construction"))
 	}
-	s.BytecodeOnce.Do(func() { s.Bytecode, s.BytecodeErr = vm.Compile(s) })
+	s.BytecodeOnce.Do(func() { s.Bytecode, s.BytecodeErr = vmlower.Compile(s) })
 	if s.BytecodeErr != nil {
 		panic(s.BytecodeErr)
 	}

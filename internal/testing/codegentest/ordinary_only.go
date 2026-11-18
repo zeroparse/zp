@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
@@ -25,13 +25,13 @@ var OrdinaryOnlyTypedInputs = []string{
 }
 
 // OrdinaryOnlyPackage generates the grammar src as the package pkg of the module dir, with opts.
-func OrdinaryOnlyPackage(t *testing.T, dir, pkg, src string, opts codegen.GenOptions, program string, inputs []string) {
+func OrdinaryOnlyPackage(t *testing.T, dir, pkg, src string, opts common.GenOptions, program string, inputs []string) {
 	t.Helper()
 	g, err := compiletest.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts.Lib = codegen.LibImport
+	opts.Lib = common.LibImport
 	opts.Package, opts.Module, opts.Start = pkg, "ordtest/"+pkg, "main"
 	files, err := Generate(t, g, opts)
 	if err != nil {
