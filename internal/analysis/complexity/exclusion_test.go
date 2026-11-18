@@ -13,6 +13,7 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -722,13 +723,13 @@ func fmtPath(p []sym) string {
 		case symUp:
 			b = append(b, "UP")
 		case symNot:
-			b = append(b, "!"+ast.FormatExpr(s.e))
+			b = append(b, "!"+syntaxfmt.FormatExpr(s.e))
 		case symAnd:
-			b = append(b, "&"+ast.FormatExpr(s.e))
+			b = append(b, "&"+syntaxfmt.FormatExpr(s.e))
 		case symSkip:
 			b = append(b, "_")
 		default:
-			b = append(b, ast.FormatExpr(s.e))
+			b = append(b, syntaxfmt.FormatExpr(s.e))
 		}
 	}
 	return strings.Join(b, " ")

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -46,7 +47,7 @@ rule inferred = number:number => $number
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	again, err := Parse(formatted)
 	if err != nil {
 		t.Fatalf("formatted source: %v\n%s", err, formatted)
@@ -58,7 +59,7 @@ rule inferred = number:number => $number
 	if string(first) != string(second) {
 		t.Fatalf("AST changed after formatting\n%s\n%s\n%s", first, second, formatted)
 	}
-	if stable := ast.Format(again); formatted != stable {
+	if stable := fmt.Format(again); formatted != stable {
 		t.Fatalf("unstable format\n%s\n%s", formatted, stable)
 	}
 }
@@ -109,7 +110,7 @@ func TestMissingPragmaSourceAndFormat(t *testing.T) {
 	if len(attrs) != 2 || attrs[0].Name != "error" || attrs[1].Name != "missing" || !attrs[1].Pragma {
 		t.Fatalf("attributes: %+v", attrs)
 	}
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	if formatted != source+"\n" {
 		t.Fatalf("format changed pragma: %q", formatted)
 	}
@@ -130,7 +131,7 @@ func TestExpressionRuleAnnotationsPreserveBodyComments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		formatted := ast.Format(g)
+		formatted := fmt.Format(g)
 		if !strings.Contains(formatted, "// keep me") {
 			t.Fatalf("lost comment:\n%s", formatted)
 		}
@@ -138,7 +139,7 @@ func TestExpressionRuleAnnotationsPreserveBodyComments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if stable := ast.Format(again); stable != formatted {
+		if stable := fmt.Format(again); stable != formatted {
 			t.Fatalf("unstable format:\n%s\n%s", formatted, stable)
 		}
 	}
@@ -162,7 +163,7 @@ func TestRecoverPragmaSpelling(t *testing.T) {
 	if _, ok := g.Rules()[0].Expr.(*ast.Recovery); !ok {
 		t.Fatalf("recovery expression: %T", g.Rules()[0].Expr)
 	}
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	if !strings.Contains(formatted, "#recover(skip=") {
 		t.Fatalf("format: %s", formatted)
 	}

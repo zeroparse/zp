@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -55,7 +56,7 @@ func TestCommentsAfterAnOpeningBraceFormatAndJSON(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := ast.Format(back); got != c.wantJSON {
+			if got := fmt.Format(back); got != c.wantJSON {
 				t.Fatalf("formatted JSON:\n%q\nwant:\n%q", got, c.wantJSON)
 			}
 			if n := strings.Count(c.src, "//") + strings.Count(c.src, "/*"); n != strings.Count(c.wantJSON, "//")+strings.Count(c.wantJSON, "/*") {

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 )
 
 // unformattedFixtures are checked-in grammars that are unformatted on purpose.
@@ -40,7 +40,7 @@ func TestCheckedInGrammarsAreFormatted(t *testing.T) {
 			t.Errorf("%s: %v", path, err)
 			continue
 		}
-		if ast.Format(g) != string(src) {
+		if fmt.Format(g) != string(src) {
 			t.Errorf("%s is not formatted: run zp fmt -w %s", path, path)
 		}
 	}

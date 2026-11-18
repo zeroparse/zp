@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -125,14 +126,14 @@ func TestMultilineFieldTypeIndentation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := ast.Format(g); got != want {
+	if got := fmt.Format(g); got != want {
 		t.Fatalf("got\n%s\nwant\n%s", got, want)
 	}
 	g, err = Parse(want)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := ast.Format(g); got != want {
+	if got := fmt.Format(g); got != want {
 		t.Fatalf("not idempotent:\n%s", got)
 	}
 }
@@ -159,12 +160,12 @@ func TestTypeFormattingIdempotence(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%q: %v", src, err)
 		}
-		once := ast.Format(g)
+		once := fmt.Format(g)
 		g, err = Parse(once)
 		if err != nil {
 			t.Fatalf("%q: formatted source does not parse: %v\n%s", src, err, once)
 		}
-		if twice := ast.Format(g); twice != once || !strings.Contains(once, "/*") {
+		if twice := fmt.Format(g); twice != once || !strings.Contains(once, "/*") {
 			t.Errorf("%q: not idempotent or comment lost:\n%s\nthen\n%s", src, once, twice)
 		}
 	}

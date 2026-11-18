@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -337,7 +338,7 @@ func castName(t ast.TypeExpr) string {
 	for {
 		g, ok := t.(*ast.TypeGroup)
 		if !ok {
-			return ast.FormatType(t)
+			return syntaxfmt.FormatType(t)
 		}
 		t = g.Type
 	}
@@ -423,7 +424,7 @@ func (e *TermEnv) admits(t ast.TypeExpr, x V) bool {
 			return x.Kind == KNode && e.admits(t.Args[0], x.nodeValue())
 		}
 	}
-	panic(fmt.Sprintf("ref: unsupported cast type %s", ast.FormatType(t)))
+	panic(fmt.Sprintf("ref: unsupported cast type %s", syntaxfmt.FormatType(t)))
 }
 
 func (e *TermEnv) all(xs []V, t ast.TypeExpr) bool {

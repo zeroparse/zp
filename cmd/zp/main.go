@@ -43,6 +43,7 @@ import (
 	"zeroparse.dev/zp/internal/driver"
 	iengine "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/pass"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -417,9 +418,9 @@ func formatSourceMode(name string, src []byte, write, list, syntaxOnly bool, std
 	}
 	var out string
 	if syntaxOnly {
-		out = ast.FormatSyntax(g)
+		out = syntaxfmt.FormatSyntax(g)
 	} else {
-		out = ast.Format(g)
+		out = syntaxfmt.Format(g)
 	}
 	changed := out != string(src)
 	if list && changed {
@@ -521,7 +522,7 @@ func convertCmd(args []string, stdout io.Writer) error {
 	}
 	var out []byte
 	if target == "zp" {
-		out = []byte(ast.Format(g))
+		out = []byte(syntaxfmt.Format(g))
 	} else if out, err = ast.MarshalJSON(g); err != nil {
 		return err
 	}

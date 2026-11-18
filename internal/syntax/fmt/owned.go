@@ -1,6 +1,8 @@
-package ast
+package fmt
 
 import "strings"
+
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // A grammar decoded from JSON, or built by hand, has no LineBreak values, but
 // its nodes may own comments (SourceInfo.LeadingComments, TrailingComments and
@@ -15,7 +17,7 @@ import "strings"
 // text is one block comment. A block comment cannot hold "*/", so the text is
 // written with "* /" for it, and a space ends text that does not end with white
 // space, as the line comment at the end of a file has none.
-func ownedComments(text string) []*Comment {
+func ownedComments(text string) []*ast.Comment {
 	if text == "" {
 		return nil
 	}
@@ -24,12 +26,12 @@ func ownedComments(text string) []*Comment {
 		if !strings.HasSuffix(body, " ") {
 			body += " "
 		}
-		return []*Comment{{Text: "/*" + body + "*/"}}
+		return []*ast.Comment{{Text: "/*" + body + "*/"}}
 	}
 	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
-	cs := make([]*Comment, len(lines))
+	cs := make([]*ast.Comment, len(lines))
 	for i, line := range lines {
-		cs[i] = &Comment{Text: "//" + strings.TrimRight(line, " \t\r")}
+		cs[i] = &ast.Comment{Text: "//" + strings.TrimRight(line, " \t\r")}
 	}
 	return cs
 }
@@ -50,7 +52,7 @@ func continuationLines(text string) string {
 // ownedLead returns b, or when b is nil the line break that writes the leading
 // and detached comments s owns. blank says whether a blank line precedes the
 // first comment, as it does between declarations.
-func ownedLead(s *SourceInfo, b *LineBreak, blank bool) *LineBreak {
+func ownedLead(s *ast.SourceInfo, b *ast.LineBreak, blank bool) *ast.LineBreak {
 	if b != nil || s.LeadingComments == "" && len(s.LeadingDetachedComments) == 0 {
 		return b
 	}
@@ -59,8 +61,8 @@ func ownedLead(s *SourceInfo, b *LineBreak, blank bool) *LineBreak {
 
 // ownedLeadFrom builds the break of ownedLead: the detached paragraphs, each
 // after a blank line, then the leading comments directly before the node.
-func ownedLeadFrom(s *SourceInfo, blank bool) *LineBreak {
-	b := &LineBreak{}
+func ownedLeadFrom(s *ast.SourceInfo, blank bool) *ast.LineBreak {
+	b := &ast.LineBreak{}
 	for _, paragraph := range s.LeadingDetachedComments {
 		cs := ownedComments(paragraph)
 		if len(cs) == 0 {
@@ -82,7 +84,7 @@ func ownedLeadFrom(s *SourceInfo, blank bool) *LineBreak {
 // ownedTrailing returns the break that writes the trailing comment s owns at
 // the end of its line, or nil. Each string is one comment, written after the
 // one before it; a comment over several lines is one block comment.
-func ownedTrailing(s *SourceInfo, b *LineBreak) *LineBreak {
+func ownedTrailing(s *ast.SourceInfo, b *ast.LineBreak) *ast.LineBreak {
 	if b != nil || len(s.TrailingComments) == 0 {
 		return nil
 	}
@@ -94,27 +96,27 @@ func ownedTrailing(s *SourceInfo, b *LineBreak) *LineBreak {
 		}
 		if len(cs) > 1 {
 			// A group over several lines is one block comment.
-			cs = []*Comment{{Text: "/*" + continuationLines(strings.ReplaceAll(text, "*/", "* /")) + "*/"}}
+			cs = []*ast.Comment{{Text: "/*" + continuationLines(strings.ReplaceAll(text, "*/", "* /")) + "*/"}}
 		}
 		texts = append(texts, cs[0].Text)
 	}
 	if len(texts) == 0 {
 		return nil
 	}
-	c := &Comment{Text: strings.Join(texts, " ")}
-	return &LineBreak{Trailing: c, TrailingEnds: strings.HasPrefix(texts[len(texts)-1], "//")}
+	c := &ast.Comment{Text: strings.Join(texts, " ")}
+	return &ast.LineBreak{Trailing: c, TrailingEnds: strings.HasPrefix(texts[len(texts)-1], "//")}
 }
 
 // ownsComments reports whether Format writes comments that s owns, because b
 // is nil.
-func ownsComments(s *SourceInfo, b *LineBreak) bool {
+func ownsComments(s *ast.SourceInfo, b *ast.LineBreak) bool {
 	return b == nil && (s.LeadingComments != "" || len(s.TrailingComments) > 0 || len(s.LeadingDetachedComments) > 0)
 }
 
 // inlineOwnedComment returns the block comment that s owns when it is only one
 // detached block comment without a line break at its end, the comment that
 // the parser detaches from two tokens of one line, or nil.
-func inlineOwnedComment(s *SourceInfo) *Comment {
+func inlineOwnedComment(s *ast.SourceInfo) *ast.Comment {
 	if s.LeadingComments != "" || len(s.LeadingDetachedComments) != 1 || strings.HasSuffix(s.LeadingDetachedComments[0], "\n") {
 		return nil
 	}

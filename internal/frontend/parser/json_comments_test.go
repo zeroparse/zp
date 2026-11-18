@@ -3,6 +3,7 @@ package parser
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -51,7 +52,7 @@ rule ops = #operators {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := ast.Format(decoded)
+	out := fmt.Format(decoded)
 	again, err := Parse(out)
 	if err != nil {
 		t.Fatalf("the result does not parse: %v\n%s", err, out)
@@ -62,7 +63,7 @@ rule ops = #operators {
 	if diffs := ownerDiffs(g, again); len(diffs) > 0 {
 		t.Errorf("owners changed\n%v\n%s", diffs, out)
 	}
-	if second := ast.Format(again); second != out {
+	if second := fmt.Format(again); second != out {
 		t.Errorf("formatting is not idempotent\nfirst:\n%s\nsecond:\n%s", out, second)
 	}
 	if out != src {

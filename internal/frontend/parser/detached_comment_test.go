@@ -3,6 +3,7 @@ package parser
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -53,7 +54,7 @@ func TestFormatJSONKeepsDetachedParagraphs(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := ast.Format(decoded); got != tc.src && tc.name != "trailing over lines" {
+			if got := fmt.Format(decoded); got != tc.src && tc.name != "trailing over lines" {
 				t.Fatalf("got:\n%s\nwant:\n%s", got, tc.src)
 			}
 		})

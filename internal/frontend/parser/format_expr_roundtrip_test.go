@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -111,7 +112,7 @@ func TestFormatExprPostfixOperandRoundTrip(t *testing.T) {
 		for kindName := range operandKinds() {
 			t.Run(opName+" of "+kindName, func(t *testing.T) {
 				e := wrap(operandKinds()[kindName])
-				text := ast.FormatExpr(e)
+				text := syntaxfmt.FormatExpr(e)
 				back, err := parser.ParseExpr(text)
 				if err != nil {
 					t.Fatalf("%q does not parse: %v", text, err)
@@ -142,7 +143,7 @@ func TestFormatExprNestedRoundTrip(t *testing.T) {
 			} {
 				t.Run(ctxName+" of "+opName+" of "+kindName, func(t *testing.T) {
 					e := ctx(wrap(operandKinds()[kindName]))
-					text := ast.FormatExpr(e)
+					text := syntaxfmt.FormatExpr(e)
 					back, err := parser.ParseExpr(text)
 					if err != nil {
 						t.Fatalf("%q does not parse: %v", text, err)
@@ -180,7 +181,7 @@ func TestFormatBundledGrammarsRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Skipf("does not parse on its own: %v", err)
 			}
-			text := ast.Format(g)
+			text := syntaxfmt.Format(g)
 			g2, err := parser.Parse(text)
 			if err != nil {
 				t.Fatalf("printed grammar does not parse: %v", err)
@@ -188,7 +189,7 @@ func TestFormatBundledGrammarsRoundTrip(t *testing.T) {
 			if got, want := shape(g2), shape(g); got != want {
 				t.Errorf("printed grammar parses back differently")
 			}
-			if again := ast.Format(g2); again != text {
+			if again := syntaxfmt.Format(g2); again != text {
 				t.Errorf("printing is not stable")
 			}
 		})
@@ -207,7 +208,7 @@ func TestFormatExprNoUnneededParentheses(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
-		if got := ast.FormatExpr(e); got != src {
+		if got := syntaxfmt.FormatExpr(e); got != src {
 			t.Errorf("FormatExpr(%s) = %q", src, got)
 		}
 	}
@@ -232,7 +233,7 @@ func TestFormatExprPrefixOperandRoundTrip(t *testing.T) {
 		for kindName := range operandKinds() {
 			t.Run(ctxName+" of "+kindName, func(t *testing.T) {
 				e := ctx(operandKinds()[kindName])
-				text := ast.FormatExpr(e)
+				text := syntaxfmt.FormatExpr(e)
 				back, err := parser.ParseExpr(text)
 				if err != nil {
 					t.Fatalf("%q does not parse: %v", text, err)
@@ -262,7 +263,7 @@ func TestFormatExprNestedAttributed(t *testing.T) {
 		{&ast.Atomic{Expr: inner()}, "a @x #atomic"},
 		{&ast.Attributed{Expr: &ast.Atomic{Expr: inner()}, Attrs: []*ast.Attribute{{Name: "y"}}}, "a @x #atomic @y"},
 	} {
-		if got := ast.FormatExpr(tc.expr); got != tc.want {
+		if got := syntaxfmt.FormatExpr(tc.expr); got != tc.want {
 			t.Errorf("FormatExpr = %q, want %q", got, tc.want)
 		}
 	}

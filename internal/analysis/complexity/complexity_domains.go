@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -91,13 +92,13 @@ func constantValues(v *ast.VarDef, binds []*binding) (int, bool) {
 	if v.Value == nil {
 		terms[""] = true
 	} else {
-		terms[ast.FormatTerm(check.UngroupTerm(v.Value))] = true
+		terms[fmt.FormatTerm(check.UngroupTerm(v.Value))] = true
 	}
 	for _, b := range binds {
 		if !constant(b.b.Value) {
 			return 0, false
 		}
-		terms[ast.FormatTerm(check.UngroupTerm(b.b.Value))] = true
+		terms[fmt.FormatTerm(check.UngroupTerm(b.b.Value))] = true
 	}
 	return len(terms), true
 }

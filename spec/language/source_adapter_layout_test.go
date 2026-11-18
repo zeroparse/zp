@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -100,7 +101,7 @@ func layoutDifference(src string) (class, detail string) {
 		path, _, _ = strings.Cut(path, " = ")
 		return layoutIndex.ReplaceAllString(path, "[]"), fmt.Sprintf("\n manual:    %s\n canonical: %s", w, h)
 	}
-	if a, b := ast.Format(manual), ast.Format(got); a != b {
+	if a, b := syntaxfmt.Format(manual), syntaxfmt.Format(got); a != b {
 		return "format", fmt.Sprintf("\nmanual:\n%s\ncanonical:\n%s", a, b)
 	}
 	return "", ""

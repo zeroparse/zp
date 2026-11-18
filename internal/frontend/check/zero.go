@@ -3,6 +3,7 @@ package check
 import (
 	"strings"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -96,7 +97,7 @@ func (v *ValueInference) unsetFields(t *ast.New, st *ast.TypeDef) {
 		if ft == TyBottom || v.Prog.HasZero(ft) {
 			continue
 		}
-		text := ast.FormatType(f.Type)
+		text := fmt.FormatType(f.Type)
 		v.errorf(t.Diagnostic(), "field %s of %s has type %s, which has no zero value: set it in the constructor, or declare it as %s", f.Name, t.Type, text, optionalOf(text))
 	}
 }

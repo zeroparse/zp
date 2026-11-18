@@ -8,7 +8,7 @@ import (
 	"text/template"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/pkg/grammar/ast"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func generate() error {
 	if err != nil {
 		return err
 	}
-	data := struct{ Simple string }{ast.FormatSyntax(g)}
+	data := struct{ Simple string }{syntaxfmt.FormatSyntax(g)}
 	var out bytes.Buffer
 	if err := t.Execute(&out, data); err != nil {
 		return err

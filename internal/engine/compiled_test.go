@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -343,15 +344,15 @@ func grammarTypes(prog *Program) string {
 			switch spec := s.(type) {
 			case *ast.TypeDef:
 				for _, f := range spec.Struct().Fields {
-					fmt.Fprintf(&b, " %s %s;", f.Name, ast.FormatType(f.Type))
+					fmt.Fprintf(&b, " %s %s;", f.Name, syntaxfmt.FormatType(f.Type))
 				}
 			case *ast.TypeAlias:
-				b.WriteString(" ~ " + ast.FormatType(spec.Type))
+				b.WriteString(" ~ " + syntaxfmt.FormatType(spec.Type))
 			}
 			b.WriteString("\n")
 		case *ast.RuleDef:
 			if s.Type != nil {
-				fmt.Fprintf(&b, "rule %s %s\n", s.Name, ast.FormatType(s.Type))
+				fmt.Fprintf(&b, "rule %s %s\n", s.Name, syntaxfmt.FormatType(s.Type))
 			}
 		}
 	}
