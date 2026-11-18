@@ -137,7 +137,7 @@ func Changed(base string, paths ...string) ([]string, error) {
 // server, the documentation) cannot change the verdict of such a runner.
 var Pipeline = []string{
 	"codegen", "core", "engine", "pkg/grammar", "pkg/runtime", "pkg/sample", "testdata",
-	"internal/analysis", "internal/backend", "internal/bench", "internal/bytecode", "internal/cancel", "internal/compile",
-	"internal/diagnostic", "internal/driver", "internal/engine", "internal/frontend", "internal/ir",
+	"internal/analysis", "internal/backend", "internal/bench", "pkg/bytecode", "internal/cancel", "internal/compile",
+	"internal/diagnostic", "internal/driver", "internal/runtime/engine", "internal/frontend", "internal/ir",
 	"internal/middleend", "internal/pass", "internal/runtime", "internal/syntax", "internal/testing",
 }

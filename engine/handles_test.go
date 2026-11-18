@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	iengine "zeroparse.dev/zp/internal/engine"
+	iengine "zeroparse.dev/zp/internal/runtime/engine"
 )
 
 // TestDocumentChangeFields checks that engine.DocumentChange has the fields of the engine's change

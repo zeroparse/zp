@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	. "zeroparse.dev/zp/internal/engine"
+	. "zeroparse.dev/zp/internal/runtime/engine"
 )
 
 // BenchmarkDocumentChangesSnapshotEdit compares identical same-length middle

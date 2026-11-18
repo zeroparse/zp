@@ -45,6 +45,6 @@
   prepend-only `bind` helper lets new snapshot tests compile on the baseline,
   whose binding paths and parser layout remain unchanged. The rollback
   workloads and heap regressions are in the benchmark/test code. Reproduce with
-  `go test ./internal/engine -run '^$' -bench 'Benchmark(EnvironmentBindings|DistinctBindings)$' -benchmem`.
+  `go test ./internal/runtime/engine -run '^$' -bench 'Benchmark(EnvironmentBindings|DistinctBindings)$' -benchmem`.
   Tests check saved snapshots against independent value maps, choice/rule scope,
   positive/negative lookahead, streams and actual generated Go/TS rule state.

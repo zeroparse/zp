@@ -1,10 +1,10 @@
 package compile
 
 import (
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/runtime/program"
+	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

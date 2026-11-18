@@ -1,6 +1,6 @@
 package program
 
-import "zeroparse.dev/zp/internal/bytecode"
+import "zeroparse.dev/zp/pkg/bytecode"
 
 // VarDecl is a declared variable: its name and its initial value, an int, a string or a bool.
 type VarDecl struct {

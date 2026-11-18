@@ -52,9 +52,9 @@ used 150 ms. Retained-heap cases used prebuilt binaries, forced GC, and 33 or
 snapshot live until the next capture completes.
 
 ```sh
-GOMAXPROCS=16 GOGC=100 go test ./internal/engine -run '^$' \
+GOMAXPROCS=16 GOGC=100 go test ./internal/runtime/engine -run '^$' \
   -bench '^BenchmarkDocumentSnapshotMiddleEdit$' -benchtime=200ms -count=1
-GOMAXPROCS=16 GOGC=100 go test -tags zp_snapshot_child_chunks_reference ./internal/engine \
+GOMAXPROCS=16 GOGC=100 go test -tags zp_snapshot_child_chunks_reference ./internal/runtime/engine \
   -run '^$' -bench '^BenchmarkDocumentSnapshotMiddleEdit$' \
   -benchtime=200ms -count=1
 GOMAXPROCS=16 GOGC=100 go run ./bench/snapshot-retained -mode snapshot -edit replace-middle \

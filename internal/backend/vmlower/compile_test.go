@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // TestModuleDisassembly checks the disassembly of the match code of a module as the compiler

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	. "zeroparse.dev/zp/internal/engine"
+	. "zeroparse.dev/zp/internal/runtime/engine"
 )
 
 const documentMemoryGrammar = `type Pair = { K string; V string }

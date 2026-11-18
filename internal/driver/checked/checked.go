@@ -11,7 +11,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/closure"
 	"zeroparse.dev/zp/internal/backend/vmlower"
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
@@ -19,6 +18,7 @@ import (
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

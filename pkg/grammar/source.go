@@ -17,8 +17,8 @@ import (
 	"path"
 	"sync"
 
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

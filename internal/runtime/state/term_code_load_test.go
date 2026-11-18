@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	coreimpl "zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // TestLoadTermRejectsEachCheck checks the operand and pool checks of LoadTerm one by one: each case

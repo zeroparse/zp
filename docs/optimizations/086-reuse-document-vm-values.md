@@ -81,9 +81,9 @@ Reproduce the ownership tests and benchmark setup:
 go test ./internal/runtime/document -run '^TestDocumentVMValueStorage' -count=1
 go test -tags zp_reference_document_vm_values ./internal/runtime/document \
   -run '^TestDocumentVMValueStorage' -count=1
-go test -c -o /tmp/document-vm-values.test ./internal/engine
+go test -c -o /tmp/document-vm-values.test ./internal/runtime/engine
 go test -tags zp_reference_document_vm_values -c \
-  -o /tmp/document-vm-values-reference.test ./internal/engine
+  -o /tmp/document-vm-values-reference.test ./internal/runtime/engine
 (
   cd bench
   go test -c -o /tmp/document-vm-values-bench.test .

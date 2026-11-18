@@ -6,7 +6,7 @@
 // up the rule table. Every top-level declaration is exported; parser.ts re-exports the public ones.
 // The module mirrors codegen/go/lib/lib.go, the library of
 // generated Go parsers, line for line where it can: the results must equal the engine's exactly, which
-// the generator tests in internal/engine check by running the generated code with Node.js.
+// the generator tests in internal/runtime/engine check by running the generated code with Node.js.
 //
 // The code uses only erasable TypeScript syntax (no enums, namespaces or parameter properties), so
 // runtimes that strip types can run it directly, and only the ES2020 library (BigInt).

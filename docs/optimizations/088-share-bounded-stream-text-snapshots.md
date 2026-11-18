@@ -90,7 +90,7 @@ git worktree add --detach /tmp/zp-stream-text-parent b18832d
 (cd /tmp/zp-stream-text-parent && go test -c \
   -o /tmp/zp-stream-text-parent.test ./bench)
 (cd /tmp/zp-stream-text-parent && go test -c \
-  -o /tmp/zp-stream-text-engine-parent.test ./internal/engine)
+  -o /tmp/zp-stream-text-engine-parent.test ./internal/runtime/engine)
 go test -c -o /tmp/zp-stream-text-candidate.test ./bench
 go test -tags=zp_reference_stream_text -c \
   -o /tmp/zp-stream-text-reference.test ./bench
@@ -110,9 +110,9 @@ package. Run the corresponding parent, same-source reference and default
 binaries in alternating ABC/CBA order for five 500 ms pairs:
 
 ```sh
-go test -c -o /tmp/zp-stream-text-engine-candidate.test ./internal/engine
+go test -c -o /tmp/zp-stream-text-engine-candidate.test ./internal/runtime/engine
 go test -tags=zp_reference_stream_text -c \
-  -o /tmp/zp-stream-text-engine-reference.test ./internal/engine
+  -o /tmp/zp-stream-text-engine-reference.test ./internal/runtime/engine
 GOMAXPROCS=4 /tmp/zp-stream-text-engine-parent.test -test.run='^$' \
   -test.bench='^BenchmarkStreamFrameScratch$' -test.benchtime=500ms -test.benchmem
 GOMAXPROCS=4 /tmp/zp-stream-text-engine-reference.test -test.run='^$' \

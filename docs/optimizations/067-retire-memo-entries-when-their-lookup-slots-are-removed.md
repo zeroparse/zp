@@ -24,6 +24,6 @@
   of its memo allocator, compared with the retirement change in 9353e09;
   this was not a refresh of the full benchmark report.
 - Reproduce the focused stream cases with
-  `go test ./internal/engine -run '^$' -bench '^BenchmarkMemoLifecycle$' -benchmem`.
+  `go test ./internal/runtime/engine -run '^$' -bench '^BenchmarkMemoLifecycle$' -benchmem`.
   Memory regressions are `TestMemoizedStreamMemoryIsBounded` and
   `TestDocumentReplacedMemoMemoryIsBounded`.

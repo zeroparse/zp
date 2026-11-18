@@ -22,7 +22,7 @@ and from direct line-body inlining.
 
 No line-elision-only same-source control is maintained. Typed Go output has no
 optimization setting for the `leanLine` value decision; it is compared with the
-engine oracle in the `internal/engine` tests.
+engine oracle in the `internal/runtime/engine` tests.
 
 ## Evidence and Implementation
 

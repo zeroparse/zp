@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	. "zeroparse.dev/zp/internal/engine"
+	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 

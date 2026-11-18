@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

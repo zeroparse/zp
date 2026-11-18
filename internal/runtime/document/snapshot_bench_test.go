@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/compile"
-	. "zeroparse.dev/zp/internal/engine"
+	. "zeroparse.dev/zp/internal/runtime/engine"
 )
 
 func benchmarkDocumentSnapshotEditRead(b *testing.B, prefix bool) {

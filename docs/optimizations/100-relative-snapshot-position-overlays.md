@@ -53,9 +53,9 @@ reference times, then report the median and range of the three block ratios. Kee
 runs.
 
 ```sh
-go test -c -o /tmp/zp-snapshot-absolute.test ./internal/engine
+go test -c -o /tmp/zp-snapshot-absolute.test ./internal/runtime/engine
 go test -c -tags zp_snapshot_position_overlays \
-  -o /tmp/zp-snapshot-relative.test ./internal/engine
+  -o /tmp/zp-snapshot-relative.test ./internal/runtime/engine
 GOMAXPROCS=16 GOGC=100 /tmp/zp-snapshot-absolute.test \
   -test.run '^$' \
   -test.bench '^BenchmarkDocumentSnapshot(PrefixEdit|MiddleEdit|MiddleEditRead|PrefixEditRead)$' \

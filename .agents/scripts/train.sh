@@ -10,8 +10,8 @@
 #   gate: see run-gate.sh; the log is $ZP_AGENT_STATE/gates/train-<name>.log. Without levels it
 #   runs the ones the stack needs: `docs` for a stack of documentation, spec, site and skill paths;
 #   `engine` for any other path, and `full` besides when a path of the engine, the generators
-#   or the runtime changed: internal/engine, internal/backend/codegen/common, internal/compile, internal/ir,
-#   internal/bytecode, engine, codegen and core (the list in needed_levels; a package that
+#   or the runtime changed: internal/runtime/engine, internal/backend/codegen/common, internal/compile, internal/ir,
+#   pkg/bytecode, engine, codegen and core (the list in needed_levels; a package that
 #   moves to a new layout must be added there). Other code, such as internal/frontend or the
 #   schema, query and lint packages, gets engine only: its dependents are covered by the
 #   engine level's affected-package tests. It uses the base recorded at stack time, and writes the
@@ -37,7 +37,7 @@ needed_levels() {
     [ -n "$f" ] || continue
     case $f in
       docs/* | spec/* | site/* | .agents/* | AGENTS.md | README.md | SECURITY.md) docs=1 ;;
-      internal/engine/* | internal/backend/codegen/common/* | internal/compile/* | internal/ir/* | internal/bytecode/* | \
+      internal/runtime/engine/* | internal/backend/codegen/common/* | internal/compile/* | internal/ir/* | pkg/bytecode/* | \
         engine/* | codegen/* | core/*) code=1; full=1 ;;
       *) code=1 ;;
     esac

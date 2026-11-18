@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/enginetest"
 )

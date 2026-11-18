@@ -76,12 +76,12 @@ five pairs, reversing the first binary on each pair:
 ```
 
 The supplemental Unicode benchmark is `BenchmarkStreamFrameScratch` in
-`internal/engine`. Build its binaries with and without the same tag:
+`internal/runtime/engine`. Build its binaries with and without the same tag:
 
 ```sh
-go test -c -o /tmp/zp-stream-engine-optimized.test ./internal/engine
+go test -c -o /tmp/zp-stream-engine-optimized.test ./internal/runtime/engine
 go test -tags=zp_reference_stream_frames -c \
-  -o /tmp/zp-stream-engine-reference.test ./internal/engine
+  -o /tmp/zp-stream-engine-reference.test ./internal/runtime/engine
 /tmp/zp-stream-engine-reference.test -test.run='^$' \
   -test.bench='^BenchmarkStreamFrameScratch$' -test.benchtime=300ms -test.benchmem
 ```

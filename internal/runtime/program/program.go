@@ -7,8 +7,8 @@ package program
 
 import (
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // Program is a grammar as a parser runs it. It is immutable once built and shared by the parses

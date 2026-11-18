@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	. "zeroparse.dev/zp/internal/engine"
+	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 )
 

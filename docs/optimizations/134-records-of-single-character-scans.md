@@ -37,7 +37,7 @@ package (one per variant), `BenchmarkParse` (codepoints), `BenchmarkRecognize`, 
 length between the items) and `longstr`; variants ran interleaved, medians of the ratios to the base. Rounds: 10
 over 46 rows (A), 20 with separate binaries (B), and 20 with one binary and a switch that turns the marking off
 (C). A last check compared the final revision with the revision before the review fixes over 10 rounds. Tests:
-`internal/engine/scan_sites_test.go` and the linear controls of the complexity test support.
+`internal/runtime/engine/scan_sites_test.go` and the linear controls of the complexity test support.
 
 ## Results
 

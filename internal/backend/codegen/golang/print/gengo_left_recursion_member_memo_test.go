@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

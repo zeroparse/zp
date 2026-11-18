@@ -54,7 +54,7 @@
   never/any/nil and equal names with differing node kinds. Independent source
   review checks normalization, ordering and immutable type reuse.
 - Reproduce with
-  `go test ./internal/engine -run '^$' -bench '^BenchmarkCaptureChecking$' -benchtime=200ms -benchmem`.
+  `go test ./internal/runtime/engine -run '^$' -bench '^BenchmarkCaptureChecking$' -benchtime=200ms -benchmem`.
   Build parent/candidate binaries with the same benchmark source, restoring
   `check.go` and `types.go` from `7c2d37b` through a Go overlay for the parent.
   Run five alternating pairs for recursive sizes 1,024/8,192 and all

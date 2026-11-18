@@ -62,7 +62,7 @@
   Use the final benchmark sources on both production versions. For the
   ownership workloads, generate both paths with
   `ZP_TYPED_CHUNK_DIR=/tmp/zp-chunks go test ./internal/backend/codegen/golang/print -run '^TestGeneratedTypedChunkOwnership$' -count=1`,
-  using a Go overlay of baseline `internal/engine/gen_types.go` when building
+  using a Go overlay of baseline `internal/runtime/engine/gen_types.go` when building
   the parent. In each generated `false`/`true` directory, benchmark
   `BenchmarkChunkParseValue` with the same 300 ms flags. Alternate five pairs
   of the prebuilt binaries. Focused raw output remains local; a full-suite

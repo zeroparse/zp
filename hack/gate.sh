@@ -11,7 +11,7 @@
 #   engine  code, with the default-tier tests replaced by the same packages in the long tier (-tags zp_long, which
 #           includes the default tier), then go generate ./internal/backend/... ./bench ./internal/frontend/parser
 #           ./spec/language with a check that it changed nothing, hack/test-alpha-parsers.sh and
-#           hack/test-reference-tags.sh, the last only when the affected packages include internal/engine,
+#           hack/test-reference-tags.sh, the last only when the affected packages include internal/runtime/engine,
 #           internal/runtime/state or internal/runtime/document (the reference tags build the engine; it also fails
 #           closed: it is planned when the affected packages cannot be computed).
 #   full    only the long tier of the affected packages (the test-long step that engine also plans; a step that two
@@ -88,7 +88,7 @@ step() {
 # the run alone; naming these first lets them overlap with each other and with the rest. Only the order changes: the
 # same packages run with the same flags. A package that no longer exists makes go test fail, so the list cannot go
 # stale silently.
-export GATE_HEAVY='zeroparse.dev/zp/internal/backend/codegen/golang/print zeroparse.dev/zp/internal/backend/codegen/common zeroparse.dev/zp/internal/engine zeroparse.dev/zp/internal/backend/codegen/typescript/print zeroparse.dev/zp/spec/language zeroparse.dev/zp/codegen/go/lib zeroparse.dev/zp/internal/testing/complexitytest'
+export GATE_HEAVY='zeroparse.dev/zp/internal/backend/codegen/golang/print zeroparse.dev/zp/internal/backend/codegen/common zeroparse.dev/zp/internal/runtime/engine zeroparse.dev/zp/internal/backend/codegen/typescript/print zeroparse.dev/zp/spec/language zeroparse.dev/zp/codegen/go/lib zeroparse.dev/zp/internal/testing/complexitytest'
 
 # affected_cmd GO-TEST-ARGS: go test over the packages of the changes since $GATE_BASE and their reverse dependencies,
 # those of $GATE_HEAVY first. internal/backend/codegen/golang/print, the longest package, runs as GATE_SHARDS (default 2) concurrent
@@ -222,10 +222,10 @@ go generate ./internal/backend/... ./bench ./internal/frontend/parser ./spec/lan
 	else
 		skipstep alpha-parsers "no codegen or runtime library is affected since $base"
 	fi
-	if aff_has_pkg internal/engine internal/runtime/state internal/runtime/document; then
+	if aff_has_pkg internal/runtime/engine internal/runtime/state internal/runtime/document; then
 		step reference-tags 'hack/test-reference-tags.sh (tags 4 at a time)' hack/test-reference-tags.sh
 	else
-		skipstep reference-tags "internal/engine, internal/runtime/state and internal/runtime/document are not affected since $base"
+		skipstep reference-tags "internal/runtime/engine, internal/runtime/state and internal/runtime/document are not affected since $base"
 	fi
 fi
 

@@ -1,6 +1,6 @@
 package program
 
-import "zeroparse.dev/zp/internal/bytecode"
+import "zeroparse.dev/zp/pkg/bytecode"
 
 // ValidateModule checks the module m (bytecode.ValidateModule), with the field types parsed against
 // the types that m declares.

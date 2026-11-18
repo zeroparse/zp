@@ -26,6 +26,6 @@
 - The baseline is daa364d (code unchanged from 9353e09), compared with the
   action-reference cleanup in f259b37. Restore `eval.go`/`vm.go` and the
   generated benchmark parsers for the baseline overlay. Reproduce with
-  `go test ./internal/engine -run '^$' -bench '^BenchmarkNilActionStream$' -benchmem`.
+  `go test ./internal/runtime/engine -run '^$' -bench '^BenchmarkNilActionStream$' -benchmem`.
   Tests cover backing-array references and prefix ownership, stream heap on
   both units/all engines, generated Go/typed direct rules and TS nil/error paths.

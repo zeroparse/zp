@@ -33,7 +33,7 @@ while i < len(s):
     o, i = dec.raw_decode(s, i); pk[o["ImportPath"]] = o
 rel = {p: os.path.relpath(o["Dir"], root) for p, o in pk.items()}
 bydir = {r: p for p, r in rel.items()}
-HEAVY = ["internal/backend/codegen/common", "internal/backend/codegen/golang/print", "internal/backend/codegen/typescript/print", "internal/engine", "codegen/go/lib",
+HEAVY = ["internal/backend/codegen/common", "internal/backend/codegen/golang/print", "internal/backend/codegen/typescript/print", "internal/runtime/engine", "codegen/go/lib",
          "internal/testing/complexitytest", "spec/language", "codegen", "bench", "internal/compile"]
 HEAVY_TRIG = ("codegen/go/lib/", "codegen/ts/lib/", "core/", "internal/testing/codegentest/")
 rev = {p: set() for p in pk}
@@ -77,9 +77,9 @@ for f in files:
                 if a in t: add(p, f)
     if f.startswith(HEAVY_TRIG):
         for h in HEAVY: add(mod + ("/" + h if h else ""), f, True)
-    if f.startswith(("codegen/", "core/", "bench/", "spec/language/", "internal/backend/codegen/common/", "internal/compile/", "internal/engine/", "internal/frontend/parser/", "internal/ir/", "testdata/grammars/", "internal/bench/")):
+    if f.startswith(("codegen/", "core/", "bench/", "spec/language/", "internal/backend/codegen/common/", "internal/compile/", "internal/runtime/engine/", "internal/frontend/parser/", "internal/ir/", "testdata/grammars/", "internal/bench/")):
         gen = True
-    if f.startswith(("testdata/grammars/", "internal/backend/codegen/common/", "internal/compile/", "internal/engine/", "internal/frontend/parser/", "codegen/", "core/", "internal/ir/")):
+    if f.startswith(("testdata/grammars/", "internal/backend/codegen/common/", "internal/compile/", "internal/runtime/engine/", "internal/frontend/parser/", "codegen/", "core/", "internal/ir/")):
         alpha = True
 work = list(prop); seen = {}
 while work:

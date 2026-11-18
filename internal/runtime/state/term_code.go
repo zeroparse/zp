@@ -5,8 +5,8 @@ import (
 	"zeroparse.dev/zp/internal/runtime/program"
 
 	coreimpl "zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // Term code: a TermProgram as a bytecode module stores it (bytecode.Term), so that a saved program

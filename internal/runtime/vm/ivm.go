@@ -4,8 +4,8 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // NewIterative prepares a module for execution with the iterative model, in the family f; terms

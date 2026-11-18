@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/backend/vmlower"
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // compileModule compiles src with source information to a module.

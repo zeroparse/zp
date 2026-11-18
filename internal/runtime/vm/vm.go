@@ -7,9 +7,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // Program is a module prepared for execution. Rule calls, memoization, left recursion, and
