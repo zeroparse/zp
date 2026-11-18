@@ -84,6 +84,19 @@ const (
 	// (the quantity error_parts of the Exec stage); spec/runtime/parsing.md#cost charges the message as a
 	// value of that size, with one unit more for the value.
 	QErrorText = "error_text"
+	// QKey is the work of the run key of a walk of a run site that is not free of the environment
+	// (spec/runtime/parsing.md#run-sites): reading the values of the variables of the key and hashing
+	// them, comparing them with the key of a record, and binding the variables that the site's element
+	// binds to the values of a record that the walk takes, each charged as for a memo key; 0 for a
+	// skip-run site and a run site free of the environment.
+	QKey = "key"
+	// QRecords is the number of records that the end of a walk of a skip-run or run site stores: one
+	// for each position that the walk visited while recording (spec/runtime/parsing.md#skip-runs).
+	QRecords = "records"
+	// QWalkVals is the number of values that a walk of a run site whose iterations have values holds
+	// at its end: those its iterations gathered and those of the record it took, which the end of the
+	// walk lays out for its records (spec/runtime/parsing.md#run-sites).
+	QWalkVals = "walk_vals"
 )
 
 // Op names of the Flow dialect.
@@ -101,11 +114,11 @@ const (
 	OpDropKids        = "flow.dropKids"
 	OpStreamStart     = "flow.streamStart"
 	OpSkipBegin       = "flow.skipBegin"
-	OpRunBegin        = "flow.runBegin"
-	OpSkipValue       = "flow.skipValue"
-	OpRunWalked       = "flow.runWalked"
 	OpSkipVisit       = "flow.skipVisit"
 	OpSkipEnd         = "flow.skipEnd"
+	OpRunBegin        = "flow.runBegin"
+	OpRunWalked       = "flow.runWalked"
+	OpSkipValue       = "flow.skipValue"
 	OpScanEnd         = "flow.scanEnd"
 	OpEmitStream      = "flow.emitStream"
 	OpAppend          = "flow.append"
@@ -386,28 +399,38 @@ parse what loading the input charges; in a Document parse it records how far the
 		Contract: "Begins the stream of a stream parse: the repetition that delivers its elements is about to run.",
 		Requires: "flow.streamOn holds."})
 	withImm(op(&code.Op{Name: OpSkipBegin, Writes: []string{State},
-		Contract: "Begins a walk of the skip-run site at the position: the iterations that follow are its visits, until flow.skipEnd."}),
+		Contract: `Begins a walk of the skip-run site at the position: the iterations that follow are its visits, until
+flow.skipEnd. Beginning a walk charges nothing (spec/runtime/parsing.md#skip-runs).`}),
 		"the site (Site)", immOf[Site]())
 	withImm(op(&code.Op{Name: OpRunBegin, Writes: []string{State},
 		Contract: `Begins a walk of the hot run site at the position, as flow.skipBegin does for a skip-run site: the
 iterations that follow are its visits, until flow.skipEnd or flow.skipKids. With Build its iterations have
 values, which flow.skipValue adds and flow.skipKids gathers in a list; with KeyEnv its records are kept for
-the position and the values of the variables of the site's key, otherwise for the position alone.`,
+the position and the values of the variables of the site's key, otherwise for the position alone. Beginning
+a walk charges nothing (spec/runtime/parsing.md#run-sites).`,
 		Requires: "flow.runHot of the site holds."}),
 		"the walk (RunWalk)", immOf[RunWalk]())
+	op(&code.Op{Name: OpSkipVisit, Reads: pos, Writes: []string{State}, Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QMerge}, {Coef: 1, Quantity: QKey}}},
+		Contract: `Ends the iteration of the walk before, if any, and begins one at the position. In a recording walk
+it keeps the expectations of the iteration before and records them in the enclosing result, and reads the
+key of the walk at the position (spec/runtime/parsing.md#skip-runs, #run-sites).`})
 	op(&code.Op{Name: OpSkipValue, Params: []code.Param{P("x", value)}, Writes: []string{State},
 		Contract: `Adds the value x of the iteration that matched to the walk begun with Build, and marks x, if it is a
-node, as no longer owned by its maker: the records of the walk share it.`,
+node, as no longer owned by its maker: the records of the walk share it. Adding the value charges nothing;
+flow.skipKids charges for it (spec/runtime/parsing.md#run-sites).`,
 		Requires: "the walk in progress was begun with Build."})
-	op(&code.Op{Name: OpSkipVisit, Reads: pos, Writes: []string{State},
-		Contract: "Ends the iteration of the walk before, if any, and begins one at the position."})
 	op(&code.Op{Name: OpSkipEnd, Reads: pos, Writes: []string{State},
-		Contract: "Ends the iteration of the walk before, if any, ends the walk and records the rest of it from each position it visited."})
+		Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QMerge}, {Coef: 1, Quantity: QKey}, {Coef: 1, Quantity: QRecords}, {Coef: 3, Quantity: QWalkVals}}},
+		Contract: `Ends the iteration of the walk before, if any, ends the walk and records the rest of it from each
+position it visited while recording, a unit for each record stored (spec/runtime/parsing.md#skip-runs). A
+walk begun with Build lays out the values it holds for its records and drops them, at most three units for
+each value.`})
 	withImm(op(&code.Op{Name: OpRunWalked, Params: []code.Param{P("start", i)}, Reads: pos, Writes: []string{State},
 		Contract: `Ends the walk of the run site that was not hot (flow.runHot), which began at start and ends at the
 position: a walk that began below the furthest position that the walks of the site passed, and walked
 RunHotSpan or more of the input below it, turns the site hot; the furthest position then moves to the
-position. A walk shorter than RunHotSpan changes nothing.`,
+position. A walk shorter than RunHotSpan changes nothing. It charges nothing
+(spec/runtime/parsing.md#run-sites).`,
 		Requires: "start is at most the position."}), "the site (Site)", immOf[Site]())
 	withImm(op(&code.Op{Name: OpScanEnd, Params: []code.Param{P("start", i), P("count", i)}, Reads: pos, Writes: []string{State},
 		Contract: `Ends a walk of the value-free scan site that began at start and matched count characters, at least
@@ -452,15 +475,25 @@ walked at a site that is not hot.`}), "the site (Site)", immOf[Site]())
 	op(&code.Op{Name: OpStreamOn, Results: []code.Type{b},
 		Contract: "Reports that the invocation delivers the elements of its #stream repetition: a stream parse with a callback, at the top call of its start rule.", Laws: []string{pure}})
 	op(&code.Op{Name: OpSkipHit, Results: []code.Type{b}, Reads: pos, Writes: []string{State, Pos},
+		Cost: code.Cost{Const: 2, Terms: []code.CostTerm{{Coef: 3, Quantity: QMerge}, {Coef: 1, Quantity: QKey}}},
 		Contract: `Ends the iteration of the walk before, if any, and reports whether the walk has a record of the
-position; it then takes the rest of the walk from the record, which moves the position to its end, and the
-walk stops.`})
+position for its key; it then takes the rest of the walk from the record, which moves the position to its
+end, records the recorded expectations again, binds the variables that the element of a keyed run site
+binds to the recorded values, and the walk stops. A walk begun with Build takes no record without values.
+In a recording walk it charges a unit for the lookup and one more when the slot is recorded
+(spec/runtime/parsing.md#skip-runs), besides the expectations and the key.`})
 	withImm(op(&code.Op{Name: OpRunHot, Results: []code.Type{b}, Laws: []string{pure},
 		Contract: `Reports whether the walks of the run site keep records, separately inside and outside lookaheads. A
-walk of a site that is not hot is an ordinary repetition, which flow.runWalked ends.`}), "the site (Site)", immOf[Site]())
+walk of a site that is not hot is an ordinary repetition, which flow.runWalked ends. It charges nothing
+(spec/runtime/parsing.md#run-sites).`}), "the site (Site)", immOf[Site]())
 	op(&code.Op{Name: OpSkipKids, Results: []code.Type{vals}, Reads: pos, Writes: []string{State},
+		Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QVals}, {Coef: 2, Quantity: QMerge}, {Coef: 1, Quantity: QKey}, {Coef: 1, Quantity: QRecords}}},
 		Contract: `Ends the walk begun with Build as flow.skipEnd does, and returns the child list of the values of its
-iterations, followed by those of the record it took, if any.`})
+iterations, then those of the record it took, as flow.kids does for a repetition without records; the list
+may share its elements with the lists and records of other walks. It charges at most two units for each
+value of the list, the bound of gathered values (spec/runtime/parsing.md#cost), besides the expectations,
+the key and a unit for each record stored (spec/runtime/parsing.md#run-sites).`,
+		Requires: "the walk in progress was begun with Build."})
 	withImm(op(&code.Op{Name: OpScanReach, Params: []code.Param{P("start", i), P("count", i)}, Results: []code.Type{i}, Reads: pos, Writes: []string{State, Pos},
 		Contract: `For a walk of the scan site that began at start and has matched ScanHotSpan characters, count of
 them: at a hot site with a record of start it moves the position to the recorded end and returns the

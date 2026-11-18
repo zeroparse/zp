@@ -24,6 +24,8 @@ func ImmString(imm any) string {
 		return s
 	case Site:
 		return fmt.Sprintf("site %d", int(x))
+	case RunWalk:
+		return fmt.Sprintf("site %d build=%t key-env=%t", x.Site, x.Build, x.KeyEnv)
 	case Slot:
 		return fmt.Sprintf("slot %d", int(x))
 	case Expectation:

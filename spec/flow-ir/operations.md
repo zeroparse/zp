@@ -27,11 +27,11 @@ the Exec stage and the backends rely on.
 | `flow.dropKids` | base int |  |  | Truncates the stack of gathered values to base. |
 | `flow.streamStart` |  |  |  | Begins the stream of a stream parse: the repetition that delivers its elements is about to run. |
 | `flow.skipBegin` |  |  | `site` | Begins a walk of the skip-run site at the position: the iterations that follow are its visits, until flow.skipEnd. |
-| `flow.runBegin` |  |  | `runwalk` | Begins a walk of the hot run site at the position, as flow.skipBegin does for a skip-run site: the iterations that follow are its visits, until flow.skipEnd or flow.skipKids. With Build its iterations have values, which flow.skipValue adds and flow.skipKids gathers in a list; with KeyEnv its records are kept for the position and the values of the variables of the site's key, otherwise for the position alone. Requires that flow.runHot of the site holds. |
-| `flow.skipVisit` |  |  |  | Ends the iteration of the walk before, if any, and begins one at the position. |
-| `flow.skipValue` | x value |  |  | Adds the value x of the iteration that matched to the walk begun with Build, and marks x, if it is a node, as no longer owned by its maker: the records of the walk share it. Requires that the walk in progress was begun with Build. |
-| `flow.skipEnd` |  |  |  | Ends the iteration of the walk before, if any, ends the walk and records the rest of it from each position it visited. |
-| `flow.runWalked` | start int |  | `site` | Ends the walk of the run site that was not hot (flow.runHot), which began at start and ends at the position: a walk that began below the furthest position that the walks of the site passed, and walked RunHotSpan or more of the input below it, turns the site hot; the furthest position then moves to the position. A walk shorter than RunHotSpan changes nothing. |
+| `flow.runBegin` |  |  | `runwalk` | Begins a walk of the hot run site at the position, as flow.skipBegin does for a skip-run site, until flow.skipEnd or flow.skipKids. With Build its iterations have values, which flow.skipValue adds and flow.skipKids gathers in a list; with KeyEnv its records are kept for the position and the values of the variables of the site's key, otherwise for the position alone. |
+| `flow.skipVisit` |  |  |  | Ends the iteration of the walk before, if any, and begins one at the position; in a recording walk it keeps the expectations of the iteration before and reads the key of the walk. |
+| `flow.skipValue` | x value |  |  | Adds the value x of the iteration that matched to the walk begun with Build; the records of the walk share it. |
+| `flow.skipEnd` |  |  |  | Ends the iteration of the walk before, if any, ends the walk and records the rest of it from each position it visited while recording. A walk begun with Build drops the values it holds. |
+| `flow.runWalked` | start int |  | `site` | Ends the walk of the run site that was not hot, which began at start: a walk that began below the furthest position that the walks of the site passed, and walked RunHotSpan or more of the input below it, turns the site hot. A walk shorter than RunHotSpan changes nothing. |
 | `flow.scanEnd` | start int, count int |  | `site` | Ends a walk of the value-free scan site that began at start and matched count characters, at least ScanHotSpan: unless the walk took the rest from a record, it records itself at a hot site, or notes that it walked at a site that is not hot. |
 | `flow.emitStream` | x value |  |  | Delivers the committed element x (nil for a value-free repetition) to the callback of a stream parse, which has consumed the input up to the position. |
 | `flow.append` | vals vals, x value | vals | `spread` | Returns the list vals with x appended; with Spread, the children of the tuple node x. |
@@ -52,9 +52,9 @@ the Exec stage and the backends rely on.
 | `flow.recLen` |  | int |  | Returns the number of recovered errors. |
 | `flow.kidsLen` |  | int |  | Returns the height of the stack of gathered values. |
 | `flow.streamOn` |  | bool |  | Reports that the invocation delivers the elements of its #stream repetition: a stream parse with a callback, at the top call of its start rule. |
-| `flow.skipHit` |  | bool |  | Ends the iteration of the walk before, if any, and reports whether the walk has a record of the position; it then takes the rest of the walk from the record, which moves the position to its end, and the walk stops. |
-| `flow.runHot` |  | bool | `site` | Reports whether the walks of the run site keep records, separately inside and outside lookaheads. A walk of a site that is not hot is an ordinary repetition, which flow.runWalked ends. |
-| `flow.skipKids` |  | vals |  | Ends the walk begun with Build as flow.skipEnd does, and returns the child list of the values of its iterations, followed by those of the record it took, if any. |
+| `flow.skipHit` |  | bool |  | Ends the iteration of the walk before, if any, and reports whether the walk has a record of the position for its key; it then takes the rest of the walk from the record, which moves the position to its end, records the recorded expectations again and binds the variables that the element of a keyed run site binds, and the walk stops. A walk begun with Build takes no record without values. |
+| `flow.runHot` |  | bool | `site` | Reports whether the walks of the run site keep records, separately inside and outside lookaheads; a walk of a site that is not hot is an ordinary repetition, which flow.runWalked ends. |
+| `flow.skipKids` |  | vals |  | Ends the walk begun with Build as flow.skipEnd does, and returns the child list of the values of its iterations, then those of the record it took, as flow.kids does for a repetition without records. |
 | `flow.scanReach` | start int, count int | int | `site` | For a walk of the scan site that began at start and has matched ScanHotSpan characters, count of them: at a hot site with a record of start it moves the position to the recorded end and returns the recorded count; otherwise it returns count. |
 | `flow.scanKids` | start int, base int, count int | vals | `site` | Returns the elements of a walk of the scan site that began at start, gathered on the stack from base, which matched count characters: for a walk that reached ScanHotSpan characters it ends the walk as flow.scanEnd does, and the result is the elements of the record that the walk took, if it took one (the stack is dropped to base), or the gathered elements, which the record that it makes shares. |
 | `flow.hasLit` |  | bool | `lit` | Reports that the input at the position begins with the literal, read in place without recording anything; false where the input cannot be read in place. With budget controls a match charges a unit per code point. |
@@ -107,7 +107,9 @@ name without the package. The immediates are the following; a listing prints eac
 [Text Form](text-form.md)).
 
 - `silence`: the change of the silent depth, and for a lookahead its site and, at its end, whether its body matched.
-- `site`: the number of a skip-run or scan site.
+- `site`: the number of a skip-run, run or scan site.
+- `runwalk`: a run site, whether its iterations have values, and whether its records are keyed by the values of the
+  variables of the site's key rather than by the position alone.
 - `slot`: a capture slot of a frame.
 - `expectation`: an expectation of the grammar, and whether it is the message of a failed `@error`.
 - `expid`: the identifier of an expectation of the grammar.
@@ -153,6 +155,9 @@ value charges a unit for it, as [Cost](../runtime/parsing.md#cost) requires. An 
 | `stream` | The work of a stream parse at the call: loading, compacting and scanning its buffer, and the commit of a delivered element (the composition streamCommit); 0 outside a stream parse. |
 | `error` | Building a syntax error: a unit for each expectation, the steps of sorting their descriptions and of finding the line, and at the first error of a parse of a whole input, a unit for each code point that the table of line starts reads. |
 | `error_text` | The size of the message of a recovered error that a value holds: its bytes and a unit for each of its parts. |
+| `key` | The run key of a walk of a run site that is not free of the environment: reading and hashing the values of its variables, comparing them with the key of a record and binding the variables of a record taken, each charged as for a memo key; 0 for other sites. |
+| `records` | The records that the end of a walk of a skip-run or run site stores: one for each position that the walk visited while recording. |
+| `walk_vals` | The values that a walk of a run site whose iterations have values holds at its end: those it gathered and those of the record it took. |
 
 A conformance test of the generated Go parsers checks every call of a Flow operation against its bound and its
 contract, with the input read through the reference model of the input.
