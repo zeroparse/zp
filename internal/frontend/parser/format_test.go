@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -21,7 +22,7 @@ func format(t *testing.T, src string) string {
 	if err != nil {
 		t.Fatalf("%v\n%s", err, src)
 	}
-	return ast.Format(g)
+	return syntaxfmt.Format(g)
 }
 
 // lexComments returns the texts of the comments in src, sorted.
@@ -67,7 +68,7 @@ func checkFormatOwners(t *testing.T, src string) string {
 	if !slices.Equal(kept, want) {
 		t.Errorf("comments in the AST\n got %q\nwant %q", kept, want)
 	}
-	out := ast.Format(g)
+	out := syntaxfmt.Format(g)
 	g2, err := Parse(out)
 	if err != nil {
 		t.Fatalf("formatted source does not parse: %v\n%s", err, out)
@@ -78,7 +79,7 @@ func checkFormatOwners(t *testing.T, src string) string {
 	if got := lexComments(t, out); !slices.Equal(got, want) {
 		t.Errorf("comments after formatting\n got %q\nwant %q\n%s", got, want, out)
 	}
-	if again := ast.Format(g2); again != out {
+	if again := syntaxfmt.Format(g2); again != out {
 		t.Errorf("formatting is not idempotent\nfirst:\n%s\nsecond:\n%s", out, again)
 	}
 	if diffs := ownerDiffs(g, g2); len(diffs) > 0 {
@@ -187,7 +188,7 @@ func BenchmarkFormatGrammar(b *testing.B) {
 			b.SetBytes(int64(len(data)))
 			b.ReportAllocs()
 			for b.Loop() {
-				formattedGrammarSink = ast.Format(g)
+				formattedGrammarSink = syntaxfmt.Format(g)
 			}
 		})
 	}
@@ -471,7 +472,7 @@ func TestFormatWithoutLayout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := ast.Format(bare)
+	out := syntaxfmt.Format(bare)
 	if out2 := format(t, out); out2 != out {
 		t.Errorf("not stable:\n%s\n---\n%s", out, out2)
 	}

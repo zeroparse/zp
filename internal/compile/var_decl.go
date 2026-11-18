@@ -3,6 +3,7 @@ package compile
 import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -74,7 +75,7 @@ func (c *Compiler) varDecl(vd *ast.VarDef) *check.VarDecl {
 					return nil
 				}
 			}
-			c.errorf(vd.Diagnostic(), "variable %s must have type int, string, or bool, got %s", vd.Name, ast.FormatType(vd.Type))
+			c.errorf(vd.Diagnostic(), "variable %s must have type int, string, or bool, got %s", vd.Name, fmt.FormatType(vd.Type))
 			return nil
 		}
 	}

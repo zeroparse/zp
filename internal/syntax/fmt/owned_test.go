@@ -1,22 +1,24 @@
-package ast
+package fmt
 
 import "testing"
+
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // A grammar built by hand writes the comments its nodes own: a text that ends
 // in a line break is line comments, any other text is a block comment, and a
 // trailing comment over several lines is one block comment.
 func TestFormatWritesOwnedComments(t *testing.T) {
-	rule := func(leading, trailing string, detached ...string) *Grammar {
-		r := &RuleDef{Name: "r", Expr: &Literal{Value: "a"}}
+	rule := func(leading, trailing string, detached ...string) *ast.Grammar {
+		r := &ast.RuleDef{Name: "r", Expr: &ast.Literal{Value: "a"}}
 		r.LeadingComments, r.LeadingDetachedComments = leading, detached
 		if trailing != "" {
 			r.TrailingComments = []string{trailing}
 		}
-		return &Grammar{File: File{Decls: []Decl{r}}}
+		return &ast.Grammar{File: ast.File{Decls: []ast.Decl{r}}}
 	}
 	for _, tc := range []struct {
 		name string
-		g    *Grammar
+		g    *ast.Grammar
 		want string
 	}{
 		{"line comments", rule(" one\n two\n", " end\n"), "// one\n// two\nrule r = \"a\" // end\n"},

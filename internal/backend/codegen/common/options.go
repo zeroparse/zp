@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/pass"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -218,7 +219,7 @@ type GeneratedFile struct {
 // Describe returns the source form of the expression e for messages, or "" when it spans lines
 // or is longer than 100 bytes.
 func Describe(e ast.Expr) string {
-	s := ast.FormatExpr(e)
+	s := syntaxfmt.FormatExpr(e)
 	if strings.Contains(s, "\n") || len(s) > 100 {
 		return ""
 	}

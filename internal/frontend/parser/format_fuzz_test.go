@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -331,7 +332,7 @@ func TestFormatRandomRepeat(t *testing.T) {
 		parsed++
 		problem := checkRandomFormat(src, tree)
 		if problem == "" {
-			again, err := Parse(ast.Format(tree))
+			again, err := Parse(syntaxfmt.Format(tree))
 			if err != nil {
 				problem = err.Error()
 			} else if want, got := repeatSlots(tree, true), repeatSlots(again, false); want != got {
@@ -409,7 +410,7 @@ func checkRandomFormat(src string, tree *ast.Grammar) string {
 // checkRandomFormatOwners is checkRandomFormat that checks the owners of the
 // comments only when owners is set.
 func checkRandomFormatOwners(src string, tree *ast.Grammar, owners bool) string {
-	out := ast.Format(tree)
+	out := syntaxfmt.Format(tree)
 	again, err := Parse(out)
 	if err != nil {
 		return fmt.Sprintf("the result does not parse: %v\n%s", err, out)
@@ -420,7 +421,7 @@ func checkRandomFormatOwners(src string, tree *ast.Grammar, owners bool) string 
 	if a, b := commentTexts(tree), commentTexts(again); !slices.Equal(a, b) {
 		return fmt.Sprintf("the comments changed\n%q\n%q\n%s", a, b, out)
 	}
-	if second := ast.Format(again); second != out {
+	if second := syntaxfmt.Format(again); second != out {
 		return "formatting is not idempotent\nfirst:\n" + out + "\nsecond:\n" + second
 	}
 	if diffs := ownerDiffs(tree, again); owners && len(diffs) > 0 {

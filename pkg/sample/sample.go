@@ -39,7 +39,7 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/pkg/grammar/ast"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 )
 
 // Defaults of the options.
@@ -381,7 +381,7 @@ func (g *Generator) Coverage() Coverage {
 			c.AlternativesCovered++
 		} else {
 			c.MissedAlternatives = append(c.MissedAlternatives,
-				Alternative{Rule: g.names.Rule(t.rule), Kind: kinds[t.kind], Index: t.index, Expr: g.names.Expr(ast.FormatExpr(t.expr))})
+				Alternative{Rule: g.names.Rule(t.rule), Kind: kinds[t.kind], Index: t.index, Expr: g.names.Expr(syntaxfmt.FormatExpr(t.expr))})
 		}
 	}
 	return c

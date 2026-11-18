@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -275,7 +276,7 @@ func (v *View) BuiltTexts() []string {
 			if e, err := v.expr(n); err != nil {
 				spelling = err.Error()
 			} else {
-				spelling = ast.FormatExpr(e)
+				spelling = syntaxfmt.FormatExpr(e)
 			}
 			out = append(out, spelling+" = "+v.Text[n])
 		})

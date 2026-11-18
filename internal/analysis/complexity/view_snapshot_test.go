@@ -12,6 +12,7 @@ import (
 
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -88,7 +89,7 @@ func viewSnapshot(source, rules []*ast.RuleDef, text map[ast.Expr]string, applie
 		if r.Expr == source[i].Expr {
 			continue
 		}
-		fmt.Fprintf(&b, "rule %s = %s\n", r.Name, ast.FormatExpr(r.Expr))
+		fmt.Fprintf(&b, "rule %s = %s\n", r.Name, syntaxfmt.FormatExpr(r.Expr))
 		var built []string
 		astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
 			if src[x] {
@@ -98,7 +99,7 @@ func viewSnapshot(source, rules []*ast.RuleDef, text map[ast.Expr]string, applie
 			if s, ok := x.(interface{ Source() *ast.SourceInfo }); ok && s.Source() != nil {
 				pos = s.Source().Diagnostic()
 			}
-			built = append(built, fmt.Sprintf("  %d:%d %s = %q", pos.Line, pos.Col, ast.FormatExpr(x), text[x]))
+			built = append(built, fmt.Sprintf("  %d:%d %s = %q", pos.Line, pos.Col, syntaxfmt.FormatExpr(x), text[x]))
 		})
 		slices.Sort(built)
 		b.WriteString(strings.Join(built, "\n"))

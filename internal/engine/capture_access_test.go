@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -103,7 +104,7 @@ func TestCaptureAccessSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := ast.Format(g); !strings.Contains(got, "i.$y.Start") {
+	if got := fmt.Format(g); !strings.Contains(got, "i.$y.Start") {
 		t.Fatalf("formatted:\n%s", got)
 	}
 	body := g.Rules()[0].Action.(*ast.Call).Args[1].(*ast.Lambda).Body.(*ast.Member)

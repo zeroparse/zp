@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -76,7 +77,7 @@ func TestTopBottomSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	for _, want := range []string{"type A ~ []B & *C | _ & (D | B) | _|_", "type E ~ [](B & C) & *(B | C)", "$x.(_ & node[_])"} {
 		if !strings.Contains(formatted, want) {
 			t.Fatalf("formatted lacks %q:\n%s", want, formatted)
@@ -124,7 +125,7 @@ func TestTopBottomSyntax(t *testing.T) {
 	if again, err := loaded.MarshalBinary("main"); err != nil || !bytes.Equal(again, bin) {
 		t.Fatalf("compiled round trip differs: %v", err)
 	}
-	if got := ast.Format(program.Grammar); !strings.Contains(got, "type A ~ []B & *C | _ & (D | B) | _|_") || !strings.Contains(got, "$x.(_ & node[_])") {
+	if got := fmt.Format(program.Grammar); !strings.Contains(got, "type A ~ []B & *C | _ & (D | B) | _|_") || !strings.Contains(got, "$x.(_ & node[_])") {
 		t.Fatalf("source grammar:\n%s", got)
 	}
 }

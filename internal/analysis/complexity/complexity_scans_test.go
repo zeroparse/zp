@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
@@ -76,9 +77,9 @@ func boundedScans(t *testing.T, src string) map[string]bool {
 	out := map[string]bool{}
 	for _, r := range scans {
 		if !k.srcExprs[r] {
-			out[ast.FormatExpr(r)] = true
+			out[syntaxfmt.FormatExpr(r)] = true
 			if k.srcExprs[k.again[r]] {
-				t.Errorf("the later iterations of %s stay a scanning source", ast.FormatExpr(r))
+				t.Errorf("the later iterations of %s stay a scanning source", syntaxfmt.FormatExpr(r))
 			}
 		}
 	}
@@ -205,7 +206,7 @@ func TestScanRuns(t *testing.T) {
 			}
 			found := false
 			for r, d := range k.scanRun {
-				if text := ast.FormatExpr(r); text == name || c.rep != "" && strings.Contains(text, name) {
+				if text := syntaxfmt.FormatExpr(r); text == name || c.rep != "" && strings.Contains(text, name) {
 					found = true
 					if d != c.want {
 						t.Errorf("run %d, want %d", d, c.want)

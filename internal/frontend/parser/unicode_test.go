@@ -6,6 +6,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -49,7 +50,7 @@ func TestUnicodeScalarEscapes(t *testing.T) {
 						t.Fatalf("%s: ranges %v", source, e.Ranges)
 					}
 				}
-				if _, err := ParseExpr(ast.FormatExpr(e)); err != nil {
+				if _, err := ParseExpr(syntaxfmt.FormatExpr(e)); err != nil {
 					t.Fatalf("valid scalar failed format round trip: %v", err)
 				}
 			}

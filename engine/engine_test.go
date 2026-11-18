@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	iengine "zeroparse.dev/zp/internal/engine"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -144,9 +145,9 @@ rule key = [a-z]+ #atomic`, "main", engine.WithSourceInfo())
 	}
 	// The grammar stays with the source: a compiled grammar holds only bytecode.
 	if loaded.Grammar() != nil {
-		t.Errorf("grammar of a loaded parser %s", ast.Format(loaded.Grammar()))
+		t.Errorf("grammar of a loaded parser %s", syntaxfmt.Format(loaded.Grammar()))
 	}
-	if got := ast.Format(p.Grammar()); !strings.Contains(got, "rule key = [a-z]+ #atomic") {
+	if got := syntaxfmt.Format(p.Grammar()); !strings.Contains(got, "rule key = [a-z]+ #atomic") {
 		t.Errorf("grammar %s", got)
 	}
 	if mode, ok := loaded.CompiledMode(); !ok || mode != engine.CompiledParse {
