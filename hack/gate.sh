@@ -14,8 +14,17 @@
 #           hack/test-reference-tags.sh, the last only when the affected packages include internal/engine,
 #           internal/engine/state or internal/engine/document (the reference tags build the engine; it also fails
 #           closed: it is planned when the affected packages cannot be computed).
-#   full    go test -tags zp_long ./... (the whole tree, in the long tier), with the longest packages named first. It
-#           subsumes the long run of the affected packages that engine plans, so engine with full omits that step.
+#   full    only the long tier of the affected packages (the test-long step that engine also plans; a step that two
+#           levels share runs once).
+#   all     go test -tags zp_long ./... (the whole tree, in the long tier), with the longest packages named first,
+#           for a release; it replaces the affected-package test steps that engine and full plan.
+#
+# The gate runs what the change can affect and nothing more: the generate step only when the affected computation
+# reports a generator, a generator input or a generated file, alpha-parsers only when it reports a codegen or runtime
+# library, the site steps only when docs/, spec/, site/ or README.md changed since REV. vet and build always run. A
+# step that is left out is planned and recorded as "NAME skipped (REASON)", never silently. Every condition fails
+# closed: when the affected packages or the changed files cannot be computed, the step runs, and the test steps then
+# run every package.
 #
 # REV is the base of the change (default origin/main); the changed packages are those of REV..HEAD, so commit before
 # running. Steps run in order and the gate stops at the first failure, so that a heavy step does not run after a
@@ -25,13 +34,13 @@
 #
 # For callers (scripts, lock wrappers): the gate never prompts and reads no standard input. Exit status 0: every step
 # passed; 1: a step failed (the summary names it); 2: a usage error, before any step ran. The summary file has one
-# tab-separated line per step that ran, "NAME<TAB>exit N<TAB>Ss", in execution order; with a fail-fast stop the failed
-# step is the last line.
+# tab-separated line per step, "NAME<TAB>exit N<TAB>Ss" for a step that ran and "NAME<TAB>skipped (REASON)" for one that
+# was left out, in plan order; with a fail-fast stop the failed step is the last line that ran.
 #
 # The gate exports ZP_MUTANTS_BASE (the base revision) for the tests that run mutants; see docs/development.md.
 # Environment: GATE_NICE (default 0) is the nice(1) increment of every step, and GOMAXPROCS, GOFLAGS and the other Go
 # variables pass through. GATE_SELFTEST_FAIL=1 adds a step that fails first, to show that the gate stops.
-# GATE_AFFECTED_CMD replaces hack/affected-tests.sh (GATE_AFFECTED_CMD=false shows that a failed computation fails the step).
+# GATE_AFFECTED_CMD replaces hack/affected-tests.sh (GATE_AFFECTED_CMD=false shows that a failed computation runs everything).
 # The step commands are single-quoted on purpose: they expand when the step runs.
 # shellcheck disable=SC2016,SC2028
 set -euo pipefail
@@ -48,11 +57,11 @@ while [ $# -gt 0 ]; do
 	--keep-going) keep=1; shift ;;
 	--dry-run) dry=1; shift ;;
 	-h | --help) sed -n '2,/^set -/p' "$0" | sed '$d; s/^# \{0,1\}//'; exit 0 ;;
-	docs | code | engine | full) levels+=("$1"); shift ;;
-	*) echo "gate: unknown argument $1 (levels: docs code engine full)" >&2; exit 2 ;;
+	docs | code | engine | full | all) levels+=("$1"); shift ;;
+	*) echo "gate: unknown argument $1 (levels: docs code engine full all)" >&2; exit 2 ;;
 	esac
 done
-[ ${#levels[@]} -gt 0 ] || { echo "usage: hack/gate.sh [--base REV] [--keep-going] [--summary FILE] [--dry-run] docs|code|engine|full..." >&2; exit 2; }
+[ ${#levels[@]} -gt 0 ] || { echo "usage: hack/gate.sh [--base REV] [--keep-going] [--summary FILE] [--dry-run] docs|code|engine|full|all..." >&2; exit 2; }
 
 [ -z "$summary" ] || case $summary in /*) ;; *) summary=$PWD/$summary ;; esac
 root=$(git rev-parse --show-toplevel)
@@ -83,7 +92,7 @@ export GATE_HEAVY='zeroparse.dev/zp/internal/codegen/go zeroparse.dev/zp/interna
 # affected_cmd GO-TEST-ARGS: go test over the packages of the changes since $GATE_BASE and their reverse dependencies,
 # those of $GATE_HEAVY first.
 affected_cmd() {
-	echo 'raw=$("${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$GATE_BASE" HEAD) || { echo "gate: the affected packages could not be computed" >&2; exit 1; }
+	echo 'raw=$("${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$GATE_BASE" HEAD) || { echo "gate: the affected packages could not be computed; testing every package" >&2; exec go test -count=1 '"$1"' $GATE_HEAVY ./...; }
 pkgs=$(printf "%s\n" "$raw" | grep -v "^#" || true)
 [ -n "$pkgs" ] || { echo "gate: no package affected since $GATE_BASE"; exit 0; }
 echo "$pkgs" | sed "s/^/gate: affected /"
@@ -96,53 +105,82 @@ snap_def='snap() { { git diff HEAD --binary; git ls-files -o --exclude-standard 
 
 [ "${GATE_SELFTEST_FAIL:-0}" != 1 ] || step selftest 'a step that fails (GATE_SELFTEST_FAIL)' false
 
-# engine_affected succeeds when the packages affected since $base include one that the reference tags build (the
-# engine and the packages whose reverse dependency it is). It fails closed: when the affected packages cannot be
-# computed, the reference build is planned.
-engine_affected() {
-	local raw
-	raw=$("${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD 2>/dev/null) || return 0
-	printf '%s\n' "$raw" | grep -qx -e 'zeroparse.dev/zp/internal/engine' -e 'zeroparse.dev/zp/internal/engine/state' -e 'zeroparse.dev/zp/internal/engine/document'
+# What a change affects, computed once and only when a conditional step asks. Every answer fails closed: when the
+# affected packages or the changed files cannot be computed, a step is planned. aff_has_pkg PKG..., aff_has_marker NAME
+# (a "# NAME" line of hack/affected-tests.sh) and docs_changed succeed when the step has to run.
+aff_state=
+aff_raw=
+chg_state=
+chg=
+affected_load() {
+	[ -z "$aff_state" ] || return 0
+	if aff_raw=$("${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD 2>/dev/null); then aff_state=ok; else aff_state=failed; fi
+	if chg=$(git diff --name-only "$base" HEAD 2>/dev/null); then chg_state=ok; else chg_state=failed; fi
 }
+aff_has_pkg() { # aff_has_pkg PATH...: one of the module-relative packages is affected
+	affected_load
+	[ "$aff_state" = ok ] || return 0
+	local p
+	for p in "$@"; do printf '%s\n' "$aff_raw" | grep -qx "zeroparse.dev/zp/$p" && return 0; done
+	return 1
+}
+aff_has_marker() { affected_load; [ "$aff_state" = ok ] || return 0; printf '%s\n' "$aff_raw" | grep -qx "# $1"; }
+docs_changed() { affected_load; [ "$chg_state" = ok ] || return 0; printf '%s\n' "$chg" | grep -qE '^(docs/|spec/|site/|README\.md$)'; }
+# skipstep NAME REASON: a step that the gate leaves out, listed in the plan and the summary as "NAME skipped (REASON)".
+skipstep() { step "$1" "skipped ($2)" ":skip:$2"; }
 
 want() { local l; for l in "${levels[@]}"; do [ "$l" = "$1" ] && return 0; done; return 1; }
 
 if want docs; then
 	step vet 'go vet ./...' 'go vet ./...'
-	step site-test 'cd site && go test ./...' 'cd site && go test -count=1 ./...'
-	step site-build 'site/build.sh -wasm=false (builds into a temporary directory, checks links)' 'out=$(cd -P "$(mktemp -d "${TMPDIR:-/tmp}/gate-site.XXXXXX")" && pwd) && trap "rm -rf \"$out\"" EXIT && site/build.sh -out "$out/dist" -wasm=false'
+	if docs_changed; then
+		step site-test 'cd site && go test ./...' 'cd site && go test -count=1 ./...'
+		step site-build 'site/build.sh -wasm=false (builds into a temporary directory, checks links)' 'out=$(cd -P "$(mktemp -d "${TMPDIR:-/tmp}/gate-site.XXXXXX")" && pwd) && trap "rm -rf \"$out\"" EXIT && site/build.sh -out "$out/dist" -wasm=false'
+	else
+		skipstep site-test "no change under docs/, spec/, site/ or README.md since $base"
+		skipstep site-build "no change under docs/, spec/, site/ or README.md since $base"
+	fi
 fi
 if want code || want engine; then
 	step build 'go build ./...' 'go build ./...'
 	step vet 'go vet ./...' 'go vet ./...'
-	if ! want engine; then
+	if ! want engine && ! want full && ! want all; then
 		step test 'go test of the affected packages' "$(affected_cmd '-timeout 45m')"
 	fi
 fi
-if want engine; then
-	if ! want full; then
+if want engine || want full || want all; then
+	if want all; then
+		step test-all 'go test -tags zp_long ./... (the whole tree, the longest packages first)' 'go test -count=1 -tags zp_long -timeout 90m $GATE_HEAVY ./...'
+	else
 		step test-long 'go test -tags zp_long of the affected packages' "$(affected_cmd '-tags zp_long -timeout 90m')"
 	fi
-	step generate 'go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language; the tree must not change' "$snap_def"'
+fi
+if want engine || want all; then
+	if aff_has_marker generate; then
+		step generate 'go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language; the tree must not change' "$snap_def"'
 before=$(snap)
 go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language
 [ "$(snap)" = "$before" ] || { echo "gate: go generate changed the tree; commit the regenerated files" >&2; git status --short >&2; exit 1; }'
-	step alpha-parsers 'hack/test-alpha-parsers.sh' hack/test-alpha-parsers.sh
-	if engine_affected; then
+	else
+		skipstep generate "no generator, generator input or generated file is affected since $base"
+	fi
+	if aff_has_marker alpha; then
+		step alpha-parsers 'hack/test-alpha-parsers.sh' hack/test-alpha-parsers.sh
+	else
+		skipstep alpha-parsers "no codegen or runtime library is affected since $base"
+	fi
+	if aff_has_pkg internal/engine internal/engine/state internal/engine/document; then
 		step reference-tags 'hack/test-reference-tags.sh (tags 4 at a time)' hack/test-reference-tags.sh
 	else
-		echo "gate: reference-tags not planned: no package of the reference build (internal/engine, internal/engine/state, internal/engine/document) is affected since $base" >&2
+		skipstep reference-tags "internal/engine, internal/engine/state and internal/engine/document are not affected since $base"
 	fi
-fi
-if want full; then
-	step test-full 'go test -tags zp_long ./... (the longest packages first)' 'go test -count=1 -tags zp_long -timeout 90m $GATE_HEAVY ./...'
 fi
 
 if [ "$dry" = 1 ]; then
 	echo "gate: base $base; steps:"
 	i=0
 	for n in "${names[@]}"; do printf '  %-15s %s\n' "$n" "${descs[$i]}"; i=$((i + 1)); done
-	case " ${names[*]} " in *" test"*) echo "gate: affected packages since $base:"; "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD | sed 's/^/  /' ;; esac
+	case " ${names[*]} " in *" test"* | *" test-long "* | *" test-all "*) echo "gate: affected packages since $base:"; "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD | sed 's/^/  /' ;; esac
 	exit 0
 fi
 
@@ -155,6 +193,13 @@ export ZP_MUTANTS_BASE=$base
 failed=0
 i=0
 for n in "${names[@]}"; do
+	if [ "${cmds[$i]#:skip:}" != "${cmds[$i]}" ]; then
+		reason=${cmds[$i]#:skip:}
+		echo "gate: $n skipped ($reason)" >&2
+		printf '%s\tskipped (%s)\n' "$n" "$reason" >>"$summary"
+		i=$((i + 1))
+		continue
+	fi
 	echo "gate: == $n" >&2
 	start=$SECONDS
 	rc=0

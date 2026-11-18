@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Usage: run-gate.sh [-w worktree] [-t tag] [-b base] LEVEL...
-# Runs hack/gate.sh (levels docs, code, engine, full; see its header) in the worktree, in the run
+# Runs hack/gate.sh (levels docs, code, engine, full, all; see its header) in the worktree, in the run
 # class its heaviest level needs, logs to $ZP_AGENT_STATE/gates/<tag>.log, and prints the per-step
 # summary with the exit status. The gate stops at the first failing step.
 #   docs   directly, throttled (nice 15, GOMAXPROCS 4)
 #   code   through testslot.sh
-#   engine, full   through benchlock.sh under <tag>, in its shared class: beside other gates, never
+#   engine, full, all   through benchlock.sh under <tag>, in its shared class: beside other gates, never
 #                  beside an exclusive (timed) run
 # The gate runs with GOMAXPROCS=8 (unless set) and nice 15: the shared class runs two gates at a time, so on
 # 16 cores each gets half of them.
@@ -29,8 +29,8 @@ for l in "$@"; do
   case $l in
     docs) ;;
     code) [ "$class" = docs ] && class=code ;;
-    engine | full) class=heavy ;;
-    *) die "unknown level $l (docs, code, engine, full)" ;;
+    engine | full | all) class=heavy ;;
+    *) die "unknown level $l (docs, code, engine, full, all)" ;;
   esac
 done
 mkdir -p "$zp_state/gates"

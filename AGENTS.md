@@ -33,8 +33,8 @@ A test (`internal/testing/archtest`) fails when a path in backticks here does no
 `hack/gate.sh [--base REV] LEVEL` stops at the first failing step and checks `REV..HEAD`, so
 commit first. `docs`: docs, spec, site, skills. `code`: Go changes. `engine`: `code` plus the
 long tier, generation, alpha-parsers (needs a checkout:
-`ZP_ALPHA_PARSERS`) and, when the affected packages include the engine, the reference build. `full`: only the root `zp_long` suite; a landing batch runs it on top of
-`engine`, and `docs` when it also changes documentation. A lane runs `docs` or `code`. New slow
+`ZP_ALPHA_PARSERS`) and, when the affected packages include the engine, the reference build. `full`: the long tier of the affected packages; `all`: the whole tree in the long tier, for a release.
+The gate runs only what the change can affect and lists each step it leaves out. A landing batch runs `engine`, and `docs` when it also changes documentation. A lane runs `docs` or `code`. New slow
 tests go to the long tier (`zp_long`).
 
 ## Agent scripts
