@@ -63,7 +63,7 @@ func TestStructuralFacts(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, opts := range []compile.Options{{}, {Recognition: compile.RecognizeKeepStreamValues}, {NoProjections: true}, {DefaultValue: true}} {
+			for _, opts := range []compile.Options{{}, {Recognition: compile.RecognizeWithStreamValues}, {NoProjections: true}, {DefaultValue: true}} {
 				prog, err := compiletest.Compile(g, opts)
 				if err != nil {
 					continue

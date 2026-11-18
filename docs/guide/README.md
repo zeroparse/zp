@@ -80,7 +80,7 @@ complete, runnable examples, and points to the [specification](../../spec/README
 | Prototyping a grammar, or a tool that reads grammars at run time | [Running Parsers](running-parsers.md); `zp parse` to experiment ([The `zp` Command](command-line.md)) |
 | A service that parses with a fixed grammar and wants the fastest parser | [Generating Parsers](code-generation.md) |
 | A fixed grammar where start-up matters, or the grammar must be a data file | [Compiled Grammars](compiled-grammars.md) |
-| Validating input, no tree needed | [Recognition Mode](recognition-mode.md) |
+| Checking the syntax, no tree needed | [Recognition Mode](recognition-mode.md) |
 | Untrusted or machine-generated input that may nest deeply | [Choosing a Backend](backends.md) |
 | Input larger than memory | [Streaming](streaming.md) |
 | Editor-style reparsing after small edits | [Incremental Parsing](incremental.md) |

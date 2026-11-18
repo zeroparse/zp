@@ -19,7 +19,7 @@ var variants = []struct {
 	opts compile.Options
 }{
 	{"parse", compile.Options{}},
-	{"recognize", compile.Options{Recognition: compile.RecognizeKeepStreamValues}},
+	{"recognize", compile.Options{Recognition: compile.RecognizeWithStreamValues}},
 	{"no projections", compile.Options{NoProjections: true}},
 	{"default value", compile.Options{DefaultValue: true}},
 }

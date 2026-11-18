@@ -27,7 +27,7 @@ func testStreamRecoveryRejected(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, opts := range []compile.Options{{}, {Recognition: compile.RecognizeKeepStreamValues}} {
+		for _, opts := range []compile.Options{{}, {Recognition: compile.RecognizeWithStreamValues}} {
 			if _, err := entry.Compile(g, opts); err == nil || !strings.Contains(err.Error(), streamRecoveryError) {
 				t.Errorf("%s: %v", src, err)
 			}

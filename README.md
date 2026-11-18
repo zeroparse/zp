@@ -9,7 +9,7 @@
 
 **One Grammar. Every Parser.**
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENCE) [![Go Reference](https://pkg.go.dev/badge/zeroparse.dev/zp/engine.svg)](https://pkg.go.dev/zeroparse.dev/zp/engine) [![Go](https://img.shields.io/badge/go-1.27.1+-00ADD8?logo=go&logoColor=white)](go.mod)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENCE) [![Go Reference](https://pkg.go.dev/badge/zeroparse.dev/zp/pkg/compiler.svg)](https://pkg.go.dev/zeroparse.dev/zp/pkg/compiler) [![Go](https://img.shields.io/badge/go-1.27.1+-00ADD8?logo=go&logoColor=white)](go.mod)
 
 [Website](https://zeroparse.dev/) · [Playground](https://zeroparse.dev/playground/) · [Quick start](docs/tutorial/getting-started.md) · [Guides](docs/guide/README.md) · [Specification](spec/README.md) · [Examples](examples/)
 
@@ -89,28 +89,28 @@ Go 1.27.1 or later. No dependencies outside the standard library.
 **From Go**
 
 ```go
-p, err := engine.CompileSource(grammarSource, "main") // grammar errors come with positions
+src := grammar.FromString("grammar.zp", grammarSource)
+p, err := compiler.Compile(src, compiler.WithStart("main")) // grammar errors come with positions
 
-node, err := p.Parse(input)                       // positions in code points by default
-p.Parse(input, engine.WithUnit(core.Bytes))         // ... or in UTF-8 bytes
-p.Parse(input, engine.WithBackend(engine.Bytecode))   // pick a backend
-p.Parse(input, engine.RecognizeOnly())              // validate without building a tree
-json.Marshal(node)                                // nodes encode with types and positions
+node, err := p.Parse(text)                         // positions in code points by default
+p.Parse(text, runtime.WithUnit(input.Bytes))       // ... or in UTF-8 bytes
+err = p.Recognize(text)                            // check the syntax without building a tree
+json.Marshal(node)                                 // nodes encode with types and positions
 
-err = p.ParseStream(r, func(n *core.Node) error { return nil }) // one #stream element at a time
+err = p.ParseStream(r, func(n *value.Node) error { return nil }) // one #stream element at a time
 
 doc, _ := p.NewDocument(text)
 doc.Edit(10, 12, "new text") // replace [10, 12)
 node, err = doc.Parse()      // reuses rule results the edit did not reach
 
-data, _ := p.MarshalBinary() // save; engine.LoadParser(data) skips parsing and checking
+data, _ := compiler.Marshal(src, vm.CompiledParse) // save; vm.LoadParser(data) skips parsing and checking
 ```
 
 **From the command line**
 
 ```bash
 zp parse -g grammar.zp -i 'abc=12'           # parse and print the tree (JSON, or -f sexpr)
-zp parse -g grammar.zp -check < input.txt    # validate only
+zp parse -g grammar.zp -recognize < input.txt # check the syntax only
 zp explain -g grammar.zp < input.txt         # which rule calls make up a syntax error
 zp trace -g grammar.zp -i 'abc=12'           # every rule call as an indented tree (-f json for tools)
 zp profile -g grammar.zp < input.txt         # cost per rule, with hints on wasted work
@@ -120,7 +120,7 @@ zp fmt -w grammar.zp                         # format in place, comments kept
 zp compile -g grammar.zp -o grammar.zpc    # precompile
 zp gen -g grammar.zp -module example.com/calc -o calc  # generate a standalone Go parser
 zp gen -g grammar.zp -module example.com/calc -types -o calc # ... with Go types for the grammar's types
-zp gen -g grammar.zp -module example.com/calc -recognize -o calc # ... with Recognize, which validates without a tree
+zp gen -g grammar.zp -module example.com/calc -recognize -o calc # ... with Recognize, which checks the syntax without a tree
 zp gen -lang ts -g grammar.zp -o ts-parser    # generate a TypeScript parser into a directory
 zp gen -lang ts -g grammar.zp -types -o ts-parser # also emit types.ts and parseValue
 zp gen -g grammar.zp -module example.com/calc -max-depth 600000 -o calc # set its nested rule-call default

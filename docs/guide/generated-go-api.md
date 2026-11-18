@@ -124,7 +124,7 @@ It is the engine's [`RecognizeOnly`](recognition-mode.md) in generated form: the
 with no rule building a value (except those whose values predicates read), into a second rule table in the same file.
 Actions whose values are not needed by predicates are skipped. Actions needed by predicates still run and can report runtime errors. On the benchmark workloads it
 takes about half the time of `Parse` (JSON 8.8 → 4.9 ms on a 262 KB input, CSV 4.0 → 1.8 ms), and it is the fastest
-way ZeroParse has to validate input. The price is a larger file: the second table adds about as much code as the first.
+way ZeroParse has to check the syntax of an input. The price is a larger file: the second table adds about as much code as the first.
 
 ## Invocation Options
 

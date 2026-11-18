@@ -551,7 +551,7 @@ func TestCompile(t *testing.T) {
 	if _, err := runCLI(t, "", "parse", "-g", bare, "-i", "a=1", "-backend", "closure"); err == nil || !strings.Contains(err.Error(), "closure backend needs the grammar source") {
 		t.Errorf("closure backend on a compiled grammar: %v", err)
 	}
-	if _, err := runCLI(t, "", "parse", "-g", bare, "-i", "a=1", "-check"); err == nil || !strings.Contains(err.Error(), "needs recognize mode") {
+	if _, err := runCLI(t, "", "parse", "-g", bare, "-i", "a=1", "-recognize"); err == nil || !strings.Contains(err.Error(), "needs recognize mode") {
 		t.Errorf("recognition on a parse-mode file: %v", err)
 	}
 	for _, cmd := range []string{"trace", "profile", "explain"} {
@@ -653,10 +653,10 @@ func TestParseBackend(t *testing.T) {
 
 func TestParseCheck(t *testing.T) {
 	g := writeFile(t, "kv.zp", kv)
-	if got, err := runCLI(t, "", "parse", "-g", g, "-i", "a=1", "-check"); err != nil || got != "ok\n" {
+	if got, err := runCLI(t, "", "parse", "-g", g, "-i", "a=1", "-recognize"); err != nil || got != "ok\n" {
 		t.Errorf("got %q, %v", got, err)
 	}
-	if _, err := runCLI(t, "", "parse", "-g", g, "-i", "a=", "-check"); err == nil {
+	if _, err := runCLI(t, "", "parse", "-g", g, "-i", "a=", "-recognize"); err == nil {
 		t.Error("expected an error")
 	}
 }

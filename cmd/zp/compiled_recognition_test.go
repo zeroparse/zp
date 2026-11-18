@@ -33,7 +33,7 @@ rule other = "é" $$`, "main")
 				if start == "other" {
 					input = "é"
 				}
-				args := []string{"parse", "-g", path, "-check", "-backend", backend, "-unit", unit, "-i", input}
+				args := []string{"parse", "-g", path, "-recognize", "-backend", backend, "-unit", unit, "-i", input}
 				if start != "main" {
 					args = append(args, "-s", start)
 				}
@@ -44,16 +44,16 @@ rule other = "é" $$`, "main")
 			}
 		}
 	}
-	if got, err := runCLI(t, "", "parse", "-g", path, "-i", "ab", "-check"); err == nil || got != "" {
+	if got, err := runCLI(t, "", "parse", "-g", path, "-i", "ab", "-recognize"); err == nil || got != "" {
 		t.Fatalf("failure printed success: %q %v", got, err)
 	}
-	if _, err := runCLI(t, "", "parse", "-g", path, "-i", "a", "-check", "-backend", "closure"); err == nil {
+	if _, err := runCLI(t, "", "parse", "-g", path, "-i", "a", "-recognize", "-backend", "closure"); err == nil {
 		t.Fatal("closure backend on a compiled grammar succeeded")
 	}
 	if _, err := runCLI(t, "", "parse", "-g", path, "-i", "a"); err == nil || !strings.Contains(err.Error(), "needs parse mode") {
 		t.Fatalf("value parse on a recognize-mode file: %v", err)
 	}
-	if _, err := runCLI(t, "", "parse", "-g", path, "-check", "-stream"); err == nil {
+	if _, err := runCLI(t, "", "parse", "-g", path, "-recognize", "-stream"); err == nil {
 		t.Fatal("check/stream combination accepted")
 	}
 }

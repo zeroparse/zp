@@ -35,7 +35,7 @@ module; a recognize-mode file holds the module of the grammar's recognizer.
 | Name a mode | `CompiledMode.String()` | The value of `-mode` |
 | Load | `engine.LoadParser(data)` | `-g file.zpc` on `parse`, `trace`, `profile`, `explain` and `compile` |
 | Mode of a loaded parser | `Parser.CompiledMode()` returns the mode and `true`; `false` for a parser compiled from a grammar | |
-| Recognize a compiled grammar | `engine.IsCompiled(data)` | Used to tell source, JSON and a compiled grammar apart |
+| Detect a compiled grammar | `vm.IsCompiled(data)` | Used to tell source, JSON and a compiled grammar apart |
 
 - The start rule is saved with the module. `zp parse`, `zp compile` and the
   debugging commands use the saved start rule when `-s` is not given, and `-s`
