@@ -28,7 +28,7 @@ var chargeRoots = []string{"Charge", "Take", "takeSlow", "chargeStep", "chargeSl
 // interfaces and function values are not edges) and the functions that reach a charge.
 func libCalls(t *testing.T) (*types.Package, map[*types.Func][]*types.Func, map[*types.Func]bool) {
 	t.Helper()
-	bp, err := build.Default.ImportDir(filepath.Join("..", "..", "..", "..", "..", "codegen", "go", "lib"), 0)
+	bp, err := build.Default.ImportDir(filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime", "golib"), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func libCalls(t *testing.T) (*types.Package, map[*types.Func][]*types.Func, map[
 	}
 	info := &types.Info{Uses: map[*ast.Ident]types.Object{}, Defs: map[*ast.Ident]types.Object{}}
 	conf := types.Config{Importer: importer.ForCompiler(fset, "source", nil)}
-	pkg, err := conf.Check("zeroparse.dev/zp/codegen/go/lib", fset, files, info)
+	pkg, err := conf.Check("zeroparse.dev/zp/pkg/runtime/golib", fset, files, info)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,7 +3,7 @@ package state
 import (
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // spendRead and Spend have a statically removable instrumentation boundary.
@@ -38,7 +38,7 @@ func (p *Parser) SpendN(n uint64) {
 // Controlled decoding reserves up to four bytes before each UTF-8 decoder call;
 // preparation counts both the sizing pass and the storage pass. Allocations
 // themselves remain nonpreemptible, as do runtime buffer growth and GC.
-func NewControlledTextInput(s string, unit core.PositionUnit, offsets bool, sc *scratch, c *BudgetControl) Input {
+func NewControlledTextInput(s string, unit input.PositionUnit, offsets bool, sc *scratch, c *BudgetControl) Input {
 	if !BudgetControlsEnabled || c == nil {
 		return newTextInputIn(s, unit, offsets, sc)
 	}
@@ -46,7 +46,7 @@ func NewControlledTextInput(s string, unit core.PositionUnit, offsets bool, sc *
 		sc = &scratch{}
 	}
 	in := Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Control: c}
-	if unit == core.Bytes {
+	if unit == input.Bytes {
 		in.Bs = grow(sc.bytes, len(s))
 		for off := 0; off < len(s); {
 			n := min(4096, len(s)-off)

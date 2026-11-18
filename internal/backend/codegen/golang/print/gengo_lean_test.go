@@ -9,12 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // External rule-table entry and nested direct calls must count the same rule
@@ -79,14 +80,14 @@ rule left = left "+" "é" / "é"
 	// replace them before generated parsers receive the input.
 	for _, name := range []string{"main", "one", "two", "three", "four", "five", "cap", "bind", "cut", "recovering", "expression", "left"} {
 		for _, input := range []string{"é", "?", "é!", "-é", "é+é", "", "\xff", "\xffé", "\xe2\x82", "�é", "😀"} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-				_, err := prog.ParseWith(name, input, engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: 5}, Recognize: true})
-				fmt.Fprintf(&rows, "{%q,%q,%s,%s},\n", name, input, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], strconv.Quote(fmt.Sprint(err)))
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
+				_, err := prog.ParseWith(name, input, engine.ParseOptions{Expectations: true, Unit: unit, Limits: runtime.Limits{Depth: 5}, Recognize: true})
+				fmt.Fprintf(&rows, "{%q,%q,%s,%s},\n", name, input, map[zpinput.PositionUnit]string{zpinput.CodePoints: "CodePoints", zpinput.Bytes: "Bytes"}[unit], strconv.Quote(fmt.Sprint(err)))
 			}
 		}
 	}
 	tests := `package depth
-import("fmt";"testing";zprt "zeroparse.dev/zp/codegen/go/lib")
+import("fmt";"testing";zprt "zeroparse.dev/zp/pkg/runtime/golib")
 func TestRoutesAndReuse(t *testing.T) {
  cases:=[]struct{name,input string; unit PositionUnit; want string}{` + rows.String() + `}
  for repeat:=0;repeat<3;repeat++ { for _,c:=range cases {

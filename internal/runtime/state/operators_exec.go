@@ -3,8 +3,8 @@
 package state
 
 import (
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/program"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // OperatorsRuleParse parses an expression of the Operators Rule r with operators that bind tighter than
@@ -12,7 +12,7 @@ import (
 // operator) counts against the nesting limit, like the entry of a recursive rule.
 //
 // Printed from Exec IR function operatorsParse of internal/ir/code/exec/compose, specialized for budget, missing.
-func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*core.Node, bool) {
+func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*zpvalue.Node, bool) {
 	p.Enter()
 	v, ok := p.operatorsRuleExpr(r, min)
 	p.Depth--
@@ -27,7 +27,7 @@ func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*core.Node, bool) {
 // ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.
 //
 // Printed from Exec IR function operatorsExpr of internal/ir/code/exec/compose, specialized for budget, missing.
-func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
+func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*zpvalue.Node, bool) {
 	guard := -1
 	if p.afterEmpty {
 		guard = p.Pos
@@ -115,7 +115,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
 // a cut fails the expression.
 //
 // Printed from Exec IR function operatorsNud of internal/ir/code/exec/compose, specialized for budget, missing.
-func (p *Parser) operatorsRuleNud(r *Rule) (*core.Node, bool) {
+func (p *Parser) operatorsRuleNud(r *Rule) (*zpvalue.Node, bool) {
 	var i int
 	p.skipTrivia(r)
 	m0 := p.Mark()
@@ -308,7 +308,7 @@ func (p *Parser) LongestNext(st *LongestState) (*OperatorsRuleLine, bool) {
 // pays for a call at every line of every match.
 //
 // Printed from Exec IR function longestStep of internal/ir/code/exec/compose, specialized for budget, missing.
-func (p *Parser) LongestStep(st *LongestState, v *core.Node, ok bool) (*OperatorsRuleLine, bool) {
+func (p *Parser) LongestStep(st *LongestState, v *zpvalue.Node, ok bool) (*OperatorsRuleLine, bool) {
 	op := st.L[st.I]
 	cut := p.Cut
 	p.Frame = st.PrevFrame
@@ -376,7 +376,7 @@ func (p *Parser) NudPrefix(r *Rule, st *NudState) (int, bool) {
 // returns the result of the start, and otherwise the parse goes on with the operand lines.
 //
 // Printed from Exec IR function nudRhs of internal/ir/code/exec/compose, specialized for budget, missing.
-func (p *Parser) NudRhs(r *Rule, st *NudState, rhs *core.Node, rok bool) (*core.Node, bool, bool) {
+func (p *Parser) NudRhs(r *Rule, st *NudState, rhs *zpvalue.Node, rok bool) (*zpvalue.Node, bool, bool) {
 	if rok {
 		p.nudBound = st.A.Op.Level
 		return p.OperatorsRuleBuild(r, &st.A, nil, rhs), true, true
@@ -414,7 +414,7 @@ func (p *Parser) NudNext(r *Rule, st *NudState) (*OperatorsRuleLine, bool) {
 // result of the start, and otherwise the next line is tried.
 //
 // Printed from Exec IR function nudOperand of internal/ir/code/exec/compose, specialized for budget, missing.
-func (p *Parser) NudOperand(r *Rule, st *NudState, v *core.Node, ok bool) (*core.Node, bool, bool) {
+func (p *Parser) NudOperand(r *Rule, st *NudState, v *zpvalue.Node, ok bool) (*zpvalue.Node, bool, bool) {
 	o := r.OperatorsRule.Operands[st.I]
 	cut := p.Cut
 	p.Frame = st.PrevFrame
@@ -446,7 +446,7 @@ func (p *Parser) ExprBegin(st *ExprState) {
 // follow it.
 //
 // Printed from Exec IR function exprStart of internal/ir/code/exec/compose, specialized for budget, missing.
-func (p *Parser) ExprStart(r *Rule, st *ExprState, lhs *core.Node, ok bool) (bool, bool) {
+func (p *Parser) ExprStart(r *Rule, st *ExprState, lhs *zpvalue.Node, ok bool) (bool, bool) {
 	if !ok {
 		return true, false
 	}
@@ -518,7 +518,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 // set it ends the expression, and otherwise the loop goes on.
 //
 // Printed from Exec IR function exprRhs of internal/ir/code/exec/compose, specialized for budget, missing.
-func (p *Parser) ExprRhs(r *Rule, st *ExprState, rhs *core.Node, rok bool) (bool, bool) {
+func (p *Parser) ExprRhs(r *Rule, st *ExprState, rhs *zpvalue.Node, rok bool) (bool, bool) {
 	op := st.A.Op
 	if !rok {
 		if st.A.Cut {

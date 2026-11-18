@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestDocumentChangesPublicOptIn(t *testing.T) {
@@ -17,7 +17,7 @@ rule main Entry = x:([a-zé]+ #atomic) $$ => Entry{Name: text($x)}`, "main")
 		t.Fatal(err)
 	}
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			d, err := p.NewDocument("aa", engine.WithBackend(backend), engine.WithUnit(unit))
 			if err != nil {
 				t.Fatal(err)
@@ -42,18 +42,18 @@ rule main Entry = x:([a-zé]+ #atomic) $$ => Entry{Name: text($x)}`, "main")
 				t.Fatal(err)
 			}
 			events := d.DrainChanges()
-			if len(events) != 1 || events[0].Kind != core.ChangeOutcome || events[0].Output != core.OutputMayHaveChanged {
+			if len(events) != 1 || events[0].Kind != input.ChangeOutcome || events[0].Output != input.OutputMayHaveChanged {
 				t.Fatal(events)
 			}
 			from := d.Version()
-			if err := d.EditBatch(from, core.TextEdit{Start: 0, End: 2, Text: "bb"}); err != nil {
+			if err := d.EditBatch(from, input.TextEdit{Start: 0, End: 2, Text: "bb"}); err != nil {
 				t.Fatal(err)
 			}
 			if _, err := d.Parse(); err != nil {
 				t.Fatal(err)
 			}
 			events = d.DrainChanges()
-			if len(events) != 2 || events[0].Kind != core.ChangeEdit || events[0].From != from || events[0].To != d.Version() || events[0].Unit != unit || events[1].Kind != core.ChangeOutcome || events[1].From != original.Version() || events[1].Output != core.OutputChanged {
+			if len(events) != 2 || events[0].Kind != input.ChangeEdit || events[0].From != from || events[0].To != d.Version() || events[0].Unit != unit || events[1].Kind != input.ChangeOutcome || events[1].From != original.Version() || events[1].Output != input.OutputChanged {
 				t.Fatal(events)
 			}
 			if value, _ := original.Root().Field("Name"); value != "aa" {
@@ -63,7 +63,7 @@ rule main Entry = x:([a-zé]+ #atomic) $$ => Entry{Name: text($x)}`, "main")
 			if _, err := d.Snapshot(); err != nil {
 				t.Fatal(err)
 			}
-			if got := d.DrainChanges()[0].Output; got != core.OutputUnchanged {
+			if got := d.DrainChanges()[0].Output; got != input.OutputUnchanged {
 				t.Fatal(got)
 			}
 			// The reference build has no cancellation to interrupt the Snapshot.
@@ -73,13 +73,13 @@ rule main Entry = x:([a-zé]+ #atomic) $$ => Entry{Name: text($x)}`, "main")
 				if s, err := d.Snapshot(engine.WithContext(ctx)); s != nil || !errors.Is(err, context.Canceled) {
 					t.Fatal(s, err)
 				}
-				if got := d.DrainChanges()[0].Output; got != core.OutputUnavailable {
+				if got := d.DrainChanges()[0].Output; got != input.OutputUnavailable {
 					t.Fatal(got)
 				}
 				if _, err := d.Snapshot(); err != nil {
 					t.Fatal(err)
 				}
-				if got := d.DrainChanges()[0].Output; got != core.OutputMayHaveChanged {
+				if got := d.DrainChanges()[0].Output; got != input.OutputMayHaveChanged {
 					t.Fatal("comparison bridged interruption", got)
 				}
 			}
@@ -107,7 +107,7 @@ func TestDocumentChangesPublicFullRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	events := d.DrainChanges()
-	if len(events) != 1 || events[0].Kind != core.ChangeFullRefresh || !events[0].FullRefresh || events[0].From != from || events[0].To != d.Version() || events[0].Edits != nil {
+	if len(events) != 1 || events[0].Kind != input.ChangeFullRefresh || !events[0].FullRefresh || events[0].From != from || events[0].To != d.Version() || events[0].Edits != nil {
 		t.Fatal(events)
 	}
 }

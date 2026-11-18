@@ -7,9 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 type demandReader struct {
@@ -22,13 +24,13 @@ func (r *demandReader) Read(p []byte) (int, error) { r.calls++; return r.reader.
 func TestStreamIteratorParityDemandAndTermination(t *testing.T) {
 	t.Parallel()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, u := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(b.String()+"/"+u.String(), func(t *testing.T) {
 				p := mustCompile(t, `rule main = item* #stream $$
 rule item = "あ" / "b"`)
 				o := ParseOptions{Backend: b, Unit: u}
 				var want []string
-				if err := p.ParseStreamWith("main", strings.NewReader("あbあ"), func(n *core.Node) error { want = append(want, dump(t, n, nil)); return nil }, o); err != nil {
+				if err := p.ParseStreamWith("main", strings.NewReader("あbあ"), func(n *value.Node) error { want = append(want, dump(t, n, nil)); return nil }, o); err != nil {
 					t.Fatal(err)
 				}
 				r := &demandReader{reader: strings.NewReader("あbあ")}
@@ -68,12 +70,12 @@ func TestStreamIteratorNilEmptyCloseAndError(t *testing.T) {
 			t.Fatal(err)
 		}
 		// An element without a value is the unit tuple of its range.
-		if n, ok, err := it.Next(); n == nil || nodes.ShapeOf(n) != coreimpl.ShapeTuple || len(nodes.D(n).Children) != 0 || !ok || err != nil {
+		if n, ok, err := it.Next(); n == nil || nodes.ShapeOf(n) != valueimpl.ShapeTuple || len(nodes.D(n).Children) != 0 || !ok || err != nil {
 			t.Fatalf("unit element: %v %v %v", n, ok, err)
 		}
 		it.Close()
 		it.Close()
-		if _, ok, err := it.Next(); ok || err != core.ErrStreamClosed {
+		if _, ok, err := it.Next(); ok || err != runtime.ErrStreamClosed {
 			t.Fatalf("closed: %v %v", ok, err)
 		}
 		it, err = p.Iterate("main", strings.NewReader("a!"), ParseOptions{Backend: b})
@@ -108,7 +110,7 @@ func TestStreamIteratorCloseBeforeFirstNext(t *testing.T) {
 	t.Parallel()
 	p := mustCompile(t, `rule main = "a"* #stream $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				reader := &demandReader{reader: strings.NewReader("aaa")}
 				traces := 0
@@ -122,7 +124,7 @@ func TestStreamIteratorCloseBeforeFirstNext(t *testing.T) {
 					t.Fatalf("Close started parsing: reads=%d traces=%d", reader.calls, traces)
 				}
 				for range 2 {
-					if n, ok, err := it.Next(); n != nil || ok || err != core.ErrStreamClosed {
+					if n, ok, err := it.Next(); n != nil || ok || err != runtime.ErrStreamClosed {
 						t.Fatalf("Next after Close: node=%v ok=%v err=%v", n, ok, err)
 					}
 				}
@@ -137,15 +139,15 @@ func TestStreamIteratorRecoveredErrorsMatchCallback(t *testing.T) {
 rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 	const input = "abX!abY?ab"
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				options := ParseOptions{Backend: backend, Unit: unit}
 				var wantNodes []string
-				wantErr := p.ParseStreamWith("main", strings.NewReader(input), func(n *core.Node) error {
+				wantErr := p.ParseStreamWith("main", strings.NewReader(input), func(n *value.Node) error {
 					wantNodes = append(wantNodes, dump(t, n, nil))
 					return nil
 				}, options)
-				var wantRecovered core.SyntaxErrors
+				var wantRecovered value.SyntaxErrors
 				if !errors.As(wantErr, &wantRecovered) || len(wantRecovered) != 2 || len(wantNodes) != 5 {
 					t.Fatalf("callback fixture: nodes=%d err=%v", len(wantNodes), wantErr)
 				}
@@ -169,7 +171,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 					}
 					gotNodes = append(gotNodes, dump(t, n, nil))
 				}
-				var gotRecovered core.SyntaxErrors
+				var gotRecovered value.SyntaxErrors
 				if !reflect.DeepEqual(gotNodes, wantNodes) || !errors.As(terminal, &gotRecovered) || !reflect.DeepEqual(gotRecovered, wantRecovered) {
 					t.Fatalf("iterator differs: nodes=%v want=%v, error=%v want=%v", gotNodes, wantNodes, terminal, wantErr)
 				}
@@ -177,14 +179,14 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 					if n, ok, again := it.Next(); n != nil || ok {
 						t.Fatalf("repeated terminal: node=%v ok=%v err=%v", n, ok, again)
 					} else {
-						var repeated core.SyntaxErrors
+						var repeated value.SyntaxErrors
 						if !errors.As(again, &repeated) || len(repeated) != len(gotRecovered) || &repeated[0] != &gotRecovered[0] {
 							t.Fatalf("terminal error changed: %v", again)
 						}
 					}
 				}
 				it.Close()
-				var afterClose core.SyntaxErrors
+				var afterClose value.SyntaxErrors
 				if _, ok, err := it.Next(); ok || !errors.As(err, &afterClose) || &afterClose[0] != &gotRecovered[0] {
 					t.Fatalf("Close changed recovered terminal: %v", err)
 				}

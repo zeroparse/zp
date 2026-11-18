@@ -6,16 +6,17 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
-	for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+	for _, u := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 		t.Run(u.String(), func(t *testing.T) {
-			in := state.Input{Unit: u, Eof: true, BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: state.NewBudgetControl(nil, core.Limits{Compute: 128})}
-			if u == core.Bytes {
+			in := state.Input{Unit: u, Eof: true, BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: state.NewBudgetControl(nil, runtime.Limits{Compute: 128})}
+			if u == input.Bytes {
 				in.Bs = []byte(strings.Repeat("a", 258))
 			} else {
 				in.In = []rune(strings.Repeat("a", 258))
@@ -33,7 +34,7 @@ func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
 				t.Skip("the build does not clear the inactive capacity of this store")
 			}
 			node := nodes.Ptr(nodes.Data{Text: "owned"})
-			p := &state.Parser{Input: state.Input{Unit: core.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: state.NewBudgetControl(nil, core.Limits{Compute: 953 + 128})}, Memo: state.NewMemoTable()}
+			p := &state.Parser{Input: state.Input{Unit: input.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: state.NewBudgetControl(nil, runtime.Limits{Compute: 953 + 128})}, Memo: state.NewMemoTable()}
 			if phase == "trail" {
 				p.Trail = make([]state.Undo, 0, 129)
 			} else {

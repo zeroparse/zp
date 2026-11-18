@@ -3,9 +3,9 @@ package vm
 import (
 	"unsafe"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // NewIterative prepares a module for execution with the iterative model, in the family f; terms
@@ -15,8 +15,8 @@ func NewIterative(m *bytecode.Module, terms []*state.TermProgram, f state.Family
 }
 
 // iterateBody runs a rule body with the iterative model: calls push frames instead of recursing.
-func iterateBody(vm *Program, r *state.Rule, entry int) func(p *state.Parser, min int) (*core.Node, bool) {
-	return func(p *state.Parser, min int) (*core.Node, bool) {
+func iterateBody(vm *Program, r *state.Rule, entry int) func(p *state.Parser, min int) (*value.Node, bool) {
+	return func(p *state.Parser, min int) (*value.Node, bool) {
 		mc := ivmMachineOf(p)
 		res := mc.iterate(vm, mc.bodyFrame(entry, r, min, false))
 		return res.v, res.ok
@@ -70,7 +70,7 @@ func (im *ivmMachine) reset() {
 
 // iresult is the result of running a child.
 type iresult struct {
-	v  *core.Node
+	v  *value.Node
 	ok bool
 }
 
@@ -115,7 +115,7 @@ type bodyFrame struct {
 func (f *bodyFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, iresult, bool) {
 	p := mc.p
 	var ev int
-	var v *core.Node
+	var v *value.Node
 	var ok bool
 	if !f.started {
 		f.started = true
@@ -329,7 +329,7 @@ func (f *callFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 			f.start, f.rec = p.Pos, len(p.Recovered)
 			return f.invoke(mc), iresult{}, false
 		}
-		var v *core.Node
+		var v *value.Node
 		var ok, hit bool
 		if p.MemoAll {
 			v, ok, hit = p.CallBeginDoc(r, f.min, &f.st)

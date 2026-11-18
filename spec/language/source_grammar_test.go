@@ -12,11 +12,12 @@ import (
 	"testing"
 	"text/template"
 	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func sourceGrammar(t *testing.T) (*engine.Parser, string) {
@@ -32,12 +33,12 @@ func sourceGrammar(t *testing.T) (*engine.Parser, string) {
 	return p, string(src)
 }
 
-func sourceField(t *testing.T, n *core.Node, name string) *core.Node {
+func sourceField(t *testing.T, n *value.Node, name string) *value.Node {
 	t.Helper()
 	if n == nil {
 		t.Fatalf("nil node for field %s", name)
 	}
-	child, ok := n.Field(name).(*core.Node)
+	child, ok := n.Field(name).(*value.Node)
 	if !ok || child == nil {
 		t.Fatalf("%s.%s is %T, want node", n.Type(), name, n.Field(name))
 	}
@@ -45,26 +46,26 @@ func sourceField(t *testing.T, n *core.Node, name string) *core.Node {
 }
 
 // sourceText returns the text held by field name of n, a named string node.
-func sourceText(t *testing.T, n *core.Node, name string) string {
+func sourceText(t *testing.T, n *value.Node, name string) string {
 	t.Helper()
 	field := sourceField(t, n, name)
 	text := field.Text()
-	if field.Kind() != core.KindString {
+	if field.Kind() != value.KindString {
 		t.Fatalf("%s.%s has no text", n.Type(), name)
 	}
 	return text
 }
 
 // elems returns the elements of the tuple or list n.
-func elems(n *core.Node) []*core.Node {
-	var out []*core.Node
+func elems(n *value.Node) []*value.Node {
+	var out []*value.Node
 	for _, e := range n.Elems() {
 		out = append(out, e)
 	}
 	return out
 }
 
-func sourceDecls(t *testing.T, n *core.Node) []*core.Node {
+func sourceDecls(t *testing.T, n *value.Node) []*value.Node {
 	t.Helper()
 	if n == nil || n.Type() != "File" {
 		t.Fatalf("source root: %v", n)
@@ -172,13 +173,13 @@ rule tuples = "x" => ((), (Foo{},), ( 1 , "a" , ), (2), (1, (2,)))
 			t.Fatal("meet structure lost")
 		}
 		// One type without a comma is a group, and type arguments follow the name directly.
-		var alts []*core.Node
+		var alts []*value.Node
 		for u := sourceField(t, defs[10], "Type"); ; u = sourceField(t, u, "L") {
 			if u.Type() != "JoinType" {
-				alts = append([]*core.Node{u}, alts...)
+				alts = append([]*value.Node{u}, alts...)
 				break
 			}
-			alts = append([]*core.Node{sourceField(t, u, "R")}, alts...)
+			alts = append([]*value.Node{sourceField(t, u, "R")}, alts...)
 		}
 		want := []struct {
 			typ   string
@@ -254,7 +255,7 @@ func TestSourceGrammarTree(t *testing.T) {
 	p, _ := sourceGrammar(t)
 	src := sourceTreeFixture
 	var want string
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 			n, err := p.Parse(src, engine.WithUnit(unit), engine.WithBackend(backend))
 			if err != nil {
@@ -346,7 +347,7 @@ func TestSourceGrammarRecovery(t *testing.T) {
 			var want string
 			for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 				n, err := p.Parse(tc.src, engine.WithBackend(backend), engine.WithExpectations())
-				var syntaxErrors core.SyntaxErrors
+				var syntaxErrors value.SyntaxErrors
 				wantErrors := 1
 				if tc.name == "broken multiline group" {
 					wantErrors = 2
@@ -540,7 +541,7 @@ func TestSourceGrammarPackageRecovery(t *testing.T) {
 	for _, src := range []string{"package\nrule after = \"ok\"", "// leading\npackage ; rule after = \"ok\""} {
 		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 			n, err := p.Parse(src, engine.WithBackend(backend), engine.WithExpectations())
-			var syntaxErrors core.SyntaxErrors
+			var syntaxErrors value.SyntaxErrors
 			if !errors.As(err, &syntaxErrors) || len(syntaxErrors) != 1 || !strings.Contains(err.Error(), "expected package name") {
 				t.Fatalf("%v: %v", backend, err)
 			}

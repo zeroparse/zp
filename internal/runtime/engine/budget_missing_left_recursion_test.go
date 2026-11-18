@@ -6,25 +6,26 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // leastLimit returns the least limit, as set by with, under which parse ends without reaching a
 // limit: the units that the parse uses, since a parse stops at the first charge beyond its limit.
 // Every parse that ends must end with the same error as the parse under the largest limit.
-func leastLimit(t *testing.T, with func(n uint64) core.Limits, parseFn func(core.Limits) error) uint64 {
+func leastLimit(t *testing.T, with func(n uint64) runtime.Limits, parseFn func(runtime.Limits) error) uint64 {
 	t.Helper()
 	lo, hi := uint64(1), uint64(1)<<24
 	end := parseFn(with(hi))
-	var syntax core.SyntaxErrors
+	var syntax value.SyntaxErrors
 	if end != nil && !errors.As(end, &syntax) {
 		t.Fatalf("the parse under a limit of %d fails with %v, not a syntax error", hi, end)
 	}
 	for lo < hi {
 		mid := lo + (hi-lo)/2
 		err := parseFn(with(mid))
-		if errors.Is(err, core.ErrLimit) {
+		if errors.Is(err, runtime.ErrLimit) {
 			lo = mid + 1
 			continue
 		}
@@ -68,13 +69,13 @@ rule g = ";" / "x" #recover(skip=[b]+)`
 		if r.missing != 0 {
 			p = missingProg
 		}
-		parseFn := func(l core.Limits) error {
+		parseFn := func(l runtime.Limits) error {
 			_, err := p.ParseWith("e", "abb+a-a+a", ParseOptions{Backend: r.backend, Recognize: r.recognize, MissingTokens: r.missing, ContextMemoOff: r.ctxOff, Limits: l})
 			return err
 		}
 		got := usage{
-			compute: leastLimit(t, func(n uint64) core.Limits { return core.Limits{Compute: n} }, parseFn),
-			memory:  leastLimit(t, func(n uint64) core.Limits { return core.Limits{Memory: n} }, parseFn),
+			compute: leastLimit(t, func(n uint64) runtime.Limits { return runtime.Limits{Compute: n} }, parseFn),
+			memory:  leastLimit(t, func(n uint64) runtime.Limits { return runtime.Limits{Memory: n} }, parseFn),
 		}
 		if got != w {
 			t.Errorf("%+v: used %+v, want %+v", r, got, w)
@@ -95,8 +96,8 @@ func TestBudgetCallEndChargesErrorsAfterExpectations(t *testing.T) {
 		st := &state.CallState{}
 		p.CallBegin(r, 0, st)
 		p.Expect(0, 7)
-		p.Recovered = append(p.Recovered, state.ErrEntry(&core.SyntaxError{}), state.ErrEntry(&core.SyntaxError{}), state.ErrEntry(&core.SyntaxError{}))
-		p.Control = state.NewBudgetControl(nil, core.Limits{Compute: limit})
+		p.Recovered = append(p.Recovered, state.ErrEntry(&value.SyntaxError{}), state.ErrEntry(&value.SyntaxError{}), state.ErrEntry(&value.SyntaxError{}))
+		p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: limit})
 		err = catchFatal(t, func() { p.CallEnd(r, st, nil, true) })
 		_, stored = p.Memo.Get(state.MemoKey{Rule: r.ID})
 		return err, len(p.LastKept) == 1, stored
@@ -110,7 +111,7 @@ func TestBudgetCallEndChargesErrorsAfterExpectations(t *testing.T) {
 			}
 			break
 		}
-		if !errors.Is(err, core.ErrLimit) {
+		if !errors.Is(err, runtime.ErrLimit) {
 			t.Fatalf("limit %d: %v", limit, err)
 		}
 		if kept && !stored {

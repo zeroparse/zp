@@ -4,12 +4,14 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // engineFieldType returns the type of a cast of the table as the engine declares it.
@@ -32,18 +34,18 @@ func TestEngineValueCastTable(t *testing.T) {
 		src := "type S = { F int }\ntype T = { F int }\n@start\nrule main = \"a\"\n"
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, src, compile.Options{}).Runtime())
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, input.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, runtime.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p}
 		var build func(v conform.CastValue) any
 		build = func(v conform.CastValue) any {
-			text := func() *core.Node {
-				return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+			text := func() *value.Node {
+				return p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 			}
-			elems := func() []*core.Node {
-				var out []*core.Node
+			elems := func() []*value.Node {
+				var out []*value.Node
 				for _, e := range v.Elems {
 					if e.Kind == "nilnode" {
 						out = append(out, nil)
@@ -61,7 +63,7 @@ func TestEngineValueCastTable(t *testing.T) {
 			case "nil":
 				return nil
 			case "nilnode":
-				return (*core.Node)(nil)
+				return (*value.Node)(nil)
 			case "int":
 				return 1
 			case "string":
@@ -71,13 +73,13 @@ func TestEngineValueCastTable(t *testing.T) {
 			case "text":
 				return text()
 			case "tuple":
-				return p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
+				return p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: 2, End: 5, Children: []*value.Node{text(), text()}})
 			case "rep":
-				return p.NewNode(nodes.Data{Kind: coreimpl.ListKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
+				return p.NewNode(nodes.Data{Kind: valueimpl.ListKind, Start: 2, End: 5, Children: []*value.Node{text(), text()}})
 			case "err":
-				return p.NewNode(nodes.Data{Kind: coreimpl.ErrorKind, Terminal: true, Text: "x", Start: 2, End: 4})
+				return p.NewNode(nodes.Data{Kind: valueimpl.ErrorKind, Terminal: true, Text: "x", Start: 2, End: 4})
 			case "missing":
-				return p.NewNode(nodes.Data{Kind: coreimpl.MissingKind, Start: 2, End: 2})
+				return p.NewNode(nodes.Data{Kind: valueimpl.MissingKind, Start: 2, End: 2})
 			case "struct":
 				n, err := c.NewStruct(v.Name, nil, nil)
 				if err != nil {

@@ -7,9 +7,9 @@ import (
 	fcheck "zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestInferenceDependencyChains(t *testing.T) {
@@ -88,7 +88,7 @@ func TestInferenceChainSavedValues(t *testing.T) {
 				wantClosureRefused(t, err)
 				continue
 			}
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 				n, err := q.ParseWith("main", "a", servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
 				if err != nil || n.String() != "P{}" {
 					t.Errorf("saved %s/%s result: %v, %v", backend, unit, n, err)

@@ -10,8 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 type budgetContextPanicToken struct{ phase string }
@@ -73,7 +75,7 @@ func budgetContextAssertCleanup(t *testing.T, p *state.Parser) {
 	}
 }
 
-func budgetContextNodeJSON(t *testing.T, n *core.Node) []byte {
+func budgetContextNodeJSON(t *testing.T, n *value.Node) []byte {
 	t.Helper()
 	b, err := json.Marshal(n)
 	if err != nil {
@@ -85,7 +87,7 @@ func budgetContextNodeJSON(t *testing.T, n *core.Node) []byte {
 func budgetContextVariants() []ParseOptions {
 	var variants []ParseOptions
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, unit := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				variants = append(variants, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize})
 			}
@@ -122,7 +124,7 @@ func TestBudgetContextErrPanicIdentityBeforeExecution(t *testing.T) {
 						entries++
 					}
 				}
-				var node *core.Node
+				var node *value.Node
 				var returnedErr error
 				got := budgetContextRecover(func() { node, returnedErr = prog.ParseWith("main", text, opts) })
 				if got != token || node != nil || returnedErr != nil || entries != 0 {
@@ -156,10 +158,10 @@ rule child = "a"`)
 			ctx := newBudgetContextErrPanic(token, 2)
 			var observed *state.Parser
 			childCallbacks := 0
-			var node *core.Node
+			var node *value.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
-				node, returnedErr = childProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: core.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
+				node, returnedErr = childProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: zpruntime.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 					if e.Kind == TraceEnter && e.Rule == "main" {
 						observed = state.TraceParser(e)
 						ctx.control, ctx.armed = state.TraceParser(e).Control, true
@@ -179,10 +181,10 @@ rule child = "a"`)
 			token := &budgetContextPanicToken{phase: "trace postcheck"}
 			ctx := newBudgetContextErrPanic(token, 1)
 			var observed *state.Parser
-			var node *core.Node
+			var node *value.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
-				node, returnedErr = plainProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: core.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
+				node, returnedErr = plainProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: zpruntime.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 					if e.Kind == TraceEnter && e.Rule == "main" {
 						observed = state.TraceParser(e)
 						ctx.control, ctx.armed = state.TraceParser(e).Control, true
@@ -206,10 +208,10 @@ func TestBudgetContextErrPanicIdentityAtPublicationAndFailedReservation(t *testi
 			token := &budgetContextPanicToken{phase: "publication"}
 			ctx := newBudgetContextErrPanic(token, 2)
 			var observed *state.Parser
-			var node *core.Node
+			var node *value.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
-				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: core.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
+				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: zpruntime.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 					if e.Kind == TraceExit && e.Rule == "main" {
 						observed = state.TraceParser(e)
 						ctx.control, ctx.armed = state.TraceParser(e).Control, true
@@ -226,10 +228,10 @@ func TestBudgetContextErrPanicIdentityAtPublicationAndFailedReservation(t *testi
 			token := &budgetContextPanicToken{phase: "failed reservation"}
 			ctx := newBudgetContextErrPanic(token, 2)
 			var observed *state.Parser
-			var node *core.Node
+			var node *value.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
-				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: core.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
+				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: zpruntime.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 					if e.Kind == TraceEnter && e.Rule == "main" {
 						observed = state.TraceParser(e)
 						ctx.control = state.TraceParser(e).Control
@@ -251,10 +253,10 @@ func TestBudgetContextErrPanicIdentityAtCountedBudgetAndRetry(t *testing.T) {
 	literal := strings.Repeat("a", 1024)
 	prog := mustCompile(t, `rule main = "`+literal+`" $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, unit := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				t.Run(backend.String()+"/"+unit.String()+"/recognize="+strconv.FormatBool(recognize), func(t *testing.T) {
-					var retained *core.Node
+					var retained *value.Node
 					var retainedJSON []byte
 					if !recognize {
 						var err error
@@ -268,10 +270,10 @@ func TestBudgetContextErrPanicIdentityAtCountedBudgetAndRetry(t *testing.T) {
 					token := &budgetContextPanicToken{phase: "spent budget"}
 					ctx := newBudgetContextErrPanic(token, 2)
 					var observed *state.Parser
-					var node *core.Node
+					var node *value.Node
 					var returnedErr error
 					got := budgetContextRecover(func() {
-						node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Context: ctx, Limits: core.Limits{Compute: 1 << 30}, Trace: func(e TraceEvent) {
+						node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Context: ctx, Limits: zpruntime.Limits{Compute: 1 << 30}, Trace: func(e TraceEvent) {
 							if e.Kind == TraceEnter && e.Rule == "main" {
 								observed = state.TraceParser(e)
 								ctx.control, ctx.armed = state.TraceParser(e).Control, true
@@ -314,7 +316,7 @@ func TestBudgetContextErrPanicIdentityLoadedASTOmittedProgram(t *testing.T) {
 	}
 
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, unit := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				retained, err := prog.ParseWith("main", literal, servedBy(CompiledDocument, ParseOptions{Backend: backend, Unit: unit}))
 				if err != nil || retained == nil {
@@ -325,10 +327,10 @@ func TestBudgetContextErrPanicIdentityLoadedASTOmittedProgram(t *testing.T) {
 				token := &budgetContextPanicToken{phase: "loaded spent budget"}
 				ctx := newBudgetContextErrPanic(token, 2)
 				var observed *state.Parser
-				var node *core.Node
+				var node *value.Node
 				var returnedErr error
 				got := budgetContextRecover(func() {
-					node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Context: ctx, Limits: core.Limits{Compute: 1 << 30}, Trace: func(e TraceEvent) {
+					node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Context: ctx, Limits: zpruntime.Limits{Compute: 1 << 30}, Trace: func(e TraceEvent) {
 						if e.Kind == TraceEnter && e.Rule == "main" {
 							observed = state.TraceParser(e)
 							ctx.control, ctx.armed = state.TraceParser(e).Control, true

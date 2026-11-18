@@ -16,9 +16,11 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // FormatVersion is the only fixture format version understood by this package.
@@ -191,7 +193,7 @@ type RunOptions struct {
 	Backends    []string
 	Equivalence *bool
 	Context     context.Context
-	Limits      core.Limits
+	Limits      runtime.Limits
 }
 
 // Outcome describes whether parsing matched cleanly, recovered, or rejected input.
@@ -388,9 +390,9 @@ func Run(suite *Suite, opts RunOptions) (Report, error) {
 			return report, err
 		}
 	}
-	unit := core.CodePoints
+	unit := zpinput.CodePoints
 	if suite.Unit == "bytes" {
-		unit = core.Bytes
+		unit = zpinput.Bytes
 	}
 	parsers := make(map[string]*engine.Parser, len(backends))
 	for _, backend := range backends {
@@ -601,7 +603,7 @@ func setGoldens(exp *Expectation, actual Actual) {
 	copy(exp.Errors, actual.Errors)
 }
 
-func runCase(p *engine.Parser, backend string, unit core.PositionUnit, input string, ctx context.Context, limits core.Limits) (Actual, error) {
+func runCase(p *engine.Parser, backend string, unit zpinput.PositionUnit, input string, ctx context.Context, limits runtime.Limits) (Actual, error) {
 	var b engine.Backend
 	switch backend {
 	case "default":
@@ -627,8 +629,8 @@ func runCase(p *engine.Parser, backend string, unit core.PositionUnit, input str
 		actual.Node = data
 		actual.Start, actual.End = intPointer(int(node.Start())), intPointer(int(node.End()))
 	}
-	var many core.SyntaxErrors
-	var one *core.SyntaxError
+	var many zpvalue.SyntaxErrors
+	var one *zpvalue.SyntaxError
 	switch {
 	case parseErr == nil:
 		actual.Outcome = Accepted
@@ -655,7 +657,7 @@ func runCase(p *engine.Parser, backend string, unit core.PositionUnit, input str
 	return actual, nil
 }
 
-func errorLocation(e *core.SyntaxError) ErrorLocation {
+func errorLocation(e *zpvalue.SyntaxError) ErrorLocation {
 	return ErrorLocation{Pos: e.Pos, Line: e.Line, Column: e.Col}
 }
 

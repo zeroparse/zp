@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // TestRunSitesCorpusMatchWithoutRecords checks that the grammars of testdata/grammars give, on their
@@ -44,7 +44,7 @@ func TestRunSitesCorpusMatchWithoutRecords(t *testing.T) {
 		}
 		for _, in := range inputs {
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				o := ParseOptions{Backend: b, Expectations: true, Unit: core.Bytes}
+				o := ParseOptions{Backend: b, Expectations: true, Unit: input.Bytes}
 				state.RunHotSpan, state.ScanHotSpan, state.SkipRecordsOff = 1, 1, false
 				n, err := prog.ParseWith(prog.DefaultStartRule, in, o)
 				with := codegentest.ResultJSON(n, err)

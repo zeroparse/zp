@@ -41,8 +41,8 @@ Evidence records: [018](../018-memoizing-from-the-second-call-at-a-position.md),
 Source owners: the `firstCall` composition of Exec IR, which every runtime prints, over
 each runtime's record of a call:
 [`memoTable.firstCall`](../../../internal/runtime/state/memo.go) in the engine, the [generated Go
-library](../../../codegen/go/lib/lib.go) and the [TypeScript
-library](../../../codegen/ts/lib/lib.ts).
+library](../../../pkg/runtime/golib/lib.go) and the [TypeScript
+library](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

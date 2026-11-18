@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Compare the public parse result and exported diagnostic records with and
@@ -126,11 +128,11 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 	}
 
 	type result struct {
-		Node                 *core.Node
+		Node                 *value.Node
 		Err                  error
 		ErrorText, ErrorType string
 	}
-	marshal := func(t *testing.T, node *core.Node, err error) []byte {
+	marshal := func(t *testing.T, node *value.Node, err error) []byte {
 		t.Helper()
 		got := result{Node: node, Err: err}
 		if err != nil {
@@ -146,7 +148,7 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 		t.Run(tc.name, func(t *testing.T) {
 			prog := mustCompile(t, tc.grammar)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.Bytes, zpinput.CodePoints} {
 					for _, recognize := range []bool{false, true} {
 						t.Run(fmt.Sprintf("%v/%v/recognize=%t", backend, unit, recognize), func(t *testing.T) {
 							memoObserved, recoveredObserved := false, false
@@ -165,13 +167,13 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 									base.Trace = trace
 								}
 								wantNode, wantErr := prog.ParseWith("main", input, base)
-								var recovered core.SyntaxErrors
+								var recovered value.SyntaxErrors
 								if errors.As(wantErr, &recovered) && len(recovered) > 0 {
 									recoveredObserved = true
 								}
 								want := marshal(t, wantNode, wantErr)
 								limited := base
-								limited.Limits = core.Limits{Compute: 1 << 50}
+								limited.Limits = runtime.Limits{Compute: 1 << 50}
 								gotNode, gotErr := prog.ParseWith("main", input, limited)
 								got := marshal(t, gotNode, gotErr)
 								if !bytes.Equal(got, want) {

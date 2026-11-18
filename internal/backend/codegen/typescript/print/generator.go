@@ -37,7 +37,7 @@ const tsLibMarker = "// --- Library ---\n"
 // be nil. common.TypeScript describes the options.
 //
 // Each parsing expression becomes a function and actions and predicates become TypeScript
-// expressions, as in the Go generator; the library (codegen/ts/lib) mirrors the Go library. opts.Package
+// expressions, as in the Go generator; the library (internal/backend/codegen/typescript/lib) mirrors the Go library. opts.Package
 // is not used. opts.Types adds declarations and Node-to-value conversion entry points.
 // maxLeaderBits is the number of leaders of each left-recursion cycle that have a bit in the present
 // sets of the library's dependency memo (Rule.leaderBit), as in the Go library. The sign bit stays

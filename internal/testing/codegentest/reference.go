@@ -11,16 +11,16 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // ReferenceParse parses input with a program compiled for Reference: with positions in bytes if
 // bytes is set, otherwise in code points, and as a recognition (no tree) if recognize is set. It
 // returns the tree and the error.
-type ReferenceParse func(input string, bytes, recognize bool) (*core.Node, error)
+type ReferenceParse func(input string, bytes, recognize bool) (*value.Node, error)
 
 // Reference compiles src with opts for the comparisons of generated parsers with the engine and
 // returns the parse function of its rule main. The test package sets it, as it sets Compile: this
@@ -34,7 +34,7 @@ func refProgram(t *testing.T, src string, opts compile.Options) ReferenceParse {
 	}
 	return Reference(t, src, opts)
 }
-func ResultJSON(n *core.Node, err error) string {
+func ResultJSON(n *value.Node, err error) string {
 	out := map[string]any{"node": n}
 	if err != nil {
 		out["err"] = err.Error()
@@ -46,7 +46,7 @@ func ResultJSON(n *core.Node, err error) string {
 // NodeViews renders a parse result through the Node API other than JSON: the fields, length and
 // text of every node Walk visits, and the String of the result. NodeViewsSource is the same
 // function for a generated package, whose name replaces PKG.
-func NodeViews(n *core.Node) string {
+func NodeViews(n *value.Node) string {
 	if n == nil {
 		return "nil"
 	}
@@ -61,17 +61,17 @@ func NodeViews(n *core.Node) string {
 	}
 	// A node shared by several edges, such as an operand that is also a capture of its
 	// operator, is printed once: walking it again on every edge can take exponential time.
-	seen := map[*core.Node]bool{}
+	seen := map[*value.Node]bool{}
 	var b strings.Builder
-	err := core.Walk(n, func(v core.WalkVisit) (core.WalkAction, error) {
+	err := value.Walk(n, func(v value.WalkVisit) (value.WalkAction, error) {
 		fmt.Fprintf(&b, "%d %d %d %s %d ", v.Depth, v.Edge.Kind, v.Edge.ChildIndex, v.Edge.FieldName, v.Edge.ListIndex)
 		if v.Node == nil {
 			fmt.Fprintf(&b, "%s;", scalar(v.Value))
-			return core.WalkContinue, nil
+			return value.WalkContinue, nil
 		}
 		if seen[v.Node] {
 			b.WriteString("seen;")
-			return core.WalkSkip, nil
+			return value.WalkSkip, nil
 		}
 		seen[v.Node] = true
 		for name, x := range v.Node.Fields() {
@@ -87,7 +87,7 @@ func NodeViews(n *core.Node) string {
 			}
 		}
 		b.WriteString(";")
-		return core.WalkContinue, nil
+		return value.WalkContinue, nil
 	})
 	if err != nil {
 		b.WriteString(err.Error())

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // An error value that #recover produces is a node with a range and no value, so text(x) accepts a value
@@ -25,7 +25,7 @@ func TestTextOfErrorValues(t *testing.T) {
 			continue
 		}
 		n, err := p.Parse(c.in)
-		var recovered core.SyntaxErrors
+		var recovered value.SyntaxErrors
 		if !errors.As(err, &recovered) {
 			t.Errorf("%q on %q: error %v, want the recovered syntax error", c.src, c.in, err)
 			continue

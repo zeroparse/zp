@@ -1,8 +1,8 @@
 package document
 
 import (
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The external tests of this package parse with the engine's programs, which import this
@@ -42,8 +42,8 @@ func (d *Document) SetRuns(r map[state.RunKey]*state.RunRecord) {
 	d.runs = r
 }
 func (d *Document) RunGen() uint32                           { return d.runGen }
-func (d *Document) Kids() []*core.Node                       { return d.kids }
-func (d *Document) SetKids(k []*core.Node)                   { d.kids = k }
+func (d *Document) Kids() []*value.Node                      { return d.kids }
+func (d *Document) SetKids(k []*value.Node)                  { d.kids = k }
 func (d *Document) Machine() state.BackendState              { return d.machine }
 func (d *Document) SetMachine(m state.BackendState)          { d.machine = m }
 func (d *Document) Input() *state.Input                      { return &d.in }
@@ -56,7 +56,7 @@ func (d *Document) Start() string                            { return d.start }
 func (d *Document) Runner() Runner                           { return d.runner }
 func (d *Document) HasPreviousSnapshot() bool                { return d.previousSnapshot.Value() != nil }
 func (d *Document) ChangeBaseline() *Snapshot                { return d.changes.previous }
-func (d *Document) ParseWithCapture(o state.ParseOptions, capture func(*state.Parser, *core.Node, error) error) (*core.Node, error) {
+func (d *Document) ParseWithCapture(o state.ParseOptions, capture func(*state.Parser, *value.Node, error) error) (*value.Node, error) {
 	return d.parseWithCapture(o, capture)
 }
 

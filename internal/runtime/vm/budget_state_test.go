@@ -10,22 +10,23 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	value "zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func TestBudgetStateVMChildAssembly(t *testing.T) {
 	for _, op := range []bytecode.Op{bytecode.OpSeq, bytecode.OpEndRepeat} {
-		for _, lim := range []core.Limits{{Compute: 64}, {Compute: 10000}} {
+		for _, lim := range []runtime.Limits{{Compute: 64}, {Compute: 10000}} {
 			p := stateBudgetParser(lim)
 			start := 3
-			retained := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "keep", Value: "unchanged"}}})
+			retained := value.Ptr(value.Data{Text: "retained", Fields: valueimpl.Fields{{Name: "keep", Value: "unchanged"}}})
 			machineOf(p).vals = append(machineOf(p).vals, &start)
-			want := make([]*core.Node, 320)
+			want := make([]*zpvalue.Node, 320)
 			for i := range want {
 				if i%3 != 0 {
 					want[i] = retained
@@ -39,10 +40,10 @@ func TestBudgetStateVMChildAssembly(t *testing.T) {
 			}
 			vm := &Program{m: &bytecode.Module{Code: []bytecode.Instr{instruction, {Op: bytecode.OpEnd}}}}
 			body := vmBody{}
-			var result *core.Node
+			var result *zpvalue.Node
 			err := catchFatal(t, func() { _, result, _ = machineOf(p).step(vm, &body, false, false, nil) })
 			if lim.Compute == 64 {
-				if !errors.Is(err, core.ErrLimit) || result != nil || len(machineOf(p).vals) != 321 {
+				if !errors.Is(err, runtime.ErrLimit) || result != nil || len(machineOf(p).vals) != 321 {
 					t.Fatalf("%v assembly interruption err=%v result=%v stack=%d", op, err, result, len(machineOf(p).vals))
 				}
 			} else if err != nil || result == nil || !reflect.DeepEqual(value.D(result).Children, want) || value.D(result).Start != 3 {
@@ -57,7 +58,7 @@ func TestBudgetStateVMChildAssembly(t *testing.T) {
 
 func TestBudgetStateVMCutAndFailureUnwind(t *testing.T) {
 	for _, cut := range []bool{false, true} {
-		p := stateBudgetParser(core.Limits{Compute: 64})
+		p := stateBudgetParser(runtime.Limits{Compute: 64})
 		for range 320 {
 			machineOf(p).ents = append(machineOf(p).ents, vmEntry{kind: eChoice, cut: true})
 		}
@@ -77,7 +78,7 @@ func TestBudgetStateVMCutAndFailureUnwind(t *testing.T) {
 				machineOf(p).unwind(vm.m, 0)
 			}
 		})
-		if !errors.Is(err, core.ErrLimit) {
+		if !errors.Is(err, runtime.ErrLimit) {
 			t.Fatalf("cut=%t err=%v", cut, err)
 		}
 		if cut && machineOf(p).ents[0].cut {
@@ -86,7 +87,7 @@ func TestBudgetStateVMCutAndFailureUnwind(t *testing.T) {
 		if !cut && len(machineOf(p).ents) != 256 {
 			t.Fatalf("unwind retained %d entries, want256", len(machineOf(p).ents))
 		}
-		p.Control = state.NewBudgetControl(newPollingContext(1), core.Limits{})
+		p.Control = state.NewBudgetControl(newPollingContext(1), runtime.Limits{})
 		if err := catchFatal(t, func() {
 			if cut {
 				body := vmBody{}
@@ -108,8 +109,8 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 			if !iterative {
 				compute++
 			}
-			p := stateBudgetParser(core.Limits{Compute: compute})
-			retained := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "keep", Value: "unchanged"}}})
+			p := stateBudgetParser(runtime.Limits{Compute: compute})
+			retained := value.Ptr(value.Data{Text: "retained", Fields: valueimpl.Fields{{Name: "keep", Value: "unchanged"}}})
 			before, _ := json.Marshal(retained)
 			op := &state.OperatorsRuleOp{Kind: ast.Prefix, Line: &state.OperatorsRuleLine{Scope: &program.Scope{Names: make([]string, 320)}}}
 			setup := func(f *state.Frame) {
@@ -127,12 +128,12 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 					f.next(ivmMachineOf(p), nil, iresult{ok: true, v: retained})
 					best = ivmMachineOf(p).attempt
 				} else {
-					op.Line.M = func(p *state.Parser) (*core.Node, bool) { setup(p.Frame); return retained, true }
+					op.Line.M = func(p *state.Parser) (*zpvalue.Node, bool) { setup(p.Frame); return retained, true }
 					best = p.Longest([]*state.OperatorsRuleOp{op})
 				}
 			})
 			if limit < 10000 {
-				if !errors.Is(err, core.ErrLimit) || best.Op != nil {
+				if !errors.Is(err, runtime.ErrLimit) || best.Op != nil {
 					t.Fatalf("iterative=%t limit=%d err=%v partial=%v", iterative, limit, err, best.Op)
 				}
 				if p.Control.Used != compute {
@@ -152,15 +153,15 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 func TestBudgetResetAndVMRestoreInterruptionIsFatal(t *testing.T) {
 	for _, name := range []string{"reset", "restore"} {
 		t.Run(name, func(t *testing.T) {
-			p := stateBudgetParser(core.Limits{Compute: 2})
+			p := stateBudgetParser(runtime.Limits{Compute: 2})
 			f, nodes := undoFixture(p)
 			p.Frame = f
 			p.Pos = 99
 			p.SetVars([]any{1})
-			p.Recovered = []state.RecEntry{state.ErrEntry(&core.SyntaxError{Messages: []string{"temporary"}})}
+			p.Recovered = []state.RecEntry{state.ErrEntry(&zpvalue.SyntaxError{Messages: []string{"temporary"}})}
 			if name == "reset" {
 				m := state.Mark{Pos: 4, Trail: 0}
-				if err := catchFatal(t, func() { p.Reset(m) }); !errors.Is(err, core.ErrLimit) {
+				if err := catchFatal(t, func() { p.Reset(m) }); !errors.Is(err, runtime.ErrLimit) {
 					t.Fatalf("reset interruption = %v, want ErrLimit", err)
 				}
 				if p.Pos != 4 || len(p.Trail) != 4 {
@@ -170,7 +171,7 @@ func TestBudgetResetAndVMRestoreInterruptionIsFatal(t *testing.T) {
 				machineOf(p).vals = []any{"keep", "discard-one", "discard-two"}
 				machineOf(p).reps = []repState{{count: 1}, {count: 2}}
 				save := vmSave{pos: 4, vals: 1, reps: 1, trail: 0, recovered: 0, env: nil, frame: f}
-				if err := catchFatal(t, func() { machineOf(p).restore(&save) }); !errors.Is(err, core.ErrLimit) {
+				if err := catchFatal(t, func() { machineOf(p).restore(&save) }); !errors.Is(err, runtime.ErrLimit) {
 					t.Fatalf("VM restore interruption = %v, want ErrLimit", err)
 				}
 				if p.Pos != 4 || len(machineOf(p).vals) != 1 || len(machineOf(p).reps) != 1 || len(p.Trail) != 4 {
@@ -194,15 +195,15 @@ func TestBudgetDocumentRunStateClearReservation(t *testing.T) {
 	for i := range r.Mid {
 		r.Mid[i].V = marker
 	}
-	p := stateBudgetParser(core.Limits{Compute: 128})
+	p := stateBudgetParser(runtime.Limits{Compute: 128})
 	mc := machineOf(p)
-	if err := catchFatal(t, func() { mc.freeRunState(r) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { mc.freeRunState(r) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("clear interruption = %v", err)
 	}
 	if len(mc.freeRuns) != 0 || r.Old != nil || r.Mid[128].V != marker || r.Post[0].V != marker || value.D(marker).Text != "retained" {
 		t.Fatal("incomplete clear was published or changed pointees")
 	}
-	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 130})
+	p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 130})
 	mc.freeRunState(r)
 	if len(mc.freeRuns) != 1 || r.Mid[128].V != nil || r.Post[0].V != nil {
 		t.Fatal("completed clear did not release references")

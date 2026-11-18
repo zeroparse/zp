@@ -3,10 +3,10 @@ package complexitytest
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/linearity"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // skipRunControls returns the E8 controls whose walks a parse without skip-run records repeats.
@@ -73,7 +73,7 @@ func TestSkipRunsLinearMemory(t *testing.T) {
 			measure := func(n int) (objects, bytes uint64) {
 				in := c.Input(n)
 				return linearity.Allocs(func() {
-					if _, err := p.Parse(in, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: core.Unlimited})); err != nil {
+					if _, err := p.Parse(in, engine.WithBackend(b), engine.WithLimits(runtime.Limits{Compute: runtime.Unlimited})); err != nil {
 						t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
 					}
 				})

@@ -102,10 +102,10 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 			// budget grants, so with controls they get a budget linear in the input with their constant.
 			limit := ""
 			if i >= costly && controls {
-				limit = fmt.Sprintf(", zprt.WithLimits(core.Limits{Compute: %d})", codegentest.ContextStoreBudgetPerUnit*uint64(len(input)))
+				limit = fmt.Sprintf(", zprt.WithLimits(zpruntime.Limits{Compute: %d})", codegentest.ContextStoreBudgetPerUnit*uint64(len(input)))
 			}
-			fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; if _, err := %s.Parse(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
-			fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; if _, err := %s.ParseValue(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
+			fmt.Fprintf(&calls, "\t{ var p zpinstrument.Profile; if _, err := %s.Parse(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
+			fmt.Fprintf(&calls, "\t{ var p zpinstrument.Profile; if _, err := %s.ParseValue(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
 		}
 		if long == 0 {
 			calls.WriteString("\tfmt.Print(true, \" \", true)\n")
@@ -120,12 +120,12 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 import (
 	"fmt"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	zpcore "zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
 ` + imports.String() + `)
 
-var _ core.Limits
+var _ zpruntime.Limits
 
 func main() {
 ` + calls.String() + `}

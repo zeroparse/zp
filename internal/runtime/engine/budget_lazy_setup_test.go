@@ -10,8 +10,9 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestBudgetLazyClosureAdmission(t *testing.T) {
@@ -32,7 +33,7 @@ func TestBudgetLazyClosureAdmission(t *testing.T) {
 				}
 			}
 			// An inactive call disables the default budget explicitly.
-			for _, o := range []ParseOptions{{Limits: core.Limits{Compute: core.Unlimited}}, {Context: context.Background(), Limits: core.Limits{Compute: core.Unlimited}}, {Backend: Bytecode, Limits: core.Limits{Compute: 10000}}} {
+			for _, o := range []ParseOptions{{Limits: runtime.Limits{Compute: runtime.Unlimited}}, {Context: context.Background(), Limits: runtime.Limits{Compute: runtime.Unlimited}}, {Backend: Bytecode, Limits: runtime.Limits{Compute: 10000}}} {
 				if err := call(o); err != nil {
 					t.Fatal(err)
 				}
@@ -55,7 +56,7 @@ func TestBudgetLazyClosureAdmission(t *testing.T) {
 			if prog.budgetProgram == nil {
 				t.Fatal("setup not retained after cancellation")
 			}
-			if err := call(ParseOptions{Limits: core.Limits{Compute: 10000}}); err != nil {
+			if err := call(ParseOptions{Limits: runtime.Limits{Compute: 10000}}); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -79,7 +80,7 @@ rule expr = #operators {
 }`, strings.TrimSuffix(strings.Repeat("a+", 80), "+")},
 	}
 	for _, fixture := range cases {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			prog := mustCompile(t, fixture.source)
 			d, err := prog.NewDocumentWith("main", fixture.text, ParseOptions{Unit: unit})
 			if err != nil {
@@ -110,7 +111,7 @@ rule expr = #operators {
 			if err := d.Edit(len(fixture.text)/2, len(fixture.text)/2+1, "!"); err != nil {
 				t.Fatal(err)
 			}
-			for _, limits := range []core.Limits{{Compute: 1000000}, {}} {
+			for _, limits := range []runtime.Limits{{Compute: 1000000}, {}} {
 				o := ParseOptions{Unit: unit, Limits: limits}
 				got, gotErr := d.ParseWith(o)
 				fresh, freshErr := prog.ParseWith("main", d.Text(), o)
@@ -157,7 +158,7 @@ func TestBudgetLazyClosureContextReentry(t *testing.T) {
 		defer cancel()
 		ctx.Context = parent
 		ctx.run = func() {
-			n, err := prog.ParseWith("main", "a", ParseOptions{Recognize: recognize, Limits: core.Limits{Compute: 10000}})
+			n, err := prog.ParseWith("main", "a", ParseOptions{Recognize: recognize, Limits: runtime.Limits{Compute: 10000}})
 			if err != nil || !recognize && n == nil {
 				t.Fatalf("reentrant parse: %v", err)
 			}
@@ -179,11 +180,11 @@ func TestBudgetLazyClosureIncompleteInitialization(t *testing.T) {
 	if got != token {
 		t.Fatal("panic identity changed")
 	}
-	n, err := prog.ParseWith("main", "a", ParseOptions{Limits: core.Limits{Compute: 100}})
+	n, err := prog.ParseWith("main", "a", ParseOptions{Limits: runtime.Limits{Compute: 100}})
 	if n != nil || err == nil || !strings.Contains(err.Error(), "initialization did not complete") {
 		t.Fatalf("n=%v error=%v", n, err)
 	}
-	if n, err := prog.ParseWith("main", "a", ParseOptions{Limits: core.Limits{Compute: core.Unlimited}}); n == nil || err != nil {
+	if n, err := prog.ParseWith("main", "a", ParseOptions{Limits: runtime.Limits{Compute: runtime.Unlimited}}); n == nil || err != nil {
 		t.Fatal("plain graph affected", err)
 	}
 }

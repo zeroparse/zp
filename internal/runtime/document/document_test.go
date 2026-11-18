@@ -8,9 +8,9 @@ import (
 
 	"zeroparse.dev/zp/internal/runtime/document"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // TestDocumentEditKeepsMemo checks that an edit keeps exactly the memo entries the rules in
@@ -175,7 +175,7 @@ rule r = [a-z]+`)
 func TestDocumentEditText(t *testing.T) {
 	prog := mustCompile(t, `rule main = .*`)
 	pieces := []string{"a", "é", "日本", "\n", "\xff", "z\xe3\x81", ""}
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		doc, err := prog.NewDocumentWith("main", "héllo, 世界\n", ParseOptions{Unit: unit})
 		if err != nil {
 			t.Fatal(err)
@@ -186,11 +186,11 @@ func TestDocumentEditText(t *testing.T) {
 		for i := 0; i < 3000; i++ {
 			piece := pieces[rng.Intn(len(pieces))]
 			var start, end int
-			if unit == core.Bytes {
+			if unit == input.Bytes {
 				// Edit at character boundaries of the current bytes.
 				var bounds []int
 				for k := 0; k <= len(refBytes); k++ {
-					if state.ValidBoundary(string(refBytes), core.Bytes, k) == nil {
+					if state.ValidBoundary(string(refBytes), input.Bytes, k) == nil {
 						bounds = append(bounds, k)
 					}
 				}
@@ -211,7 +211,7 @@ func TestDocumentEditText(t *testing.T) {
 				t.Fatal(err)
 			}
 			wantText := string(refBytes)
-			if unit == core.CodePoints {
+			if unit == input.CodePoints {
 				wantText = string(ref)
 			}
 			want := state.NewInput(wantText, unit)

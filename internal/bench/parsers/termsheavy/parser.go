@@ -4,14 +4,14 @@
 package termsheavy
 
 import (
-	rt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
 	types "zeroparse.dev/zp/internal/bench/parsers/termsheavy/types"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*core.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*zpvalue.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -31,7 +31,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*core.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*zpvalue.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -450,12 +450,12 @@ func init() {
 	trules[0].Entry = u0
 }
 
-func e2(p *rt.Parser, _ int) (*core.Node, bool) {
+func e2(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x2, x3 int
 	var x5 rt.Mark
 	var ok bool
-	var v7, v8, v9 *core.Node
+	var v7, v8, v9 *zpvalue.Node
 	x2, x3 = p.Pos, len(p.KidStack)
 	for {
 		p.Spend()
@@ -484,12 +484,12 @@ fail:
 	return nil, false
 }
 
-func e5(p *rt.Parser, _ int) (*core.Node, bool) {
+func e5(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x2, x3, x5 int
 	var x4, ok bool
 	var x6 rt.Mark
-	var v8, v9, v10 *core.Node
+	var v8, v9, v10 *zpvalue.Node
 	x2, x3 = p.Pos, len(p.KidStack)
 	x4 = p.RunHot(1)
 	if x4 {
@@ -557,14 +557,14 @@ fail:
 	return nil, false
 }
 
-func e7(p *rt.Parser, _ int) (*core.Node, bool) {
+func e7(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, x4, x5, x6, size, x9, x13 int
-	var x2 []*core.Node
+	var x2 []*zpvalue.Node
 	var x7 rt.Mark
 	var ch rune
 	var ok bool
-	var v10, v11, v12, v14, v15 *core.Node
+	var v10, v11, v12, v14, v15 *zpvalue.Node
 	x1 = p.Pos
 	x2 = p.Nodes(2)[:0]
 	x4, x6, x5 = p.Pos, len(p.KidStack), 0
@@ -616,9 +616,9 @@ fail:
 	return nil, false
 }
 
-func e11(p *rt.Parser, _ int) (*core.Node, bool) {
+func e11(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
-	var v *core.Node
+	var v *zpvalue.Node
 	var x2 int
 	var ok bool
 	for {
@@ -645,10 +645,10 @@ fail:
 	return nil, false
 }
 
-func q1(p *rt.Parser) (*core.Node, bool) {
+func q1(p *rt.Parser) (*zpvalue.Node, bool) {
 	p.Spend()
 	var start, x2, x3, x4 int
-	var v *core.Node
+	var v *zpvalue.Node
 	var x1, ok bool
 	start = p.Pos
 	x2 = p.Pos
@@ -710,10 +710,10 @@ fail:
 	return nil, false
 }
 
-func q2(p *rt.Parser) (*core.Node, bool) {
+func q2(p *rt.Parser) (*zpvalue.Node, bool) {
 	p.Spend()
 	var start, size, x1, x2 int
-	var v *core.Node
+	var v *zpvalue.Node
 	var ch rune
 	var ok bool
 	start = p.Pos
@@ -1184,4 +1184,4 @@ fail:
 
 const _ = types.ZPSchema_e363e9a5033ad260
 
-const _ = rt.Protocol20
+const _ = rt.Protocol21

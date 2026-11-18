@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestEnvironmentRollback(t *testing.T) {
@@ -30,12 +31,12 @@ func TestEnvironmentRollback(t *testing.T) {
 func TestBoundStreamMemoryIsBounded(t *testing.T) {
 	prog := mustCompile(t, codegentest.BoundStream)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				p := state.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
 				count := 0
 				var at [2]uint64
-				p.Emit = func(*core.Node) error {
+				p.Emit = func(*value.Node) error {
 					count++
 					if count == 20000 || count == 60000 {
 						// The environment holds one value for each of the three declared

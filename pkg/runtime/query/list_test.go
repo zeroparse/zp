@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/query"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
@@ -62,7 +62,7 @@ rule main = "x" => Holder{Values: [][]Token{[]Token{Token{Text: "one"}}}}`, "x",
 				t.Fatal(err)
 			}
 			for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 						n, err := p.Parse(tc.input, engine.WithBackend(backend), engine.WithUnit(unit))
 						if err != nil {

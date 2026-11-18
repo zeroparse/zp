@@ -28,8 +28,8 @@ v1 module.
 
 ### The Library Protocol
 
-The library of generated Go parsers is the package `zeroparse.dev/zp/codegen/go/lib` in the directory
-`codegen/go/lib/`, released with the module `zeroparse.dev/zp`. Which parsers a library can serve is decided by the
+The library of generated Go parsers is the package `zeroparse.dev/zp/pkg/runtime/golib` in the directory
+`pkg/runtime/golib/`, released with the module `zeroparse.dev/zp`. Which parsers a library can serve is decided by the
 **protocol version**: a number that names one state of the interface between generated code and the library,
 independent of the release version. The interface is the exported declarations of the library package, the exported
 fields and methods of the types they reach, and what they mean, including the encoding of the data generated parsers
@@ -37,7 +37,7 @@ pass to the library.
 
 - The library declares a constant `ProtocolN` for each protocol version N it implements.
 - A parser generated with `-lib import` refers to the constant of the protocol it was generated for, so a parser
-  and a library that do not match fail to build (`undefined: rt.Protocol20`), never at run time.
+  and a library that do not match fail to build (`undefined: rt.Protocol21`), never at run time.
 - The package `zeroparse.dev/zp/core/impl` declares exactly one constant `ProtocolN`, where N is the protocol
   version that introduced the node representation it serves, and the library refers to that constant. A copy of the
   library embedded in a generated parser and a `core` that do not match therefore fail to build

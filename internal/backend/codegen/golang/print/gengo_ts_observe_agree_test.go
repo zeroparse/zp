@@ -9,10 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // The generated TypeScript parsers report the calls of a parse with the events of the engine and the
@@ -126,8 +127,8 @@ func runTSAgreeProbes(t *testing.T, node string, cases []codegentest.Case) []agr
 		write(fmt.Sprintf("g%d.ts", i), codegentest.PatchTSLib(t, code))
 		var in []tsAgreeInput
 		for _, s := range c.Inputs {
-			pos, end, ch := middleChar(s, core.CodePoints)
-			bpos, bend, _ := middleChar(s, core.Bytes)
+			pos, end, ch := middleChar(s, input.CodePoints)
+			bpos, bend, _ := middleChar(s, input.Bytes)
 			in = append(in, tsAgreeInput{Text: []byte(s), CPs: [2]int{pos, end}, Bytes: [2]int{bpos, bend}, Ch: []byte(ch)})
 		}
 		inputs = append(inputs, in)
@@ -170,9 +171,9 @@ func tsAgreementMismatches(t *testing.T, cases []codegentest.Case, examinedOnly 
 			prog = mustCompile(t, c.Src)
 			progs[r.Case] = prog
 		}
-		unit := core.CodePoints
+		unit := input.CodePoints
 		if r.Bytes {
-			unit = core.Bytes
+			unit = input.Bytes
 		}
 		st := stats[r.Entry]
 		if st == nil {
@@ -230,12 +231,12 @@ func tsAgreementMismatches(t *testing.T, cases []codegentest.Case, examinedOnly 
 			st.paired += aside.paired
 			st.unpaired += aside.unpaired
 			for _, e := range aside.a {
-				if e.Kind == core.TraceEnter {
+				if e.Kind == instrument.TraceEnter {
 					st.engineOnly++
 				}
 			}
 			for _, e := range aside.b {
-				if e.Kind == core.TraceEnter {
+				if e.Kind == instrument.TraceEnter {
 					st.generatedOnly++
 				}
 			}

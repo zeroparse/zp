@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
@@ -19,7 +18,9 @@ import (
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/schema"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // UseEngine makes codegentest compile the grammars that tests generate parsers for with the engine,
@@ -127,10 +128,10 @@ func CompileMessage(t testing.TB, src string, opts ...compile.Options) string {
 func Reference(t *testing.T, src string, opts compile.Options) codegentest.ReferenceParse {
 	t.Helper()
 	prog := CompileBare(t, src, opts)
-	return func(input string, bytes, recognize bool) (*core.Node, error) {
-		unit := core.CodePoints
+	return func(input string, bytes, recognize bool) (*value.Node, error) {
+		unit := zpinput.CodePoints
 		if bytes {
-			unit = core.Bytes
+			unit = zpinput.Bytes
 		}
 		return prog.ParseWith("main", input, engine.ParseOptions{Unit: unit, Recognize: recognize, Expectations: true})
 	}

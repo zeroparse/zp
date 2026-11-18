@@ -1,10 +1,10 @@
 package state
 
 import (
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/program"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // OperatorsRule is a compiled Operators Rule expression. Binding levels are numbered from 1 in declaration
@@ -24,7 +24,7 @@ type OperatorsRuleLine struct {
 	Act   Evaluator // action (nil if none)
 	// Value makes the value of an operand line without an action, and single that of an operator
 	// line's operator, from the value of the line's expression.
-	Value  func(p *Parser, v *core.Node, start int) *core.Node
+	Value  func(p *Parser, v *value.Node, start int) *value.Node
 	Single program.SingleMode
 	Shape  program.Shaper
 	Entry  int // start of the bytecode (bytecode backend only)
@@ -44,7 +44,7 @@ type OperatorsRuleOp struct {
 type OperatorsRuleAttempt struct {
 	Op         *OperatorsRuleOp
 	Frame      *Frame
-	V          *core.Node
+	V          *value.Node
 	Start, End int
 	Env        *Env
 	Cut        bool
@@ -80,7 +80,7 @@ type NudState struct {
 // caller sets Min and puts the longest match of each iteration in A; Lhs is the value so far.
 type ExprState struct {
 	Min      int
-	Lhs      *core.Node
+	Lhs      *value.Node
 	LastNone int
 	Bound    int
 	Guard    int
@@ -101,7 +101,7 @@ func (p *Parser) ApplyRecovered(a *OperatorsRuleAttempt) {
 
 // LineResult builds the value of an operand line, and checks it against the rule's declared type
 // if needed.
-func (p *Parser) LineResult(r *Rule, l *OperatorsRuleLine, f *Frame, v *core.Node, start int, locals *Local) *core.Node {
+func (p *Parser) LineResult(r *Rule, l *OperatorsRuleLine, f *Frame, v *value.Node, start int, locals *Local) *value.Node {
 	if r.Novalue {
 		return nil
 	}
@@ -125,7 +125,7 @@ func (p *Parser) LineResult(r *Rule, l *OperatorsRuleLine, f *Frame, v *core.Nod
 
 // convertOperator converts v, the value of an operator of rule r, to the named node type of the
 // rule's operators.
-func (p *Parser) convertOperator(r *Rule, v *core.Node) *core.Node {
+func (p *Parser) convertOperator(r *Rule, v *value.Node) *value.Node {
 	n, ok := r.OpKinds.Convert(nodes.UnboxNode(v))
 	if !ok {
 		p.Fail("cannot convert %s to %s in result of rule %s", TypeName(nodes.UnboxNode(v)), r.OpNodeType, r.WhereName())
@@ -134,7 +134,7 @@ func (p *Parser) convertOperator(r *Rule, v *core.Node) *core.Node {
 }
 
 // OperatorsRuleBuild builds the value of an operator application.
-func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *core.Node) *core.Node {
+func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *value.Node) *value.Node {
 	if r.Novalue {
 		return nil
 	}
@@ -150,7 +150,7 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	// captures.
 	opv, ok := ShapeSingle(p, l.Shape, l.Single, a.V, a.Start)
 	if !ok {
-		opv = p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: int32(a.Start), End: int32(a.End)})
+		opv = p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: int32(a.Start), End: int32(a.End)})
 	}
 	if l.Single == program.SingleTuple && len(l.Scope.Names) > 0 {
 		opv = p.AttachCaptures(opv, l.Scope, a.Frame, a.Start, a.End)
@@ -180,27 +180,27 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	}
 	// Without an action, the application is the node of the tuple (lhs, op, rhs) of the line's
 	// kind, with those captures.
-	var kids []*core.Node
-	var fields coreimpl.Fields
+	var kids []*value.Node
+	var fields valueimpl.Fields
 	switch a.Op.Kind {
 	case program.OpPrefix:
 		kids = p.Nodes(2)
 		kids[0], kids[1] = opv, rhs
-		fields = coreimpl.Fields{{Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
+		fields = valueimpl.Fields{{Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
 	case program.OpPostfix:
 		kids = p.Nodes(2)
 		kids[0], kids[1] = lhs, opv
-		fields = coreimpl.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}}
+		fields = valueimpl.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}}
 	default:
 		kids = p.Nodes(3)
 		kids[0], kids[1], kids[2] = lhs, opv, rhs
-		fields = coreimpl.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
+		fields = valueimpl.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
 	}
-	kind := coreimpl.SeqKind
+	kind := valueimpl.SeqKind
 	if r.OpKinds != nil {
-		kind = r.OpKinds[coreimpl.BaseTuple] // made with the named node type of the operators
+		kind = r.OpKinds[valueimpl.BaseTuple] // made with the named node type of the operators
 	} else if p.Prog.RecordsSourceInfo {
-		kind = r.Kinds.Named(coreimpl.SeqKind, r.Name)
+		kind = r.Kinds.Named(valueimpl.SeqKind, r.Name)
 	}
 	n := p.NewNode(nodes.Data{Kind: kind, Start: int32(start), End: int32(end), Children: kids, Fields: fields, Labeled: p.Prog.RecordsSourceInfo})
 	return n

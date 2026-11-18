@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // nestedTextGrammar takes the text of every level of a nesting: the texts sum to the square of
@@ -26,7 +27,7 @@ func leastParseBudget(t *testing.T, parseFn func(budget uint64) error) uint64 {
 	t.Helper()
 	finishes := func(budget uint64) bool {
 		err := parseFn(budget)
-		if errors.Is(err, core.ErrLimit) {
+		if errors.Is(err, runtime.ErrLimit) {
 			return false
 		}
 		if err != nil {
@@ -69,12 +70,12 @@ func TestTextCostIsConstantInWholeInputs(t *testing.T) {
 	prog := mustCompile(t, nestedTextGrammar)
 	inputs := []struct {
 		name   string
-		unit   core.PositionUnit
+		unit   input.PositionUnit
 		center string
 	}{
-		{"bytes", core.Bytes, "x"},
-		{"code points", core.CodePoints, "é"},
-		{"invalid UTF-8", core.CodePoints, "\xff"},
+		{"bytes", input.Bytes, "x"},
+		{"code points", input.CodePoints, "é"},
+		{"invalid UTF-8", input.CodePoints, "\xff"},
 	}
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, in := range inputs {
@@ -85,7 +86,7 @@ func TestTextCostIsConstantInWholeInputs(t *testing.T) {
 					t.Fatalf("value %v, %v; want %q", n, err, want)
 				}
 				assertLinearText(t, []int{1024, 2048, 4096}, func(depth int, budget uint64) error {
-					_, err := prog.ParseWith("main", nestedTextInput(depth, in.center), ParseOptions{Backend: b, Unit: in.unit, Limits: core.Limits{Compute: budget}})
+					_, err := prog.ParseWith("main", nestedTextInput(depth, in.center), ParseOptions{Backend: b, Unit: in.unit, Limits: runtime.Limits{Compute: budget}})
 					return err
 				})
 			})
@@ -97,12 +98,12 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	t.Parallel()
 	source := strings.Repeat("é\xff", 1000)
 	want := strings.ToValidUTF8(source, "�")
-	c := state.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
-	in := state.NewControlledTextInput(source, core.CodePoints, false, nil, c)
+	c := state.NewBudgetControl(nil, runtime.Limits{Compute: 1 << 30})
+	in := state.NewControlledTextInput(source, input.CodePoints, false, nil, c)
 
 	// The decoding is interruptible and leaves nothing behind.
 	c.Limits.Compute = c.Used + 100
-	if err := catchFatal(t, func() { _ = in.Text(0, 2000) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { _ = in.Text(0, 2000) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("decoding interruption: %v", err)
 	}
 	c.Limits.Compute = 1 << 30
@@ -118,7 +119,7 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	}
 
 	// An edit of a flat Document decodes its source again.
-	doc := state.NewTextInput("a\xffb", core.CodePoints, false)
+	doc := state.NewTextInput("a\xffb", input.CodePoints, false)
 	if got := doc.Text(0, 3); got != "a�b" {
 		t.Fatalf("text %q", got)
 	}
@@ -133,19 +134,19 @@ func TestDocumentPieceTextFlattensOnce(t *testing.T) {
 	if !state.DocumentPieceInput {
 		t.Skip("piece input is disabled")
 	}
-	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+	for _, unit := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 		pieces := state.NewDocumentPieces(strings.Repeat("é", 8192), unit)
 		pieces.Replace(10, 11, "x\xff")
-		c := state.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
+		c := state.NewBudgetControl(nil, runtime.Limits{Compute: 1 << 30})
 		in := state.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: pieces, Control: c}
 		flat := strings.Repeat("é", 8192)
-		if unit == core.Bytes {
+		if unit == input.Bytes {
 			flat = flat[:10] + "x\xff" + flat[11:]
 		} else {
 			flat = string([]rune(flat)[:10]) + "x�" + string([]rune(flat)[11:])
 		}
 		at := func(i int) int { // the byte offset of position i of flat
-			if unit == core.Bytes {
+			if unit == input.Bytes {
 				return i
 			}
 			return len(string([]rune(flat)[:i]))

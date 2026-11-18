@@ -8,36 +8,38 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/schema"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
-func missingNodes(t *testing.T, root *core.Node) []*core.Node {
+func missingNodes(t *testing.T, root *value.Node) []*value.Node {
 	t.Helper()
-	var found []*core.Node
-	seen := make(map[*core.Node]bool)
-	if err := core.Walk(root, func(v core.WalkVisit) (core.WalkAction, error) {
-		if v.Node != nil && v.Node.Type() == coreimpl.TypeMissing && !seen[v.Node] {
+	var found []*value.Node
+	seen := make(map[*value.Node]bool)
+	if err := value.Walk(root, func(v value.WalkVisit) (value.WalkAction, error) {
+		if v.Node != nil && v.Node.Type() == valueimpl.TypeMissing && !seen[v.Node] {
 			seen[v.Node] = true
 			found = append(found, v.Node)
 		}
-		return core.WalkContinue, nil
+		return value.WalkContinue, nil
 	}); err != nil {
 		t.Fatal(err)
 	}
 	return found
 }
 
-func requireInsertions(t *testing.T, prog *Program, input string, o ParseOptions, count int) (*core.Node, core.SyntaxErrors) {
+func requireInsertions(t *testing.T, prog *Program, input string, o ParseOptions, count int) (*value.Node, value.SyntaxErrors) {
 	t.Helper()
 	n, err := prog.ParseWith("main", input, o)
-	var recovered core.SyntaxErrors
+	var recovered value.SyntaxErrors
 	if !errors.As(err, &recovered) || len(recovered) != count {
 		t.Fatalf("input %q: node=%v, recoveries=%#v, error=%v; want %d insertions", input, n, recovered, err, count)
 	}
@@ -53,7 +55,7 @@ func requireInsertions(t *testing.T, prog *Program, input string, o ParseOptions
 
 func TestMissingTokensLiteralAndUnits(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 		for _, controlled := range []bool{false, true} {
 			if controlled && !state.BudgetControlsEnabled {
 				continue
@@ -67,7 +69,7 @@ func TestMissingTokensLiteralAndUnits(t *testing.T) {
 			n, errs := requireInsertions(t, prog, "é", o, 1)
 			insertions := missingNodes(t, n)
 			pos := int32(1)
-			if unit == core.Bytes {
+			if unit == zpinput.Bytes {
 				pos = 2
 			}
 			if len(insertions) != 1 {
@@ -104,7 +106,7 @@ func TestMissingTokensLiteralAndUnits(t *testing.T) {
 		t.Fatal("partial prefix was consumed", m)
 	}
 	invalid := mustCompile(t, `rule main = . ";" #missing $$`)
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 		n, errs := requireInsertions(t, invalid, "\xff", ParseOptions{Expectations: true, Unit: unit, MissingTokens: 2}, 1)
 		if nodes.D(missingNodes(t, n)[0]).Start != 1 || errs[0].Pos != 1 {
 			t.Fatal("invalid UTF-8 position")
@@ -130,7 +132,7 @@ rule token = ";" #missing`)
 		}
 		o.MissingTokens = 1
 		n, err := prog.ParseWith("main", "y", o)
-		var limit *core.MissingTokenLimitError
+		var limit *runtime.MissingTokenLimitError
 		if n != nil || !errors.As(err, &limit) || limit.Limit != 1 || limit.Position != 0 {
 			t.Fatal("rollback refunded budget or reused a completed insertion", n, err)
 		}
@@ -156,7 +158,7 @@ rule token = ";" #missing`)
 	if n, err := chain.ParseWith("main", "x", ParseOptions{Expectations: true, MissingTokens: 2}); n != nil {
 		t.Fatal(n, err)
 	} else {
-		var ordinary *core.SyntaxError
+		var ordinary *value.SyntaxError
 		if !errors.As(err, &ordinary) {
 			t.Fatal("recovery batch escaped a failed parse", err)
 		}
@@ -281,7 +283,7 @@ func TestMissingTokensLabelsAndConsumingRecovery(t *testing.T) {
 	}
 	ordinary := mustCompile(t, `rule main = (";" #recover(skip="!")) @error("outer") $$`)
 	_, err := ordinary.ParseWith("main", "!", ParseOptions{Expectations: true, MissingTokens: 4})
-	var errs core.SyntaxErrors
+	var errs value.SyntaxErrors
 	if !errors.As(err, &errs) || errs[0].Message() == "outer" {
 		t.Fatal("ordinary consuming recovery label changed", err)
 	}
@@ -344,7 +346,7 @@ rule main Root = x:(";" #missing) => Root{Token: $x}`
 func TestMissingTokensLedgerSeedBudget(t *testing.T) {
 	t.Parallel()
 	p := &state.Parser{Missing: &state.MissingTokenState{Limit: 2}}
-	event := state.MissingTokenEvent{Site: state.MissingTokenSite{ID: 1, Pos: 3}, Err: &core.SyntaxError{Pos: 3}}
+	event := state.MissingTokenEvent{Site: state.MissingTokenSite{ID: 1, Pos: 3}, Err: &value.SyntaxError{Pos: 3}}
 	if !p.InsertMissing(event) || p.InsertMissing(event) {
 		t.Fatal("site guard")
 	}
@@ -361,7 +363,7 @@ func TestMissingTokensLedgerSeedBudget(t *testing.T) {
 	p.ResetMissing(0)
 	defer func() {
 		f, ok := recover().(state.Fatal)
-		var limit *core.MissingTokenLimitError
+		var limit *runtime.MissingTokenLimitError
 		if !ok || !errors.As(f.Err, &limit) || limit.Position != 3 {
 			t.Fatal("seed replay did not exhaust budget")
 		}
@@ -389,7 +391,7 @@ rule inner = ";" #missing`)
 	if n, err := dependent.ParseWith("main", "y", ParseOptions{Expectations: true, MissingTokens: 1}); n != nil {
 		t.Fatal(n, err)
 	} else {
-		var limit *core.MissingTokenLimitError
+		var limit *runtime.MissingTokenLimitError
 		if !errors.As(err, &limit) {
 			t.Fatal(err)
 		}
@@ -440,7 +442,7 @@ rule e = ";" #missing e / "x" ";" #missing`)
 func TestMissingTokensMemoSeedContextAndRecycledPointers(t *testing.T) {
 	t.Parallel()
 	p := &state.Parser{Missing: &state.MissingTokenState{Limit: 8}, Memo: state.NewMemoTable()}
-	err := &core.SyntaxError{Pos: 0}
+	err := &value.SyntaxError{Pos: 0}
 	p.InsertMissing(state.MissingTokenEvent{Site: state.MissingTokenSite{ID: 1, Pos: 0}, Err: err})
 	e := &state.MemoEntry{}
 	p.RecordMissingSeed(e, 0)
@@ -456,7 +458,7 @@ func TestMissingTokensMemoSeedContextAndRecycledPointers(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		p := &state.Parser{Memo: state.NewMemoTable()}
 		if controlled && state.BudgetControlsEnabled {
-			p.Control = state.NewBudgetControl(context.Background(), core.Limits{})
+			p.Control = state.NewBudgetControl(context.Background(), runtime.Limits{})
 		}
 		ordinary := state.MemoKey{Rule: 1}
 		lookahead := state.MemoKey{Rule: 1, MissingSilent: true}

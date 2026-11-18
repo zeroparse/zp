@@ -59,7 +59,7 @@ rule predicate Word = t:(!("a"* "é") "a"* "b") #atomic => Word{Text: text($t)}`
 
 const generatedGoBudgetConsumer = `package PACKAGE
 
-import zprt "zeroparse.dev/zp/codegen/go/lib"
+import zprt "zeroparse.dev/zp/pkg/runtime/golib"
 import("context";"errors";"fmt";"reflect";"strings";"sync";"testing";"time")
 
 type invocation struct{name string; call func(string,...ParseOption)(any,error)}
@@ -256,7 +256,7 @@ rule leaf Leaf = t:("é") #atomic => Leaf{Text: text($t)}`)
 
 const generatedGoConversionConsumer = `package PACKAGE
 
-import zprt "zeroparse.dev/zp/codegen/go/lib"
+import zprt "zeroparse.dev/zp/pkg/runtime/golib"
 import("context";"errors";"reflect";"strings";"testing";"codegentest/PACKAGE/types")
 func TestConversionVisits(t *testing.T){
  n,err:=Parse(strings.Repeat("é",100));if err!=nil{t.Fatal(err)}
@@ -419,7 +419,7 @@ rule letter Word = t:("é") #atomic => Word{Text: text($t)}`)
 
 const generatedGoNilPublicationConsumer = `package nilpublication
 
-import zprt "zeroparse.dev/zp/codegen/go/lib"
+import zprt "zeroparse.dev/zp/pkg/runtime/golib"
 import("context";"errors";"reflect";"testing")
 func TestNilPublication(t *testing.T){
  original:=trules[0].Entry;defer func(){trules[0].Entry=original}()

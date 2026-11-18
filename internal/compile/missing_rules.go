@@ -1,9 +1,9 @@
 package compile
 
 import (
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/runtime/program"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -17,7 +17,7 @@ func (prog *Program) markMissingRules(control *cancel.Control) {
 		control.Poll()
 		switch t := t.(type) {
 		case *ast.TypeRef:
-			return t.Name == coreimpl.TypeMissing
+			return t.Name == valueimpl.TypeMissing
 		case *ast.ListType:
 			return usesMissingType(t.Elem)
 		case *ast.OptionalType:

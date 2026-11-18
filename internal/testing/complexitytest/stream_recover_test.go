@@ -5,8 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // streamSteps returns the smallest budget with which a stream parse of input finishes, found by
@@ -14,14 +15,14 @@ import (
 func streamSteps(t *testing.T, p *engine.Parser, input string, b engine.Backend) uint64 {
 	t.Helper()
 	finishes := func(budget uint64) bool {
-		err := p.ParseStream(strings.NewReader(input), func(*core.Node) error { return nil },
-			engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: budget}))
-		var le *core.LimitError
-		if errors.As(err, &le) && le.Kind == core.LimitCompute {
+		err := p.ParseStream(strings.NewReader(input), func(*value.Node) error { return nil },
+			engine.WithBackend(b), engine.WithLimits(runtime.Limits{Compute: budget}))
+		var le *runtime.LimitError
+		if errors.As(err, &le) && le.Kind == runtime.LimitCompute {
 			return false
 		}
-		var one *core.SyntaxError
-		var many core.SyntaxErrors
+		var one *value.SyntaxError
+		var many value.SyntaxErrors
 		if err != nil && !errors.As(err, &one) && !errors.As(err, &many) {
 			t.Fatalf("%s: %v", BackendName(b), err)
 		}

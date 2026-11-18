@@ -7,11 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 const frameScratchGrammar = `rule main = h:"#head\n" #atomic items:record* #stream $$ {text($h) == "#head\n"}
@@ -35,13 +36,13 @@ func BenchmarkStreamFrameScratch(b *testing.B) {
 			if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				b.Run(fmt.Sprintf("%d/%s/%s", size, backend, unit), func(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
 					for b.Loop() {
 						count := 0
-						err := prog.ParseStreamWith("main", strings.NewReader(input), func(*core.Node) error {
+						err := prog.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error {
 							count++
 							return nil
 						}, ParseOptions{Backend: backend, Unit: unit})
@@ -72,11 +73,11 @@ rule item = x:"x" #atomic / e:"" #atomic`, strings.Repeat("x", 300), 301, false,
 	} {
 		prog := mustCompile(t, tc.src)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				t.Run(fmt.Sprintf("%s/%s/%s", tc.name, backend, unit), func(t *testing.T) {
-					var retained []*core.Node
+					var retained []*value.Node
 					var snapshots [][]byte
-					err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *core.Node) error {
+					err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *value.Node) error {
 						snapshot, err := n.MarshalJSON()
 						if err != nil {
 							return err
@@ -137,17 +138,17 @@ func checkStreamFrameScratchRetainedResults(t *testing.T, src string) {
 		input.WriteByte('\n')
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				whole, err := prog.ParseWith("main", input.String(), opts)
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := nodes.D(whole.Field("items").(*core.Node)).Children
-				var retained []*core.Node
+				want := nodes.D(whole.Field("items").(*value.Node)).Children
+				var retained []*value.Node
 				var snapshots [][]byte
-				err = prog.ParseStreamWith("main", strings.NewReader(input.String()), func(n *core.Node) error {
+				err = prog.ParseStreamWith("main", strings.NewReader(input.String()), func(n *value.Node) error {
 					snapshot, err := n.MarshalJSON()
 					if err != nil {
 						return err
@@ -182,7 +183,7 @@ func TestStreamFrameScratchClearsDeadFrames(t *testing.T) {
 	if !state.StreamFrameScratch {
 		t.Skip("reference build does not reuse capture frames")
 	}
-	p := state.NewParser(&mustCompile(t, `rule main = "a"`).sharedProgram, "a", core.CodePoints, false)
+	p := state.NewParser(&mustCompile(t, `rule main = "a"`).sharedProgram, "a", zpinput.CodePoints, false)
 	root := p.NewFrame(1)
 	root.Vals[0] = nodes.Ptr(nodes.Data{Text: "live root"})
 	p.Frame = root

@@ -9,21 +9,22 @@ import (
 	"sync"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/runtime/vm"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Parse parses the whole input with the rule start.
 // It also returns a *SyntaxError if only part of the input matched.
 // If errors were recovered with #recover, it returns SyntaxErrors along with the resulting node.
 // If the whole input still did not match after recovery, it returns only the last error.
-func (prog *Program) Parse(start, input string) (*core.Node, error) {
+func (prog *Program) Parse(start, input string) (*value.Node, error) {
 	return prog.ParseWith(start, input, ParseOptions{})
 }
 
 // ParseWith parses with options such as the position unit.
-func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *core.Node, err error) {
+func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *value.Node, err error) {
 	if err := state.ValidateStreamDiagnostics(o, false); err != nil {
 		return nil, err
 	}
@@ -342,7 +343,7 @@ func recoverParse(x any, b Backend, err *error) {
 }
 
 // Run parses the whole input of p with the start rule start.
-func (prog *Program) Run(p *state.Parser, b Backend, start string) (n *core.Node, err error) {
+func (prog *Program) Run(p *state.Parser, b Backend, start string) (n *value.Node, err error) {
 	p.Aborted = false
 	r, err := prog.rule(b, start, state.FamilyOf(p), p.Control)
 	if err != nil {
@@ -365,7 +366,7 @@ func (prog *Program) Run(p *state.Parser, b Backend, start string) (n *core.Node
 	v, ok := p.Call(r, 0)
 	if ok && p.AtEOF() {
 		if len(p.Recovered) > 0 {
-			return v, core.SyntaxErrors(p.RecoveredErrors())
+			return v, value.SyntaxErrors(p.RecoveredErrors())
 		}
 		return v, nil
 	}
@@ -404,12 +405,12 @@ func (prog *Program) Rules() []string {
 // soon as it matches. Passed elements are not retained and the input before them is discarded,
 // so the whole input never has to be held in memory.
 // If emit returns an error, the parse is aborted and that error is returned.
-func (prog *Program) ParseStream(start string, r io.Reader, emit func(*core.Node) error) error {
+func (prog *Program) ParseStream(start string, r io.Reader, emit func(*value.Node) error) error {
 	return prog.ParseStreamWith(start, r, emit, ParseOptions{})
 }
 
 // ParseStreamWith parses a stream with options such as the position unit.
-func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.Node) error, o ParseOptions) (err error) {
+func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*value.Node) error, o ParseOptions) (err error) {
 	// Admission invokes caller-owned Context methods before execution recovery.
 	// Preserve their panic values rather than classifying them as VM faults.
 	defer func() {
@@ -441,7 +442,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 	p := state.NewControlledStreamParser(&prog.sharedProgram, r, o.Unit, control)
 	control.AttachMemory(p)
 	// A limit beyond math.MaxInt bounds no stream.
-	if lim := o.Limits.Input; lim != 0 && lim != core.Unlimited && lim <= math.MaxInt {
+	if lim := o.Limits.Input; lim != 0 && lim != zpruntime.Unlimited && lim <= math.MaxInt {
 		p.Input.MaxInput = int(lim)
 	}
 	defer p.ReleaseTraceReferences() // after error recovery, including rethrown panics
@@ -453,7 +454,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 	p.DiagnosticTail.Limit = o.DiagnosticLimit
 	if (p.Diagnostic != nil || o.DiagnosticLimit > 0) && p.Emit == nil {
 		// A diagnostic-only stream still needs element commit boundaries.
-		p.Emit = func(*core.Node) error { return nil }
+		p.Emit = func(*value.Node) error { return nil }
 	}
 	if state.StreamPrefixIsolation && p.Emit == nil {
 		p.NodeChunks = 0 // No callback: collect the ordinary repetition instead.
@@ -490,7 +491,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 			return p.DiagnosticTail.Result(p)
 		}
 		if len(p.Recovered) > 0 {
-			return core.SyntaxErrors(p.RecoveredErrors())
+			return value.SyntaxErrors(p.RecoveredErrors())
 		}
 		return nil
 	}

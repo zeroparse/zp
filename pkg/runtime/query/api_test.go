@@ -9,11 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/query"
 	"zeroparse.dev/zp/pkg/runtime/schema"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestPublicOutputSchema(t *testing.T) {
@@ -136,10 +137,10 @@ func TestPublicStructuralQuerySharedEdgesAndLimits(t *testing.T) {
 	if partial, err := q.Matches(root, query.WithContext(ctx)); partial != nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled query: %+v, %v", partial, err)
 	}
-	if partial, err := q.Matches(root, query.WithLimits(core.Limits{Compute: 1})); partial != nil || !errors.Is(err, core.ErrLimit) {
+	if partial, err := q.Matches(root, query.WithLimits(runtime.Limits{Compute: 1})); partial != nil || !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("limited query: %+v, %v", partial, err)
 	}
-	var kids []*core.Node
+	var kids []*value.Node
 	for _, c := range root.Elems() {
 		kids = append(kids, c)
 	}

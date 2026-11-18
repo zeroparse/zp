@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 
 	"zeroparse.dev/zp/engine"
 )
@@ -27,7 +27,7 @@ rule line = [a-z]+ #atomic "\n"`, "main")
 			printer := tracePrinter{w: bufio.NewWriter(&out), json: format == "json", rules: []string{"main"}, showDepth: 1}
 			// The profile records the parses after the edit only, from the trace.
 			var profile engine.Profile
-			var rec *core.ProfileRecorder
+			var rec *instrument.ProfileRecorder
 			doc, err := p.NewDocument(strings.Repeat("ab\n", 32), engine.WithTrace(func(e engine.TraceEvent) {
 				if rec != nil {
 					printer.event(e)

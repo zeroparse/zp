@@ -4,12 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Completed calls can leave references beyond slice length. Stream commits
@@ -17,7 +18,7 @@ import (
 func TestStreamStorageCommitReferences(t *testing.T) {
 	prog := &state.SharedProgram{}
 	state.InitSharedProgram(prog, compiletest.Program(t, `rule main = "a"`, compile.Options{SourceInfo: true}).Runtime())
-	p := state.NewParser(prog, strings.Repeat("a", 4096), core.CodePoints, false)
+	p := state.NewParser(prog, strings.Repeat("a", 4096), input.CodePoints, false)
 	live := nodes.Ptr(nodes.Data{Text: "live"})
 	dead := nodes.Ptr(nodes.Data{Text: "dead"})
 	root := p.NewFrame(1)
@@ -25,7 +26,7 @@ func TestStreamStorageCommitReferences(t *testing.T) {
 	p.Frame = root
 	p.Trail = make([]state.Undo, 3)
 	p.Trail[0] = state.Undo{F: root, Old: live}
-	p.Trail[2] = state.Undo{F: &state.Frame{Vals: []*core.Node{dead}}, Old: dead}
+	p.Trail[2] = state.Undo{F: &state.Frame{Vals: []*value.Node{dead}}, Old: dead}
 	p.Trail = p.Trail[:1]
 	machineOf(p).vals = []any{live, dead, dead}
 	machineOf(p).vals = machineOf(p).vals[:1]

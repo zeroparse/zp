@@ -7,8 +7,8 @@ import (
 	"unsafe"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Value spend is charged like any other spend, though strings and collections can
@@ -179,7 +179,7 @@ func (p *Parser) ValueLogic(op string, x any) (bool, error) {
 }
 
 func (p *Parser) ValueTextLen(s string) int {
-	if !BudgetControlsEnabled || p.Control == nil || p.Unit == core.Bytes {
+	if !BudgetControlsEnabled || p.Control == nil || p.Unit == input.Bytes {
 		return TextLen(p.Unit, s)
 	}
 	n := 0
@@ -192,7 +192,7 @@ func (p *Parser) ValueTextLen(s string) int {
 	return n
 }
 
-func (p *Parser) ValueField(fs coreimpl.Fields, name string) (any, bool) {
+func (p *Parser) ValueField(fs valueimpl.Fields, name string) (any, bool) {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return fs.Get(name)
 	}
@@ -205,9 +205,9 @@ func (p *Parser) ValueField(fs coreimpl.Fields, name string) (any, bool) {
 	return nil, false
 }
 
-func (p *Parser) SetValueField(fs *coreimpl.Fields, name string, v any) {
+func (p *Parser) SetValueField(fs *valueimpl.Fields, name string, v any) {
 	if !BudgetControlsEnabled || p.Control == nil {
-		coreimpl.SetField(fs, name, v)
+		valueimpl.SetField(fs, name, v)
 		return
 	}
 	for i := range *fs {
@@ -217,7 +217,7 @@ func (p *Parser) SetValueField(fs *coreimpl.Fields, name string, v any) {
 			return
 		}
 	}
-	*fs = append(*fs, coreimpl.NodeField{Name: name, Value: v})
+	*fs = append(*fs, valueimpl.NodeField{Name: name, Value: v})
 }
 
 // HasValueField reports whether the declared type t has the field name. Under budget controls it

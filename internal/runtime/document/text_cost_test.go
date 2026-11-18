@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // The grammar takes the text of every level of a nesting. An edit of the center splits the
@@ -24,7 +25,7 @@ func TestTextCostIsConstantInDocumentPieces(t *testing.T) {
 	prog := mustCompile(t, `rule main = v:a $$ => $v
 rule a = s:("(" a ")" / [^()]) => text($s)`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, u := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 			t.Run(fmt.Sprintf("%v/%v", b, u), func(t *testing.T) {
 				t.Parallel()
 				parseFn := func(depth int, budget uint64) error {
@@ -69,7 +70,7 @@ func leastDocumentBudget(t *testing.T, parseFn func(budget uint64) error) uint64
 	t.Helper()
 	finishes := func(budget uint64) bool {
 		err := parseFn(budget)
-		if errors.Is(err, core.ErrLimit) {
+		if errors.Is(err, runtime.ErrLimit) {
 			return false
 		}
 		if err != nil {

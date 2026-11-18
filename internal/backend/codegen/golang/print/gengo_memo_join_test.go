@@ -63,7 +63,7 @@ import (
 	"fmt"
 
 	zprt "zeroparse.dev/zp/codegen/go/lib"
-	zpcore "zeroparse.dev/zp/core"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 ` + imports.String() + `)
 
 func evals(p zpcore.Profile) int {

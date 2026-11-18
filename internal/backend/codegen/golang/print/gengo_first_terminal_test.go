@@ -40,7 +40,7 @@ func testGeneratedLookaheadHasNoFirstTerminal(t *testing.T) {
 		codegentest.GeneratePackage(t, dir, pkg, mustParse(codegentest.LookaheadFirstSrc), common.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg == "l"})
 		imports.WriteString("\t\"codegentest/" + pkg + "\"\n")
 		for _, op := range []string{"_, err := %s.Parse(\"bc\", zprt.WithProfile(&p))", "_, err := %s.ParseValue(\"bc\", zprt.WithProfile(&p))", "err := %s.Recognize(\"bc\", zprt.WithProfile(&p))"} {
-			calls.WriteString("\t{ var p zpcore.Profile; " + strings.ReplaceAll(op, "%s", pkg) + "; fmt.Print(evals(p, err), \" \") }\n")
+			calls.WriteString("\t{ var p zpinstrument.Profile; " + strings.ReplaceAll(op, "%s", pkg) + "; fmt.Print(evals(p, err), \" \") }\n")
 		}
 	}
 	main := `package main
@@ -48,12 +48,12 @@ func testGeneratedLookaheadHasNoFirstTerminal(t *testing.T) {
 import (
 	"fmt"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 ` + imports.String() + `)
 
 // evals returns the body evaluations of x, or the error of the parse.
-func evals(p zpcore.Profile, err error) string {
+func evals(p zpinstrument.Profile, err error) string {
 	if err != nil {
 		return err.Error()
 	}

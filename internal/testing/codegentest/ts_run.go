@@ -17,12 +17,12 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/typescript/print"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // NodeTSArgs are the arguments that run a .ts script of a directory written by writeTSFiles.
@@ -156,7 +156,7 @@ if (isMainThread) {
 // (which fails beyond 10,000 levels, and then resultJSON returns ""): it writes the node with
 // WriteJSON, which keeps its own stack, and checks that it agrees with resultJSON where that
 // succeeds.
-func DeepResultJSON(t *testing.T, n *core.Node, err error) string {
+func DeepResultJSON(t *testing.T, n *value.Node, err error) string {
 	var b strings.Builder
 	if err != nil {
 		e, _ := json.Marshal(err.Error())

@@ -14,10 +14,11 @@ import (
 	"math"
 	"strings"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Backends are the backends whose cost is measured.
@@ -60,9 +61,9 @@ type Cost struct {
 // parses reports whether the parse of input finishes within budget, with or without a syntax
 // error. It returns the error of a parse that finished; an exhausted budget is not one.
 func parses(p *engine.Parser, input string, b engine.Backend, budget uint64) (bool, error) {
-	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: budget}))
-	var le *core.LimitError
-	if errors.As(err, &le) && le.Kind == core.LimitCompute {
+	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(runtime.Limits{Compute: budget}))
+	var le *runtime.LimitError
+	if errors.As(err, &le) && le.Kind == runtime.LimitCompute {
 		return false, nil
 	}
 	return true, err
@@ -94,8 +95,8 @@ func StepsLenient(p *engine.Parser, input string, b engine.Backend, cap uint64) 
 // isSyntaxError reports whether err is a syntax error of the input or the list of errors that a
 // parse recovered from. Any other error is a failure of the measurement.
 func isSyntaxError(err error) bool {
-	var one *core.SyntaxError
-	var many core.SyntaxErrors
+	var one *value.SyntaxError
+	var many value.SyntaxErrors
 	return errors.As(err, &one) || errors.As(err, &many)
 }
 
@@ -138,14 +139,14 @@ func steps(p *engine.Parser, input string, b engine.Backend, cap, tolDiv uint64)
 func StepsTraced(p *engine.Parser, input string, b engine.Backend, cap uint64) (Cost, error) {
 	var used uint64
 	seen := false
-	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: cap}),
+	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(runtime.Limits{Compute: cap}),
 		engine.WithTrace(func(e engine.TraceEvent) {
 			if c := state.TraceParser(e).Control; c != nil {
 				used, seen = c.Used, true
 			}
 		}))
-	var le *core.LimitError
-	if errors.As(err, &le) && le.Kind == core.LimitCompute {
+	var le *runtime.LimitError
+	if errors.As(err, &le) && le.Kind == runtime.LimitCompute {
 		return Cost{Steps: cap, Capped: true}, nil
 	}
 	if err != nil {

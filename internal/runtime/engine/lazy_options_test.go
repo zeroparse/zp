@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // lazyOverride gives, for an option the build sets itself, the value of the lazily built program:
@@ -58,7 +58,7 @@ func TestLazyProgramsCarryEveryOption(t *testing.T) {
 			turnOn(t, &o, name)
 			o.LeftRecursionBindings = true // the grammar below needs it
 			prog := mustCompile(t, codegentest.LRBindingSource, o)
-			if _, err := prog.ParseWith("main", "x", ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 1 << 30}}); err != nil {
+			if _, err := prog.ParseWith("main", "x", ParseOptions{Backend: Closure, Limits: runtime.Limits{Compute: 1 << 30}}); err != nil {
 				t.Fatal(err)
 			}
 			rec, err := prog.Recognizer()

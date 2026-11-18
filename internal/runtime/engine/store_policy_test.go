@@ -4,12 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // profileEvals returns the body evaluations of the rule that a profile counted, or -1.
-func profileEvals(pr *core.Profile, rule string) int {
+func profileEvals(pr *instrument.Profile, rule string) int {
 	for _, r := range pr.Snapshot().Rules {
 		if r.Rule == rule {
 			return r.Evals
@@ -22,11 +23,11 @@ func profileEvals(pr *core.Profile, rule string) int {
 // on backend b, and returns the body evaluations of the case's rule.
 func storePolicyRun(t *testing.T, prog *Program, c codegentest.StorePolicyCase, b Backend, recognize bool) int {
 	t.Helper()
-	var pr core.Profile
-	o := ParseOptions{Backend: b, Recognize: recognize, Profiles: []*core.Profile{&pr}}
+	var pr instrument.Profile
+	o := ParseOptions{Backend: b, Recognize: recognize, Profiles: []*instrument.Profile{&pr}}
 	var err error
 	if c.Stream {
-		err = prog.ParseStreamWith(c.Start, strings.NewReader(c.Input), func(*core.Node) error { return nil }, o)
+		err = prog.ParseStreamWith(c.Start, strings.NewReader(c.Input), func(*value.Node) error { return nil }, o)
 	} else {
 		_, err = prog.ParseWith(c.Start, c.Input, o)
 	}
@@ -106,8 +107,8 @@ func TestMemoStorePolicyDocument(t *testing.T) {
 		prog := mustCompile(t, c.Src)
 		deferred, stored := c.StorePolicyEvals(true)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			var pr core.Profile
-			o := ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}}
+			var pr instrument.Profile
+			o := ParseOptions{Backend: b, Profiles: []*instrument.Profile{&pr}}
 			d, err := prog.NewDocumentWith(c.Start, c.Input, o)
 			if err != nil {
 				t.Errorf("%s %v: %v", c.Name, b, err)
@@ -122,8 +123,8 @@ func TestMemoStorePolicyDocument(t *testing.T) {
 				t.Errorf("%s %v: Document evaluated %s %d times, want %d to %d", c.Name, b, c.Rule, first, stored, deferred)
 			}
 			// Replace the last unit of the input by itself and parse again.
-			var pr2 core.Profile
-			o.Profiles = []*core.Profile{&pr2}
+			var pr2 instrument.Profile
+			o.Profiles = []*instrument.Profile{&pr2}
 			end := len([]rune(c.Input))
 			if err := d.Edit(end-1, end, string([]rune(c.Input)[end-1:])); err != nil {
 				t.Errorf("%s %v: %v", c.Name, b, err)
@@ -152,8 +153,8 @@ func TestMemoStorePolicyDocumentReferenceCounts(t *testing.T) {
 		prog := mustCompile(t, c.Src)
 		_, stored := c.StorePolicyEvals(true)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			var pr core.Profile
-			o := ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}}
+			var pr instrument.Profile
+			o := ParseOptions{Backend: b, Profiles: []*instrument.Profile{&pr}}
 			d, err := prog.NewDocumentWith(c.Start, c.Input, o)
 			if err == nil {
 				_, err = d.ParseWith(o)

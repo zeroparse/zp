@@ -13,12 +13,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // errorMessageCases are grammars whose parses of some inputs recover from syntax errors. Typed
@@ -67,11 +67,11 @@ func valueMessages(t *testing.T, re *regexp.Regexp, text string) []string {
 	return out
 }
 
-func engineMessages(t *testing.T, n *core.Node, err error) errorMessages {
+func engineMessages(t *testing.T, n *value.Node, err error) errorMessages {
 	t.Helper()
 	m := errorMessages{Errs: []string{}, Vals: []string{}}
-	var list core.SyntaxErrors
-	var one *core.SyntaxError
+	var list value.SyntaxErrors
+	var one *value.SyntaxError
 	switch {
 	case errors.As(err, &list):
 		for _, e := range list {

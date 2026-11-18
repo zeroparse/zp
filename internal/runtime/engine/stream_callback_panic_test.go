@@ -8,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	value "zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 type streamRuntimePanicToken struct{ phase string }
@@ -55,7 +56,7 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, traced := range []bool{false, true} {
 				for _, buffered := range []bool{false, true} {
 					for _, phase := range []string{"reader", "emit"} {
@@ -86,10 +87,10 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 									}
 								}
 								var err error
-								var nodes []*core.Node
+								var nodes []*zpvalue.Node
 								var before []string
 								got := catchStreamPanic(func() {
-									err = prog.ParseStreamWith("main", reader, func(n *core.Node) error {
+									err = prog.ParseStreamWith("main", reader, func(n *zpvalue.Node) error {
 										nodes = append(nodes, n)
 										before = append(before, codegentest.ResultJSON(n, nil))
 										if phase == "emit" && len(nodes) == 2 {
@@ -107,11 +108,11 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 								if traced && (event.Rule != "main" || event.Depth != 1 || event.Pos != 0) {
 									t.Fatal("saved event metadata changed")
 								}
-								if value.D(nodes[0].Field("k").(*core.Node)).Text != "a" || value.D(nodes[1].Field("v").(*core.Node)).Text != "22" {
+								if value.D(nodes[0].Field("k").(*zpvalue.Node)).Text != "a" || value.D(nodes[1].Field("v").(*zpvalue.Node)).Text != "22" {
 									t.Fatal("delivered fields changed")
 								}
 								retryCount := 0
-								if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*core.Node) error { retryCount++; return nil }, ParseOptions{Backend: b, Unit: u}); err != nil || retryCount != 1 {
+								if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*zpvalue.Node) error { retryCount++; return nil }, ParseOptions{Backend: b, Unit: u}); err != nil || retryCount != 1 {
 									t.Fatalf("retry error=%v emitted=%d", err, retryCount)
 								}
 								for i, n := range nodes {
@@ -132,7 +133,7 @@ func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, traced := range []bool{false, true} {
 				for _, phase := range []string{"reader", "emit"} {
 					t.Run(fmt.Sprintf("%s/%s/trace=%t/%s", b, u, traced, phase), func(t *testing.T) {
@@ -148,7 +149,7 @@ func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 						count := 0
 						var err error
 						got := catchStreamPanic(func() {
-							err = prog.ParseStreamWith("main", r, func(*core.Node) error {
+							err = prog.ParseStreamWith("main", r, func(*zpvalue.Node) error {
 								count++
 								if phase == "emit" && count == 2 {
 									return stop
@@ -170,7 +171,7 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(b.String()+"/"+u.String(), func(t *testing.T) {
 				token := &streamRuntimePanicToken{"nested reader"}
 				r := &streamCallbackReader{panicValue: token}
@@ -193,7 +194,7 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 	t.Parallel()
 	for _, b := range []Backend{Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, phase := range []string{"reader", "emit"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, phase), func(t *testing.T) {
 					prog := mustCompile(t, "rule main = item* #stream $$\nrule item = \"a\"")
@@ -210,7 +211,7 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 					count := 0
 					var err error
 					got := catchStreamPanic(func() {
-						err = prog.ParseStreamWith("main", r, func(*core.Node) error {
+						err = prog.ParseStreamWith("main", r, func(*zpvalue.Node) error {
 							count++
 							if phase == "emit" {
 								damage()
@@ -233,7 +234,7 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 func TestStreamKeepsCallerBufferedReader(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, codegentest.Records)
-	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		reader := bufio.NewReader(strings.NewReader("#records\na=1\n"))
 		if p := state.NewStreamParser(&prog.sharedProgram, reader, u); p.Reader != reader {
 			t.Fatal("stream parser replaced caller's buffered reader")

@@ -8,7 +8,7 @@ import (
 
 // libDir is the directory of the TypeScript library, from the directory of this package, in which
 // go test runs.
-var libDir = filepath.Join("..", "..", "..", "..", "..", "codegen", "ts", "lib")
+var libDir = filepath.Join("..", "..", "..", "..", "..", "internal", "backend", "codegen", "typescript", "lib")
 
 // readLib returns the text of the file name of the TypeScript library.
 func readLib(t testing.TB, name string) string {

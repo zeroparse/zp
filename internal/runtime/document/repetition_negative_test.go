@@ -6,10 +6,11 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/driver/entry"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
@@ -35,19 +36,19 @@ func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 						}
 						continue
 					}
-					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+					for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 						opts := ParseOptions{Backend: b, Unit: unit}
 						streamOpts := opts
 						if prog == loaded {
 							streamOpts = servedBy(mode, opts)
 						}
 						var got []string
-						err := prog.ParseStreamWith("main", strings.NewReader("ééé"), func(n *core.Node) error {
+						err := prog.ParseStreamWith("main", strings.NewReader("ééé"), func(n *value.Node) error {
 							got = append(got, resultJSON(n, nil))
 							return nil
 						}, streamOpts)
 						var want []string
-						we := p.ParseStreamWith("main", strings.NewReader("ééé"), func(n *core.Node) error {
+						we := p.ParseStreamWith("main", strings.NewReader("ééé"), func(n *value.Node) error {
 							want = append(want, resultJSON(n, nil))
 							return nil
 						}, ParseOptions{Unit: unit})
@@ -74,7 +75,7 @@ func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 								t.Fatal("edited Document did not resume repetition elements")
 							}
 							at := 50
-							if unit == core.Bytes {
+							if unit == input.Bytes {
 								at *= len("é")
 							}
 							if err := d.Edit(at, at, "é"); err != nil {

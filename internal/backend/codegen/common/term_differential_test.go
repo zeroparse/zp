@@ -15,7 +15,6 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/testing/mutanttest"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/entry"
@@ -24,6 +23,9 @@ import (
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // termDifferentialCases is the number of terms of each seed. The tests that run in the process
@@ -122,11 +124,11 @@ func TestTermEngineBackends(t *testing.T) {
 				t.Fatalf("%s: %v", c.Name, err)
 			}
 			for _, in := range c.Inputs {
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 					var want string
 					for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 						var used uint64
-						n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: core.Limits{Compute: 1 << 50},
+						n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: zpruntime.Limits{Compute: 1 << 50},
 							Trace: func(e engine.TraceEvent) { used = state.TraceParser(e).Control.Used }})
 						got := codegentest.ResultJSON(n, err)
 						if used == 0 {
@@ -139,7 +141,7 @@ func TestTermEngineBackends(t *testing.T) {
 						}
 					}
 					for _, b := range []engine.Backend{engine.Bytecode, engine.BytecodeIterative} {
-						n, err := loaded.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: core.Limits{Compute: 1 << 50}})
+						n, err := loaded.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: zpruntime.Limits{Compute: 1 << 50}})
 						if got := codegentest.ResultJSON(n, err); got != want {
 							t.Errorf("%s: input %q unit %d: loaded backend %d gives\n %s\nclosure gives\n %s", c.Name, in, unit, b, got, want)
 						}
@@ -711,12 +713,12 @@ func TestTermReferenceEvaluator(t *testing.T) {
 				t.Fatal(err)
 			}
 			term := referenceTerm(t, c)
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 				w := utf8.RuneCountInString(c.Lit)
-				if unit == core.Bytes {
+				if unit == input.Bytes {
 					w = len(c.Lit)
 				}
-				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == core.Bytes,
+				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == input.Bytes,
 					Start: 0, End: w, Line: 1, Col: 1, Zeros: referenceZeros(t, entry.Checked(prog), "R", "Inner", "Leaf")}
 				in := c.Lit
 				if c.Kind == codegentest.TermPredicate {
@@ -737,7 +739,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 // held, by whether an input that ends in "b" parses. The parse records expectations if expectations is set. A
 // case that inserts missing tokens runs on the closure backend only, which backends lists first, with the
 // insertion enabled.
-func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, term ast.ActionExpr, env *ref.TermEnv, unit core.PositionUnit, in string,
+func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, term ast.ActionExpr, env *ref.TermEnv, unit input.PositionUnit, in string,
 	expectations bool, backends ...engine.Backend) {
 	t.Helper()
 	v, msg := env.Eval(term)
@@ -747,7 +749,7 @@ func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, 
 	}
 	for _, b := range backends {
 		n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, MissingTokens: missing, Expectations: expectations})
-		var recovered core.SyntaxErrors
+		var recovered value.SyntaxErrors
 		if c.Recovers && errors.As(err, &recovered) {
 			err = nil // the recovered syntax errors are not what the term gives; the value, nil among them, is
 		}
@@ -823,9 +825,9 @@ func TestTermFixedReference(t *testing.T) {
 			recording = append(recording, true)
 		}
 		for _, in := range c.Inputs {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 				for _, exp := range recording {
-					bytes := unit == core.Bytes
+					bytes := unit == input.Bytes
 					end := utf8.RuneCountInString(in)
 					if bytes {
 						end = len(in)

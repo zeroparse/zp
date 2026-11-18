@@ -53,7 +53,7 @@ function and of the inlined runtime helpers.
 
 Source owners: [`Flow printer`](../../../internal/backend/codegen/golang/print/flow.go), [`helper
 names`](../../../internal/backend/codegen/golang/print/helper_names.go), [`metered runtime
-helpers`](../../../codegen/go/lib/budget.go).
+helpers`](../../../pkg/runtime/golib/budget.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

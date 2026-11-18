@@ -13,9 +13,11 @@ import (
 	"testing"
 	"weak"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func batchRetentionParser(t *testing.T, e TraceEvent) *state.Parser {
@@ -26,7 +28,7 @@ func batchRetentionParser(t *testing.T, e TraceEvent) *state.Parser {
 	return state.TraceParser(e)
 }
 
-func batchRetentionJSON(t *testing.T, n *core.Node) []byte {
+func batchRetentionJSON(t *testing.T, n *value.Node) []byte {
 	t.Helper()
 	b, err := json.Marshal(n)
 	if err != nil {
@@ -48,7 +50,7 @@ rule main = "!" entry "?" $$
 rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key), Value: $value, Count: len(text($value))}`)
 
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.Bytes, zpinput.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				for _, active := range []bool{false, true} {
 					name := backend.String() + "/" + unit.String() + "/recognize=" + map[bool]string{false: "false", true: "true"}[recognize] + "/controls=" + map[bool]string{false: "inactive", true: "active"}[active]
@@ -56,7 +58,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 						if active && !state.BudgetControlsEnabled {
 							t.Skip("active budget controls are unavailable in the reference build")
 						}
-						parseFn := func(input string, wantFailure bool) (*core.Node, error, TraceEvent) {
+						parseFn := func(input string, wantFailure bool) (*value.Node, error, TraceEvent) {
 							var retained TraceEvent
 							opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Trace: func(e TraceEvent) {
 								if e.Kind == TraceEnter && e.Rule == "main" {
@@ -77,7 +79,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 								}
 							}}
 							if active {
-								opts.Limits = core.Limits{Compute: 1 << 30}
+								opts.Limits = zpruntime.Limits{Compute: 1 << 30}
 							}
 							n, err := prog.ParseWith("main", input, opts)
 							return n, err, retained
@@ -97,7 +99,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 							key, hasKey := nodes.D(entry).Fields.Get("Key")
 							val, hasValue := nodes.D(entry).Fields.Get("Value")
 							count, hasCount := nodes.D(entry).Fields.Get("Count")
-							valueNode, valueIsNode := val.(*core.Node)
+							valueNode, valueIsNode := val.(*value.Node)
 							if nodes.D(nodes.D(node).Children[0]).Text != "!" || nodes.D(nodes.D(node).Children[2]).Text != "?" || !hasKey || key != "alpha" || !hasValue || !valueIsNode || valueNode == nil || nodes.D(valueNode).Text != "123" || !hasCount || count != 3 {
 								t.Fatalf("unexpected fields/terminals: %s", batchRetentionJSON(t, node))
 							}
@@ -119,7 +121,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 						}
 
 						failed, failedErr, failedEvent := parseFn("!alpha:?", true)
-						var syntaxErr *core.SyntaxError
+						var syntaxErr *value.SyntaxError
 						if failed != nil || !errors.As(failedErr, &syntaxErr) {
 							t.Fatalf("syntax failure node=%v err=%v", failed, failedErr)
 						}
@@ -139,11 +141,11 @@ func TestBudgetBatchTraceCallbackPanicDetachesParserAndPreservesRetry(t *testing
 	text := strings.Repeat("a", 512)
 	prog := mustCompile(t, `rule main = "a"* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.Bytes, zpinput.CodePoints} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				token := &struct{ marker string }{"trace panic"}
 				var observed *state.Parser
-				var node *core.Node
+				var node *value.Node
 				var err error
 				got := budgetContextRecover(func() {
 					node, err = prog.ParseWith("main", text, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
@@ -169,7 +171,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a"* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.Bytes, zpinput.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				for _, cause := range []string{"cancel", "steps", "context-panic", "publication-panic"} {
 					t.Run(fmt.Sprintf("%s/%s/recognize=%t/%s", backend, unit, recognize, cause), func(t *testing.T) {
@@ -188,7 +190,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 							opts.Context, cancel = context.WithCancel(context.Background())
 							defer cancel()
 						case "steps":
-							opts.Limits = core.Limits{Compute: 1 << 30}
+							opts.Limits = zpruntime.Limits{Compute: 1 << 30}
 						default:
 							at := 1
 							if cause == "publication-panic" {
@@ -215,7 +217,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 								panicCtx.armed = true
 							}
 						}
-						var node *core.Node
+						var node *value.Node
 						var returnedErr error
 						got := budgetContextRecover(func() { node, returnedErr = prog.ParseWith("main", strings.Repeat("a", 512), opts) })
 						if node != nil {
@@ -227,8 +229,8 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 								t.Fatalf("panic=%v err=%v", got, returnedErr)
 							}
 						case "steps":
-							var limit *core.LimitError
-							if got != nil || !errors.As(returnedErr, &limit) || limit.Kind != core.LimitCompute {
+							var limit *zpruntime.LimitError
+							if got != nil || !errors.As(returnedErr, &limit) || limit.Kind != zpruntime.LimitCompute {
 								t.Fatalf("panic=%v err=%v", got, returnedErr)
 							}
 						default:
@@ -265,7 +267,7 @@ func (c *batchRetentionContext) Done() <-chan struct{} { return c.done }
 func (c *batchRetentionContext) Err() error            { return nil }
 
 //go:noinline
-func batchRetentionCaptureEvent(prog *Program, text string, backend Backend, unit core.PositionUnit, active bool) (TraceEvent, weak.Pointer[batchRetentionContext], error) {
+func batchRetentionCaptureEvent(prog *Program, text string, backend Backend, unit zpinput.PositionUnit, active bool) (TraceEvent, weak.Pointer[batchRetentionContext], error) {
 	ctx := &batchRetentionContext{Context: context.Background(), done: make(chan struct{})}
 	for i := range ctx.payload {
 		ctx.payload[i] = byte(i)
@@ -308,7 +310,7 @@ func TestBudgetBatchTraceEventReleasesCapturedContextAfterReturn(t *testing.T) {
 	text := strings.Repeat("a", 32*1024)
 	prog := mustCompile(t, `rule main = "a"* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.Bytes, zpinput.CodePoints} {
 			for _, active := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/active=%t", backend, unit, active), func(t *testing.T) {
 					event, ref, err := batchRetentionCaptureEvent(prog, text, backend, unit, active)

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // documentIdentity deliberately has nonzero size. Tokens retain only this
@@ -27,7 +27,7 @@ func (v DocumentVersion) Sequence() uint64 { return v.sequence }
 func (d *Document) Version() DocumentVersion { return DocumentVersion{d.identity, d.sequence} }
 
 // Unit returns the position unit selected at document construction.
-func (d *Document) Unit() core.PositionUnit { return d.in.Unit }
+func (d *Document) Unit() input.PositionUnit { return d.in.Unit }
 
 func (d *Document) nextVersion() error {
 	if d.sequence == ^uint64(0) {
@@ -39,7 +39,7 @@ func (d *Document) nextVersion() error {
 // EditBatch atomically applies ordered, nonoverlapping replacements in base
 // coordinates. All edits are validated before any document state is changed.
 // A nonempty batch advances one revision and discards reusable parse caches.
-func (d *Document) EditBatch(base DocumentVersion, edits ...core.TextEdit) error {
+func (d *Document) EditBatch(base DocumentVersion, edits ...input.TextEdit) error {
 	if base.identity == nil || base.identity != d.identity {
 		return fmt.Errorf("invalid document version identity")
 	}
@@ -59,14 +59,14 @@ func (d *Document) EditBatch(base DocumentVersion, edits ...core.TextEdit) error
 			return fail(fmt.Errorf("edits must have strictly increasing starts and nonoverlapping ranges"))
 		}
 	}
-	if d.in.Unit == core.Bytes {
+	if d.in.Unit == input.Bytes {
 		for i, edit := range edits {
 			for _, pos := range []int{edit.Start, edit.End} {
 				var err error
 				if state.DocumentPieceInput && d.in.Pieces != nil {
 					err = d.in.Pieces.ValidBoundary(pos)
 				} else {
-					err = state.ValidBoundary(d.in.Src, core.Bytes, pos)
+					err = state.ValidBoundary(d.in.Src, input.Bytes, pos)
 				}
 				if err != nil {
 					return fmt.Errorf("edit %d [%d,%d): %w", i, edit.Start, edit.End, err)
@@ -105,7 +105,7 @@ func (d *Document) EditBatch(base DocumentVersion, edits ...core.TextEdit) error
 		}
 		text := edit.Text
 		units := state.TextLen(d.in.Unit, text)
-		if d.in.Unit != core.Bytes && !utf8.ValidString(text) {
+		if d.in.Unit != input.Bytes && !utf8.ValidString(text) {
 			text = string([]rune(text))
 		}
 		if err := add(text, units); err != nil {
@@ -145,7 +145,7 @@ func checkedDocumentLength(length, added int) (int, error) {
 	return length + added, nil
 }
 
-func newDocumentInput(text string, unit core.PositionUnit) state.Input {
+func newDocumentInput(text string, unit input.PositionUnit) state.Input {
 	if state.UseDocumentPieces(text, unit) {
 		return state.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: state.NewDocumentPieces(text, unit)}
 	}

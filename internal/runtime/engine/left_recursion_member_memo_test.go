@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // nestedLeftRecursionEvals parses the input on every backend and returns the number of rule
@@ -17,8 +18,8 @@ func nestedLeftRecursionEvals(t *testing.T, prog *Program, input string) map[Bac
 	got := map[Backend]int{}
 	var want string
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var pr core.Profile
-		n, err := prog.ParseWith("", input, ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}})
+		var pr instrument.Profile
+		n, err := prog.ParseWith("", input, ParseOptions{Backend: b, Profiles: []*instrument.Profile{&pr}})
 		if err != nil {
 			t.Fatalf("%s: %v", b, err)
 		}
@@ -117,7 +118,7 @@ rule f = [0-9] / "(" e ")"`,
 		memo, plain := mustCompile(t, src), mustCompile(t, src, compile.Options{DisableMemo: true})
 		for _, in := range inputs[gi] {
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					for _, missing := range []int{0, 12} {
 						for _, recognize := range []bool{false, true} {
 							o := ParseOptions{Backend: backend, Unit: unit, MissingTokens: missing, Recognize: recognize}
@@ -141,9 +142,9 @@ rule f = [0-9] / "(" e ")"`,
 func memberMemoDiffers(t *testing.T, c codegentest.Case, full bool) []string {
 	t.Helper()
 	memo, plain := mustCompile(t, c.Src), mustCompile(t, c.Src, compile.Options{DisableMemo: true})
-	units := []core.PositionUnit{core.CodePoints}
+	units := []zpinput.PositionUnit{zpinput.CodePoints}
 	if full {
-		units = append(units, core.Bytes)
+		units = append(units, zpinput.Bytes)
 	}
 	var diffs []string
 	for _, in := range c.Inputs {

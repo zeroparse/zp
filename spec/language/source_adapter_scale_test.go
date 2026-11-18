@@ -8,10 +8,10 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
 	"zeroparse.dev/zp/internal/testing/linearity"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/spec/language/internal/classretry"
 )
 
@@ -78,9 +78,9 @@ func computeCost(t *testing.T, run func(limit uint64) error) uint64 {
 		switch {
 		case err == nil, errors.As(err, &syntax), errors.As(err, &one):
 			return true
-		case errors.Is(err, core.ErrLimit):
-			var l *core.LimitError
-			if errors.As(err, &l) && l.Kind == core.LimitCompute {
+		case errors.Is(err, zpruntime.ErrLimit):
+			var l *zpruntime.LimitError
+			if errors.As(err, &l) && l.Kind == zpruntime.LimitCompute {
 				return false
 			}
 		}
@@ -175,7 +175,7 @@ func TestSourceAPIAllocationsScaleLinearly(t *testing.T) {
 func classRetryCost(t *testing.T, src string) uint64 {
 	t.Helper()
 	return computeCost(t, func(limit uint64) error {
-		_, err := classretry.Parse(src, classretry.WithLimits(core.Limits{Compute: limit}))
+		_, err := classretry.Parse(src, classretry.WithLimits(zpruntime.Limits{Compute: limit}))
 		return err
 	})
 }

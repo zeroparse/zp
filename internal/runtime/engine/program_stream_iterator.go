@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"io"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 var errIteratorStop = errors.New("stream iterator stopped")
 
 // Iterate validates the entry point before returning a lazy iterator. Reader
 // access starts with Next. Parser lookahead and buffering may read ahead.
-func (prog *Program) Iterate(start string, r io.Reader, o ParseOptions) (it *core.StreamIterator, err error) {
+func (prog *Program) Iterate(start string, r io.Reader, o ParseOptions) (it *runtime.StreamIterator, err error) {
 	defer func() {
 		if x := recover(); x != nil {
 			if f, ok := x.(state.Fatal); ok {
@@ -38,8 +39,8 @@ func (prog *Program) Iterate(start string, r io.Reader, o ParseOptions) (it *cor
 	if _, _, _, err = prog.admitParse(start, o, optionsFamily(o), true, ""); err != nil {
 		return nil, err
 	}
-	return core.NewStreamIterator(func(yield func(*core.Node) bool) error {
-		return prog.ParseStreamWith(start, r, func(n *core.Node) error {
+	return runtime.NewStreamIterator(func(yield func(*value.Node) bool) error {
+		return prog.ParseStreamWith(start, r, func(n *value.Node) error {
 			if !yield(n) {
 				return errIteratorStop
 			}

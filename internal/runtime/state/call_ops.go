@@ -1,6 +1,6 @@
 package state
 
-import "zeroparse.dev/zp/core"
+import "zeroparse.dev/zp/pkg/runtime/value"
 
 // The engine's implementations of the operations of the call protocol that its printed
 // compositions call (call_exec.go, printed from internal/ir/code/exec/compose): the call state, the context
@@ -72,7 +72,7 @@ func (p *Parser) DirectCallDoc(r *Rule) bool {
 }
 
 // CallBeginDoc is CallBegin, as work of the Document for a rule that only a Document parse memoizes.
-func (p *Parser) CallBeginDoc(r *Rule, min int, st *CallState) (*core.Node, bool, bool) {
+func (p *Parser) CallBeginDoc(r *Rule, min int, st *CallState) (*value.Node, bool, bool) {
 	m := p.FreeBegin(p.docOnlyMemo(r))
 	v, ok, hit := p.CallBegin(r, min, st)
 	p.FreeEnd(m)
@@ -80,7 +80,7 @@ func (p *Parser) CallBeginDoc(r *Rule, min int, st *CallState) (*core.Node, bool
 }
 
 // CallEndDoc is CallEnd, as work of the Document for a rule that only a Document parse memoizes.
-func (p *Parser) CallEndDoc(r *Rule, st *CallState, v *core.Node, ok bool) (*core.Node, bool) {
+func (p *Parser) CallEndDoc(r *Rule, st *CallState, v *value.Node, ok bool) (*value.Node, bool) {
 	m := p.FreeBegin(p.docOnlyMemo(r))
 	v, ok = p.CallEnd(r, st, v, ok)
 	p.FreeEnd(m)

@@ -34,7 +34,7 @@ func TestGenerateTypedDocument(t *testing.T) {
 		"parser.go": string(code),
 		"parser_test.go": `package fixture
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
  "context"
  "errors"
  "reflect"
@@ -313,8 +313,8 @@ rule main ErrDocumentBusy = t:("a") #atomic => ErrDocumentBusy{Text: text($t)}`)
 		"go.mod": codegentest.GoMod("observedcollision"),
 		"fixture/parser_test.go": `package fixture
 
-import zprt "zeroparse.dev/zp/codegen/go/lib"
-import zpcore "zeroparse.dev/zp/core"
+import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 import ("errors"; "testing"; "observedcollision/fixture/types")
 func TestCollision(t *testing.T) {
  d, err := NewDocument("a")
@@ -323,7 +323,7 @@ func TestCollision(t *testing.T) {
  var typed *types.ErrDocumentBusy = got
  if err != nil || typed.Text != "a" { t.Fatal(got, err) }
  var inner error
- d.ParseValue(zprt.WithTrace(func(zpcore.TraceEvent) { if inner == nil { _, inner = d.ParseValue(WithLimits(Limits{Depth: Unlimited})) } }))
+ d.ParseValue(zprt.WithTrace(func(zpinstrument.TraceEvent) { if inner == nil { _, inner = d.ParseValue(WithLimits(Limits{Depth: Unlimited})) } }))
  if !errors.Is(inner, ErrDocumentBusy) { t.Fatal("busy Document checked options first", inner) }
 }
 `,

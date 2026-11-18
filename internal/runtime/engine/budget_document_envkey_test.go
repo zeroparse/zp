@@ -9,8 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // envKeyGrammars memoize the rule u under a key that holds the string s, which the text of the head
@@ -62,7 +63,7 @@ func TestBudgetDocumentCountsMemoKeyWork(t *testing.T) {
 		for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			t.Run(fmt.Sprintf("%s/%v", name, back), func(t *testing.T) {
 				t.Parallel()
-				o := ParseOptions{Backend: back, Unit: core.Bytes}
+				o := ParseOptions{Backend: back, Unit: input.Bytes}
 				for _, n := range []int{2000, 64000} {
 					fresh, doc, ferr, derr := freshAndDocumentUnits(t, prog, envKeyText(n), o)
 					if ferr != nil || derr != nil {
@@ -102,7 +103,7 @@ func TestBudgetDocumentIdentityMissIsSound(t *testing.T) {
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(fmt.Sprint(back), func(t *testing.T) {
 			t.Parallel()
-			o := ParseOptions{Backend: back, Unit: core.Bytes}
+			o := ParseOptions{Backend: back, Unit: input.Bytes}
 			want, err := prog.ParseWith("main", text, o)
 			if err != nil {
 				t.Fatal(err)
@@ -160,7 +161,7 @@ func TestBudgetDocumentRecoveredErrorsOfDocumentOnlyRuleAfterEdit(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := d.ParseWith(o); err != nil && errors.Is(err, core.ErrLimit) {
+			if _, err := d.ParseWith(o); err != nil && errors.Is(err, runtime.ErrLimit) {
 				t.Fatalf("first parse: %.80v", err)
 			}
 			if err := d.Edit(2000, 2001, "a"); err != nil {
@@ -175,7 +176,7 @@ func TestBudgetDocumentRecoveredErrorsOfDocumentOnlyRuleAfterEdit(t *testing.T) 
 			of := o
 			of.Trace = func(e TraceEvent) { fresh = state.TraceParser(e).Control.Used }
 			_, ferr := prog.ParseWith("main", edited, of)
-			if errors.Is(derr, core.ErrLimit) || errors.Is(ferr, core.ErrLimit) {
+			if errors.Is(derr, runtime.ErrLimit) || errors.Is(ferr, runtime.ErrLimit) {
 				t.Fatalf("limit error: reparse %.80v, fresh %.80v", derr, ferr)
 			}
 			if reparse > 3*fresh {
@@ -195,12 +196,12 @@ func TestBudgetDocumentCountsMemoWalkComparisons(t *testing.T) {
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(fmt.Sprint(back), func(t *testing.T) {
 			t.Parallel()
-			o := ParseOptions{Backend: back, Unit: core.Bytes}
+			o := ParseOptions{Backend: back, Unit: input.Bytes}
 			fresh, doc, ferr, derr := freshAndDocumentUnits(t, prog, envKeyText(16000), o)
-			if !errors.Is(ferr, core.ErrLimit) {
+			if !errors.Is(ferr, runtime.ErrLimit) {
 				t.Fatalf("parse from scratch: %.80v, want the limit to be exceeded", ferr)
 			}
-			if !errors.Is(derr, core.ErrLimit) {
+			if !errors.Is(derr, runtime.ErrLimit) {
 				t.Errorf("Document parse: %.80v, want the limit to be exceeded", derr)
 			}
 			if doc > 3*fresh {

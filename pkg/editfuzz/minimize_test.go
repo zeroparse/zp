@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // TestMinimize injects each mismatch category into Documents whose text contains "é" or the invalid
@@ -73,7 +73,7 @@ func TestMinimizeAttemptCeiling(t *testing.T) {
 		}
 	}
 	src := testGrammars[0]
-	seq := sequence(src, engine.Bytecode, core.Bytes, "aaaa", checkpoint, edit(1, 2, "b"), checkpoint, edit(0, 0, "cc"), checkpoint)
+	seq := sequence(src, engine.Bytecode, input.Bytes, "aaaa", checkpoint, edit(1, 2, "b"), checkpoint, edit(0, 0, "cc"), checkpoint)
 	p, _ := engine.CompileSource(src, "main")
 	for _, ceiling := range []int{1, 3} {
 		got, _, attempts, err := minimize(p, seq, ceiling)
@@ -81,7 +81,7 @@ func TestMinimizeAttemptCeiling(t *testing.T) {
 			t.Fatalf("ceiling %d: %d attempts, %+v, %v", ceiling, attempts, got, err)
 		}
 	}
-	if _, _, err := Minimize([]byte(src), sequence(src, engine.Bytecode, core.Bytes, "a", checkpoint), 0); err == nil ||
+	if _, _, err := Minimize([]byte(src), sequence(src, engine.Bytecode, input.Bytes, "a", checkpoint), 0); err == nil ||
 		!strings.Contains(err.Error(), "does not fail") {
 		t.Fatalf("passing sequence: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestMinimizeFailureMovesEarlier(t *testing.T) {
 		}
 	}
 	src := testGrammars[2]
-	seq := sequence(src, engine.Closure, core.CodePoints, "", edit(0, 0, "éZ"), checkpoint, edit(1, 2, "x"), checkpoint)
+	seq := sequence(src, engine.Closure, input.CodePoints, "", edit(0, 0, "éZ"), checkpoint, edit(1, 2, "x"), checkpoint)
 	got, m, err := Minimize([]byte(src), seq, 0)
 	if err != nil {
 		t.Fatal(err)

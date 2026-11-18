@@ -64,7 +64,7 @@ func testGeneratedTwinMemo(t *testing.T) {
 			codegentest.GeneratePackage(t, dir, pkg, mustParse(c.src), common.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
 			fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
 			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
-				fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
+				fmt.Fprintf(&calls, "\t{ var p zpinstrument.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
 			}
 		}
 		calls.WriteString("\tfmt.Println()\n")
@@ -74,12 +74,12 @@ func testGeneratedTwinMemo(t *testing.T) {
 import (
 	"fmt"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 ` + imports.String() + `)
 
 // evals sums the body evaluations of r and of its twin, which the profile reports under its name.
-func evals(p zpcore.Profile) int {
+func evals(p zpinstrument.Profile) int {
 	n := 0
 	for _, r := range p.Snapshot().Rules {
 		if r.Rule == "r" {

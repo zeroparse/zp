@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // scanGrammar scans the rest of the input from every position of a scan from every position, so its
@@ -20,7 +21,7 @@ rule mid = (. &.*) #repeat(0, 1000000)`
 
 func limitOf(t *testing.T, err error) uint64 {
 	t.Helper()
-	var le *core.LimitError
+	var le *runtime.LimitError
 	if !errors.As(err, &le) {
 		t.Fatalf("want a compute limit error, got %v", err)
 	}
@@ -36,27 +37,27 @@ func TestBudgetDefault(t *testing.T) {
 		for _, c := range []struct {
 			name  string
 			input string
-			unit  core.PositionUnit
+			unit  zpinput.PositionUnit
 			want  uint64
 		}{
-			{"floor", strings.Repeat("a", 300), core.CodePoints, 1 << 20},
-			{"ascii bytes", strings.Repeat("a", 5000), core.Bytes, 5000 * 1024},
-			{"wide bytes", strings.Repeat("é", 2000), core.Bytes, 4000 * 1024},
-			{"wide code points", strings.Repeat("é", 2000), core.CodePoints, 2000 * 1024},
+			{"floor", strings.Repeat("a", 300), zpinput.CodePoints, 1 << 20},
+			{"ascii bytes", strings.Repeat("a", 5000), zpinput.Bytes, 5000 * 1024},
+			{"wide bytes", strings.Repeat("é", 2000), zpinput.Bytes, 4000 * 1024},
+			{"wide code points", strings.Repeat("é", 2000), zpinput.CodePoints, 2000 * 1024},
 		} {
 			t.Run(fmt.Sprintf("%s/%s", b, c.name), func(t *testing.T) {
 				_, err := prog.ParseWith("main", c.input, ParseOptions{Backend: b, Unit: c.unit})
 				if got := limitOf(t, err); got != c.want {
 					t.Fatalf("default limit %d, want %d", got, c.want)
 				}
-				_, err = prog.ParseWith("main", c.input, ParseOptions{Backend: b, Unit: c.unit, Limits: core.Limits{Compute: 1000}})
+				_, err = prog.ParseWith("main", c.input, ParseOptions{Backend: b, Unit: c.unit, Limits: runtime.Limits{Compute: 1000}})
 				if got := limitOf(t, err); got != 1000 {
 					t.Fatalf("explicit limit %d, want 1000", got)
 				}
 			})
 		}
 		t.Run(b.String()+"/unlimited", func(t *testing.T) {
-			if _, err := prog.ParseWith("main", strings.Repeat("a", 300), ParseOptions{Backend: b, Limits: core.Limits{Compute: core.Unlimited}}); err != nil {
+			if _, err := prog.ParseWith("main", strings.Repeat("a", 300), ParseOptions{Backend: b, Limits: runtime.Limits{Compute: runtime.Unlimited}}); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -69,7 +70,7 @@ func TestBudgetDefault(t *testing.T) {
 			if got := limitOf(t, err); got != 1<<20 {
 				t.Fatalf("document default limit %d", got)
 			}
-			if _, err := d.ParseWith(ParseOptions{Backend: b, Limits: core.Limits{Compute: core.Unlimited}}); err != nil {
+			if _, err := d.ParseWith(ParseOptions{Backend: b, Limits: runtime.Limits{Compute: runtime.Unlimited}}); err != nil {
 				t.Fatal(err)
 			}
 		})

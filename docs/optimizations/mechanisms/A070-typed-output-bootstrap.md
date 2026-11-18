@@ -41,7 +41,7 @@ Evidence records:
 
 Source owners: [`typed allocation helper
 emission`](../../../internal/backend/codegen/golang/print/types.go), [`typed allocator
-state`](../../../codegen/go/lib/typed.go),
+state`](../../../pkg/runtime/golib/typed.go),
 [`disableTypedOutputBootstrap`](../../../internal/backend/codegen/golang/print/generator.go),
 [`retained-output
 fixture`](../../../internal/backend/codegen/golang/print/gengo_typed_output_retention_test.go).

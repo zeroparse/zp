@@ -5,11 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // resultCheckRoutes maps an input's route character to the rule it reaches.
@@ -62,7 +63,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 			if err != nil {
 				t.Fatal(err)
 			}
-			limits := core.Limits{Compute: 1 << 30}
+			limits := runtime.Limits{Compute: 1 << 30}
 			declared := checked.Static().Typed.Fields["S"][0].T.String() // as the value checker resolves it
 			for _, in := range codegentest.ResultCheckInputs() {
 				value := codegentest.FieldCheckValues[in[:1]]
@@ -85,7 +86,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 					{"limited parse bytecode", loadedBare, ParseOptions{Backend: Bytecode, Limits: limits}},
 				}
 				var want string
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 					for _, run := range runs {
 						if run.o.Limits.Compute != 0 && !state.BudgetControlsEnabled {
 							continue // the reference build has no limits
@@ -195,7 +196,7 @@ func TestOperatorResultChecks(t *testing.T) {
 		if got := strings.Contains(want, "cannot cast "); got != rejected {
 			t.Errorf("%q: %s", in, want)
 		}
-		limits := core.Limits{Compute: 1 << 30}
+		limits := runtime.Limits{Compute: 1 << 30}
 		for _, run := range []struct {
 			name string
 			prog *Program

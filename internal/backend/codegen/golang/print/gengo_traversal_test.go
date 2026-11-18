@@ -11,24 +11,25 @@ import (
 	"strings"
 	"testing"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	zpcore "zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Exercise the exported APIs against the same hand-built DAG, including nil,
 // nested lists and a shared value reached through different owning parents.
 func TestTreeLibParity(t *testing.T) {
 	t.Parallel()
-	leaf := nodes.Ptr(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "é<&>", Start: 1, End: 3})
-	gLeaf := zprt.NewNode(zpcore.KindString, 1, 3, nodes.D(leaf).Text, nil, "", nil, nil)
-	child := nodes.Ptr(nodes.Data{Children: []*zpcore.Node{leaf}, Fields: coreimpl.Fields{{Name: "list", Value: []any{leaf, nil, []byte{1, 2}}}}})
-	gChild := zprt.NewNode(zpcore.KindStruct, 0, 0, "", []*zpcore.Node{gLeaf}, "", coreimpl.Fields{{Name: "list", Value: []any{gLeaf, nil, []byte{1, 2}}}}, nil)
-	root := nodes.Ptr(nodes.Data{Children: []*zpcore.Node{child, nil, leaf}, Fields: coreimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: leaf}}})
-	gRoot := zprt.NewNode(zpcore.KindStruct, 0, 0, "", []*zpcore.Node{gChild, nil, gLeaf}, "", coreimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: gLeaf}}, nil)
+	leaf := nodes.Ptr(nodes.Data{Kind: valueimpl.MatchKind, Terminal: true, Text: "é<&>", Start: 1, End: 3})
+	gLeaf := zprt.NewNode(value.KindString, 1, 3, nodes.D(leaf).Text, nil, "", nil, nil)
+	child := nodes.Ptr(nodes.Data{Children: []*value.Node{leaf}, Fields: valueimpl.Fields{{Name: "list", Value: []any{leaf, nil, []byte{1, 2}}}}})
+	gChild := zprt.NewNode(value.KindStruct, 0, 0, "", []*value.Node{gLeaf}, "", valueimpl.Fields{{Name: "list", Value: []any{gLeaf, nil, []byte{1, 2}}}}, nil)
+	root := nodes.Ptr(nodes.Data{Children: []*value.Node{child, nil, leaf}, Fields: valueimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: leaf}}})
+	gRoot := zprt.NewNode(value.KindStruct, 0, 0, "", []*value.Node{gChild, nil, gLeaf}, "", valueimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: gLeaf}}, nil)
 	core, err := root.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +42,7 @@ func TestTreeLibParity(t *testing.T) {
 	describe := func(depth int, kind uint8, child int, field string, list int, nodeText, parentText string) string {
 		return fmt.Sprintf("%d/%d/%d/%s/%d/%s/%s", depth, kind, child, field, list, nodeText, parentText)
 	}
-	ca := func(v zpcore.WalkVisit) (zpcore.WalkAction, error) {
+	ca := func(v value.WalkVisit) (value.WalkAction, error) {
 		n, p := "", ""
 		if v.Node != nil {
 			n = nodes.D(v.Node).Text
@@ -50,9 +51,9 @@ func TestTreeLibParity(t *testing.T) {
 			p = nodes.D(v.Parent).Text
 		}
 		a = append(a, describe(v.Depth, uint8(v.Edge.Kind), v.Edge.ChildIndex, v.Edge.FieldName, v.Edge.ListIndex, n, p))
-		return zpcore.WalkContinue, nil
+		return value.WalkContinue, nil
 	}
-	cb := func(v zpcore.WalkVisit) (zpcore.WalkAction, error) {
+	cb := func(v value.WalkVisit) (value.WalkAction, error) {
 		n, p := "", ""
 		if v.Node != nil {
 			n = v.Node.Text()
@@ -61,24 +62,24 @@ func TestTreeLibParity(t *testing.T) {
 			p = v.Parent.Text()
 		}
 		b = append(b, describe(v.Depth, uint8(v.Edge.Kind), v.Edge.ChildIndex, v.Edge.FieldName, v.Edge.ListIndex, n, p))
-		return zpcore.WalkContinue, nil
+		return value.WalkContinue, nil
 	}
-	if err := zpcore.Walk(root, ca); err != nil {
+	if err := value.Walk(root, ca); err != nil {
 		t.Fatal(err)
 	}
-	if err := zpcore.Walk(gRoot, cb); err != nil {
+	if err := value.Walk(gRoot, cb); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(a, b) {
 		t.Fatalf("walk parity: %v != %v", a, b)
 	}
-	for _, unit := range []zpcore.PositionUnit{zpcore.CodePoints, zpcore.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		for _, span := range [][2]int32{{0, 0}, {1, 2}, {3, 4}} {
 			a, b = nil, nil
-			if err := (zpcore.Cursor{Root: root, Unit: unit}).Range(span[0], span[1], ca); err != nil {
+			if err := (value.Cursor{Root: root, Unit: unit}).Range(span[0], span[1], ca); err != nil {
 				t.Fatal(err)
 			}
-			if err := (zpcore.Cursor{Root: gRoot, Unit: zpcore.PositionUnit(unit)}).Range(span[0], span[1], cb); err != nil {
+			if err := (value.Cursor{Root: gRoot, Unit: input.PositionUnit(unit)}).Range(span[0], span[1], cb); err != nil {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(a, b) {
@@ -86,11 +87,11 @@ func TestTreeLibParity(t *testing.T) {
 			}
 		}
 	}
-	nodes.D(root).Children = []*zpcore.Node{root}
-	zprt.SetNodeElems(gRoot, []*zpcore.Node{gRoot})
-	var c *zpcore.CycleError
-	var gc *zpcore.CycleError
-	if !errors.As(zpcore.Walk(root, ca), &c) || !errors.As(zpcore.Walk(gRoot, cb), &gc) {
+	nodes.D(root).Children = []*value.Node{root}
+	zprt.SetNodeElems(gRoot, []*value.Node{gRoot})
+	var c *value.CycleError
+	var gc *value.CycleError
+	if !errors.As(value.Walk(root, ca), &c) || !errors.As(value.Walk(gRoot, cb), &gc) {
 		t.Fatal("missing cycle errors")
 	}
 	if len(c.Path) != len(gc.Path) || uint8(c.Path[1].Kind) != uint8(gc.Path[1].Kind) {
@@ -141,16 +142,16 @@ func testGeneratedTreeTraversal(t *testing.T) {
 	// The traversal itself is the library's and is tested there; this checks that the generated
 	// package declares the colliding grammar types beside the library's names and walks a tree.
 	var consumer strings.Builder
-	consumer.WriteString("package tree\n\nimport (\n\t\"testing\"\n\n\t\"codegentest/tree/types\"\n\tzprt \"zeroparse.dev/zp/codegen/go/lib\"\n\t\"zeroparse.dev/zp/core\"\n)\n\nfunc TestWalk(t *testing.T) {\n")
+	consumer.WriteString("package tree\n\nimport (\n\t\"testing\"\n\n\t\"codegentest/tree/types\"\n\tzprt \"zeroparse.dev/zp/pkg/runtime/golib\"\n\tzpvalue \"zeroparse.dev/zp/pkg/runtime/value\"\n)\n\nfunc TestWalk(t *testing.T) {\n")
 	for _, name := range names {
 		fmt.Fprintf(&consumer, "\t_ = types.%s{Value: 1}\n", name)
 	}
-	consumer.WriteString(`	leaf := zprt.NewNode(core.KindString, 0, 2, "é", nil, "", nil, nil)
-	root := zprt.NewNode(core.KindTuple, 0, 2, "", []*core.Node{leaf}, "", nil, nil)
+	consumer.WriteString(`	leaf := zprt.NewNode(zpvalue.KindString, 0, 2, "é", nil, "", nil, nil)
+	root := zprt.NewNode(zpvalue.KindTuple, 0, 2, "", []*zpvalue.Node{leaf}, "", nil, nil)
 	visits := 0
-	if err := core.Walk(root, func(v core.WalkVisit) (core.WalkAction, error) {
+	if err := zpvalue.Walk(root, func(v zpvalue.WalkVisit) (zpvalue.WalkAction, error) {
 		visits++
-		return core.WalkContinue, nil
+		return zpvalue.WalkContinue, nil
 	}); err != nil || visits != 2 {
 		t.Fatalf("visits=%d err=%v", visits, err)
 	}

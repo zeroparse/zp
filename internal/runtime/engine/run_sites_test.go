@@ -8,12 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
 )
 
 // hotSpans are the thresholds at which the differential tests of run sites run: the one of the
@@ -205,13 +206,13 @@ func TestRunSitesReuseRecords(t *testing.T) {
 	for _, g := range codegentest.RunSiteGrammars[:2] {
 		prog := mustCompile(t, g.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 200_000}}
+			o := ParseOptions{Backend: b, Limits: runtime.Limits{Compute: 200_000}}
 			state.SkipRecordsOff = false
-			if _, err := prog.ParseWith("main", in, o); errors.Is(err, core.ErrLimit) {
+			if _, err := prog.ParseWith("main", in, o); errors.Is(err, runtime.ErrLimit) {
 				t.Errorf("%s, %s: the parse with records exceeds the budget", g.Name, b)
 			}
 			state.SkipRecordsOff = true
-			if _, err := prog.ParseWith("main", in, o); !errors.Is(err, core.ErrLimit) {
+			if _, err := prog.ParseWith("main", in, o); !errors.Is(err, runtime.ErrLimit) {
 				t.Errorf("%s, %s: the parse without records fits the budget", g.Name, b)
 			}
 		}
@@ -245,17 +246,17 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 150 * uint64(len(c.Input))}}
-			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, core.ErrLimit) {
+			o := ParseOptions{Backend: b, Limits: runtime.Limits{Compute: 150 * uint64(len(c.Input))}}
+			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, runtime.ErrLimit) {
 				t.Errorf("%s, %s: the parse with records exceeds the budget", c.Name, b)
 			}
-			if _, err := loaded.ParseWith("main", c.Input, o); b != Closure && errors.Is(err, core.ErrLimit) {
+			if _, err := loaded.ParseWith("main", c.Input, o); b != Closure && errors.Is(err, runtime.ErrLimit) {
 				t.Errorf("%s, %s: the parse of the loaded program exceeds the budget", c.Name, b)
 			}
 			// (The closure backend does not charge the iterations of plain loops over literals, so
 			// only the bytecode backends show that the control is quadratic without records; the
 			// controls of internal/testing/complexitytest measure it on all three.)
-			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, core.ErrLimit) {
+			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, runtime.ErrLimit) {
 				t.Errorf("%s, %s: the parse with plain repetitions fits the budget", c.Name, b)
 			}
 		}
@@ -413,13 +414,13 @@ func TestRunSitesDepthLimit(t *testing.T) {
 	turns := state.RunHotTurns.Load()
 	for _, depth := range []int{2, 5, 50, 299, 300, 301, 1000} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: core.Limits{Depth: uint64(depth)}}
+			o := ParseOptions{Backend: b, Limits: runtime.Limits{Depth: uint64(depth)}}
 			n, err := prog.ParseWith("main", in, o)
 			wn, werr := plain.ParseWith("main", in, o)
 			if got, want := skipDump(t, n, err), skipDump(t, wn, werr); got != want {
 				t.Errorf("depth %d, %s:\n got  %s\n want %s", depth, b, got, want)
 			}
-			if limited := errors.Is(err, core.ErrLimit); limited != (depth <= 50) {
+			if limited := errors.Is(err, runtime.ErrLimit); limited != (depth <= 50) {
 				t.Errorf("depth %d, %s: limit error %v, err %v", depth, b, limited, err)
 			}
 		}
@@ -488,7 +489,7 @@ rule w = ("x" { k > 0 })*`, strings.Repeat("xy", 1000), 1, []mutant{{state.SkipS
 			t.Fatal(err)
 		}
 		o := func(b Backend) ParseOptions {
-			return ParseOptions{Backend: b, Limits: core.Limits{Compute: 150 * uint64(len(c.input))}}
+			return ParseOptions{Backend: b, Limits: zpruntime.Limits{Compute: 150 * uint64(len(c.input))}}
 		}
 		for _, m := range append([]mutant{{}}, c.mutants...) {
 			mutated := m != mutant{}
@@ -499,7 +500,7 @@ rule w = ("x" { k > 0 })*`, strings.Repeat("xy", 1000), 1, []mutant{{state.SkipS
 						continue
 					}
 					_, err := p.ParseWith("main", c.input, o(b))
-					if over := errors.Is(err, core.ErrLimit); over != mutated {
+					if over := errors.Is(err, zpruntime.ErrLimit); over != mutated {
 						t.Errorf("%s, %s, loaded %v, mutant %+v: over the linear budget %v (%v)", c.name, b, p == loaded, m, over, err)
 					}
 				}

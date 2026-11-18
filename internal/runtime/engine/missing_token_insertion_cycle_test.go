@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // insertionCycle is left-recursive only through an insertion: without insertion, a calls itself
@@ -69,12 +70,12 @@ func TestMissingTokensInsertionOnlyLeftRecursion(t *testing.T) {
 func TestMissingTokensInsertionOnlyLeftRecursionLimits(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, insertionCycle)
-	render := func(n *core.Node, err error) string {
+	render := func(n *value.Node, err error) string {
 		data, jerr := json.Marshal(n)
 		if jerr != nil {
 			t.Fatal(jerr)
 		}
-		var recovered core.SyntaxErrors
+		var recovered value.SyntaxErrors
 		if errors.As(err, &recovered) {
 			err = nil
 		}
@@ -90,7 +91,7 @@ func TestMissingTokensInsertionOnlyLeftRecursionLimits(t *testing.T) {
 		capped := false
 		for limit := 1; limit <= 50; limit++ {
 			n, err := prog.ParseWith("main", input, ParseOptions{Expectations: true, MissingTokens: limit})
-			var exceeded *core.MissingTokenLimitError
+			var exceeded *runtime.MissingTokenLimitError
 			if errors.As(err, &exceeded) {
 				if capped {
 					t.Fatalf("%q: limit %d exceeded after a smaller limit sufficed", input, limit)
@@ -119,7 +120,7 @@ func TestMissingTokensInsertionOnlyLeftRecursionRejected(t *testing.T) {
 			t.Fatalf("backend %v: %v", b, err)
 		}
 	}
-	if err := prog.ParseStream("main", strings.NewReader("y"), func(*core.Node) error { return nil }); err == nil {
+	if err := prog.ParseStream("main", strings.NewReader("y"), func(*value.Node) error { return nil }); err == nil {
 		t.Fatal("stream parsing accepted the grammar")
 	}
 	if _, err := prog.NewDocument("main", "y"); err == nil {

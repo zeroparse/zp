@@ -52,7 +52,7 @@ import (
 	"strings"
 	"testing"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"; zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 func TestExamined(t *testing.T) {
@@ -62,8 +62,8 @@ func TestExamined(t *testing.T) {
 	}
 	var out strings.Builder
 	for i := 0; i < 2; i++ {
-		_, _ = d.PARSE(zprt.WithTrace(func(e zpcore.TraceEvent) {
-			if e.Kind == zpcore.TraceExit {
+		_, _ = d.PARSE(zprt.WithTrace(func(e zpinstrument.TraceEvent) {
+			if e.Kind == zpinstrument.TraceExit {
 				fmt.Fprintf(&out, "exit %s pos=%d memo=%v evals=%d examined=%d\n", e.Rule, e.Pos, e.Memo, e.Evals, e.Examined)
 			}
 		}))

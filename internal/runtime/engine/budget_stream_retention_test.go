@@ -10,9 +10,10 @@ import (
 	"testing"
 	"weak"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 type streamControlRetentionSentinel struct{ data [128]byte }
@@ -50,7 +51,7 @@ type streamControlRetentionRun struct {
 	context      weak.Pointer[streamControlRetentionContext]
 	reader       weak.Pointer[streamCallbackReader]
 	emitState    weak.Pointer[streamControlRetentionSentinel]
-	nodes        []*core.Node
+	nodes        []*value.Node
 	snapshots    []string
 	err          error
 	wantErr      error
@@ -90,11 +91,11 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 	panicToken := ctx.token
 	var controlRef weak.Pointer[state.BudgetControl]
 	var event TraceEvent
-	var nodes []*core.Node
+	var nodes []*value.Node
 	var snapshots []string
 	var returnedErr error
 	gotPanic := catchStreamPanic(func() {
-		returnedErr = prog.ParseStreamWith("main", reader, func(n *core.Node) error {
+		returnedErr = prog.ParseStreamWith("main", reader, func(n *value.Node) error {
 			if streamControlRetentionTouch(callbackState) != 42 {
 				panic("emit sentinel missing")
 			}
@@ -147,7 +148,7 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 
 func streamControlRetentionOptions(o ParseOptions, ctx context.Context, trace func(TraceEvent)) ParseOptions {
 	o.Context = ctx
-	o.Limits = core.Limits{Compute: 1 << 30}
+	o.Limits = zpruntime.Limits{Compute: 1 << 30}
 	o.Trace = trace
 	return o
 }
@@ -169,7 +170,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 						t.Fatalf("panic=%v err=%v emitted=%d", run.panic, run.err, len(run.nodes))
 					}
 				case "syntax":
-					var syntaxErr *core.SyntaxError
+					var syntaxErr *value.SyntaxError
 					if run.panic != nil || !errors.As(run.err, &syntaxErr) || len(run.nodes) != 1 {
 						t.Fatalf("panic=%v err=%v emitted=%d", run.panic, run.err, len(run.nodes))
 					}
@@ -178,7 +179,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 						t.Fatalf("panic=%v err=%v emitted=%d", run.panic, run.err, len(run.nodes))
 					}
 				case "input-limit":
-					if run.panic != nil || !errors.Is(run.err, core.ErrLimit) || len(run.nodes) != 1 {
+					if run.panic != nil || !errors.Is(run.err, zpruntime.ErrLimit) || len(run.nodes) != 1 {
 						t.Fatalf("panic=%v err=%v emitted=%d", run.panic, run.err, len(run.nodes))
 					}
 				case "reader-error", "emit-error":
@@ -230,7 +231,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 					}
 				}
 				retryCount := 0
-				if err := run.program.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*core.Node) error {
+				if err := run.program.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*value.Node) error {
 					retryCount++
 					return nil
 				}, ParseOptions{}); err != nil || retryCount != 1 {

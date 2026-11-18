@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/limits"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // After edits that rewrite the end of the head and keep its length, the chain of each position still
@@ -24,7 +24,7 @@ func TestBudgetDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
 		for _, n := range []int{100, 300} {
 			t.Run(fmt.Sprintf("%v/n=%d", back, n), func(t *testing.T) {
 				t.Parallel()
-				o := ParseOptions{Backend: back, Unit: core.Bytes}
+				o := ParseOptions{Backend: back, Unit: input.Bytes}
 				d, err := prog.NewDocumentWith("main", envKeyText(n), o)
 				if err != nil {
 					t.Fatal(err)
@@ -70,7 +70,7 @@ func TestBudgetDocumentLeftoverEntriesAreBoundedByTheEditLimit(t *testing.T) {
 		t.Run(back.String(), func(t *testing.T) {
 			t.Parallel()
 			const n = 60
-			o := ParseOptions{Backend: back, Unit: core.Bytes}
+			o := ParseOptions{Backend: back, Unit: input.Bytes}
 			d, err := prog.NewDocumentWith("main", envKeyText(n), o)
 			if err != nil {
 				t.Fatal(err)

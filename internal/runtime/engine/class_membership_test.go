@@ -2,10 +2,10 @@ package engine
 
 import (
 	"testing"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func classMembershipProgram(t *testing.T, expr ast.Expr) *Program {
@@ -38,7 +38,7 @@ func TestClassMembershipBoundaries(t *testing.T) {
 		for _, negated := range []bool{false, true} {
 			p := classMembershipProgram(t, &ast.CharClass{Ranges: tc.ranges, Negated: negated})
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 					for _, c := range []struct {
 						runes []rune
 						want  bool

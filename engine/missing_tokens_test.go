@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	iengine "zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestMissingTokensPublicOptions(t *testing.T) {
@@ -32,7 +32,7 @@ func TestMissingTokensPublicOptions(t *testing.T) {
 		t.Fatal("options did not resolve exactly once", calls, err)
 	}
 	n, err := p.Parse("", engine.WithMissingTokens(-1), engine.WithMissingTokens(2))
-	var recovered core.SyntaxErrors
+	var recovered value.SyntaxErrors
 	if n == nil || !errors.As(err, &recovered) || len(recovered) != 1 {
 		t.Fatal(n, err)
 	}
@@ -62,7 +62,7 @@ func TestMissingTokensConcurrentReentrantAndRetry(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < 4; j++ {
 				n, err := p.Parse("", engine.WithMissingTokens(1))
-				var recovered core.SyntaxErrors
+				var recovered value.SyntaxErrors
 				if n == nil || !errors.As(err, &recovered) || len(recovered) != 1 {
 					t.Error(n, err)
 					return
@@ -78,12 +78,12 @@ func TestMissingTokensConcurrentReentrantAndRetry(t *testing.T) {
 		}
 		entered = true
 		n, err := p.Parse("", engine.WithMissingTokens(1))
-		var recovered core.SyntaxErrors
+		var recovered value.SyntaxErrors
 		if n == nil || !errors.As(err, &recovered) {
 			t.Error("reentrant invocation shared a ledger", err)
 		}
 	}))
-	var recovered core.SyntaxErrors
+	var recovered value.SyntaxErrors
 	if !entered || !errors.As(err, &recovered) {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestMissingTokensUnsupportedPublicPaths(t *testing.T) {
 		}
 	}
 	r := &missingUnusableReader{}
-	if err := p.ParseStream(r, func(*core.Node) error { t.Fatal("unsupported stream emitted"); return nil }, engine.WithMissingTokens(2)); err == nil {
+	if err := p.ParseStream(r, func(*value.Node) error { t.Fatal("unsupported stream emitted"); return nil }, engine.WithMissingTokens(2)); err == nil {
 		t.Fatal("stream accepted insertion")
 	}
 	if it, err := p.Iterate(r, engine.WithMissingTokens(2)); it != nil || err == nil {

@@ -29,10 +29,12 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // diagnostic is an error in a grammar. Line and Col are 1-based (Col counts code points) and are 0
@@ -377,7 +379,7 @@ func runParse(req parseRequest) parseResult {
 	switch req.Unit {
 	case "", "codepoints":
 	case "bytes":
-		opts = append(opts, engine.WithUnit(core.Bytes))
+		opts = append(opts, engine.WithUnit(input.Bytes))
 	default:
 		res.Error = fmt.Sprintf("unknown unit %q", req.Unit)
 		return res
@@ -399,9 +401,9 @@ func runParse(req parseRequest) parseResult {
 	}
 	// The iterative backend keeps rule calls on its own stack, so only the others need maxDepth.
 	if d := req.MaxDepth; d > 0 {
-		opts = append(opts, engine.WithLimits(core.Limits{Depth: uint64(d)}))
+		opts = append(opts, engine.WithLimits(zpruntime.Limits{Depth: uint64(d)}))
 	} else if maxDepth > 0 && req.Backend != "bytecode-iterative" {
-		opts = append(opts, engine.WithLimits(core.Limits{Depth: maxDepth}))
+		opts = append(opts, engine.WithLimits(zpruntime.Limits{Depth: maxDepth}))
 	}
 	p := c.parser
 	if req.SourceInfo || req.DefaultValue {
@@ -457,8 +459,8 @@ func runParse(req parseRequest) parseResult {
 		res.SExpr = node.String()
 	}
 	if err != nil {
-		var list core.SyntaxErrors
-		var one *core.SyntaxError
+		var list value.SyntaxErrors
+		var one *value.SyntaxError
 		switch {
 		case errors.As(err, &list):
 			for _, e := range list {
@@ -488,11 +490,11 @@ func isFailure(err error) bool {
 	if err == nil {
 		return false
 	}
-	var list core.SyntaxErrors
+	var list value.SyntaxErrors
 	return !errors.As(err, &list)
 }
 
-func convertError(e *core.SyntaxError) syntaxError {
+func convertError(e *value.SyntaxError) syntaxError {
 	return syntaxError{
 		Pos: e.Pos, Line: e.Line, Col: e.Col,
 		Expected: e.Expected, Messages: e.Messages, Message: e.Message(),
@@ -501,9 +503,9 @@ func convertError(e *core.SyntaxError) syntaxError {
 
 // measureTree returns the number of nodes of the tree n and how deeply they are nested (1 for a
 // single node). It does not recurse, so that it works on trees of any depth.
-func measureTree(n *core.Node) (count, depth int) {
+func measureTree(n *value.Node) (count, depth int) {
 	type item struct {
-		n     *core.Node
+		n     *value.Node
 		depth int
 	}
 	stack := []item{{n, 1}}
@@ -518,7 +520,7 @@ func measureTree(n *core.Node) (count, depth int) {
 			}
 		}
 		for _, v := range it.n.Fields() {
-			if c, ok := v.(*core.Node); ok && c != nil {
+			if c, ok := v.(*value.Node); ok && c != nil {
 				stack = append(stack, item{c, it.depth + 1})
 			}
 		}

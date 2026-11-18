@@ -11,11 +11,12 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // TestBudgetDiagnosticRecoveredLists checks the lists of recovered errors under the controls: a
@@ -30,16 +31,16 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 				continue
 			}
 			t.Run(name+"/"+mode, func(t *testing.T) {
-				a := &core.SyntaxError{Messages: []string{"retained-a"}}
-				b := &core.SyntaxError{Expected: []string{"retained-b"}}
-				prefix := &core.SyntaxError{Messages: []string{"prefix"}}
-				records := make([]*core.SyntaxError, 320)
+				a := &value.SyntaxError{Messages: []string{"retained-a"}}
+				b := &value.SyntaxError{Expected: []string{"retained-b"}}
+				prefix := &value.SyntaxError{Messages: []string{"prefix"}}
+				records := make([]*value.SyntaxError, 320)
 				for i := range records {
-					records[i] = []*core.SyntaxError{a, b, a}[i%3]
+					records[i] = []*value.SyntaxError{a, b, a}[i%3]
 				}
 				before, _ := json.Marshal(records)
-				retained := nodes.Ptr(nodes.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "keep", Value: "stable"}}})
-				p := diagnosticParser(core.Limits{})
+				retained := nodes.Ptr(nodes.Data{Text: "retained", Fields: valueimpl.Fields{{Name: "keep", Value: "stable"}}})
+				p := diagnosticParser(runtime.Limits{})
 				list := state.NewErrList(records)
 				p.Memo, p.Recovered = state.NewMemoTable(), []state.RecEntry{state.ErrEntry(prefix)}
 				p.Memo.Slots = make([]*state.MemoEntry, 1)
@@ -54,7 +55,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					if len(p.Recovered) != 2 || p.Recovered[0] != state.ErrEntry(prefix) || p.Recovered[1].List() != list.List() {
 						t.Fatal("recovered replay changed the prefix or did not share the list")
 					}
-					if !slices.Equal(p.RecoveredErrors(), append([]*core.SyntaxError{prefix}, records...)) {
+					if !slices.Equal(p.RecoveredErrors(), append([]*value.SyntaxError{prefix}, records...)) {
 						t.Fatal("recovered replay changed pointer order")
 					}
 				}
@@ -74,7 +75,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					p.Memo.Slots[0] = &state.MemoEntry{Rule: 7, Ok: true, End: 1, Node: retained, Errs: list}
 					steps += 2 // lookup and entry visit; the replay is free
 					var ok, hit bool
-					var val *core.Node
+					var val *value.Node
 					run = func() { val, ok, hit = p.CallBegin(r, 0, &state.CallState{}) }
 					completed = func() {
 						assertReplay()
@@ -132,7 +133,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					var best state.OperatorsRuleAttempt
 					if name == "OperatorsRule snapshot" {
 						steps++ // the operator that the match tries
-						op.Line.M = func(p *state.Parser) (*core.Node, bool) {
+						op.Line.M = func(p *state.Parser) (*value.Node, bool) {
 							p.Pos = 1
 							pushRecords()
 							return retained, true
@@ -161,12 +162,12 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 				}
 				if mode == "complete" {
 					// A limit of 0 is no limit; a free replay runs under a limit of one unit.
-					p.Control = state.NewBudgetControl(nil, core.Limits{Compute: max(steps, 1)})
+					p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: max(steps, 1)})
 				} else if mode == "budget" {
 					// Less than the copy itself, so failure cannot be at a later put.
-					p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 319})
+					p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 319})
 				} else {
-					p.Control = state.NewBudgetControl(newPollingContext(1), core.Limits{})
+					p.Control = state.NewBudgetControl(newPollingContext(1), runtime.Limits{})
 				}
 				err := catchFatal(t, run)
 				if mode == "complete" {
@@ -175,7 +176,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					}
 					completed()
 				} else {
-					want := core.ErrLimit
+					want := runtime.ErrLimit
 					if mode == "cancel" {
 						want = context.Canceled
 					}

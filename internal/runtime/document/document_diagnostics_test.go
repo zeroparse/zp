@@ -3,8 +3,8 @@ package document
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestDocumentDiagnosticContainers(t *testing.T) {
@@ -12,10 +12,10 @@ func TestDocumentDiagnosticContainers(t *testing.T) {
 	if copyDocumentDiagnostics(p, nil) != nil {
 		t.Fatal("nil diagnostics became nonnil")
 	}
-	if got := copyDocumentDiagnostics(p, core.SyntaxErrors{}); got == nil || len(got) != 0 {
+	if got := copyDocumentDiagnostics(p, value.SyntaxErrors{}); got == nil || len(got) != 0 {
 		t.Fatal("empty diagnostics lost their shape")
 	}
-	src := core.SyntaxErrors{
+	src := value.SyntaxErrors{
 		nil,
 		{Expected: []string{}, Messages: nil},
 		{Expected: []string{"token"}, Messages: []string{"original"}},

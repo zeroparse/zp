@@ -14,8 +14,6 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/bench/inputs"
 
-	rt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	gcalc "zeroparse.dev/zp/internal/bench/parsers/calc"
 	gcalclr "zeroparse.dev/zp/internal/bench/parsers/calclr"
@@ -28,6 +26,9 @@ import (
 	gminilangtdoc "zeroparse.dev/zp/internal/bench/parsers/minilangtdoc"
 	goutline "zeroparse.dev/zp/internal/bench/parsers/outline"
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // workload is the grammar and input of one benchmark.
@@ -184,10 +185,10 @@ var backends = []struct {
 
 var units = []struct {
 	name string
-	u    core.PositionUnit
+	u    zpinput.PositionUnit
 }{
-	{"codepoints", core.CodePoints},
-	{"bytes", core.Bytes},
+	{"codepoints", zpinput.CodePoints},
+	{"bytes", zpinput.Bytes},
 }
 
 func load(tb testing.TB, path string) *engine.Parser {
@@ -225,7 +226,7 @@ func TestWorkloads(t *testing.T) {
 					if err != nil && !(w.partial && n != nil) {
 						t.Fatalf("%s/%s: %v", be.name, u.name, err)
 					}
-					if u.u == core.Bytes {
+					if u.u == zpinput.Bytes {
 						continue
 					}
 					got, _ := json.Marshal(n)
@@ -266,9 +267,9 @@ func TestWorkloads(t *testing.T) {
 func TestGeneratedDocumentAndStream(t *testing.T) {
 	type document interface {
 		Edit(start, end int, text string) error
-		Parse(...rt.ParseOption) (*core.Node, error)
+		Parse(...rt.ParseOption) (*value.Node, error)
 	}
-	check := func(t *testing.T, input, marker string, newDoc func(string) (document, error), parse func(string, ...rt.ParseOption) (*core.Node, error)) {
+	check := func(t *testing.T, input, marker string, newDoc func(string) (document, error), parse func(string, ...rt.ParseOption) (*value.Node, error)) {
 		at := utf8.RuneCountInString(input[:strings.Index(input, marker)+len(marker)])
 		doc, err := newDoc(input)
 		if err != nil {
@@ -315,7 +316,7 @@ func TestGeneratedDocumentAndStream(t *testing.T) {
 		input := inputs.CSVInput(500)
 		p := load(t, "../testdata/grammars/csv/csv.zp")
 		var want, got []string
-		if err := p.ParseStream(strings.NewReader(input), func(n *core.Node) error {
+		if err := p.ParseStream(strings.NewReader(input), func(n *value.Node) error {
 			b, err := json.Marshal(n)
 			want = append(want, string(b))
 			return err
@@ -361,7 +362,7 @@ func BenchmarkParse(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
 					for b.Loop() {
-						if err := w.gen(input, u.u == core.Bytes); err != nil {
+						if err := w.gen(input, u.u == zpinput.Bytes); err != nil {
 							b.Fatal(err)
 						}
 					}
@@ -579,7 +580,7 @@ func BenchmarkStream(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				n := 0
-				err := p.ParseStream(strings.NewReader(input), func(*core.Node) error { n++; return nil }, engine.WithBackend(be.b))
+				err := p.ParseStream(strings.NewReader(input), func(*value.Node) error { n++; return nil }, engine.WithBackend(be.b))
 				if err != nil || n != 50001 {
 					b.Fatalf("%d records: %v", n, err)
 				}

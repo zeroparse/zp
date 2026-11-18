@@ -12,11 +12,12 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/limits"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/schema"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Pattern is a programmatic structural pattern. Empty Type, Rule and Category are
@@ -59,7 +60,7 @@ type Edge struct {
 type Capture struct {
 	Name, Category string
 	Value          any
-	Parent         *core.Node
+	Parent         *value.Node
 	Path           []Edge
 }
 
@@ -68,7 +69,7 @@ type Match struct{ Captures []Capture }
 
 type options struct {
 	ctx    context.Context
-	limits core.Limits
+	limits runtime.Limits
 }
 
 // Option configures one query evaluation.
@@ -81,7 +82,7 @@ func WithContext(ctx context.Context) Option {
 
 // WithLimits bounds the budget a query may spend. Budget is charged for traversal, matching, paths and
 // results. A zero or Unlimited limit means an unlimited budget.
-func WithLimits(limits core.Limits) Option {
+func WithLimits(limits runtime.Limits) Option {
 	return func(o *options) { o.limits = limits }
 }
 
@@ -239,7 +240,7 @@ func (p *Pattern) usesRule() bool {
 // context for cancellation.
 type budget struct {
 	ctx    context.Context
-	limits core.Limits
+	limits runtime.Limits
 	used   uint64
 }
 
@@ -250,7 +251,7 @@ func (b *budget) charge(n uint64) error {
 		}
 	}
 	if limits.ExceedsLimit(b.used, n, b.limits.Compute) {
-		return &core.LimitError{Kind: core.LimitCompute, Limit: b.limits.Compute, Used: b.used, Requested: n}
+		return &runtime.LimitError{Kind: runtime.LimitCompute, Limit: b.limits.Compute, Used: b.used, Requested: n}
 	}
 	b.used = limits.SaturatingAdd(b.used, n)
 	return nil
@@ -264,7 +265,7 @@ func (b *budget) charge(n uint64) error {
 // therefore charges no input. Cancellation, compute limit exhaustion and cycles (ErrCycle)
 // return an error without partial results. A query with a rule constraint reports
 // ErrNoSourceInfo when the graph has nodes but none records a rule.
-func (q *Query) Matches(root *core.Node, opts ...Option) ([]Match, error) {
+func (q *Query) Matches(root *value.Node, opts ...Option) ([]Match, error) {
 	if q == nil {
 		return nil, fmt.Errorf("nil structural query")
 	}
@@ -279,7 +280,7 @@ func (q *Query) Matches(root *core.Node, opts ...Option) ([]Match, error) {
 	results := []Match{}
 	sawNode, sawRule := false, false
 	err := visitGraph(root, b, func(v graphVisit) error {
-		n, ok := v.Value.(*core.Node)
+		n, ok := v.Value.(*value.Node)
 		if !ok || n == nil {
 			return nil
 		}
@@ -335,7 +336,7 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 		if p.Category != "" && category != p.Category {
 			return nil, false, nil
 		}
-		n, _ := v.Value.(*core.Node)
+		n, _ := v.Value.(*value.Node)
 		if p.Type != "" {
 			if p.Type == "error" {
 				if category != "error" {
@@ -401,12 +402,12 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 }
 
 // hasElements reports whether n is a tuple or list, or a node whose value is one.
-func hasElements(n *core.Node) bool {
+func hasElements(n *value.Node) bool {
 	if n == nil {
 		return false
 	}
 	switch nodes.ShapeOf(n) {
-	case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
+	case valueimpl.ShapeTuple, valueimpl.ShapeList, valueimpl.ShapeTupleValue, valueimpl.ShapeListValue:
 		return true
 	}
 	return false
@@ -414,12 +415,12 @@ func hasElements(n *core.Node) bool {
 
 // nodeValue returns the value of the node n: its text, or a tuple or list value sharing its
 // elements.
-func nodeValue(n *core.Node) any {
+func nodeValue(n *value.Node) any {
 	switch nodes.ShapeOf(n) {
-	case coreimpl.ShapeTuple:
-		return nodes.Ptr(nodes.Data{Kind: coreimpl.TupleValueKind, Start: nodes.D(n).Start, End: nodes.D(n).End, Children: nodes.D(n).Children})
-	case coreimpl.ShapeList:
-		return nodes.Ptr(nodes.Data{Kind: coreimpl.ListValueKind, Start: nodes.D(n).Start, End: nodes.D(n).End, Children: nodes.D(n).Children})
+	case valueimpl.ShapeTuple:
+		return nodes.Ptr(nodes.Data{Kind: valueimpl.TupleValueKind, Start: nodes.D(n).Start, End: nodes.D(n).End, Children: nodes.D(n).Children})
+	case valueimpl.ShapeList:
+		return nodes.Ptr(nodes.Data{Kind: valueimpl.ListValueKind, Start: nodes.D(n).Start, End: nodes.D(n).End, Children: nodes.D(n).Children})
 	}
 	return nodes.D(n).Text
 }
@@ -436,20 +437,20 @@ func valueCategory(v any) (string, error) {
 	switch v := v.(type) {
 	case nil:
 		return "nil", nil
-	case *core.Node:
+	case *value.Node:
 		if v == nil {
 			return "nil", nil
 		}
 		switch nodes.ShapeOf(v) {
-		case coreimpl.ShapeString, coreimpl.ShapeTuple, coreimpl.ShapeList:
+		case valueimpl.ShapeString, valueimpl.ShapeTuple, valueimpl.ShapeList:
 			return "node", nil
-		case coreimpl.ShapeError:
+		case valueimpl.ShapeError:
 			return "error", nil
-		case coreimpl.ShapeTupleValue:
+		case valueimpl.ShapeTupleValue:
 			return "tuple", nil
-		case coreimpl.ShapeListValue:
+		case valueimpl.ShapeListValue:
 			return "list", nil
-		case coreimpl.ShapeStruct:
+		case valueimpl.ShapeStruct:
 			return "struct", nil
 		}
 	case int:

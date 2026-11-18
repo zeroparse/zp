@@ -9,11 +9,12 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // The tests of this file measure the operations of Document reuse at the bounds that they declare in
@@ -23,7 +24,7 @@ import (
 // REPEAT instruction) charges its own steps between them.
 
 func docParser() *Parser {
-	return &Parser{Input: Input{Control: NewBudgetControl(nil, core.Limits{Compute: 1 << 30})}, Memo: NewMemoTable(),
+	return &Parser{Input: Input{Control: NewBudgetControl(nil, runtime.Limits{Compute: 1 << 30})}, Memo: NewMemoTable(),
 		Runs: map[RunKey]*RunRecord{}}
 }
 
@@ -53,7 +54,7 @@ func TestAdvanceEntryMatchesItsContract(t *testing.T) {
 			Growing: rng.IntN(16) == 0, Positional: rng.IntN(8) == 0, shift: int32(rng.IntN(3)), shifted: rng.IntN(4) == 0,
 			Vgen: uint32(rng.IntN(len(log) + 1))}
 		if rng.IntN(8) == 0 {
-			before.Errs = ErrEntry(&core.SyntaxError{})
+			before.Errs = ErrEntry(&value.SyntaxError{})
 		}
 		want, charged, ok := before, uint64(0), !before.Growing
 		if ok {
@@ -455,7 +456,7 @@ func movedBound(nodes, edges, edits int) uint64 { return uint64(2*(nodes+edges) 
 
 func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Parallel()
-	entry := func(p *Parser, n *core.Node) *MemoEntry {
+	entry := func(p *Parser, n *value.Node) *MemoEntry {
 		return &MemoEntry{Node: n, shift: 1, shifted: true, Gen: 0}
 	}
 	moved := func(p *Parser, e *MemoEntry) uint64 { return spent(p, func() { p.moveResult(e) }) }
@@ -478,7 +479,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Run("a tree of non-empty nodes charges one pass", func(t *testing.T) {
 		p := edited(1)
 		a, b, f := nodes.Ptr(nodes.Data{Start: 2, End: 3}), nodes.Ptr(nodes.Data{Start: 3, End: 4}), nodes.Ptr(nodes.Data{Start: 4, End: 5})
-		n := nodes.Ptr(nodes.Data{Start: 2, End: 5, Children: []*core.Node{a, b}, Fields: coreimpl.Fields{{Name: "f", Value: f}}})
+		n := nodes.Ptr(nodes.Data{Start: 2, End: 5, Children: []*value.Node{a, b}, Fields: valueimpl.Fields{{Name: "f", Value: f}}})
 		if got := moved(p, entry(p, n)); got != 7 {
 			t.Fatalf("charged %d", got)
 		}
@@ -487,7 +488,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		// Visits of the root and of three references, three edges, and two copies to forget.
 		p := edited(1)
 		c := nodes.Ptr(nodes.Data{Start: 3, End: 3})
-		n := nodes.Ptr(nodes.Data{Start: 3, End: 3, Children: []*core.Node{c, c, c}})
+		n := nodes.Ptr(nodes.Data{Start: 3, End: 3, Children: []*value.Node{c, c, c}})
 		got := moved(p, entry(p, n))
 		if got != 4+3+2 || got > movedBound(2, 3, 0) {
 			t.Fatalf("charged %d", got)
@@ -500,7 +501,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		a := nodes.Ptr(nodes.Data{Start: 2, End: 3, Mark: 1})
 		b := nodes.Ptr(nodes.Data{Start: 3, End: 4, Mark: 2})
 		c := nodes.Ptr(nodes.Data{Start: 4, End: 5, Mark: 2})
-		n := nodes.Ptr(nodes.Data{Start: 2, End: 5, Children: []*core.Node{a, b, c}})
+		n := nodes.Ptr(nodes.Data{Start: 2, End: 5, Children: []*value.Node{a, b, c}})
 		got := moved(p, entry(p, n))
 		if got != 7+3+2+2 || got > movedBound(4, 3, 3+2) {
 			t.Fatalf("charged %d", got)
@@ -541,13 +542,13 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		// The root, three edges, and the shared node once.
 		p := edited(1)
 		c := nodes.Ptr(nodes.Data{Start: 3, End: 4})
-		n := nodes.Ptr(nodes.Data{Start: 2, End: 5, Children: []*core.Node{c, c}, Fields: coreimpl.Fields{{Name: "f", Value: c}}})
+		n := nodes.Ptr(nodes.Data{Start: 2, End: 5, Children: []*value.Node{c, c}, Fields: valueimpl.Fields{{Name: "f", Value: c}}})
 		if got := moved(p, entry(p, n)); got != 1+3+1 || nodes.D(c).Start != 4 {
 			t.Fatalf("charged %d, start %d", got, nodes.D(c).Start)
 		}
 		p = edited(1)
 		c = nodes.Ptr(nodes.Data{Start: 3, End: 4})
-		n = nodes.Ptr(nodes.Data{Start: 2, End: 5, Fields: coreimpl.Fields{{Name: "f", Value: c}, {Name: "g", Value: c}}})
+		n = nodes.Ptr(nodes.Data{Start: 2, End: 5, Fields: valueimpl.Fields{{Name: "f", Value: c}, {Name: "g", Value: c}}})
 		if got := moved(p, entry(p, n)); got != 1+2+1 || nodes.D(c).Start != 4 {
 			t.Fatalf("fields: charged %d, start %d", got, nodes.D(c).Start)
 		}
@@ -555,7 +556,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Run("an empty child stays when nothing moves", func(t *testing.T) {
 		p := edited(1)
 		c := nodes.Ptr(nodes.Data{Start: 3, End: 3})
-		n := nodes.Ptr(nodes.Data{Start: 2, End: 5, Children: []*core.Node{c}})
+		n := nodes.Ptr(nodes.Data{Start: 2, End: 5, Children: []*value.Node{c}})
 		e := &MemoEntry{Node: n, shifted: true}
 		if got := moved(p, e); got != 2 || nodes.D(n).Children[0] != c {
 			t.Fatalf("charged %d", got)
@@ -564,14 +565,14 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Run("an empty node charges its fields", func(t *testing.T) {
 		// The copy, one field, and forgetting the copy.
 		p := edited(1)
-		n := nodes.Ptr(nodes.Data{Start: 3, End: 3, Fields: coreimpl.Fields{{Name: "f", Value: "x"}}})
+		n := nodes.Ptr(nodes.Data{Start: 3, End: 3, Fields: valueimpl.Fields{{Name: "f", Value: "x"}}})
 		if got := moved(p, entry(p, n)); got != 3 || got > movedBound(1, 1, 0) {
 			t.Fatalf("charged %d", got)
 		}
 	})
 	t.Run("many copies are dropped, not forgotten one by one", func(t *testing.T) {
 		p := edited(1)
-		kids := make([]*core.Node, 1025)
+		kids := make([]*value.Node, 1025)
 		for i := range kids {
 			kids[i] = nodes.Ptr(nodes.Data{Start: 3, End: 3})
 		}
@@ -782,7 +783,7 @@ func TestGrowKidsChargesByTheRoomOfTheParse(t *testing.T) {
 	t.Parallel()
 	for _, capacity := range []int{100, 4096} {
 		p := docParser()
-		p.KidStack = make([]*core.Node, 100, capacity)
+		p.KidStack = make([]*value.Node, 100, capacity)
 		// resize sets the length of the stack, as the uncharged pushes and pops of a parse do.
 		resize := func(n int) { p.KidStack = slices.Grow(p.KidStack[:0], n)[:n] }
 		if got := spent(p, func() { p.growKids(50) }); got != 100 {

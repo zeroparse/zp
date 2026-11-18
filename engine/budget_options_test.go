@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	iengine "zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestBudgetOptionsOrderAndTraceComposition(t *testing.T) {
@@ -21,7 +22,7 @@ rule main = "abc" $$`, "main")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	n, err := p.Parse("abc", engine.WithContext(ctx), engine.WithContext(nil), engine.WithLimits(core.Limits{Compute: 1}), engine.WithLimits(core.Limits{Compute: core.Unlimited}))
+	n, err := p.Parse("abc", engine.WithContext(ctx), engine.WithContext(nil), engine.WithLimits(runtime.Limits{Compute: 1}), engine.WithLimits(runtime.Limits{Compute: runtime.Unlimited}))
 	if n == nil || err != nil {
 		t.Fatalf("last option did not win: node=%v err=%v", n, err)
 	}
@@ -42,8 +43,8 @@ rule main = "a"* #stream $$`, "main")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	options, emits := 0, 0
-	err = p.ParseStream(strings.NewReader("aaa"), func(*core.Node) error { emits++; return nil },
-		engine.WithContext(ctx), engine.WithContext(nil), engine.WithLimits(core.Limits{Compute: 1}), engine.WithLimits(core.Limits{Compute: core.Unlimited}),
+	err = p.ParseStream(strings.NewReader("aaa"), func(*value.Node) error { emits++; return nil },
+		engine.WithContext(ctx), engine.WithContext(nil), engine.WithLimits(runtime.Limits{Compute: 1}), engine.WithLimits(runtime.Limits{Compute: runtime.Unlimited}),
 		func(o *iengine.ParseOptions) { options++ })
 	if err != nil || emits != 3 || options != 1 {
 		t.Fatalf("error=%v emits=%d options=%d", err, emits, options)
@@ -51,7 +52,7 @@ rule main = "a"* #stream $$`, "main")
 	first, second := 0, 0
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
-	err = p.ParseStream(strings.NewReader("aaa"), func(*core.Node) error { t.Fatal("emitted after trace cancellation"); return nil }, engine.WithContext(ctx), engine.WithTrace(func(engine.TraceEvent) { first++; cancel() }), engine.WithTrace(func(engine.TraceEvent) { second++ }))
+	err = p.ParseStream(strings.NewReader("aaa"), func(*value.Node) error { t.Fatal("emitted after trace cancellation"); return nil }, engine.WithContext(ctx), engine.WithTrace(func(engine.TraceEvent) { first++; cancel() }), engine.WithTrace(func(engine.TraceEvent) { second++ }))
 	if err != context.Canceled || first != 1 || second != 0 {
 		t.Fatalf("error=%v trace=%d/%d", err, first, second)
 	}

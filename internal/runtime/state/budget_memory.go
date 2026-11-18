@@ -3,9 +3,10 @@ package state
 import (
 	"unsafe"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/limits"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Memory is counted in bytes of logical capacity: the element count of a buffer times the size of
@@ -33,9 +34,9 @@ import (
 
 // Sizes of the elements that the counters charge.
 const (
-	nodeBytes     = uint64(unsafe.Sizeof(core.Node{}))
-	ptrBytes      = uint64(unsafe.Sizeof((*core.Node)(nil)))
-	fieldBytes    = uint64(unsafe.Sizeof(coreimpl.NodeField{}))
+	nodeBytes     = uint64(unsafe.Sizeof(value.Node{}))
+	ptrBytes      = uint64(unsafe.Sizeof((*value.Node)(nil)))
+	fieldBytes    = uint64(unsafe.Sizeof(valueimpl.NodeField{}))
 	frameBytes    = uint64(unsafe.Sizeof(Frame{}))
 	memoBytes     = uint64(unsafe.Sizeof(MemoEntry{}))
 	memoSlotBytes = uint64(unsafe.Sizeof((*MemoEntry)(nil)))
@@ -43,7 +44,7 @@ const (
 	intBytes      = uint64(unsafe.Sizeof(0))
 	stringBytes   = uint64(unsafe.Sizeof(""))
 	// syntaxErrorBytes is a syntax error; the lists that hold its pointer count the pointer.
-	syntaxErrorBytes = uint64(unsafe.Sizeof(core.SyntaxError{}))
+	syntaxErrorBytes = uint64(unsafe.Sizeof(value.SyntaxError{}))
 	expIDBytes       = uint64(unsafe.Sizeof(ExpID(0)))
 	sdepBytes        = uint64(unsafe.Sizeof(sdep{}))
 	growKeyBytes     = uint64(unsafe.Sizeof(growKey{}))
@@ -94,7 +95,7 @@ func (c *BudgetControl) AttachMemory(p *Parser) {
 // checkMemory fails the parse when the memory count exceeds the limit.
 func (c *BudgetControl) checkMemory() {
 	if used := c.MemoryUsed(); used > c.Limits.Memory {
-		panic(Fatal{Err: &core.LimitError{Kind: core.LimitMemory, Limit: c.Limits.Memory, Used: used}})
+		panic(Fatal{Err: &runtime.LimitError{Kind: runtime.LimitMemory, Limit: c.Limits.Memory, Used: used}})
 	}
 }
 
@@ -175,13 +176,13 @@ func (c *BudgetControl) chargeValueBytes(n int) {
 }
 
 // chargeError charges the syntax error e (BudgetControl.errs).
-func (p *Parser) chargeError(e *core.SyntaxError) {
+func (p *Parser) chargeError(e *value.SyntaxError) {
 	if BudgetControlsEnabled && p.Control != nil {
 		p.Control.errs = limits.SaturatingAdd(p.Control.errs, syntaxErrorSize(e))
 	}
 }
 
 // syntaxErrorSize returns the bytes of the syntax error e and its lists.
-func syntaxErrorSize(e *core.SyntaxError) uint64 {
+func syntaxErrorSize(e *value.SyntaxError) uint64 {
 	return syntaxErrorBytes + uint64(cap(e.Expected)+cap(e.Messages))*stringBytes
 }

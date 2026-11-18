@@ -42,7 +42,7 @@ type typedOutput struct {
 }
 
 // typedGo returns the Go source of the typed values for a parser starting at rule start. Unless conv
-// is set, ParseValue runs the typed library (codegen/go/lib/typed.go) when every value it can produce has a Go
+// is set, ParseValue runs the typed library (pkg/runtime/golib/typed.go) when every value it can produce has a Go
 // type of its own; otherwise it converts the result of Parse.
 //
 // The source of the types package refers to the library by its package name and to the types by

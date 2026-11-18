@@ -2,7 +2,7 @@
 
 package state
 
-import "zeroparse.dev/zp/core"
+import zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 
 // confFrameMark runs frame.mark for the conformance suite.
 // Printed from Exec IR function confFrameMark of internal/ir/code/exec/compose.
@@ -83,7 +83,7 @@ func (p *Parser) confFrameOpen(n int) *Frame {
 
 // confFrameSet runs frame.set for the conformance suite.
 // Printed from Exec IR function confFrameSet of internal/ir/code/exec/compose.
-func (p *Parser) confFrameSet(slot int, v *core.Node) {
+func (p *Parser) confFrameSet(slot int, v *zpvalue.Node) {
 	p.SetCapture(slot, v)
 }
 

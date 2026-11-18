@@ -6,9 +6,9 @@
 package program
 
 import (
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Program is a grammar as a parser runs it. It is immutable once built and shared by the parses
@@ -37,7 +37,7 @@ type Program struct {
 	// Types holds the declared struct and node types by name (not the aliases).
 	Types map[string]*Type
 	// TypeKinds holds the node kinds of the grammar's types, also under the names of aliases.
-	TypeKinds map[string]*coreimpl.Kind
+	TypeKinds map[string]*valueimpl.Kind
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
 	NodeKinds map[string]*nodes.NodeTypeKinds
@@ -204,11 +204,11 @@ type StructZero struct {
 }
 
 // TypeKind returns the node kind of the type typ.
-func (p *Program) TypeKind(typ string) *coreimpl.Kind {
+func (p *Program) TypeKind(typ string) *valueimpl.Kind {
 	if k := p.TypeKinds[typ]; k != nil {
 		return k
 	}
-	return coreimpl.KindOf(typ, "")
+	return valueimpl.KindOf(typ, "")
 }
 
 // EnvFree reports that the records of the run site are not keyed by the environment.

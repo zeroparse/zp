@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestDocumentVersionAndBatchAfterInterruption(t *testing.T) {
@@ -14,7 +15,7 @@ func TestDocumentVersionAndBatchAfterInterruption(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		d, err := p.NewDocument("éabcd", engine.WithUnit(unit))
 		if err != nil {
 			t.Fatal(err)
@@ -30,14 +31,14 @@ func TestDocumentVersionAndBatchAfterInterruption(t *testing.T) {
 			if d.Version() != base {
 				t.Fatal("cancellation advanced text version")
 			}
-			if n, err := d.Parse(engine.WithLimits(core.Limits{Compute: 1})); n != nil || !errors.Is(err, core.ErrLimit) {
+			if n, err := d.Parse(engine.WithLimits(runtime.Limits{Compute: 1})); n != nil || !errors.Is(err, runtime.ErrLimit) {
 				t.Fatal("compute limit", n, err)
 			}
 			if d.Version() != base {
 				t.Fatal("execution interruption advanced text version")
 			}
 		}
-		if err := d.EditBatch(base, core.TextEdit{Start: 0, End: 0, Text: "x"}); err != nil {
+		if err := d.EditBatch(base, input.TextEdit{Start: 0, End: 0, Text: "x"}); err != nil {
 			t.Fatal(err)
 		}
 		if d.Version().Sequence() != base.Sequence()+1 || d.Text() != "xéabcd" {
@@ -54,7 +55,7 @@ func TestDocumentEditBatchPublicContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		doc, err := parser.NewDocument("éabcd", engine.WithUnit(unit))
 		if err != nil {
 			t.Fatal(err)
@@ -70,10 +71,10 @@ func TestDocumentEditBatchPublicContract(t *testing.T) {
 		}
 		before := old.String()
 		offset := 1
-		if unit == core.Bytes {
+		if unit == input.Bytes {
 			offset = 2
 		}
-		changes := []core.TextEdit{{Start: offset, End: offset + 1, Text: "XYZ"}, {Start: offset + 3, End: offset + 4, Text: "!"}}
+		changes := []input.TextEdit{{Start: offset, End: offset + 1, Text: "XYZ"}, {Start: offset + 3, End: offset + 4, Text: "!"}}
 		if err := doc.EditBatch(base, changes...); err != nil {
 			t.Fatal(err)
 		}

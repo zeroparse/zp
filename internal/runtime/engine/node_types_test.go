@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestNodeTypesAcrossBackends(t *testing.T) {
@@ -13,7 +13,7 @@ func TestNodeTypesAcrossBackends(t *testing.T) {
 	for _, fixture := range codegentest.NodeTypeCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					for _, input := range fixture.Inputs {
 						baseline := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))

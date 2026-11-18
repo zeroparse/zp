@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	coreimpl "zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
@@ -14,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // The Go forms of the primitive operations of grammar code at the Exec stage. Each primitive stands
@@ -192,7 +192,7 @@ func (p *flowPrinter) op(c *code.Call, args []string) string {
 	case flow.OpNewNode:
 		typ := "tuple"
 		if c.Imm.(flow.List) {
-			typ = coreimpl.TypeList
+			typ = valueimpl.TypeList
 		}
 		return fmt.Sprintf("p.%s(%q, %s, p.Pos, %s)", g.helper("NewNode"), typ, args[0], args[1])
 	case flow.OpNewVals:

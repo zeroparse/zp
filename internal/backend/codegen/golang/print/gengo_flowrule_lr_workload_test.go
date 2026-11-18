@@ -114,7 +114,7 @@ func testGeneratedTypedBodyWorkload(t *testing.T, src, fixture, dir, marker stri
 const typedLRActionWorkloadFixture = `package lrfixture
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -177,7 +177,7 @@ func BenchmarkTypedLR(b *testing.B) {
 const typedLRWorkloadFixture = `package lrfixture
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
 	"encoding/json"
 	"fmt"
 	"strings"

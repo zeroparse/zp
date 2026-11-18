@@ -11,13 +11,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // TestCompiledRoundTrip checks that a program loaded from a compiled grammar returns the same
@@ -94,8 +95,8 @@ func TestCompiledStreamAndDocument(t *testing.T) {
 		t.Fatalf("%v %q", err, start)
 	}
 	var got []string
-	err = prog.ParseStream("main", strings.NewReader("#records\na=1\nb=2\n"), func(n *core.Node) error {
-		got = append(got, nodes.D(n.Field("k").(*core.Node)).Text)
+	err = prog.ParseStream("main", strings.NewReader("#records\na=1\nb=2\n"), func(n *value.Node) error {
+		got = append(got, nodes.D(n.Field("k").(*value.Node)).Text)
 		return nil
 	})
 	if err != nil || strings.Join(got, ",") != "a,b" {
@@ -244,7 +245,7 @@ func TestCompiledCorruptionDoesNotPanic(t *testing.T) {
 				// nesting depth limit.
 				for _, b := range []Backend{Default, Bytecode, BytecodeIterative} {
 					for _, mode := range allModes {
-						prog.ParseWith(start, "1+2", servedBy(mode, ParseOptions{Backend: b, Limits: core.Limits{Depth: 1000}}))
+						prog.ParseWith(start, "1+2", servedBy(mode, ParseOptions{Backend: b, Limits: runtime.Limits{Depth: 1000}}))
 					}
 				}
 			}
@@ -268,8 +269,8 @@ func FuzzLoadProgram(f *testing.F) {
 		prog, start, err := LoadProgram(data)
 		if err == nil && start != "" {
 			for _, mode := range allModes {
-				prog.ParseWith(start, "a=1\n", servedBy(mode, ParseOptions{Limits: core.Limits{Depth: 1000}}))
-				prog.ParseWith(start, "a=1\n", servedBy(mode, ParseOptions{Backend: Bytecode, Limits: core.Limits{Depth: 1000}}))
+				prog.ParseWith(start, "a=1\n", servedBy(mode, ParseOptions{Limits: runtime.Limits{Depth: 1000}}))
+				prog.ParseWith(start, "a=1\n", servedBy(mode, ParseOptions{Backend: Bytecode, Limits: runtime.Limits{Depth: 1000}}))
 			}
 		}
 	})

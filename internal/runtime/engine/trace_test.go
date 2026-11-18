@@ -8,9 +8,11 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // traceLines parses input with a trace and returns one line per event:
@@ -86,7 +88,7 @@ func checkTrace(t *testing.T, prog *Program, start, input string, o ParseOptions
 // parseBudgetStats is what a parse did: its counts, the memo entries it left, and the memoization
 // decisions it made (the first calls recorded, and the rules memoized eagerly).
 type parseBudgetStats struct {
-	core.ParseStats
+	runtime.ParseStats
 	entries, firstCalls int
 	eager               string
 }
@@ -173,7 +175,7 @@ func checkEvents(t *testing.T, prog *Program, start, input string, o ParseOption
 		}
 	}
 	_, err := prog.ParseWith(start, input, o)
-	if _, ok := err.(*core.SyntaxError); err == nil || ok {
+	if _, ok := err.(*value.SyntaxError); err == nil || ok {
 		if len(stack) != 0 && bad == "" {
 			bad = fmt.Sprintf("%d calls not exited", len(stack))
 		}
@@ -190,7 +192,7 @@ func TestTraceKeepsResults(t *testing.T) {
 	for _, c := range codegentest.GenCorpus(t) {
 		prog := mustCompile(t, c.Src)
 		for _, in := range c.Inputs {
-			for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, u := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				checkTrace(t, prog, "main", in, ParseOptions{Expectations: true, Unit: u})
 				checkTrace(t, prog, "main", in, ParseOptions{Expectations: true, Unit: u, Recognize: true})
 			}
@@ -391,8 +393,8 @@ func TestTraceStreamAndDocument(t *testing.T) {
 rule line = [a-z]* #atomic "\n"`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		var lines, traced []string
-		emit := func(dst *[]string) func(*core.Node) error {
-			return func(n *core.Node) error { *dst = append(*dst, n.String()); return nil }
+		emit := func(dst *[]string) func(*value.Node) error {
+			return func(n *value.Node) error { *dst = append(*dst, n.String()); return nil }
 		}
 		err1 := prog.ParseStreamWith("main", strings.NewReader("ab\ncd\n"), emit(&lines), ParseOptions{Expectations: true, Backend: b})
 		calls := 0
@@ -531,7 +533,7 @@ func TestTracesAgreeAcrossBackends(t *testing.T) {
 	for _, c := range codegentest.GenCorpus(t) {
 		prog := mustCompile(t, c.Src)
 		for _, in := range c.Inputs {
-			for _, o := range []ParseOptions{{Expectations: true, Unit: core.CodePoints}, {Unit: core.Bytes}, {Unit: core.CodePoints, Recognize: true}} {
+			for _, o := range []ParseOptions{{Expectations: true, Unit: zpinput.CodePoints}, {Unit: zpinput.Bytes}, {Unit: zpinput.CodePoints, Recognize: true}} {
 				o.Backend = Closure
 				want, wantResult := dispatchFreeTrace(prog, in, o)
 				for _, b := range []Backend{Bytecode, BytecodeIterative} {
@@ -552,8 +554,8 @@ func TestTracesAgreeAcrossBackends(t *testing.T) {
 
 // firstCharEnd returns the position after the character at pos in the unit u: what a call that
 // looks at that character only has examined, which is pos+1 at the end of the input.
-func firstCharEnd(input string, pos int, u core.PositionUnit) int {
-	if u == core.Bytes && pos < len(input) {
+func firstCharEnd(input string, pos int, u zpinput.PositionUnit) int {
+	if u == zpinput.Bytes && pos < len(input) {
 		_, size := utf8.DecodeRuneInString(input[pos:])
 		return pos + size
 	}

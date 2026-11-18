@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -51,11 +51,11 @@ rule tail = "b"`)
 			wantResult := codegentest.ResultJSON(n, err)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				t.Run(fmt.Sprint(backend), func(t *testing.T) {
-					var pr core.Profile
+					var pr instrument.Profile
 					var got []event
 					n, err := prog.ParseWith("main", tc.input, ParseOptions{
 						Backend:  backend,
-						Profiles: []*core.Profile{&pr},
+						Profiles: []*instrument.Profile{&pr},
 						Trace: func(e TraceEvent) {
 							got = append(got, event{kind: e.Kind, rule: e.Rule, depth: e.Depth,
 								pos: e.Pos, level: e.Level, lookahead: e.Lookahead,

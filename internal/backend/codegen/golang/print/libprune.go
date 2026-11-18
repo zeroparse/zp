@@ -507,7 +507,7 @@ func recvName(e goast.Expr) string {
 
 // importNames are the package names of the imports of the library whose last path element is not
 // their name.
-var importNames = map[string]string{"zeroparse.dev/zp/core/impl": "coreimpl"}
+var importNames = map[string]string{"zeroparse.dev/zp/pkg/runtime/value/impl": "coreimpl"}
 
 // dropUnusedImports returns src without the imports whose package it no longer names.
 func dropUnusedImports(name string, src []byte) ([]byte, error) {

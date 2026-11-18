@@ -5,25 +5,25 @@ package state
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/limits"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 func TestResolveLimits(t *testing.T) {
-	l, adaptive := ResolveLimits(core.Limits{}, 10, false)
+	l, adaptive := ResolveLimits(runtime.Limits{}, 10, false)
 	if l.Compute != limits.DefaultBudgetFloor || adaptive {
 		t.Fatalf("short input: %+v adaptive=%t", l, adaptive)
 	}
-	if l, _ := ResolveLimits(core.Limits{}, 1<<20, false); l.Compute != 1<<30 {
+	if l, _ := ResolveLimits(runtime.Limits{}, 1<<20, false); l.Compute != 1<<30 {
 		t.Fatalf("large input: %+v", l)
 	}
-	if l, _ := ResolveLimits(core.Limits{Compute: 7}, 1<<20, false); l.Compute != 7 {
+	if l, _ := ResolveLimits(runtime.Limits{Compute: 7}, 1<<20, false); l.Compute != 7 {
 		t.Fatalf("explicit: %+v", l)
 	}
-	if l, _ := ResolveLimits(core.Limits{Compute: core.Unlimited}, 1<<20, false); l.Compute != 0 {
+	if l, _ := ResolveLimits(runtime.Limits{Compute: runtime.Unlimited}, 1<<20, false); l.Compute != 0 {
 		t.Fatalf("unlimited: %+v", l)
 	}
-	l, adaptive = ResolveLimits(core.Limits{}, 0, true)
+	l, adaptive = ResolveLimits(runtime.Limits{}, 0, true)
 	if l.Compute != limits.DefaultBudgetFloor || !adaptive {
 		t.Fatalf("stream: %+v adaptive=%t", l, adaptive)
 	}
@@ -31,7 +31,7 @@ func TestResolveLimits(t *testing.T) {
 
 // A stream's default budget follows the furthest position demanded, and never shrinks.
 func TestDemand(t *testing.T) {
-	l, adaptive := ResolveLimits(core.Limits{}, 0, true)
+	l, adaptive := ResolveLimits(runtime.Limits{}, 0, true)
 	c := NewBudgetControl(nil, l)
 	c.Adaptive = adaptive
 	c.Demand(100)
@@ -52,7 +52,7 @@ func TestDemand(t *testing.T) {
 	}
 	var none *BudgetControl
 	none.Demand(5)
-	fixed := NewBudgetControl(nil, core.Limits{Compute: 9})
+	fixed := NewBudgetControl(nil, runtime.Limits{Compute: 9})
 	fixed.Demand(1 << 30)
 	if fixed.Limits.Compute != 9 {
 		t.Fatalf("explicit budget grew: %d", fixed.Limits.Compute)

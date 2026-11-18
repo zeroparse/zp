@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestPublicStreamDiagnosticTail(t *testing.T) {
@@ -18,36 +19,36 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 	}
 	const input = "abX!abY?abZ#abW!ab"
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				base := []engine.ParseOption{engine.WithBackend(backend), engine.WithUnit(unit)}
 				allErr := p.ParseStream(strings.NewReader(input), nil, base...)
-				var all core.SyntaxErrors
+				var all value.SyntaxErrors
 				if !errors.As(allErr, &all) || len(all) != 4 {
 					t.Fatalf("legacy recoveries: %v", allErr)
 				}
 				zeroErr := p.ParseStream(strings.NewReader(input), nil, append(base, engine.WithDiagnosticLimit(0))...)
-				if _, truncated := zeroErr.(*core.TruncatedSyntaxErrors); truncated {
+				if _, truncated := zeroErr.(*value.TruncatedSyntaxErrors); truncated {
 					t.Fatalf("zero limit truncated: %v", zeroErr)
 				}
-				var zero core.SyntaxErrors
+				var zero value.SyntaxErrors
 				if !errors.As(zeroErr, &zero) || !reflect.DeepEqual(zero, all) {
 					t.Fatalf("zero limit changed result: %v", zeroErr)
 				}
 
 				var events []string
-				var seen []*core.SyntaxError
-				opts := append(base, engine.WithDiagnosticLimit(2), engine.WithDiagnosticCallback(func(e *core.SyntaxError) error {
+				var seen []*value.SyntaxError
+				opts := append(base, engine.WithDiagnosticLimit(2), engine.WithDiagnosticCallback(func(e *value.SyntaxError) error {
 					events = append(events, "diagnostic")
 					seen = append(seen, e)
 					return nil
 				}))
-				err := p.ParseStream(strings.NewReader(input), func(*core.Node) error {
+				err := p.ParseStream(strings.NewReader(input), func(*value.Node) error {
 					events = append(events, "element")
 					return nil
 				}, opts...)
-				var truncated *core.TruncatedSyntaxErrors
-				var retained core.SyntaxErrors
+				var truncated *value.TruncatedSyntaxErrors
+				var retained value.SyntaxErrors
 				if !errors.As(err, &truncated) || !errors.As(err, &retained) {
 					t.Fatalf("truncated error does not unwrap: %T %v", err, err)
 				}
@@ -56,7 +57,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 					!strings.Contains(err.Error(), "truncated") {
 					t.Fatalf("bounded tail: %+v, retained=%v", truncated, retained)
 				}
-				if len(seen) != len(all) || !reflect.DeepEqual(seen, []*core.SyntaxError(all)) {
+				if len(seen) != len(all) || !reflect.DeepEqual(seen, []*value.SyntaxError(all)) {
 					t.Fatalf("callback lost committed recoveries: got=%v want=%v", seen, all)
 				}
 				if !reflect.DeepEqual(events, []string{
@@ -67,11 +68,11 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 				}
 				for _, limit := range []int{1, 4, 8} {
 					err := p.ParseStream(strings.NewReader(input), nil, append(base, engine.WithDiagnosticLimit(limit))...)
-					var got core.SyntaxErrors
+					var got value.SyntaxErrors
 					if !errors.As(err, &got) || !reflect.DeepEqual(got, all[max(0, len(all)-limit):]) {
 						t.Fatalf("limit %d: %v", limit, err)
 					}
-					_, isTruncated := err.(*core.TruncatedSyntaxErrors)
+					_, isTruncated := err.(*value.TruncatedSyntaxErrors)
 					if isTruncated != (limit < len(all)) {
 						t.Fatalf("limit %d wrapper: %T", limit, err)
 					}
@@ -90,7 +91,7 @@ rule item = "a" #recover(skip="!")`, "main")
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 		t.Run(backend.String(), func(t *testing.T) {
 			var events []string
-			it, err := p.Iterate(strings.NewReader("!!x"), engine.WithBackend(backend), engine.WithDiagnosticLimit(1), engine.WithDiagnosticCallback(func(*core.SyntaxError) error {
+			it, err := p.Iterate(strings.NewReader("!!x"), engine.WithBackend(backend), engine.WithDiagnosticLimit(1), engine.WithDiagnosticCallback(func(*value.SyntaxError) error {
 				events = append(events, "diagnostic")
 				return nil
 			}))
@@ -104,7 +105,7 @@ rule item = "a" #recover(skip="!")`, "main")
 				events = append(events, "element")
 			}
 			_, ok, terminal := it.Next()
-			var truncated *core.TruncatedSyntaxErrors
+			var truncated *value.TruncatedSyntaxErrors
 			if ok || !errors.As(terminal, &truncated) || truncated.Total != 3 || truncated.Dropped != 2 || len(truncated.Errors) != 1 {
 				t.Fatalf("terminal: ok=%v err=%v", ok, terminal)
 			}
@@ -127,10 +128,10 @@ rule item = "ab" #recover(skip="!")`, "main")
 	stop := errors.New("stop")
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 		elements := 0
-		err := p.ParseStream(strings.NewReader("!ab"), func(*core.Node) error {
+		err := p.ParseStream(strings.NewReader("!ab"), func(*value.Node) error {
 			elements++
 			return nil
-		}, engine.WithBackend(backend), engine.WithDiagnosticLimit(1), engine.WithDiagnosticCallback(func(*core.SyntaxError) error {
+		}, engine.WithBackend(backend), engine.WithDiagnosticLimit(1), engine.WithDiagnosticCallback(func(*value.SyntaxError) error {
 			return stop
 		}))
 		if err != stop || elements != 0 {

@@ -32,19 +32,20 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/core"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 IMPORTS)
 
 type doc struct {
-	parse func() (*core.Node, error)
+	parse func() (*zpvalue.Node, error)
 	edit  func(int, int, string) error
 	text  func() string
-	stats func() core.ParseStats
+	stats func() zpruntime.ParseStats
 }
 
 type entry struct {
 	newDoc func(string) (*doc, error)
-	parse  func(string) (*core.Node, error)
+	parse  func(string) (*zpvalue.Node, error)
 }
 
 var entries = []entry{

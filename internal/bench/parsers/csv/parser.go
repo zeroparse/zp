@@ -4,14 +4,14 @@
 package csv
 
 import (
-	rt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
 	types "zeroparse.dev/zp/internal/bench/parsers/csv/types"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*core.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*zpvalue.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -31,7 +31,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*core.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*zpvalue.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -290,13 +290,13 @@ func init() {
 	trules[0].Entry = u0
 }
 
-func e3(p *rt.Parser, _ int) (*core.Node, bool) {
+func e3(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, x7, x8 int
-	var x2 []*core.Node
+	var x2 []*zpvalue.Node
 	var x3, x10 rt.Mark
 	var ok bool
-	var v12, v13, v14, v15 *core.Node
+	var v12, v13, v14, v15 *zpvalue.Node
 	x1 = p.Pos
 	x2 = p.Nodes(1)[:0]
 	x3 = p.Mark()
@@ -339,12 +339,12 @@ fail:
 	return nil, false
 }
 
-func e6(p *rt.Parser, _ int) (*core.Node, bool) {
+func e6(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, x10 rt.Mark
 	var x5, x6 int
 	var ok bool
-	var v4, v13, v14 *core.Node
+	var v4, v13, v14 *zpvalue.Node
 	var x7, x8 *rt.CaptureFrame
 	x1 = p.Mark()
 	p.Silent++
@@ -403,13 +403,13 @@ fail:
 	return nil, false
 }
 
-func e10(p *rt.Parser, _ int) (*core.Node, bool) {
+func e10(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, size, x8, x9, x11, x15, x16, x18, x19, x21, x25, x28, x29 int
 	var x2, x13, x23 rt.Mark
 	var x4, ch rune
 	var x5, ok, x10, x20 bool
-	var v30 *core.Node
+	var v30 *zpvalue.Node
 	x1 = p.Pos
 	x2 = p.Mark()
 	if p.Pos < len(p.In) {
@@ -622,7 +622,7 @@ L3:
 	return v30, true
 }
 
-func r2(p *rt.Parser) (*core.Node, bool) {
+func r2(p *rt.Parser) (*zpvalue.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -639,10 +639,10 @@ func r2(p *rt.Parser) (*core.Node, bool) {
 	return v, ok
 }
 
-func r4(p *rt.Parser) (*core.Node, bool) {
+func r4(p *rt.Parser) (*zpvalue.Node, bool) {
 	p.Spend()
 	var start, x1, x10 int
-	var v *core.Node
+	var v *zpvalue.Node
 	var x3 rune
 	var x4, ok bool
 	start = p.Pos
@@ -705,9 +705,9 @@ fail:
 	return nil, false
 }
 
-func e15(p *rt.Parser, _ int) (*core.Node, bool) {
+func e15(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
-	var v *core.Node
+	var v *zpvalue.Node
 	var x1, x5 int
 	var ok bool
 	x1 = p.Pos
@@ -744,10 +744,10 @@ fail:
 	return nil, false
 }
 
-func q1(p *rt.Parser) (*core.Node, bool) {
+func q1(p *rt.Parser) (*zpvalue.Node, bool) {
 	p.Spend()
 	var start, x1, x4, x6 int
-	var v *core.Node
+	var v *zpvalue.Node
 	var ok, x3 bool
 	start = p.Pos
 	x1 = p.Pos
@@ -815,9 +815,9 @@ fail:
 	return nil, false
 }
 
-func q2(p *rt.Parser) (*core.Node, bool) {
+func q2(p *rt.Parser) (*zpvalue.Node, bool) {
 	p.Spend()
-	var v *core.Node
+	var v *zpvalue.Node
 	var x1, size, x7, x8, x10, x12, x14, x15, x17, x18, x20, x22, x24, x27, x28 int
 	var x3, ch rune
 	var x4, ok, x9, x19 bool
@@ -1032,10 +1032,10 @@ L2:
 	return v, true
 }
 
-func q3(p *rt.Parser) (*core.Node, bool) {
+func q3(p *rt.Parser) (*zpvalue.Node, bool) {
 	p.Spend()
 	var start, x1, x10 int
-	var v *core.Node
+	var v *zpvalue.Node
 	var x3 rune
 	var x4, ok bool
 	start = p.Pos
@@ -1558,4 +1558,4 @@ fail:
 
 const _ = types.ZPSchema_fc736caa271f00e2
 
-const _ = rt.Protocol20
+const _ = rt.Protocol21

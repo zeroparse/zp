@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // TestEngineValueHullTable runs the hull table (conform.HullCases) on the engine's composition hull
@@ -18,23 +20,23 @@ func TestEngineValueHullTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, "@start\nrule main = \"a\"\n", compile.Options{}).Runtime())
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, input.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, runtime.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p, Start: conform.StructRuleStart, End: conform.StructRuleEnd}
-		text := p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+		text := p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 		vals := map[string]any{
 			conform.MemberNil:     nil,
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
-			conform.StructLate:    p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
+			conform.BuiltinNode:   p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: 2, End: 5, Children: []*value.Node{text, text}}),
+			conform.StructLate:    p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
 		// The budget-controls reference build charges nothing, so its units are not checked.
 		err := conform.RunHulls("engine", controlled && BudgetControlsEnabled, func(kind string, elems []string) (string, int) {
-			var kids []*core.Node
+			var kids []*value.Node
 			for _, e := range elems {
 				n, err := element(c, kind, vals[e])
 				if err != nil {
@@ -42,7 +44,7 @@ func TestEngineValueHullTable(t *testing.T) {
 				}
 				kids = append(kids, n)
 			}
-			var n *core.Node
+			var n *value.Node
 			if kind == "tuple" {
 				n = c.TupleNode(kids)
 			} else {

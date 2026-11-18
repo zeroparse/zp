@@ -3,9 +3,9 @@ package state
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // walk runs a walk of site 1 from pos that visits n positions one apart and fails at the next,
@@ -94,7 +94,7 @@ func TestSkipRunsAbortControl(t *testing.T) {
 }
 
 // texts returns the texts of the nodes of the elements es.
-func texts(es []*core.Node) string {
+func texts(es []*value.Node) string {
 	out := ""
 	for _, e := range es {
 		out += nodes.D(e).Text
@@ -107,10 +107,10 @@ func texts(es []*core.Node) string {
 // otherwise in a copy.
 func TestSkipRunsShareElements(t *testing.T) {
 	p := &Parser{}
-	el := func(s string) []*core.Node {
-		var ns []*core.Node
+	el := func(s string) []*value.Node {
+		var ns []*value.Node
 		for _, c := range s {
-			ns = append(ns, p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Text: string(c)}))
+			ns = append(ns, p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Text: string(c)}))
 		}
 		return ns
 	}

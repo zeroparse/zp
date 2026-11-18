@@ -5,7 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestProfile(t *testing.T) {
@@ -16,9 +18,9 @@ func TestProfile(t *testing.T) {
 rule y = "x"+ "!"
 rule x = "x"+`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var prof core.Profile
+		var prof instrument.Profile
 		for range 2 {
-			if _, err := prog.ParseWith("main", "xxc", ParseOptions{Backend: b, Profiles: []*core.Profile{&prof}}); err != nil {
+			if _, err := prog.ParseWith("main", "xxc", ParseOptions{Backend: b, Profiles: []*instrument.Profile{&prof}}); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -26,7 +28,7 @@ rule x = "x"+`)
 		if pr.Parses != 2 || pr.Calls != 10 || pr.Evals != 10 || pr.MemoHits != 0 || pr.Examined != 6 || pr.Time < 0 {
 			t.Errorf("%v: totals %+v", b, pr)
 		}
-		got := map[string]core.RuleProfile{}
+		got := map[string]instrument.RuleProfile{}
 		for _, r := range pr.Rules {
 			got[r.Rule] = r
 			if r.SelfTime < 0 || r.SelfTime > r.Time || r.Time > pr.Time {
@@ -38,10 +40,10 @@ rule x = "x"+`)
 		}
 		x, y, m := got["x"], got["y"], got["main"]
 		if x.Calls != 6 || x.Evals != 6 || x.Matched != 6 || x.Failed != 0 || x.Consumed != 12 || x.Wasted != 0 ||
-			x.Repeats != 4 || x.MaxEvals != 3 || x.MaxEvalsAt != (core.CallSite{Location: core.Location{Pos: 0, Line: 1, Col: 1}}) {
+			x.Repeats != 4 || x.MaxEvals != 3 || x.MaxEvalsAt != (instrument.CallSite{Location: zpinput.Location{Pos: 0, Line: 1, Col: 1}}) {
 			t.Errorf("%v: x %+v", b, x)
 		}
-		if y.Calls != 2 || y.Failed != 2 || y.Wasted != 6 || y.LongestFail != 3 || y.LongestFailAt != (core.CallSite{Location: core.Location{Pos: 0, Line: 1, Col: 1}}) || y.Repeats != 0 {
+		if y.Calls != 2 || y.Failed != 2 || y.Wasted != 6 || y.LongestFail != 3 || y.LongestFailAt != (instrument.CallSite{Location: zpinput.Location{Pos: 0, Line: 1, Col: 1}}) || y.Repeats != 0 {
 			t.Errorf("%v: y %+v", b, y)
 		}
 		if m.Calls != 2 || m.Matched != 2 || m.Consumed != 6 || m.Time != pr.Time {
@@ -65,12 +67,12 @@ func TestProfileMemoAndRecursion(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = a "!" / a "?"
 rule a = a "x" / "y"`)
-	var prof core.Profile
-	if _, err := prog.ParseWith("main", "yxx?", ParseOptions{Profiles: []*core.Profile{&prof}}); err != nil {
+	var prof instrument.Profile
+	if _, err := prog.ParseWith("main", "yxx?", ParseOptions{Profiles: []*instrument.Profile{&prof}}); err != nil {
 		t.Fatal(err)
 	}
 	pr := prof.Snapshot()
-	var a core.RuleProfile
+	var a instrument.RuleProfile
 	for _, r := range pr.Rules {
 		if r.Rule == "a" {
 			a = r
@@ -100,7 +102,7 @@ rule line = [a-z]* #atomic "\n"`)
 	input := b.String()
 	want := func(pos int) (int, int) { return pos/9 + 1, pos%9 + 1 }
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var prof core.Profile
+		var prof instrument.Profile
 		bad, unknown := 0, 0
 		trace := func(e TraceEvent) {
 			// Only the start of the start rule's call precedes discarded input: check one more
@@ -114,7 +116,7 @@ rule line = [a-z]* #atomic "\n"`)
 				}
 			}
 		}
-		err := prog.ParseStreamWith("main", strings.NewReader(input), func(*core.Node) error { return nil }, ParseOptions{Backend: back, Trace: trace, Profiles: []*core.Profile{&prof}})
+		err := prog.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error { return nil }, ParseOptions{Backend: back, Trace: trace, Profiles: []*instrument.Profile{&prof}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -122,14 +124,14 @@ rule line = [a-z]* #atomic "\n"`)
 			t.Errorf("%v: %d wrong locations, %d unknown", back, bad, unknown)
 		}
 		for _, r := range prof.Snapshot().Rules {
-			for _, l := range []core.Location{r.MaxEvalsAt.Location, r.LongestFailAt.Location} {
+			for _, l := range []zpinput.Location{r.MaxEvalsAt.Location, r.LongestFailAt.Location} {
 				if wl, wc := want(l.Pos); l.Line != 0 && (l.Line != wl || l.Col != wc) {
 					t.Errorf("%v: %s: location %+v", back, r.Rule, l)
 				}
 			}
 		}
 	}
-	if got := (core.Location{Pos: 12}).String(); got != "position 12" {
+	if got := (zpinput.Location{Pos: 12}).String(); got != "position 12" {
 		t.Errorf("unknown location prints as %q", got)
 	}
 }
@@ -138,8 +140,8 @@ rule line = [a-z]* #atomic "\n"`)
 // profile with one finding does not also say that nothing stands out.
 func TestHintsWithoutTime(t *testing.T) {
 	t.Parallel()
-	pr := core.ProfileSnapshot{Calls: 10, Examined: 100, Rules: []core.RuleProfile{
-		{Rule: "x", Calls: 10, Evals: 10, Repeats: 5, MaxEvals: 3, MaxEvalsAt: core.CallSite{Location: core.Location{Pos: 0, Line: 1, Col: 1}}},
+	pr := instrument.ProfileSnapshot{Calls: 10, Examined: 100, Rules: []instrument.RuleProfile{
+		{Rule: "x", Calls: 10, Evals: 10, Repeats: 5, MaxEvals: 3, MaxEvalsAt: instrument.CallSite{Location: zpinput.Location{Pos: 0, Line: 1, Col: 1}}},
 	}}
 	hints := pr.Hints()
 	if len(hints) != 1 || !strings.HasPrefix(hints[0], "Evaluated again") {
@@ -165,7 +167,7 @@ rule line = [a-z]* #atomic "\n"`)
 		return m.HeapAlloc
 	}
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var prof core.Profile
+		var prof instrument.Profile
 		var early, late uint64
 		trace := func(e TraceEvent) {
 			if e.Kind != TraceExit || e.Rule != "line" {
@@ -179,11 +181,11 @@ rule line = [a-z]* #atomic "\n"`)
 			}
 		}
 		r := strings.NewReader(strings.Repeat("abcdefgh\n", lines))
-		opts := ParseOptions{Backend: back, Trace: trace, Profiles: []*core.Profile{&prof}}
-		if err := prog.ParseStreamWith("main", r, func(*core.Node) error { return nil }, opts); err != nil {
+		opts := ParseOptions{Backend: back, Trace: trace, Profiles: []*instrument.Profile{&prof}}
+		if err := prog.ParseStreamWith("main", r, func(*value.Node) error { return nil }, opts); err != nil {
 			t.Fatal(err)
 		}
-		var line *core.RuleProfile
+		var line *instrument.RuleProfile
 		ps := prof.Snapshot()
 		for i := range ps.Rules {
 			if ps.Rules[i].Rule == "line" {

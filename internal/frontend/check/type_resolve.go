@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"unicode"
 	"unicode/utf8"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -230,7 +230,7 @@ func (k *TypeResolver) ResolveNamed(name string, pos ast.Pos) Ty {
 		return TyTop
 	case "_|_":
 		return TyBottom
-	case coreimpl.TypeMissing: // an inserted missing token, one kind of error
+	case valueimpl.TypeMissing: // an inserted missing token, one kind of error
 		return TyMissing
 	case "error": // the value of recovery: a recovered error or a missing token
 		return TyErr

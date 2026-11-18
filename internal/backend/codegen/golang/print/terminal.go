@@ -24,7 +24,7 @@ import (
 // code it does so only where the departure is unobservable: a guard that admits the next
 // character also matches the class that begins its alternative, and where ExpectOrdinary records
 // nothing at the position of a choice, alternatives whose guards do not admit the character are
-// passed over without testing them (codegen/go/lib/terminal.go).
+// passed over without testing them (pkg/runtime/golib/terminal.go).
 
 // minTerminalTable is the smallest run of guarded alternatives at the start of a choice for
 // which the library builds a dispatch table instead of testing the guards in turn.

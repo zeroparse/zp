@@ -3,9 +3,9 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // TestTextStructsAcrossBackends checks that the backends agree on the structs actions make from
@@ -15,7 +15,7 @@ func TestTextStructsAcrossBackends(t *testing.T) {
 	inputs := []string{"", "ab", "ab 12 3.5", "<x> ! #a # @b @", "ab ?", "12.", "<x", "! ab <yz> 7", "[ab]ab", "[ab]cd 1"}
 	for _, sourceInfo := range []bool{false, true} {
 		prog := compileBare(t, codegentest.TextStructGrammar, compile.Options{SourceInfo: sourceInfo})
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			for _, input := range inputs {
 				want := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit}))
 				wantRecognized := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: true}))

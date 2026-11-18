@@ -10,10 +10,11 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // blockProbe wraps the reader of a stream parse and reports when the parser asks it for input after
@@ -89,7 +90,7 @@ func TestByteDecodeDoesNotReadPastCompleteRune(t *testing.T) {
 			if _, err := reader.Peek(len(s)); err != nil {
 				t.Fatal(err)
 			}
-			in := state.Input{Unit: core.Bytes, Reader: reader}
+			in := state.Input{Unit: input.Bytes, Reader: reader}
 			defer func() {
 				if x := recover(); x != nil {
 					t.Errorf("decode attempted unrelated read: %v", x)
@@ -111,7 +112,7 @@ func TestByteDecodeDoesNotReadPastCompleteRune(t *testing.T) {
 func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 	t.Parallel()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, s := range []string{"a", "é", "漢", "😀", string([]byte{0xff})} {
 				for split := 0; split < len(s); split++ {
 					t.Run(fmt.Sprintf("%s/%s/%x/split%d", b, unit, s, split), func(t *testing.T) {
@@ -122,7 +123,7 @@ func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 						done := make(chan error, 1)
 						go func() {
 							defer pr.Close() // Unblock a writer if parsing fails before all chunks arrive.
-							done <- p.ParseStreamWith("main", probe, func(n *core.Node) error { emitted <- codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Backend: b, Unit: unit})
+							done <- p.ParseStreamWith("main", probe, func(n *value.Node) error { emitted <- codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Backend: b, Unit: unit})
 						}()
 						t.Cleanup(func() {
 							pw.Close()
@@ -148,7 +149,7 @@ func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 						}
 						probe.armed.Store(true)
 						want := ""
-						refErr := p.ParseStreamWith("main", strings.NewReader(s+"\n"), func(n *core.Node) error { want = codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Unit: unit})
+						refErr := p.ParseStreamWith("main", strings.NewReader(s+"\n"), func(n *value.Node) error { want = codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Unit: unit})
 						if refErr != nil {
 							t.Fatal(refErr)
 						}
@@ -170,7 +171,7 @@ func TestByteDecodeIncompletePrefixAtEOF(t *testing.T) {
 	t.Parallel()
 	for _, s := range []string{"", "\xc3", "\xe6\xbc", "\xf0\x9f\x98"} {
 		t.Run(fmt.Sprintf("%x", s), func(t *testing.T) {
-			in := state.Input{Unit: core.Bytes, Reader: bufio.NewReader(strings.NewReader(s))}
+			in := state.Input{Unit: input.Bytes, Reader: bufio.NewReader(strings.NewReader(s))}
 			got, size, examined, ok := in.Decode(0)
 			if s == "" {
 				if ok || size != 0 || examined != 1 || !in.Eof {
@@ -187,12 +188,12 @@ func TestStreamIncompletePrefixPropagatesReaderError(t *testing.T) {
 	t.Parallel()
 	p := mustCompile(t, "rule main = item* #stream $$\nrule item = . \"\\n\"")
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				stop := errors.New("reader stopped")
 				r := io.MultiReader(strings.NewReader("\xc3"), &failOnRead{err: stop})
 				count := 0
-				err := p.ParseStreamWith("main", r, func(*core.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
+				err := p.ParseStreamWith("main", r, func(*value.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
 				if !errors.Is(err, stop) || count != 0 {
 					t.Fatalf("error=%v emitted=%d", err, count)
 				}
@@ -218,7 +219,7 @@ func BenchmarkRuneInputDelivery(b *testing.B) {
 			if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 				for _, stream := range []bool{true, false} {
 					mode := "Batch"
 					if stream {
@@ -231,7 +232,7 @@ func BenchmarkRuneInputDelivery(b *testing.B) {
 						for b.Loop() {
 							if stream {
 								count := 0
-								err := prog.ParseStreamWith("main", strings.NewReader(text), func(*core.Node) error { count++; return nil }, opts)
+								err := prog.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { count++; return nil }, opts)
 								if err != nil || count != 1000 {
 									b.Fatalf("emitted %d: %v", count, err)
 								}

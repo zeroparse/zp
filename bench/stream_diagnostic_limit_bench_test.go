@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // BenchmarkStreamDiagnosticLimit compares complete and bounded recovery
@@ -33,14 +33,14 @@ rule item = "ab" #recover(skip=[^a]+)`, "main")
 					b.ReportAllocs()
 					for b.Loop() {
 						elements := 0
-						err := p.ParseStream(strings.NewReader(input), func(*core.Node) error {
+						err := p.ParseStream(strings.NewReader(input), func(*value.Node) error {
 							elements++
 							return nil
 						}, opts...)
 						if elements != 2*count {
 							b.Fatalf("delivered %d elements, want %d", elements, 2*count)
 						}
-						var recovered core.SyntaxErrors
+						var recovered value.SyntaxErrors
 						if !errors.As(err, &recovered) {
 							b.Fatalf("missing recovered errors: %v", err)
 						}
@@ -48,7 +48,7 @@ rule item = "ab" #recover(skip=[^a]+)`, "main")
 							b.Fatalf("complete result has %d errors", len(recovered))
 						}
 						if mode == "limit-32" {
-							var truncated *core.TruncatedSyntaxErrors
+							var truncated *value.TruncatedSyntaxErrors
 							if !errors.As(err, &truncated) || truncated.Total != count || len(recovered) != 32 {
 								b.Fatalf("bounded result: %v", err)
 							}

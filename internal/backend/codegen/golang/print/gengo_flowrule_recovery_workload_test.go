@@ -96,7 +96,7 @@ func BenchmarkTypedRecoveryGeneration(b *testing.B) {
 const typedRecoveryWorkloadFixture = `package lrfixture
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
     "encoding/json"
     "fmt"
     "strings"

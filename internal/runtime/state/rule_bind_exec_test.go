@@ -2,7 +2,7 @@
 
 package state
 
-import "zeroparse.dev/zp/core"
+import zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 
 // confRuleMemo runs rule.memo for the conformance suite.
 // Printed from Exec IR function confRuleMemo of internal/ir/code/exec/compose.
@@ -70,14 +70,14 @@ func (p *Parser) confRuleSeen(r *Rule) int {
 
 // confRuleInvoke runs rule.invoke for the conformance suite.
 // Printed from Exec IR function confRuleInvoke of internal/ir/code/exec/compose.
-func (p *Parser) confRuleInvoke(r *Rule, min int) (*core.Node, bool) {
+func (p *Parser) confRuleInvoke(r *Rule, min int) (*zpvalue.Node, bool) {
 	r0, r1 := p.invoke(r, min)
 	return r0, r1
 }
 
 // confRuleInvokePlain runs rule.invokePlain for the conformance suite.
 // Printed from Exec IR function confRuleInvokePlain of internal/ir/code/exec/compose.
-func (p *Parser) confRuleInvokePlain(r *Rule, min int) (*core.Node, bool) {
+func (p *Parser) confRuleInvokePlain(r *Rule, min int) (*zpvalue.Node, bool) {
 	r0, r1 := p.InvokePlain(r, min)
 	return r0, r1
 }

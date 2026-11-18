@@ -8,21 +8,22 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestStreamTextSnapshots(t *testing.T) {
 	t.Parallel()
 	text := strings.Repeat("aé😀\xff\xc0z\n", 700)
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		t.Run(unit.String(), func(t *testing.T) {
 			in := state.Input{Unit: unit, Reader: bufio.NewReader(strings.NewReader(text)), BaseLine: 1, BaseCol: 1}
 			in.Fill(1 << 20)
 			n := in.Loaded()
 			want := func(start, end int) string {
-				if unit == core.Bytes {
+				if unit == input.Bytes {
 					return text[start:end]
 				}
 				return string([]rune(text)[start:end])
@@ -61,7 +62,7 @@ func TestStreamTextSnapshots(t *testing.T) {
 
 func TestStreamTextSnapshotNearMaximumPosition(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		in := state.Input{Unit: unit, Base: int(^uint(0)>>1) - 128, Reader: bufio.NewReader(strings.NewReader(strings.Repeat("x", 100)))}
 		in.Fill(in.Base + 100)
 		if got := in.Text(in.Base, in.Base+10); got != "xxxxxxxxxx" {
@@ -75,7 +76,7 @@ func TestStreamTextSnapshotNearMaximumPosition(t *testing.T) {
 
 func TestStreamTextSnapshotBoundaries(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		for _, size := range []int{63, 64, 1024, 1025, 3000} {
 			t.Run(fmt.Sprintf("%s/%d", unit, size), func(t *testing.T) {
 				var data strings.Builder
@@ -102,7 +103,7 @@ func TestStreamTextSnapshotBoundaries(t *testing.T) {
 // Text extraction must never trigger a reader call just to fill a snapshot.
 func TestStreamTextSnapshotDoesNotReadAhead(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		reader := &snapshotOneByteReader{source: strings.Repeat("x", 200)}
 		in := state.Input{Unit: unit, Reader: bufio.NewReader(reader)}
 		in.Fill(1)
@@ -137,16 +138,16 @@ func TestStreamTextSnapshotRetainedMalformedResults(t *testing.T) {
 rule row = x:(!"\n" .)+ #atomic "\n"`)
 	text := strings.Repeat("é😀a\xff\xc0z\n", 700)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				whole, err := prog.ParseWith("main", text, opts)
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := nodes.D(whole.Field("rows").(*core.Node)).Children
-				var got []*core.Node
-				err = prog.ParseStreamWith("main", strings.NewReader(text), func(n *core.Node) error { got = append(got, n); return nil }, opts)
+				want := nodes.D(whole.Field("rows").(*value.Node)).Children
+				var got []*value.Node
+				err = prog.ParseStreamWith("main", strings.NewReader(text), func(n *value.Node) error { got = append(got, n); return nil }, opts)
 				if err != nil || len(got) != len(want) {
 					t.Fatalf("rows=%d: %v", len(got), err)
 				}
@@ -168,16 +169,16 @@ func TestStreamTextSnapshotSplitUTF8(t *testing.T) {
 rule row = x:(!"\n" .)+ #atomic "\n"`)
 	text := strings.Repeat(strings.Repeat("é😀\xff\xc0a", 40)+"\n", 30)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				whole, err := prog.ParseWith("main", text, opts)
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := nodes.D(whole.Field("rows").(*core.Node)).Children
-				var got []*core.Node
-				err = prog.ParseStreamWith("main", &snapshotOneByteReader{source: text}, func(n *core.Node) error { got = append(got, n); return nil }, opts)
+				want := nodes.D(whole.Field("rows").(*value.Node)).Children
+				var got []*value.Node
+				err = prog.ParseStreamWith("main", &snapshotOneByteReader{source: text}, func(n *value.Node) error { got = append(got, n); return nil }, opts)
 				if err != nil || len(got) != len(want) {
 					t.Fatalf("rows=%d: %v", len(got), err)
 				}

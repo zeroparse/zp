@@ -12,16 +12,18 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func budgetStreamVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
 	t.Helper()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, u := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 			t.Run(fmt.Sprintf("%s/%s", b, u), func(t *testing.T) { run(t, ParseOptions{Backend: b, Unit: u}) })
 		}
 	}
@@ -72,7 +74,7 @@ func TestBudgetStreamAdmission(t *testing.T) {
 		r := &budgetStreamReader{chunks: []string{"#records\na=1\n"}}
 		callbacks := 0
 		o.Trace = func(TraceEvent) { callbacks++ }
-		err := prog.ParseStreamWith("main", r, func(*core.Node) error { callbacks++; return nil }, o)
+		err := prog.ParseStreamWith("main", r, func(*value.Node) error { callbacks++; return nil }, o)
 		if err != context.Canceled || r.reads != 0 || callbacks != 0 || r.closed {
 			t.Fatalf("error=%v reads=%d callbacks=%d closed=%t", err, r.reads, callbacks, r.closed)
 		}
@@ -119,7 +121,7 @@ func TestBudgetStreamUnlimitedParity(t *testing.T) {
 					if withError {
 						r.err = stop
 					}
-					errs[i] = prog.ParseStreamWith("main", r, func(n *core.Node) error { results[i] = append(results[i], codegentest.ResultJSON(n, nil)); return nil }, o)
+					errs[i] = prog.ParseStreamWith("main", r, func(n *value.Node) error { results[i] = append(results[i], codegentest.ResultJSON(n, nil)); return nil }, o)
 				}
 				if !reflect.DeepEqual(results[0], results[1]) || fmt.Sprint(errs[0]) != fmt.Sprint(errs[1]) {
 					t.Fatalf("controlled results/errors differ: %v %v; %v %v", results[0], errs[0], results[1], errs[1])
@@ -152,7 +154,7 @@ func TestBudgetStreamReaderErrorPrecedence(t *testing.T) {
 					r.dataError = true
 				}
 				count := 0
-				err := prog.ParseStreamWith("main", r, func(*core.Node) error { count++; return nil }, o)
+				err := prog.ParseStreamWith("main", r, func(*value.Node) error { count++; return nil }, o)
 				if err != stop || count != 1 || r.reads != 2 || r.closed {
 					t.Fatalf("error=%v emits=%d reads=%d closed=%t", err, count, r.reads, r.closed)
 				}
@@ -162,7 +164,7 @@ func TestBudgetStreamReaderErrorPrecedence(t *testing.T) {
 		defer cancel()
 		base.Context = ctx
 		r := &budgetStreamReader{chunks: []string{"#records\na=1\n"}, cancel: cancel, cancelAt: 2}
-		if err := prog.ParseStreamWith("main", r, func(*core.Node) error { return nil }, base); err != context.Canceled {
+		if err := prog.ParseStreamWith("main", r, func(*value.Node) error { return nil }, base); err != context.Canceled {
 			t.Fatalf("EOF error=%v", err)
 		}
 	})
@@ -177,10 +179,10 @@ func TestBudgetStreamEmitPrecedenceAndOwnership(t *testing.T) {
 			o := base
 			o.Context = ctx
 			stop := errors.New("emit error wins")
-			var node *core.Node
+			var node *value.Node
 			var snapshot string
 			count := 0
-			err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *core.Node) error {
+			err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *value.Node) error {
 				count++
 				node = n
 				snapshot = codegentest.ResultJSON(n, nil)
@@ -198,7 +200,7 @@ func TestBudgetStreamEmitPrecedenceAndOwnership(t *testing.T) {
 			if err != want || count != 1 || node == nil || codegentest.ResultJSON(node, nil) != snapshot {
 				t.Fatalf("error=%v emits=%d snapshot changed=%t", err, count, codegentest.ResultJSON(node, nil) != snapshot)
 			}
-			if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*core.Node) error { return nil }, base); err != nil || codegentest.ResultJSON(node, nil) != snapshot {
+			if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*value.Node) error { return nil }, base); err != nil || codegentest.ResultJSON(node, nil) != snapshot {
 				t.Fatalf("fresh replay error=%v", err)
 			}
 		}
@@ -235,7 +237,7 @@ func TestBudgetStreamBlockedReaderCooperation(t *testing.T) {
 		defer release.Do(func() { close(r.release) })
 		result := make(chan error, 1)
 		emits := 0
-		go func() { result <- prog.ParseStreamWith("main", r, func(*core.Node) error { emits++; return nil }, o) }()
+		go func() { result <- prog.ParseStreamWith("main", r, func(*value.Node) error { emits++; return nil }, o) }()
 		select {
 		case <-r.entered:
 		case err := <-result:
@@ -253,9 +255,9 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, base ParseOptions) {
-		for _, kind := range []core.LimitKind{core.LimitCompute, core.LimitCompute} {
+		for _, kind := range []runtime.LimitKind{runtime.LimitCompute, runtime.LimitCompute} {
 			o := base
-			if kind == core.LimitCompute {
+			if kind == runtime.LimitCompute {
 				o.Limits.Compute = 16
 			} else {
 				o.Limits.Compute = 1
@@ -267,8 +269,8 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 					saved = e
 				}
 			}
-			err := prog.ParseStreamWith("main", strings.NewReader("#records\n"+strings.Repeat("a", 20000)+"=1\n"), func(*core.Node) error { count++; return nil }, o)
-			var we *core.LimitError
+			err := prog.ParseStreamWith("main", strings.NewReader("#records\n"+strings.Repeat("a", 20000)+"=1\n"), func(*value.Node) error { count++; return nil }, o)
+			var we *runtime.LimitError
 			if !errors.As(err, &we) || we.Kind != kind || count != 0 {
 				t.Fatalf("error=%v emits=%d", err, count)
 			}
@@ -303,7 +305,7 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 					}
 				}
 				got := catchStreamPanic(func() {
-					_ = prog.ParseStreamWith("main", r, func(*core.Node) error {
+					_ = prog.ParseStreamWith("main", r, func(*value.Node) error {
 						if phase == "emit" {
 							panic(token)
 						}
@@ -335,7 +337,7 @@ func TestBudgetStreamCompactionChunks(t *testing.T) {
 		}
 		want := append([]int(nil), source...)
 		n := copy(want, want[shift:])
-		c := state.NewBudgetControl(nil, core.Limits{Compute: uint64(n)})
+		c := state.NewBudgetControl(nil, runtime.Limits{Compute: uint64(n)})
 		if got := state.CopyStreamPrefix(c, source, source[shift:]); got != n || !reflect.DeepEqual(source, want) || c.Used != uint64(n) {
 			t.Fatalf("shift=%d result differs", shift)
 		}
@@ -344,10 +346,10 @@ func TestBudgetStreamCompactionChunks(t *testing.T) {
 	for i := range v {
 		v[i] = i
 	}
-	c := state.NewBudgetControl(nil, core.Limits{Compute: 128})
+	c := state.NewBudgetControl(nil, runtime.Limits{Compute: 128})
 	got := catchStreamPanic(func() { state.CopyStreamPrefix(c, v, v[1:]) })
 	f, ok := got.(state.Fatal)
-	if !ok || !errors.Is(f.Err, core.ErrLimit) || c.Used != 128 || v[128] != 128 {
+	if !ok || !errors.Is(f.Err, runtime.ErrLimit) || c.Used != 128 || v[128] != 128 {
 		t.Fatalf("copy interruption=%v steps=%d", got, c.Used)
 	}
 }
@@ -357,14 +359,14 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 	// The frame scan and suffix clear are separately counted; neither touches
 	// a Node already delivered to the caller.
 	node := nodes.Ptr(nodes.Data{Text: "delivered"})
-	p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, core.Limits{Compute: 1})}, FrameSlab: make([]state.Frame, 258)}
+	p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, runtime.Limits{Compute: 1})}, FrameSlab: make([]state.Frame, 258)}
 	p.Frame = &p.FrameSlab[0]
-	p.FrameSlab[1].Vals = []*core.Node{node}
+	p.FrameSlab[1].Vals = []*value.Node{node}
 	got := catchStreamPanic(func() { p.ResetStreamFrames() })
 	if _, ok := got.(state.Fatal); !ok || len(p.FrameSlab) != 258 || p.FrameSlab[1].Vals[0] != node || nodes.D(node).Text != "delivered" {
 		t.Fatalf("frame interruption=%v", got)
 	}
-	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 258})
+	p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 258})
 	p.ResetStreamFrames()
 	if len(p.FrameSlab) != 1 || p.Control.Used != 258 || nodes.D(node).Text != "delivered" {
 		t.Fatal("frame retry changed ownership or count")
@@ -380,7 +382,7 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 			a.Next = b
 			memo.Slots[0] = a
 			memo.Slots[1] = growing
-			p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, core.Limits{Compute: 2})}, Memo: memo}
+			p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, runtime.Limits{Compute: 2})}, Memo: memo}
 			pos := 129
 			if all {
 				pos = 260
@@ -401,7 +403,7 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 			keep.Node = node
 			fresh.Slots[200] = keep
 			p.Memo = fresh
-			p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 2000})
+			p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 2000})
 			p.PruneStreamMemo(pos)
 			if fresh.Base != pos || seed.Node != node || nodes.D(node).Text != "delivered" || len(fresh.Slots) != max(260-pos, 0) {
 				t.Fatal("prune ownership/base differs")
@@ -424,12 +426,12 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 				saved = e
 			}
 		}
-		var node *core.Node
+		var node *value.Node
 		var before string
 		count := 0
 		var controller *state.BudgetControl
 		last := 0
-		err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *core.Node) error {
+		err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *value.Node) error {
 			count++
 			node = n
 			before = codegentest.ResultJSON(n, nil)
@@ -492,18 +494,18 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 			controller.Limits.Compute = controller.Used + uint64(total-last)
 			return nil
 		}, o)
-		var we *core.LimitError
-		if !errors.As(err, &we) || we.Kind != core.LimitCompute || we.Requested != uint64(last) || we.Used != controller.Limits.Compute || count != 1 {
+		var we *runtime.LimitError
+		if !errors.As(err, &we) || we.Kind != runtime.LimitCompute || we.Requested != uint64(last) || we.Used != controller.Limits.Compute || count != 1 {
 			t.Fatalf("normal commit interruption error=%v emits=%d", err, count)
 		}
 		assertTraceParserDetached(t, state.TraceParser(saved), false)
 		if node == nil || codegentest.ResultJSON(node, nil) != before {
 			t.Fatal("commit changed emitted Node")
 		}
-		o.Limits = core.Limits{}
+		o.Limits = runtime.Limits{}
 		o.Trace = nil
 		replay := 0
-		if err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*core.Node) error { replay++; return nil }, o); err != nil || replay != 2 || codegentest.ResultJSON(node, nil) != before {
+		if err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*value.Node) error { replay++; return nil }, o); err != nil || replay != 2 || codegentest.ResultJSON(node, nil) != before {
 			t.Fatalf("fresh replay error=%v emits=%d", err, replay)
 		}
 	})
@@ -515,10 +517,10 @@ func TestBudgetStreamEmitBoundary(t *testing.T) {
 		t.Run(phase, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(ctx, core.Limits{})}}
+			p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(ctx, runtime.Limits{})}}
 			stop := errors.New("emit")
 			calls := 0
-			p.Emit = func(*core.Node) error {
+			p.Emit = func(*value.Node) error {
 				calls++
 				cancel()
 				if phase == "error" {
@@ -583,7 +585,7 @@ func TestBudgetStreamVMFaultAttribution(t *testing.T) {
 			restore := corruptVMLiteral(t, prog)
 			defer restore()
 			var saved TraceEvent
-			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*core.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
+			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*value.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: runtime.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 				if state.TraceParser(saved) == nil {
 					saved = e
 				}
@@ -617,7 +619,7 @@ func TestBudgetStreamConcurrentCounters(t *testing.T) {
 			go func() {
 				<-start
 				o := base
-				o.Limits = core.Limits{Compute: 100000}
+				o.Limits = runtime.Limits{Compute: 100000}
 				if i == 0 {
 					o.Context = ctx
 				}
@@ -630,7 +632,7 @@ func TestBudgetStreamConcurrentCounters(t *testing.T) {
 						}
 					}
 				}
-				run.err = prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*core.Node) error {
+				run.err = prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*value.Node) error {
 					run.count++
 					if i == 0 {
 						cancel()

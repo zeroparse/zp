@@ -4,11 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
-var missingBenchmarkNode *core.Node
+var missingBenchmarkNode *value.Node
 var missingBenchmarkError error
 
 // BenchmarkMissingLiteral separates the cost of declaring an insertion site
@@ -32,7 +33,7 @@ func BenchmarkMissingLiteral(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			b.Run(tc.name+"/"+unit.String(), func(b *testing.B) {
 				o := ParseOptions{Unit: unit, MissingTokens: tc.limit}
 				b.ReportAllocs()
@@ -44,7 +45,7 @@ func BenchmarkMissingLiteral(b *testing.B) {
 				if missingBenchmarkNode == nil {
 					b.Fatal("parse returned no tree")
 				}
-				var recovered core.SyntaxErrors
+				var recovered value.SyntaxErrors
 				if tc.inserted {
 					if !errors.As(missingBenchmarkError, &recovered) || len(recovered) != 1 {
 						b.Fatalf("missing diagnostic: %v", missingBenchmarkError)

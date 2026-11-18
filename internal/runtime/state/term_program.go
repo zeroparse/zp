@@ -3,8 +3,8 @@ package state
 import (
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Terms of the engine lowered from Exec IR.
@@ -46,7 +46,7 @@ type TermCast struct {
 }
 
 type TermStruct struct {
-	Kind   *coreimpl.Kind
+	Kind   *valueimpl.Kind
 	Fields int
 }
 

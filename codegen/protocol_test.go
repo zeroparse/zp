@@ -59,7 +59,7 @@ func protocolBuild(t *testing.T, files, libFiles []codegen.File, lib string, cor
 		write("p/"+f.Path, f.Content)
 	}
 	write("zp/go.mod", []byte("module zeroparse.dev/zp\n\ngo 1.27.1\n"))
-	for _, pkg := range []string{"core", "core/impl"} {
+	for _, pkg := range []string{"pkg/runtime", "pkg/runtime/input", "pkg/runtime/value", "pkg/runtime/value/impl", "pkg/runtime/instrument"} {
 		src := filepath.Join(codegentest.ModuleRoot(), filepath.FromSlash(pkg))
 		entries, err := os.ReadDir(src)
 		if err != nil {
@@ -73,7 +73,7 @@ func protocolBuild(t *testing.T, files, libFiles []codegen.File, lib string, cor
 			if err != nil {
 				t.Fatal(err)
 			}
-			if pkg == "core/impl" && coreimpl != nil {
+			if pkg == "pkg/runtime/value/impl" && coreimpl != nil {
 				data = coreimpl(data)
 			}
 			write("zp/"+pkg+"/"+e.Name(), data)
@@ -137,7 +137,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 	if want := "const _ = rt." + protocol + "\n"; !bytes.Contains(parser, []byte(want)) {
 		t.Fatalf("parser.go does not refer to the protocol with %q", want)
 	}
-	const lib = "zp/codegen/go/lib"
+	const lib = "zp/pkg/runtime/golib"
 	if out, err := protocolBuild(t, files, libFiles, lib, nil); err != nil {
 		t.Fatalf("the parser does not build against the library of its generator: %v\n%s", err, out)
 	}
@@ -183,7 +183,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 	if out, err := protocolBuild(t, files, nil, "", nil); err != nil {
 		t.Fatalf("the parser does not build against the core of its generator: %v\n%s", err, out)
 	}
-	src, err := os.ReadFile(filepath.Join(codegentest.ModuleRoot(), "core", "impl", "impl.go"))
+	src, err := os.ReadFile(filepath.Join(codegentest.ModuleRoot(), "pkg", "runtime", "value", "impl", "impl.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 	if m == nil {
 		t.Fatal("core/impl declares no protocol constant")
 	}
-	want := "undefined: coreimpl.Protocol" + string(m[1])
+	want := "undefined: valueimpl.Protocol" + string(m[1])
 	for _, by := range []int{1, -1} {
 		out, err := protocolBuild(t, files, nil, "", func(src []byte) []byte { return bumpProtocol(src, by) })
 		if err == nil {

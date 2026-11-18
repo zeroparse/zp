@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // Alternate inactive and active invocations after a resumable run has been
@@ -34,7 +35,7 @@ rule expr = #operators {
 		if strings.Contains(source, "#operators {") {
 			text = strings.TrimSuffix(strings.Repeat("a+", 40), "+")
 		}
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			d, err := prog.NewDocumentWith("main", text, ParseOptions{Unit: unit})
 			if err != nil {
 				t.Fatal(err)
@@ -42,7 +43,7 @@ rule expr = #operators {
 			for i := 0; i < 6; i++ {
 				opts := ParseOptions{Unit: unit}
 				if i%2 == 1 {
-					opts.Limits = core.Limits{Compute: 1000000}
+					opts.Limits = runtime.Limits{Compute: 1000000}
 				}
 				got, err := d.ParseWith(opts)
 				if err != nil {
@@ -53,8 +54,8 @@ rule expr = #operators {
 					t.Fatalf("iteration %d: cached/fresh mismatch: %v", i, err)
 				}
 				// A cached tree must not bypass admission on the other dispatch graph.
-				blocked, err := d.ParseWith(ParseOptions{Unit: unit, Limits: core.Limits{Compute: 1}})
-				if blocked != nil || !errors.Is(err, core.ErrLimit) {
+				blocked, err := d.ParseWith(ParseOptions{Unit: unit, Limits: runtime.Limits{Compute: 1}})
+				if blocked != nil || !errors.Is(err, runtime.ErrLimit) {
 					t.Fatalf("iteration %d: cached result bypassed budget: %v", i, err)
 				}
 				if err := d.Edit(0, 1, "a"); err != nil {
@@ -73,16 +74,16 @@ func TestBudgetClosureDispatchMetersZeroWidthExpressions(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, "rule a = ^\n"+"rule main = "+strings.Repeat("a ", 64)+"$$")
 	straight := mustCompile(t, "rule main = "+strings.Repeat("^ ", 64)+"$$")
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-		opts := ParseOptions{Unit: unit, Recognize: true, Limits: core.Limits{Compute: 16}}
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
+		opts := ParseOptions{Unit: unit, Recognize: true, Limits: runtime.Limits{Compute: 16}}
 		n, err := prog.ParseWith("main", "", opts)
-		if n != nil || !errors.Is(err, core.ErrLimit) {
+		if n != nil || !errors.Is(err, runtime.ErrLimit) {
 			t.Fatalf("zero-width calls bypassed budget: node=%v error=%v", n, err)
 		}
 		if _, err := straight.ParseWith("main", "", opts); err != nil {
 			t.Fatalf("straight-line zero-width terms were charged: %v", err)
 		}
-		opts.Limits = core.Limits{}
+		opts.Limits = runtime.Limits{}
 		if _, err := prog.ParseWith("main", "", opts); err != nil {
 			t.Fatal(err)
 		}

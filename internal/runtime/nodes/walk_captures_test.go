@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/enginetest"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // TestWalkHiddenCaptures checks that Walk visits only the public fields of a node: without
@@ -25,12 +25,12 @@ rule x = #operators {
 		t.Fatal(err)
 	}
 	visits := 0
-	if err := core.Walk(n, func(v core.WalkVisit) (core.WalkAction, error) {
+	if err := value.Walk(n, func(v value.WalkVisit) (value.WalkAction, error) {
 		visits++
-		if v.Edge.Kind == core.WalkField {
+		if v.Edge.Kind == value.WalkField {
 			t.Fatalf("visited the hidden capture %s", v.Edge.FieldName)
 		}
-		return core.WalkContinue, nil
+		return value.WalkContinue, nil
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -54,12 +54,12 @@ rule x = #operators {
 		t.Fatal(err)
 	}
 	visits := 0
-	if err := core.Walk(n, func(v core.WalkVisit) (core.WalkAction, error) {
+	if err := value.Walk(n, func(v value.WalkVisit) (value.WalkAction, error) {
 		visits++
-		if v.Edge.Kind == core.WalkField {
+		if v.Edge.Kind == value.WalkField {
 			t.Fatalf("visited the element capture %s", v.Edge.FieldName)
 		}
-		return core.WalkContinue, nil
+		return value.WalkContinue, nil
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -74,11 +74,11 @@ rule word = [a-z]+`, compile.Options{SourceInfo: true})
 		t.Fatal(err)
 	}
 	var fields []string
-	if err := core.Walk(n, func(v core.WalkVisit) (core.WalkAction, error) {
-		if v.Edge.Kind == core.WalkField {
+	if err := value.Walk(n, func(v value.WalkVisit) (value.WalkAction, error) {
+		if v.Edge.Kind == value.WalkField {
 			fields = append(fields, v.Edge.FieldName)
 		}
-		return core.WalkContinue, nil
+		return value.WalkContinue, nil
 	}); err != nil {
 		t.Fatal(err)
 	}

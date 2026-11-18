@@ -217,7 +217,7 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 }
 
 // loweredTermNames returns the names of the library functions and methods that only lowered terms
-// call: the compositions of libgo.GoTermExports and the operations of the leaves that the library
+// call: the compositions of golib.GoTermExports and the operations of the leaves that the library
 // exports for them.
 func loweredTermNames() []string {
 	names := []string{rtTermNodeType, rtTermCastFailed, rtTermStruct, rtTermSetField, "TermRaise", "TermFieldOperand", "TermCompare"}

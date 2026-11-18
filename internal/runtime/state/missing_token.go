@@ -3,15 +3,16 @@ package state
 import (
 	"unsafe"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 type MissingTokenSite struct{ ID, Pos int }
 type MissingTokenEvent struct {
 	Site MissingTokenSite
-	Err  *core.SyntaxError
+	Err  *value.SyntaxError
 }
 
 // MissingTokenState belongs to one invocation. The path rolls back; attempts do
@@ -61,7 +62,7 @@ func (p *Parser) installMissing(event MissingTokenEvent, charge bool) bool {
 		return false
 	}
 	if charge && s.Attempts >= s.Limit {
-		panic(Fatal{&core.MissingTokenLimitError{Limit: s.Limit, Position: event.Site.Pos}})
+		panic(Fatal{&runtime.MissingTokenLimitError{Limit: s.Limit, Position: event.Site.Pos}})
 	}
 	if charge {
 		s.Attempts++
@@ -111,12 +112,12 @@ func (p *Parser) ReplayMissing(events []MissingTokenEvent, errs RecEntry) {
 // Selecting an operator candidate restores an already charged synthesis; it is
 // not a memo replay and does not charge that synthesis a second time.
 func (p *Parser) restoreMissing(events []MissingTokenEvent, errs RecEntry, charge bool) {
-	var duplicate map[*core.SyntaxError]bool
+	var duplicate map[*value.SyntaxError]bool
 	for _, event := range events {
 		p.Spend()
 		if p.Missing.installed[event.Site] {
 			if duplicate == nil {
-				duplicate = make(map[*core.SyntaxError]bool)
+				duplicate = make(map[*value.SyntaxError]bool)
 			}
 			duplicate[event.Err] = true
 		} else {
@@ -139,7 +140,7 @@ func (p *Parser) restoreMissing(events []MissingTokenEvent, errs RecEntry, charg
 // MissingErrorScope is emitted only for grammars using this feature; ordinary
 // grammars retain the existing errorAttr path, without scope/defer machinery.
 func MissingErrorScope(m Matcher, msg ExpID) Matcher {
-	return func(p *Parser) (*core.Node, bool) {
+	return func(p *Parser) (*value.Node, bool) {
 		if p.Expectations && p.Missing != nil && p.Missing.label == 0 {
 			p.Missing.label = msg
 			defer func() { p.Missing.label = 0 }()
@@ -151,7 +152,7 @@ func MissingErrorScope(m Matcher, msg ExpID) Matcher {
 // MissingLiteral preserves the entire ordinary literal match before trying an
 // insertion. Its stable compile-time site is independent of invocation state.
 func MissingLiteral(literal Matcher, site int, expected string, build bool) Matcher {
-	return func(p *Parser) (*core.Node, bool) {
+	return func(p *Parser) (*value.Node, bool) {
 		if p.Missing == nil || p.Silent > 0 {
 			return literal(p)
 		}
@@ -176,7 +177,7 @@ func MissingLiteral(literal Matcher, site int, expected string, build bool) Matc
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.MissingKind, Start: int32(m0.Pos), End: int32(m0.Pos),
-			Fields: coreimpl.Fields{{Name: "expected", Value: expected}, {Name: "message", Value: p.RecoveryErrorText(e)}}, Terminal: true, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.MissingKind, Start: int32(m0.Pos), End: int32(m0.Pos),
+			Fields: valueimpl.Fields{{Name: "expected", Value: expected}, {Name: "message", Value: p.RecoveryErrorText(e)}}, Terminal: true, Fresh: true}), true
 	}
 }

@@ -11,11 +11,11 @@ import (
 	"testing"
 	"unsafe"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
-func diagnosticParser(limits core.Limits) *state.Parser {
+func diagnosticParser(limits runtime.Limits) *state.Parser {
 	return &state.Parser{Expectations: true, Input: state.Input{Control: state.NewBudgetControl(nil, limits)}}
 }
 
@@ -56,31 +56,31 @@ func TestBudgetExpectationCollisionScanBudgetsAndShortCircuits(t *testing.T) {
 	ids := collidingDiagnosticIDs(16)
 	bit := uint64(1) << diagnosticHash(ids[0])
 	prefix := append([]state.ExpID(nil), ids[:len(ids)-1]...)
-	p := diagnosticParser(core.Limits{Compute: uint64(len(prefix))})
+	p := diagnosticParser(runtime.Limits{Compute: uint64(len(prefix))})
 	p.Farthest, p.ExpBits, p.Exp = 7, bit, append([]state.ExpID(nil), prefix...)
 	p.Expect(7, ids[len(ids)-1])
 	if len(p.Exp) != len(ids) || p.Exp[len(p.Exp)-1] != ids[len(ids)-1] || p.Control.Used != uint64(len(prefix)) {
 		t.Fatalf("late colliding expectation result=%v steps=%d", p.Exp, p.Control.Used)
 	}
 
-	p = diagnosticParser(core.Limits{Compute: uint64(len(ids))})
+	p = diagnosticParser(runtime.Limits{Compute: uint64(len(ids))})
 	p.Farthest, p.ExpBits, p.Exp = 7, bit, append([]state.ExpID(nil), ids...)
 	p.Expect(7, ids[len(ids)-1])
 	if len(p.Exp) != len(ids) || p.Control.Used != uint64(len(ids)) {
 		t.Fatalf("late duplicate scan changed record or steps: len=%d steps=%d", len(p.Exp), p.Control.Used)
 	}
 
-	p = diagnosticParser(core.Limits{Compute: uint64(len(prefix) - 1)})
+	p = diagnosticParser(runtime.Limits{Compute: uint64(len(prefix) - 1)})
 	p.Farthest, p.ExpBits, p.Exp = 7, bit, append([]state.ExpID(nil), prefix...)
 	before := append([]state.ExpID(nil), p.Exp...)
-	if err := catchFatal(t, func() { p.Expect(7, ids[len(ids)-1]) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { p.Expect(7, ids[len(ids)-1]) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("one-short collision scan error = %v, want ErrLimit", err)
 	}
 	if !reflect.DeepEqual(p.Exp, before) || p.Control.Used != uint64(len(prefix)-1) {
 		t.Fatalf("failed expectation scan mutated record or used %d steps", p.Control.Used)
 	}
 
-	p = diagnosticParser(core.Limits{Compute: 4})
+	p = diagnosticParser(runtime.Limits{Compute: 4})
 	p.Farthest, p.Exp, p.Silent = 12, []state.ExpID{1, 2, 3}, 1
 	p.Expect(12, 4)
 	p.Silent = 0
@@ -96,7 +96,7 @@ func TestBudgetExpectationKeepSnapshotsAndAtomicCopy(t *testing.T) {
 	for i := range ids {
 		ids[i] = state.ExpID(i)
 	}
-	p := diagnosticParser(core.Limits{Compute: 100_000})
+	p := diagnosticParser(runtime.Limits{Compute: 100_000})
 	first := p.Keep(ids)
 	if len(first) != len(ids) || cap(first) != len(first) {
 		t.Fatalf("kept snapshot len/cap=%d/%d", len(first), cap(first))
@@ -108,11 +108,11 @@ func TestBudgetExpectationKeepSnapshotsAndAtomicCopy(t *testing.T) {
 		t.Fatalf("empty keep = %#v, want nil", got)
 	}
 
-	equalParser := diagnosticParser(core.Limits{Compute: 299})
+	equalParser := diagnosticParser(runtime.Limits{Compute: 299})
 	equalParser.Arena = append([]state.ExpID(nil), first...)
 	equalParser.LastKept = equalParser.Arena[:len(ids):len(ids)]
 	oldLast := &equalParser.LastKept[0]
-	if err := catchFatal(t, func() { equalParser.Keep(ids) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { equalParser.Keep(ids) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("one-short keep equality error = %v, want ErrLimit", err)
 	}
 	if &equalParser.LastKept[0] != oldLast || len(equalParser.LastKept) != len(ids) {
@@ -123,19 +123,19 @@ func TestBudgetExpectationKeepSnapshotsAndAtomicCopy(t *testing.T) {
 	for i := range changed {
 		changed[i] += 1000
 	}
-	copyParser := diagnosticParser(core.Limits{Compute: 129})
+	copyParser := diagnosticParser(runtime.Limits{Compute: 129})
 	copyParser.Arena = make([]state.ExpID, len(first), 1024)
 	copy(copyParser.Arena, first)
 	copyParser.LastKept = copyParser.Arena[:len(first):len(first)]
 	priorAlias := copyParser.LastKept
 	oldSnapshot := append([]state.ExpID(nil), copyParser.LastKept...)
-	if err := catchFatal(t, func() { copyParser.Keep(changed) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { copyParser.Keep(changed) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("partial expectation copy error = %v, want ErrLimit", err)
 	}
 	if len(copyParser.Arena) != len(first) || !reflect.DeepEqual(copyParser.LastKept, oldSnapshot) {
 		t.Fatal("interrupted copy published partial arena or changed old snapshot")
 	}
-	copyParser.Control = state.NewBudgetControl(nil, core.Limits{Compute: 301})
+	copyParser.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 301})
 	complete := copyParser.Keep(changed)
 	if len(complete) != len(changed) || cap(complete) != len(complete) || !reflect.DeepEqual(copyParser.LastKept, changed) || copyParser.Control.Used != 301 {
 		t.Fatal("exact-budget retry did not publish exact-capacity changed snapshot")
@@ -148,7 +148,7 @@ func TestBudgetExpectationKeepSnapshotsAndAtomicCopy(t *testing.T) {
 	for i := range rollover {
 		rollover[i] = state.ExpID(5000 + i)
 	}
-	copyParser.Control = state.NewBudgetControl(nil, core.Limits{Compute: 100_000})
+	copyParser.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 100_000})
 	rolled := copyParser.Keep(rollover)
 	if len(rolled) != len(rollover) || cap(rolled) != len(rolled) || !reflect.DeepEqual(priorAlias, oldSnapshot) {
 		t.Fatal("arena rollover changed the retained exact-capacity snapshot")
@@ -166,7 +166,7 @@ func TestBudgetExpectationFilterFollowsTheRecord(t *testing.T) {
 		b++
 	}
 
-	p := diagnosticParser(core.Limits{Compute: 100})
+	p := diagnosticParser(runtime.Limits{Compute: 100})
 	p.Expect(1, a)
 	p.Expect(1, a)
 	if !reflect.DeepEqual(p.Exp, []state.ExpID{a}) {
@@ -179,7 +179,7 @@ func TestBudgetExpectationFilterFollowsTheRecord(t *testing.T) {
 		t.Fatalf("a new record scanned for the last one's filter: exp=%v steps=%d, want %d", p.Exp, p.Control.Used, used)
 	}
 
-	inner := diagnosticParser(core.Limits{Compute: 100})
+	inner := diagnosticParser(runtime.Limits{Compute: 100})
 	inner.Farthest, inner.Exp, inner.ExpBase, inner.ExpBits = 3, []state.ExpID{a}, 1, 1<<diagnosticHash(a)
 	inner.Expect(3, a)
 	if !reflect.DeepEqual(inner.Exp, []state.ExpID{a, a}) || inner.Control.Used != 0 {
@@ -203,7 +203,7 @@ func TestBudgetMergeExpectedWithoutExpectations(t *testing.T) {
 		{name: "at the farthest position", far: 5, wantFar: 5, wantExpected: []state.ExpID{state.ExpFar}},
 		{name: "past the farthest position", far: 6, wantFar: 6, wantExpected: []state.ExpID{state.ExpFar}},
 	} {
-		p := diagnosticParser(core.Limits{Compute: 100})
+		p := diagnosticParser(runtime.Limits{Compute: 100})
 		p.Expectations, p.Farthest, p.Silent = false, 5, c.silent
 		p.MergeExpected(c.far, s)
 		if p.Farthest != c.wantFar || !slices.Equal(p.Exp, c.wantExpected) || p.Control.Used != uint64(len(s)) {
@@ -222,7 +222,7 @@ func TestBudgetExpectationKeepFillsChunks(t *testing.T) {
 		ids[i] = state.ExpID(i)
 	}
 
-	p := diagnosticParser(core.Limits{Compute: 100_000})
+	p := diagnosticParser(runtime.Limits{Compute: 100_000})
 	first := p.Keep(ids[:1000])
 	if p.MemUsed != 1024*size {
 		t.Fatalf("the first chunk charged %d bytes, want %d", p.MemUsed, 1024*size)
@@ -235,13 +235,13 @@ func TestBudgetExpectationKeepFillsChunks(t *testing.T) {
 		t.Fatal("a new chunk changed the kept sets")
 	}
 
-	large := diagnosticParser(core.Limits{Compute: 100_000})
+	large := diagnosticParser(runtime.Limits{Compute: 100_000})
 	large.Keep(ids[:2000])
 	if large.MemUsed != 2000*size || cap(large.Arena) != 2000 {
 		t.Fatalf("a set larger than a chunk: charged %d bytes, chunk of %d", large.MemUsed, cap(large.Arena))
 	}
 
-	prefix := diagnosticParser(core.Limits{Compute: 100})
+	prefix := diagnosticParser(runtime.Limits{Compute: 100})
 	prefix.Keep(ids[:3])
 	if got := prefix.Keep(ids[:2]); !slices.Equal(got, ids[:2]) {
 		t.Fatalf("a prefix of the set kept last kept %v", got)
@@ -254,7 +254,7 @@ func TestBudgetMergeExpectedForwardAliasAndBudgets(t *testing.T) {
 	stack := make([]state.ExpID, 2+2+len(ids), 2+2+2*len(ids))
 	stack[0], stack[1], stack[2], stack[3] = 90, 91, 92, 93
 	copy(stack[4:], ids)
-	p := diagnosticParser(core.Limits{Compute: uint64(len(ids))})
+	p := diagnosticParser(runtime.Limits{Compute: uint64(len(ids))})
 	p.Exp, p.ExpBase, p.Farthest = stack, 2, 1
 	aliased := p.Exp[4:]
 	p.MergeExpected(5, aliased)
@@ -265,15 +265,15 @@ func TestBudgetMergeExpectedForwardAliasAndBudgets(t *testing.T) {
 		t.Fatalf("merge charged %d steps, want one per visited ID", p.Control.Used)
 	}
 
-	ignored := diagnosticParser(core.Limits{Compute: uint64(len(ids))})
+	ignored := diagnosticParser(runtime.Limits{Compute: uint64(len(ids))})
 	ignored.Exp, ignored.ExpBase, ignored.Farthest, ignored.Silent = []state.ExpID{7, 8}, 1, 5, 1
 	ignored.MergeExpected(5, ids)
 	if ignored.Control.Used != uint64(len(ids)) || !reflect.DeepEqual(ignored.Exp, []state.ExpID{7, 8}) {
 		t.Fatalf("silent merge steps/state = %d/%v", ignored.Control.Used, ignored.Exp)
 	}
 
-	canceled := diagnosticParser(core.Limits{})
-	canceled.Control = state.NewBudgetControl(newPollingContext(1), core.Limits{})
+	canceled := diagnosticParser(runtime.Limits{})
+	canceled.Control = state.NewBudgetControl(newPollingContext(1), runtime.Limits{})
 	canceled.Exp, canceled.ExpBase, canceled.Farthest, canceled.Silent = []state.ExpID{7, 8}, 1, 5, 1
 	longIDs := make([]state.ExpID, 300)
 	for i := range longIDs {
@@ -293,7 +293,7 @@ func diagnosticDescriptions() []string {
 
 func TestBudgetMakeErrorByteSortAndMessageOrder(t *testing.T) {
 	t.Parallel()
-	p := diagnosticParser(core.Limits{Compute: 100_000})
+	p := diagnosticParser(runtime.Limits{Compute: 100_000})
 	p.Descs = diagnosticDescriptions()
 	ids := []state.ExpID{0, state.MsgBit | 7, 1, 2, state.MsgBit | 6, 3, 4, 5}
 	first := p.MakeError(0, ids)
@@ -325,9 +325,9 @@ func TestBudgetMakeErrorInterruptionDuringConstructionAndSort(t *testing.T) {
 		descs[i] = strings.Repeat("common-prefix-", 64) + string(rune('a'+i%26)) + strings.Repeat("x", i%13)
 		ids[i] = state.ExpID(i)
 	}
-	p := diagnosticParser(core.Limits{Compute: n - 1})
+	p := diagnosticParser(runtime.Limits{Compute: n - 1})
 	p.Descs = descs
-	if err := catchFatal(t, func() { _ = p.MakeError(0, ids) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { _ = p.MakeError(0, ids) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("description construction error = %v, want ErrLimit", err)
 	}
 	if p.Control.Used != n-1 {
@@ -335,9 +335,9 @@ func TestBudgetMakeErrorInterruptionDuringConstructionAndSort(t *testing.T) {
 	}
 
 	// Permit every description visit, then stop within the controlled sort of long-prefix strings.
-	p = diagnosticParser(core.Limits{Compute: n + 512})
+	p = diagnosticParser(runtime.Limits{Compute: n + 512})
 	p.Descs = descs
-	if err := catchFatal(t, func() { _ = p.MakeError(0, ids) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { _ = p.MakeError(0, ids) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("sort interruption error = %v, want ErrLimit", err)
 	}
 	if p.Control.Used <= n || p.Control.Used > n+512 {

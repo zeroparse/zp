@@ -63,13 +63,13 @@ type GenOptions struct {
 	// Lib selects how the generated code reaches the library of generated parsers: embedded in
 	// the package (the default), imported from this module, or generated alone.
 	Lib LibMode
-	// GoLib holds the files of the Go library (the directory codegen/go/lib of this module) that
+	// GoLib holds the files of the Go library (the directory pkg/runtime/golib of this module) that
 	// Go generation copies with LibEmbed and reads to qualify the names generated code uses from
 	// the library. Go generation requires it; the caller chooses the source (package codegen: its
 	// embedded copy; tests: the live directory). TypeScript generation
 	// ignores it.
 	GoLib fs.FS
-	// TSLib holds the files of the TypeScript library (the directory codegen/ts/lib of this
+	// TSLib holds the files of the TypeScript library (the directory internal/backend/codegen/typescript/lib of this
 	// module), from which TypeScript generation assembles lib.ts. TypeScript generation requires
 	// it; Go generation ignores it.
 	TSLib fs.FS

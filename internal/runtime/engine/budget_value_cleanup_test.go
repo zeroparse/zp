@@ -8,21 +8,22 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 	t.Parallel()
-	retained := nodes.Ptr(nodes.Data{Text: "retained", Start: 7, End: 9, Fields: coreimpl.Fields{{Name: "value", Value: "unchanged"}}})
-	p := &state.Parser{KidStack: make([]*core.Node, 257)}
+	retained := nodes.Ptr(nodes.Data{Text: "retained", Start: 7, End: 9, Fields: valueimpl.Fields{{Name: "value", Value: "unchanged"}}})
+	p := &state.Parser{KidStack: make([]*value.Node, 257)}
 	for i := range p.KidStack {
 		p.KidStack[i] = retained
 	}
-	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 128})
-	if err := catchFatal(t, func() { p.Kids(0) }); !errors.Is(err, core.ErrLimit) {
+	p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 128})
+	if err := catchFatal(t, func() { p.Kids(0) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("copy interruption = %v", err)
 	}
 	// A failed copy does not publish a partial child list or clear its source.
@@ -51,12 +52,12 @@ func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 
 func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 	t.Parallel()
-	fields := make(coreimpl.Fields, 300)
+	fields := make(valueimpl.Fields, 300)
 	st := &program.Type{}
 	values := make([]any, len(fields))
 	for i := range fields {
 		name := fmt.Sprintf("v%d", i)
-		fields[i] = coreimpl.NodeField{Name: name, Value: i}
+		fields[i] = valueimpl.NodeField{Name: name, Value: i}
 		st.Fields = append(st.Fields, name)
 		values[i] = i
 	}
@@ -76,8 +77,8 @@ func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 		t.Run(run.name, func(t *testing.T) {
 			p := &state.Parser{}
 			p.SetVars(values)
-			p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 128})
-			if err := catchFatal(t, func() { run.fn(p) }); !errors.Is(err, core.ErrLimit) {
+			p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 128})
+			if err := catchFatal(t, func() { run.fn(p) }); !errors.Is(err, runtime.ErrLimit) {
 				t.Fatalf("walk interruption = %v", err)
 			}
 			if len(fields) != 300 || fields[299].Value != 299 {
@@ -90,12 +91,12 @@ func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 func TestBudgetValueTrackingCleanupAfterInterruption(t *testing.T) {
 	t.Parallel()
 	retained := nodes.Ptr(nodes.Data{Text: "retained"})
-	p := &state.Parser{Created: make([]*core.Node, 258)}
+	p := &state.Parser{Created: make([]*value.Node, 258)}
 	for i := range p.Created {
 		p.Created[i] = retained
 	}
-	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 128})
-	if err := catchFatal(t, func() { p.DropCreated(1) }); !errors.Is(err, core.ErrLimit) {
+	p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 128})
+	if err := catchFatal(t, func() { p.DropCreated(1) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("tracking cleanup interruption = %v", err)
 	}
 	// The interruption boundary must disable controls before mandatory cleanup.

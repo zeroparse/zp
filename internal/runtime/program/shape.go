@@ -1,8 +1,8 @@
 package program
 
 import (
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // SingleMode is how a parser takes the value of an expression where it takes one element: an
@@ -24,7 +24,7 @@ type Shaper struct {
 }
 
 // One returns the one element of the result v.
-func (s Shaper) One(v *core.Node) *core.Node {
+func (s Shaper) One(v *value.Node) *value.Node {
 	if s.Elems {
 		if v == nil || len(nodes.D(v).Children) == 0 {
 			return nil

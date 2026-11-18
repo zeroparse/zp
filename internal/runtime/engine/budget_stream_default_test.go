@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // streamScanGrammar has a record whose cost grows with the cube of its length. The bound of the repetition in mid
@@ -27,14 +28,14 @@ func TestBudgetStreamDefaultIgnoresChunking(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name, source, text string
-		limits             core.Limits
+		limits             runtime.Limits
 		exceeds            bool
 		limit              uint64
 	}{
-		{"completes", codegentest.Records, "#records\na=1\nbc=22\n" + strings.Repeat("k=7\n", 2000), core.Limits{}, false, 0},
-		{"exceeds the floor", streamScanGrammar, "#records\n" + strings.Repeat("a", 300) + "\n", core.Limits{}, true, 1 << 20},
-		{"exceeds a grown default", streamScanGrammar, "#records\n" + strings.Repeat("a", 3000) + "\n", core.Limits{}, true, 3010 * 1024},
-		{"exceeds an explicit limit", codegentest.Records, "#records\na=1\nbc=22\n", core.Limits{Compute: 20}, true, 20},
+		{"completes", codegentest.Records, "#records\na=1\nbc=22\n" + strings.Repeat("k=7\n", 2000), runtime.Limits{}, false, 0},
+		{"exceeds the floor", streamScanGrammar, "#records\n" + strings.Repeat("a", 300) + "\n", runtime.Limits{}, true, 1 << 20},
+		{"exceeds a grown default", streamScanGrammar, "#records\n" + strings.Repeat("a", 3000) + "\n", runtime.Limits{}, true, 3010 * 1024},
+		{"exceeds an explicit limit", codegentest.Records, "#records\na=1\nbc=22\n", runtime.Limits{Compute: 20}, true, 20},
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.source)
@@ -44,8 +45,8 @@ func TestBudgetStreamDefaultIgnoresChunking(t *testing.T) {
 			for _, size := range []int{1, 7, len(c.text)} {
 				var out []string
 				r := &budgetStreamReader{chunks: chunks(c.text, size)}
-				err := prog.ParseStreamWith("main", r, func(n *core.Node) error { out = append(out, codegentest.ResultJSON(n, nil)); return nil }, o)
-				var le *core.LimitError
+				err := prog.ParseStreamWith("main", r, func(n *value.Node) error { out = append(out, codegentest.ResultJSON(n, nil)); return nil }, o)
+				var le *runtime.LimitError
 				if c.exceeds != errors.As(err, &le) {
 					t.Fatalf("%s chunk size %d: error %v", c.name, size, err)
 				}

@@ -41,7 +41,7 @@ rule token Token = t:("x") #atomic => Token{Text: text($t)}`)
 		"go.mod": codegentest.GoMod("codegentest"),
 		"doc/parser_test.go": `package doc
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
  "codegentest/doc/types"
  "context"
  "errors"

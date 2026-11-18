@@ -19,26 +19,56 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 )
 
-// The Go library of generated parsers is the package zeroparse.dev/zp/codegen/go/lib, whose exported
+// The Go library of generated parsers is the package zeroparse.dev/zp/pkg/runtime/golib, whose exported
 // names that are documented as for generated parsers the generated code reaches, together with the
-// package core, which declares the result types (Node, Limits, SyntaxError, ...) that generated
-// parsers share with the engine. A generated package imports core and either imports the library or
-// carries a copy of its files (embed mode), which the generator reads from the source in
-// GenOptions.GoLib; the declarations of core come from the index coreAPI.
+// runtime packages pkg/runtime, input, value and instrument, which declare the result types (Node,
+// Limits, SyntaxError, ...) that generated parsers share with the other parsers. A generated
+// package imports the runtime packages it names and either imports the library or carries a copy
+// of its files (embed mode), which the generator reads from the source in GenOptions.GoLib; the
+// declarations of the runtime packages come from the index coreAPI.
 
-// modulePath is the path of this module, libImportPath the import path of the library in it, and
-// coreImportPath that of the package core.
+// modulePath is the path of this module and libImportPath the import path of the library in it.
 const (
-	modulePath     = "zeroparse.dev/zp"
-	libImportPath  = modulePath + "/codegen/go/lib"
-	coreImportPath = modulePath + "/core"
+	modulePath    = "zeroparse.dev/zp"
+	libImportPath = modulePath + "/pkg/runtime/golib"
 )
 
-// libAlias is the name generated code gives to the library, coreAlias the name it gives to the
-// package core, and typesAlias the name it gives to the types package of a typed parser.
+// runtimePackages are the runtime packages whose declarations generated code names, by package
+// name; runtimeImportPaths are their import paths, and runtimeAliases the names generated code
+// and the library give them. The names have a prefix that no identifier of generated code has, so
+// that a parameter named input or value does not hide a package.
+var (
+	runtimePackages    = []string{"runtime", "input", "value", "instrument"}
+	runtimeImportPaths = map[string]string{
+		"runtime":    modulePath + "/pkg/runtime",
+		"input":      modulePath + "/pkg/runtime/input",
+		"value":      modulePath + "/pkg/runtime/value",
+		"instrument": modulePath + "/pkg/runtime/instrument",
+	}
+	runtimeAliases = map[string]string{
+		"runtime":    "zpruntime",
+		"input":      "zpinput",
+		"value":      "zpvalue",
+		"instrument": "zpinstrument",
+	}
+)
+
+// runtimeImports returns the import specs of the runtime packages whose aliases used holds, in
+// the order of their import paths.
+func runtimeImports(used map[string]bool) []string {
+	var specs []string
+	for _, pkg := range []string{"runtime", "instrument", "input", "value"} {
+		if a := runtimeAliases[pkg]; used[a] {
+			specs = append(specs, fmt.Sprintf("%s %q", a, runtimeImportPaths[pkg]))
+		}
+	}
+	return specs
+}
+
+// libAlias is the name generated code gives to the library and typesAlias the name it gives to the
+// types package of a typed parser.
 const (
 	libAlias   = "rt"
-	coreAlias  = "core"
 	TypesAlias = "types"
 )
 
@@ -63,8 +93,8 @@ type libDecl struct {
 	kind token.Token // token.TYPE, CONST, VAR or FUNC
 	doc  string
 	spec goast.Node
-	// pkg is the name generated code gives to the package that declares it: libAlias or
-	// coreAlias.
+	// pkg is the name generated code gives to the package that declares it: libAlias or one of
+	// runtimeAliases.
 	pkg string
 }
 
@@ -394,9 +424,9 @@ func qualifyLib(rtImport, body string, info *libInfo, tp *typesPackage) (string,
 		}
 		return true
 	})
-	coreUsed := false
+	runtimeUsed := map[string]bool{}
 	for _, in := range inserts {
-		coreUsed = coreUsed || in.qualifier == coreAlias+"."
+		runtimeUsed[strings.TrimSuffix(in.qualifier, ".")] = true
 	}
 	typesUsed := false
 	for _, off := range typeOffsets {
@@ -431,8 +461,8 @@ func qualifyLib(rtImport, body string, info *libInfo, tp *typesPackage) (string,
 		fmt.Fprintf(&imports, "\t%q\n", p)
 	}
 	fmt.Fprintf(&imports, "\n\t%s %q\n", libAlias, rtImport)
-	if coreUsed {
-		fmt.Fprintf(&imports, "\t%q\n", coreImportPath)
+	for _, spec := range runtimeImports(runtimeUsed) {
+		fmt.Fprintf(&imports, "\t%s\n", spec)
 	}
 	if typesUsed {
 		fmt.Fprintf(&imports, "\t%s %q\n", TypesAlias, tp.ImportPath)
@@ -557,11 +587,6 @@ func apiNames(opts common.GenOptions) []string {
 // functions are wrappers that the compiler inlines.
 func apiSource(opts common.GenOptions, info *libInfo) (string, error) {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s\n\npackage %s\n\n", common.Header(), opts.Package)
-	b.WriteString("import (\n\t\"context\"\n\n")
-	fmt.Fprintf(&b, "\t%q\n", coreImportPath)
-	fmt.Fprintf(&b, "\t%s %q\n)\n\n", libAlias, libImport(opts))
-	b.WriteString("var _ context.Context\n\n")
 	for _, name := range apiNames(opts) {
 		d := info.Decls[name]
 		if d == nil {
@@ -628,9 +653,22 @@ func apiSource(opts common.GenOptions, info *libInfo) (string, error) {
 			fmt.Fprintf(&b, "func %s%s { %s%s }\n\n", name, strings.TrimPrefix(sigb.String(), "func"), ret, call)
 		}
 	}
-	src, err := format.Source([]byte(b.String()))
+	body := b.String()
+	used := map[string]bool{}
+	for _, a := range runtimeAliases {
+		used[a] = strings.Contains(body, a+".")
+	}
+	var h strings.Builder
+	fmt.Fprintf(&h, "%s\n\npackage %s\n\n", common.Header(), opts.Package)
+	h.WriteString("import (\n\t\"context\"\n\n")
+	fmt.Fprintf(&h, "\t%s %q\n", libAlias, libImport(opts))
+	for _, spec := range runtimeImports(used) {
+		fmt.Fprintf(&h, "\t%s\n", spec)
+	}
+	h.WriteString(")\n\nvar _ context.Context\n\n")
+	src, err := format.Source([]byte(h.String() + body))
 	if err != nil {
-		return "", fmt.Errorf("generated API does not compile: %w\n%s", err, b.String())
+		return "", fmt.Errorf("generated API does not compile: %w\n%s", err, h.String()+body)
 	}
 	return string(src), nil
 }

@@ -7,9 +7,10 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
@@ -42,8 +43,8 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 				var exitSteps uint64
 				publicationPolled := false
 				token := new(int)
-				syntaxError := &core.SyntaxError{Messages: []string{"context error"}}
-				syntaxErrors := core.SyntaxErrors{syntaxError}
+				syntaxError := &value.SyntaxError{Messages: []string{"context error"}}
+				syntaxErrors := value.SyntaxErrors{syntaxError}
 				ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
 				ctx.fn = func() error {
 					if observed == nil || observed.Control.Used < exitSteps+2048 {
@@ -74,7 +75,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 						}
 					}
 				}
-				var result *core.Node
+				var result *value.Node
 				var caught any
 				func() {
 					defer func() { caught = recover() }()
@@ -85,7 +86,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 				}
 				switch mode {
 				case "budget":
-					if caught != nil || !errors.Is(err, core.ErrLimit) {
+					if caught != nil || !errors.Is(err, runtime.ErrLimit) {
 						t.Fatalf("budget: error=%v panic=%v", err, caught)
 					}
 				case "syntax-error":
@@ -93,7 +94,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 						t.Fatal("context SyntaxError identity changed")
 					}
 				case "syntax-errors":
-					got, ok := err.(core.SyntaxErrors)
+					got, ok := err.(value.SyntaxErrors)
 					if caught != nil || !ok || len(got) != 1 || &got[0] != &syntaxErrors[0] {
 						t.Fatal("context SyntaxErrors identity changed")
 					}
@@ -126,7 +127,7 @@ func TestBudgetDocumentFatalSyntaxErrorsRemainUnchanged(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		original := core.SyntaxErrors{&core.SyntaxError{Messages: []string{"context failure"}}}
+		original := value.SyntaxErrors{&value.SyntaxError{Messages: []string{"context failure"}}}
 		ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
 		o := base
 		o.Context = ctx
@@ -137,7 +138,7 @@ func TestBudgetDocumentFatalSyntaxErrorsRemainUnchanged(t *testing.T) {
 			}
 		}
 		n, err := d.ParseWith(o)
-		got, ok := err.(core.SyntaxErrors)
+		got, ok := err.(value.SyntaxErrors)
 		if n != nil || !ok || len(got) != 1 || &got[0] != &original[0] {
 			t.Fatal("fatal context error was mistaken for parser diagnostics")
 		}

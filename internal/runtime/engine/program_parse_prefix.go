@@ -4,12 +4,12 @@ import (
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // PrefixResult records the successful cursor independently of the rule's value.
 type PrefixResult struct {
-	Node          *core.Node
+	Node          *value.Node
 	Consumed      int
 	ConsumedBytes int
 }
@@ -98,7 +98,7 @@ func (prog *Program) runPrefix(p *state.Parser, b Backend, start string) (result
 	}
 	result = PrefixResult{Node: v, Consumed: p.Pos}
 	if len(p.Recovered) > 0 {
-		err = core.SyntaxErrors(p.RecoveredErrors())
+		err = value.SyntaxErrors(p.RecoveredErrors())
 	}
 	return result, err
 }

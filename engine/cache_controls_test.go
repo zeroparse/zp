@@ -3,8 +3,8 @@ package engine_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 func TestPublicDocumentCacheControls(t *testing.T) {
@@ -37,7 +37,7 @@ rule line = [a-z]+ "\n"`, "main")
 		}
 		version := d.Version()
 		d.ResetHistory()
-		if got := d.CacheStats(); got != (core.CacheStats{}) {
+		if got := d.CacheStats(); got != (runtime.CacheStats{}) {
 			t.Fatalf("%s reset history: %+v", backend, got)
 		}
 		if d.Stats() != last || d.Text() != "ab\nxd\n" || d.Version() != version || version == beforeVersion {

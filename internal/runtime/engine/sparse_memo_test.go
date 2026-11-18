@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestSparseMemoRuleAndPageBoundaries(t *testing.T) {
@@ -110,7 +110,7 @@ func TestSparseMemoParseControls(t *testing.T) {
 		t.Fatal("control no longer exercises sparse rule count")
 	}
 	for i, input := range []string{"const 日本語 = \"😀\";\nconst v = [1, 2].map(x => x + 1);\n", "function f( { return 1;", strings.Repeat("const 日本語 = 1 + 2;\n", 100), strings.Repeat("const a = 1;\n", 100) + "function f( { return 1;"} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			for _, recognize := range []bool{false, true} {
 				checkTrace(t, prog, "main", input, ParseOptions{Unit: unit, Recognize: recognize})
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -143,14 +143,14 @@ func TestSparseMemoInputSelection(t *testing.T) {
 		"/*" + strings.Repeat("a", 1020) + "*/",
 	} {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				p := state.NewParser(&prog.sharedProgram, text, unit, true)
 				p.DeferMemo = true
 				if _, err := prog.Run(p, backend, "main"); err != nil {
 					t.Fatal(err)
 				}
 				want := len([]rune(text)) > 1024
-				if unit == core.Bytes {
+				if unit == zpinput.Bytes {
 					want = len(text) > 1024
 				}
 				want = want && state.SparseMemo

@@ -373,8 +373,8 @@ import (
 	"strings"
 	"testing"
 
-	rt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
 )
 
 func TestProbe(t *testing.T) {
@@ -388,7 +388,7 @@ func TestProbe(t *testing.T) {
 		Events []*rt.ConfEvent
 	}
 	var runs []run
-	opts := []ParseOption{rt.WithExpectations(), rt.WithLimits(core.Limits{Compute: 1 << 40})}
+	opts := []ParseOption{rt.WithExpectations(), rt.WithLimits(zpruntime.Limits{Compute: 1 << 40})}
 	ordinary := []ParseOption{rt.WithExpectations()}
 	for _, in := range inputs {
 		for entry := range %d {

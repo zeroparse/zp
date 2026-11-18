@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestOperatorsRuleCST(t *testing.T) {
@@ -76,7 +76,7 @@ func TestOperatorsRulePositionsWithActions(t *testing.T) {
 	if nodes.D(n).Start != 0 || nodes.D(n).End != 9 {
 		t.Errorf("root [%d,%d)", nodes.D(n).Start, nodes.D(n).End)
 	}
-	if l := n.Field("L").(*core.Node); nodes.D(l).Start != 0 || nodes.D(l).End != 5 {
+	if l := n.Field("L").(*value.Node); nodes.D(l).Start != 0 || nodes.D(l).End != 5 {
 		t.Errorf("left [%d,%d)", nodes.D(l).Start, nodes.D(l).End)
 	}
 }

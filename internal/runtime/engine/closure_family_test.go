@@ -14,22 +14,24 @@ import (
 	"time"
 	"weak"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/closure"
 	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // leastCompute returns the smallest compute limit under which run succeeds.
-func leastCompute(t *testing.T, run func(core.Limits) error) uint64 {
+func leastCompute(t *testing.T, run func(zpruntime.Limits) error) uint64 {
 	t.Helper()
-	fits := func(b uint64) bool { return run(core.Limits{Compute: b}) == nil }
+	fits := func(b uint64) bool { return run(zpruntime.Limits{Compute: b}) == nil }
 	hi := uint64(1)
 	for !fits(hi) {
 		if hi > 1<<30 {
-			t.Fatalf("the parse fails under every limit: %v", run(core.Limits{}))
+			t.Fatalf("the parse fails under every limit: %v", run(zpruntime.Limits{}))
 		}
 		hi *= 2
 	}
@@ -56,22 +58,22 @@ func familyCharges(t *testing.T, prog *Program, b Backend, input string, stream 
 		if traced {
 			o.Trace, suffix = func(TraceEvent) {}, "+trace"
 		}
-		with := func(l core.Limits) ParseOptions { x := o; x.Limits = l; return x }
+		with := func(l zpruntime.Limits) ParseOptions { x := o; x.Limits = l; return x }
 		if stream {
-			out["stream"+suffix] = leastCompute(t, func(l core.Limits) error {
-				return prog.ParseStreamWith("main", strings.NewReader(input), func(*core.Node) error { return nil }, with(l))
+			out["stream"+suffix] = leastCompute(t, func(l zpruntime.Limits) error {
+				return prog.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error { return nil }, with(l))
 			})
 			continue
 		}
-		out["parse"+suffix] = leastCompute(t, func(l core.Limits) error { _, err := prog.ParseWith("main", input, with(l)); return err })
-		out["recognize"+suffix] = leastCompute(t, func(l core.Limits) error {
+		out["parse"+suffix] = leastCompute(t, func(l zpruntime.Limits) error { _, err := prog.ParseWith("main", input, with(l)); return err })
+		out["recognize"+suffix] = leastCompute(t, func(l zpruntime.Limits) error {
 			x := with(l)
 			x.Recognize = true
 			_, err := prog.ParseWith("main", input, x)
 			return err
 		})
-		out["prefix"+suffix] = leastCompute(t, func(l core.Limits) error { _, err := prog.ParsePrefixWith("main", input, with(l)); return err })
-		out["document"+suffix] = leastCompute(t, func(l core.Limits) error {
+		out["prefix"+suffix] = leastCompute(t, func(l zpruntime.Limits) error { _, err := prog.ParsePrefixWith("main", input, with(l)); return err })
+		out["document"+suffix] = leastCompute(t, func(l zpruntime.Limits) error {
 			d, err := prog.NewDocumentWith("main", input, ParseOptions{Expectations: true, Backend: b})
 			if err != nil {
 				return err
@@ -120,7 +122,7 @@ func TestClosureFamilyCharges(t *testing.T) {
 
 // parseInFamily parses input with the start rule main of prog on the backend b in the family f,
 // with no tracer, and returns the result as ResultJSON and the parse statistics.
-func parseInFamily(prog *Program, b Backend, input string, unit core.PositionUnit, f state.Family) (string, core.ParseStats) {
+func parseInFamily(prog *Program, b Backend, input string, unit zpinput.PositionUnit, f state.Family) (string, zpruntime.ParseStats) {
 	p := state.AcquirePooledParser(&prog.sharedProgram)
 	defer p.ReleaseBatchScratch()
 	p.Input = state.NewControlledTextInput(input, unit, true, p.Scratch, nil)
@@ -142,7 +144,7 @@ func TestClosureFamiliesMatchOnCorpus(t *testing.T) {
 			for _, o := range []compile.Options{{}, {DisableMemo: true}} {
 				prog := mustCompile(t, c.Src, o)
 				for _, in := range c.Inputs {
-					for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+					for _, u := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 						a, as := parseInFamily(prog, Closure, in, u, state.Inlined)
 						b, bs := parseInFamily(prog, Closure, in, u, state.CallPreserving)
 						if a != b || as != bs {
@@ -214,7 +216,7 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 	}
 
 	stream := mustCompile(t, codegentest.Records)
-	if err := stream.ParseStreamWith("main", strings.NewReader("#records\na=1\n"), func(*core.Node) error { return nil }, ParseOptions{Trace: func(TraceEvent) {}}); err != nil && err != io.EOF {
+	if err := stream.ParseStreamWith("main", strings.NewReader("#records\na=1\n"), func(*value.Node) error { return nil }, ParseOptions{Trace: func(TraceEvent) {}}); err != nil && err != io.EOF {
 		t.Fatal(err)
 	}
 	if got := built(stream); got != [2]bool{false, true} {
@@ -485,7 +487,7 @@ func TestClosureCoreBuildAllowsReentrantContexts(t *testing.T) {
 	ctx := &buildHookContext{Context: base}
 	ctx.hook = func() error {
 		if ctx.calls == 1 {
-			for _, o := range []ParseOptions{{Context: base}, {Limits: core.Limits{Compute: core.Unlimited}}} {
+			for _, o := range []ParseOptions{{Context: base}, {Limits: zpruntime.Limits{Compute: zpruntime.Unlimited}}} {
 				_, err := prog.ParseWith("main", "k3x;k9", o)
 				nested = append(nested, err)
 			}

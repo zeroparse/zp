@@ -1,6 +1,6 @@
 # The Generated Go API
 
-A Go parser written by [`zp gen`](code-generation.md) has a small API: `parser.go` defines the functions that parse, `api.go` re-exports the result types of the `core` package (`zeroparse.dev/zp/core`) and the options of the library package under their own names (generated code imports the library as `rt "<module>/internal/libgo"`, its copy, or as `rt "zeroparse.dev/zp/codegen/go/lib"` with `-lib import`), and, with `-types`, `types/types.go` defines the Go types of the grammar. This guide describes
+A Go parser written by [`zp gen`](code-generation.md) has a small API: `parser.go` defines the functions that parse, `api.go` re-exports the result types of the `core` package (`zeroparse.dev/zp/core`) and the options of the library package under their own names (generated code imports the library as `rt "<module>/internal/libgo"`, its copy, or as `rt "zeroparse.dev/zp/pkg/runtime/golib"` with `-lib import`), and, with `-types`, `types/types.go` defines the Go types of the grammar. This guide describes
 it, the call options that all entry points share, and recognition. Options that add typed values, incremental documents
 and streams have their own guides:
 
@@ -99,7 +99,7 @@ Compared with the engine's API:
 
 | Part | Contents |
 |:--|:--|
-| Library | The parser state, memoization, left recursion, Operators Rule loop, attribute handling and the built-in functions of actions. It is **the same for every grammar**: the package `zeroparse.dev/zp/codegen/go/lib`, which the generated package imports (`-lib import`) or carries a copy of in `internal/libgo` (`-lib embed`, the default). Either way it depends only on `zeroparse.dev/zp/core`. |
+| Library | The parser state, memoization, left recursion, Operators Rule loop, attribute handling and the built-in functions of actions. It is **the same for every grammar**: the package `zeroparse.dev/zp/pkg/runtime/golib`, which the generated package imports (`-lib import`) or carries a copy of in `internal/libgo` (`-lib embed`, the default). Either way it depends only on `zeroparse.dev/zp/core`. |
 | `api.go` | The names of `core` and the library that the users of the parser need (`Node`, `SyntaxError`, the options and so on), as aliases and wrappers. It is the same for grammars generated with the same options. |
 | `types/types.go` | With `-types`, the package `<module>/types`: a Go type for each type of the grammar, `TNode`, `Error` and the tuple types. |
 | Rule table | For each rule, the results of the engine's static analysis (memoized? left-recursion leader? capture names?). |

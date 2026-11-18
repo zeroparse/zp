@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 func TestDiagnosticRenameAccountsForLargeExpectationSets(t *testing.T) {
@@ -15,8 +15,8 @@ func TestDiagnosticRenameAccountsForLargeExpectationSets(t *testing.T) {
 	for i := range ids {
 		ids[i] = ExpID(i + 1)
 	}
-	p := &Parser{Input: Input{Control: NewBudgetControl(nil, core.Limits{Compute: 64})}}
-	if err := catchFatal(t, func() { RenamedExpected(p, ids, 999) }); !errors.Is(err, core.ErrLimit) {
+	p := &Parser{Input: Input{Control: NewBudgetControl(nil, runtime.Limits{Compute: 64})}}
+	if err := catchFatal(t, func() { RenamedExpected(p, ids, 999) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("rename compute limit = %v, want ErrLimit", err)
 	}
 	if got := p.Control.Used; got != 64 {
@@ -24,7 +24,7 @@ func TestDiagnosticRenameAccountsForLargeExpectationSets(t *testing.T) {
 	}
 
 	c := newPollingContext(1)
-	p.Control = NewBudgetControl(c, core.Limits{})
+	p.Control = NewBudgetControl(c, runtime.Limits{})
 	if err := catchFatal(t, func() { RenamedExpected(p, ids, 999) }); !errors.Is(err, context.Canceled) {
 		t.Fatalf("rename cancellation = %v, want context.Canceled", err)
 	}
