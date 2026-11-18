@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )

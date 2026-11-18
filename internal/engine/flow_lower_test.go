@@ -3,8 +3,8 @@ package engine
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )

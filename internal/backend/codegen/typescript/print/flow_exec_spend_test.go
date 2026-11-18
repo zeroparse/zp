@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 )
 
 // TestFlowExecPrintsStepRunAsUnits checks that charges in a row, which the printer joins into one

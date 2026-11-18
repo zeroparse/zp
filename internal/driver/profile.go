@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/pass"

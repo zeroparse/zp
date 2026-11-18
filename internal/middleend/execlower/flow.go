@@ -9,7 +9,7 @@
 // hand-written runtime's helper, as Flow IR's printers do, until the stage that migrates the
 // mechanism. The arguments of such a call are the locals the primitive reads, so that passes see
 // its reads. An operation is declared once per kind and shape of its call.
-package lower
+package execlower
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/code"
-	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 )
 
 // Component is the state component of the operations that stand for Flow IR primitives: the state

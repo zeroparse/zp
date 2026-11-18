@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/flow"
 )
 
 // stripSteps returns ss without the Step statements, at any depth.

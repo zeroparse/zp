@@ -72,7 +72,7 @@ var layout = []place{
 	{pkg: "internal/ir/core", target: "internal/ir/core"},
 	{pkg: "internal/ir/code", target: "internal/ir/code"},
 	// flow folds its structure types into internal/ir/code; its operations stay in the dialect.
-	{pkg: "internal/ir/flow", target: "internal/ir/code/flow"},
+	{pkg: "internal/ir/code/flow", target: "internal/ir/code/flow"},
 	// exec splits into the machine operations (internal/ir/code/exec) and the action-expression
 	// operations (internal/ir/code/action).
 	{pkg: "internal/ir/code/exec", target: "internal/ir/code/exec"},
@@ -86,7 +86,7 @@ var layout = []place{
 	{pkg: "internal/middleend/flowlower", target: "internal/middleend/flowlower"},
 	// lower splits into Flow to Exec (internal/middleend/execlower) and action-expression
 	// lowering (internal/middleend/flowlower).
-	{pkg: "internal/ir/exec/lower", target: "internal/middleend/execlower"},
+	{pkg: "internal/middleend/execlower", target: "internal/middleend/execlower"},
 	{pkg: "internal/middleend/codepass", target: "internal/middleend/codepass"},
 
 	// Back end.

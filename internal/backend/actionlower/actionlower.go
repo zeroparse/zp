@@ -1,6 +1,6 @@
 // Package actionlower lowers the action expressions of a checked program, the predicates and the
 // values of bindings to the term programs that the runtime evaluates (state.TermProgram): it lowers
-// a Core IR term to Exec IR (lower.Term) and translates the function into the instructions of the
+// a Core IR term to Exec IR (execlower.Term) and translates the function into the instructions of the
 // register machine of terms. The closure backend and the bytecode compiler (vmlower) call it when
 // they build a program; the runtime only runs the result.
 package actionlower
@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
+	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -23,7 +23,7 @@ type Env struct {
 	Prog *compile.Program
 	// Scope holds the capture slots of the frame the term reads.
 	Scope *program.Scope
-	// Proj are the projected captures of the rule whose action the term is (lower.TermOptions.Proj),
+	// Proj are the projected captures of the rule whose action the term is (execlower.TermOptions.Proj),
 	// nil for every other term.
 	Proj map[string]string
 }
@@ -45,7 +45,7 @@ type termReg struct {
 // and translates the function into the instructions of a state.TermProgram. An error is an internal
 // error: a term that the front end does not build, or a lowering this translation does not know.
 func Compile(t ir.ActionExpr, env Env) (*state.TermProgram, error) {
-	l, err := lower.Term(t, lower.TermOptions{Proj: env.Proj})
+	l, err := execlower.Term(t, execlower.TermOptions{Proj: env.Proj})
 	if err != nil {
 		return nil, err
 	}
@@ -546,11 +546,11 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		name, err := immArg(e, 3, lower.OpTermName)
+		name, err := immArg(e, 3, execlower.OpTermName)
 		if err != nil {
 			return err
 		}
-		field, err := immArg(e, 4, lower.OpTermField)
+		field, err := immArg(e, 4, execlower.OpTermField)
 		if err != nil {
 			return err
 		}
@@ -558,7 +558,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		c.prog.Members = append(c.prog.Members, state.TermMember{Kind: int(kind), Name: name.(string), Field: field.(lower.TermField).Field})
+		c.prog.Members = append(c.prog.Members, state.TermMember{Kind: int(kind), Name: name.(string), Field: field.(execlower.TermField).Field})
 		in.Op, in.A, in.B = state.TMember, rs[0], int32(len(c.prog.Members)-1)
 	case "unary", "logic":
 		op, err := intImm(e, 0)
@@ -590,7 +590,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		}
 		in.Op, in.A = map[string]state.TermOp{"text": state.TText, "length": state.TLength, "filterKeep": state.TFilter}[e.Callee], rs[0]
 	case "convert":
-		nt, err := immArg(e, 0, lower.OpTermNodeType)
+		nt, err := immArg(e, 0, execlower.OpTermNodeType)
 		if err != nil {
 			return err
 		}
@@ -610,7 +610,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if e.Callee == "items" {
 			at, nameAt = 1, 0
 		}
-		name, err := immArg(e, nameAt, lower.OpTermName)
+		name, err := immArg(e, nameAt, execlower.OpTermName)
 		if err != nil {
 			return err
 		}
@@ -631,13 +631,13 @@ func (c *termCompiler) effect(e *code.Call) error {
 	switch e.Callee {
 	case "seq.step":
 		c.emit(state.TermInstr{Op: state.TStep})
-	case lower.OpTermKeep:
+	case execlower.OpTermKeep:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
 		}
 		c.emit(state.TermInstr{Op: state.TKeep, A: rs[0], B: rs[1]})
-	case lower.OpTermSetField:
+	case execlower.OpTermSetField:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
@@ -659,10 +659,10 @@ func (c *termCompiler) effect(e *code.Call) error {
 func (c *termCompiler) call(e *code.Call, dst termReg) error {
 	in := state.TermInstr{Dst: dst.r}
 	switch e.Callee {
-	case lower.OpTermConst:
-		in.Op, in.A = state.TConst, c.constant(e.Imm.(lower.TermConst).Value)
-	case lower.OpTermRead:
-		switch x := e.Imm.(lower.TermRead).Term.(type) {
+	case execlower.OpTermConst:
+		in.Op, in.A = state.TConst, c.constant(e.Imm.(execlower.TermConst).Value)
+	case execlower.OpTermRead:
+		switch x := e.Imm.(execlower.TermRead).Term.(type) {
 		case *ir.SlotRef:
 			slot, ok := c.env.Scope.Slots[x.Name]
 			if !ok {
@@ -692,23 +692,23 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 			return err
 		}
 		in.Op, in.A = state.TFromB, rs[0]
-	case lower.OpTermFromStr:
+	case execlower.OpTermFromStr:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
 		in.Op, in.A = state.TFromT, rs[0]
-	case lower.OpTermFromObj:
+	case execlower.OpTermFromObj:
 		// A struct, list or tuple is held as the value it is.
 		return c.exprInto(e.Args[0], dst)
-	case lower.OpTermTextEqual:
+	case execlower.OpTermTextEqual:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
 		}
 		in.Op, in.A, in.B = state.TTextEq, rs[0], rs[1]
 	case "conforms":
-		ct, err := immArg(e, 0, lower.OpTermCastType)
+		ct, err := immArg(e, 0, execlower.OpTermCastType)
 		if err != nil {
 			return err
 		}
@@ -716,16 +716,16 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		in.Op, in.A, in.B = state.TConforms, rs[0], c.cast(ct.(lower.TermCast).Cast)
-	case lower.OpTermCastError:
+		in.Op, in.A, in.B = state.TConforms, rs[0], c.cast(ct.(execlower.TermCast).Cast)
+	case execlower.OpTermCastError:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
-		in.Op, in.A, in.B = state.TCastErr, rs[0], c.cast(e.Imm.(lower.TermCast).Cast)
+		in.Op, in.A, in.B = state.TCastErr, rs[0], c.cast(e.Imm.(execlower.TermCast).Cast)
 	case "term.kids":
 		in.Op = state.TKids
-	case lower.OpTermElemsAbove:
+	case execlower.OpTermElemsAbove:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
@@ -757,14 +757,14 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 			return err
 		}
 		in.Op, in.A = state.TSeqLen, rs[0]
-	case lower.OpTermCopyList:
+	case execlower.OpTermCopyList:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
 		in.Op, in.A = state.TCopy, rs[0]
-	case lower.OpTermStruct:
-		t := e.Imm.(lower.TermNew).New
+	case execlower.OpTermStruct:
+		t := e.Imm.(execlower.TermNew).New
 		c.prog.Structs = append(c.prog.Structs, state.TermStruct{Kind: c.env.Prog.TypeKind(t.Type), Fields: len(t.Fields)})
 		in.Op, in.A = state.TStruct, int32(len(c.prog.Structs)-1)
 	case "cover":
