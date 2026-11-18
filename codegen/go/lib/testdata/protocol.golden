@@ -1,4 +1,4 @@
-protocol 19
+protocol 20
 const BaseString untyped int = 0
 const ExpFar ExpID = 536870912
 const IdAny ExpID = 0
@@ -344,6 +344,7 @@ method (*TypedDocumentCloneBase) Remember(any, any)
 method (*TypedDocumentCloneBase) Step(uint64)
 method (*grammar) DeclareStruct(string, ...string)
 method (*grammar) SetRules([]*Rule, int)
+method (*grammar) SetRunKey(int, []int, []int)
 method (*grammar) SetVars([]string, []any)
 method (*grammar) Share(*grammar)
 method (*grammar) StartError(string) error
@@ -383,6 +384,7 @@ type Parser struct{Control *BudgetControl; Observation *observation; Document *d
 type Rule struct{Id int; Name string; Scope []string; Body func(*Parser, int) (*zeroparse.dev/zp/core.Node, bool); Action func(*ActCtx) (any, any); Value Shaper; NodeType string; OpNodeType string; Memo bool; Leader bool; Rec bool; Cycle int32; DocMemo bool; Positional bool; Seen int; OperatorsRule *OperatorsRule; Novalue bool; Splice bool; Where string; Vars []string}
 type RuleExtra struct{Id int; Where string; NodeType string; OpNodeType string; Cycle int32}
 type RuleSpec struct{Name string; Value *Shaper; Flags uint8; Seen int32; Scope uint16; Vars uint16}
+type RunKey struct{Vars []int; Bind []int}
 type Shaper struct{Elems bool; K int; Mode singleMode; Tuple bool; Shared bool}
 type Span struct{Start int; End int}
 type StreamPull[T any] struct{}
