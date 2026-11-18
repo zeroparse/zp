@@ -12,7 +12,7 @@ import (
 )
 
 // The flags of the passes that the tests of the driver add to the pipelines. The registry of this
-// test binary holds them and the flags of the parts the driver links (the Core passes), and not
+// test binary holds them and the flags of the parts the driver links (the Core and Flow passes), and not
 // those of the generators.
 func init() {
 	pass.Register(
@@ -24,7 +24,7 @@ func init() {
 
 // Every pass of the Core pipeline is an optimization that can be turned off, under its own name.
 func TestEveryCorePassIsAFlag(t *testing.T) {
-	for _, name := range append(corepass.Pipeline.Names(), corepass.FlagGuardedClasses) {
+	for _, name := range corepass.Pipeline.Names() {
 		if f, ok := pass.Lookup(name); !ok || f.Kind != pass.KindCorePass {
 			t.Errorf("pass %s is not a registered optimization of kind pass", name)
 		}
@@ -92,7 +92,7 @@ func TestProfile(t *testing.T) {
 	if _, err := Profile("nosuch"); err == nil || !strings.Contains(err.Error(), "valid: speed, memory, size") {
 		t.Errorf("unknown profile: %v", err)
 	}
-	for name, flag := range map[string]string{"memory": "typed-list-slabs", "size": "class-tables"} {
+	for name, flag := range map[string]string{"memory": "typed-list-slabs"} {
 		s, err := Profile(name)
 		if err == nil {
 			t.Errorf("profile %s resolves without the flags it sets: %v", name, s)
@@ -169,8 +169,6 @@ func testFlags() []pass.Flag {
 	return append(pass.Flags(),
 		pass.Flag{Name: "typed-object-slabs", Kind: pass.KindRuntime, Default: 1, Doc: "x"},
 		pass.Flag{Name: "typed-list-slabs", Kind: pass.KindRuntime, Default: 1, Doc: "x"},
-		pass.Flag{Name: "inline-literals", Kind: pass.KindLowering, Int: true, Default: 4, Doc: "x"},
-		pass.Flag{Name: "class-tables", Kind: pass.KindLowering, Int: true, Doc: "x"},
 	)
 }
 
@@ -209,6 +207,14 @@ func TestProfileDefinitionsAreValid(t *testing.T) {
 	}
 	if v := ProfileValues("size"); v["class-tables"] != 5 || len(v) != 2 {
 		t.Errorf("size values %v", v)
+	}
+	// The flags of size are the Flow passes', which the driver links, so it resolves here.
+	size, err := Profile("size")
+	if err != nil {
+		t.Fatalf("size: %v", err)
+	}
+	if size.Value("class-tables") != 5 || size.Value("inline-literals") != 0 {
+		t.Errorf("size settings %v", size)
 	}
 }
 

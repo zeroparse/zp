@@ -34,8 +34,8 @@ Evidence records:
 [062](../062-comparing-short-literals-in-place-in-direct-rules.md),
 [136](../136-measured-effect-of-the-generation-flags.md).
 
-Source owners: [`Flow literal comparison
-lowering`](../../../internal/middleend/flowlower/lower.go),
+Source owners: [`the inline-literals Flow
+pass`](../../../internal/middleend/flowpass/passes.go),
 [`parser.matchLiteral`](../../../pkg/runtime/golib/lib.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

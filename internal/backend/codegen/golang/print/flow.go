@@ -50,12 +50,7 @@ func (g *Generator) FlowOptions(m *core.Module) flowlower.Options {
 	// Node is false: the options of the Node and recognizer tables (common.Generator.StartRecFlow) are
 	// built apart, and a function lowered with one set of options is never printed for the other
 	// runtime.
-	tableRanges := 0
-	if g.leanTyped() {
-		tableRanges = g.Opt.Value("class-tables")
-	}
-	return flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), ClassTableRanges: tableRanges,
-		GuardedClasses: g.GuardedClasses(), InlineLiterals: g.InlineLiterals(), Observe: g.Observability, Document: g.RecordsExamined(), Traced: g.Traced}
+	return flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), Observe: g.Observability, Document: g.RecordsExamined(), Traced: g.Traced}
 }
 
 // flowTypedRule prints the rule r from Flow IR as a flat rule, or returns nil if r is not

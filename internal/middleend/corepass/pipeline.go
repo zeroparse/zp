@@ -1,14 +1,13 @@
 package corepass
 
 import (
-	"fmt"
-
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/pass"
 )
 
 // The optimization passes of Core IR as a pipeline (design 063). Generators run it with Run; a
-// pass has the name of the flag that turns it off.
+// pass has the name of the flag that turns it off. The passes know no target and no generation
+// mode: what depends on them is decided by the Flow passes (internal/middleend/flowpass).
 
 // AttributesAnalysis is the analysis that core.Analyze computes: Nullable, First and Eff of every node.
 // A pass that adds or replaces nodes makes it stale; a pass preserves it only by saying so.
@@ -20,40 +19,14 @@ const Stage = "core"
 
 // Names of the passes. A name is also the name of the flag that turns the pass off.
 const (
-	PassTerminals = "terminals"
-	PassGuards    = "guards"
-	PassScans     = "scans"
-	PassClassRuns = "class-runs"
+	PassGuards = "guards"
+	PassScans  = "scans"
 )
-
-// Names of the flags that select a variant of a pass. A variant is on unless its flag, or the flag of
-// the pass, says otherwise.
-const (
-	// FlagGuardedClasses selects the GuardedClass marks that guards sets.
-	FlagGuardedClasses = "guarded-classes"
-)
-
-// Mode is what a pass's applicability depends on: how the module's parser is generated.
-type Mode struct {
-	// Lean reports that the module is the typed rules of a parser that prints bodies in their ordinary
-	// form (no budget controls, no Documents). Terminals and class runs are sound there only: budget
-	// controls and Documents charge for the input that they read.
-	Lean bool
-	// Ordinary reports that the parser prints bodies in their ordinary form, which guarded classes
-	// need: the consuming advance of a guarded class charges no budget for the input.
-	Ordinary bool
-	// Observe reports that the parser reports the rules it enters and the alternatives that guards
-	// skip. A Terminal's program does not.
-	Observe bool
-}
 
 // Env is the context of a run of the pipeline.
 type Env struct {
-	Mode Mode
 	// Flag reports whether the optimization of the given name is on. Nil means every one is.
 	Flag func(name string) bool
-	// Local reports the rules that terminals regions are made in: those lowered to Go-local code.
-	Local func(*core.Rule) bool
 	// PrepareScans, if not nil, is called with the module before the scans pass, and the function
 	// it returns after it. The Flow route uses it to keep the origin of each repetition that a scan
 	// replaces.
@@ -63,22 +36,9 @@ type Env struct {
 // On reports whether the optimization of the given name is on.
 func (e *Env) On(name string) bool { return e.Flag == nil || e.Flag(name) }
 
-// Pipeline is the pipeline of the Core passes: terminal regions, choice guards, scans and class runs. A run on the recognizer's or the Node table's module has no Lean mode, so
-// the first and last do not apply.
+// Pipeline is the pipeline of the Core passes: choice guards and scans.
 var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 	Passes: []pass.Pass[*core.Module, *Env]{
-		{
-			Name:       PassTerminals,
-			Obligation: "Consumes the same input and records the same expectations as the expression it replaces.",
-			Applies:    func(e *Env) bool { return e.Mode.Lean && !e.Mode.Observe },
-			Run: func(m *core.Module, e *Env) error {
-				if e.Local == nil {
-					return fmt.Errorf("no rule predicate")
-				}
-				Terminals(m, e.Local)
-				return nil
-			},
-		},
 		{
 			Name: PassGuards,
 			// Guards read the First sets that Analyze computes. Without them the alternatives of a choice
@@ -87,10 +47,9 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 			Requires: []pass.Analysis{AttributesAnalysis},
 			// Guards mark the alternatives of choices and add no node: the attributes hold.
 			Preserves:  pass.Preserve(string(AttributesAnalysis)),
-			After:      []string{PassTerminals},
 			Obligation: "A guard is the first terminal of its alternative, which the alternative cannot match without.",
-			Run: func(m *core.Module, e *Env) error {
-				Guards(m, e.Mode.Ordinary && e.On(FlagGuardedClasses))
+			Run: func(m *core.Module, _ *Env) error {
+				Guards(m)
 				return nil
 			},
 		},
@@ -111,16 +70,6 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 				return nil
 			},
 		},
-		{
-			Name:       PassClassRuns,
-			After:      []string{PassGuards},
-			Obligation: "Consumes the same input and records the same expectations as the classes it replaces; the first class of a guarded alternative is left alone.",
-			Applies:    func(e *Env) bool { return e.Mode.Lean },
-			Run: func(m *core.Module, _ *Env) error {
-				ClassRuns(m)
-				return nil
-			},
-		},
 	},
 	Analyses:       map[pass.Analysis]func(*core.Module){AttributesAnalysis: core.Analyze},
 	Verify:         core.Verify,
@@ -136,7 +85,7 @@ type RunOptions struct {
 	Dump func(pass string, m *core.Module)
 }
 
-// Run runs the enabled passes of Pipeline that apply to e.Mode on m, and verifies the module. It
+// Run runs the enabled passes of Pipeline on m, and verifies the module. It
 // returns the names of the passes that ran.
 func Run(m *core.Module, e *Env, o RunOptions) ([]string, error) {
 	return Pipeline.Run(m, e, o.Options(e))

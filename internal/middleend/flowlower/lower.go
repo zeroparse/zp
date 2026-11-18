@@ -29,6 +29,7 @@ package flowlower
 import (
 	"fmt"
 	"strings"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -43,15 +44,6 @@ type Options struct {
 	// Recovers reports that the module can append recovered errors (Recovers), so backtracking
 	// points save their number.
 	Recovers bool
-	// ClassTableRanges, if positive, matches a class of at least that many ranges through its
-	// membership table. It needs Budget off: a table match charges no budget for the input.
-	ClassTableRanges int
-	// GuardedClasses keeps the size of the character a choice's guards read, for the classes
-	// that begin alternatives marked GuardedClass, which only consume it. It needs Budget off: the
-	// consuming advance charges no budget for the input.
-	GuardedClasses bool
-	// InlineLiterals compares literals of at most this many code points in place first.
-	InlineLiterals int
 	// Observe reports the alternatives that the guards of choices skip (ObserveSkip).
 	Observe bool
 	// Node builds the values of the Node runtime (NewTerminalNode, NewBranchNode) in place of the typed
@@ -112,13 +104,13 @@ func LocalRule(r *core.Rule) bool {
 	return ok
 }
 
-// FramedBody reports whether LowerFrame can lower the body n: it has no Operators Rule, inlined
-// call or terminal region, which the runtime or a local function matches.
+// FramedBody reports whether LowerFrame can lower the body n: it has no Operators Rule or inlined
+// call, which the runtime or a local function matches.
 func FramedBody(n core.Node) bool {
 	ok := true
 	core.Walk(n, func(n core.Node) {
 		switch n.(type) {
-		case *core.Nest, *core.OperatorsRule, *core.Terminal:
+		case *core.Nest, *core.OperatorsRule:
 			ok = false
 		}
 	})
@@ -157,9 +149,6 @@ func LowerOutline(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot, 
 }
 
 func lowerFrameBody(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot, build bool, name string, opts Options) (*code.Module, error) {
-	if err := checkOptions(opts); err != nil {
-		return nil, err
-	}
 	if !FramedBody(n) {
 		return nil, fmt.Errorf("a body of rule %s is not lowered to a framed function", r.Name)
 	}
@@ -184,20 +173,10 @@ func lowerFrameBody(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot
 	return l.module(v)
 }
 
-// checkOptions rejects the options that lower without work only.
-func checkOptions(opts Options) error {
-	if opts.Budget && (opts.ClassTableRanges > 0 || opts.GuardedClasses) {
-		return fmt.Errorf("ClassTableRanges and GuardedClasses lower functions without budget controls, but Options.Budget is set")
-	}
-	return nil
-}
-
 // Lower lowers the rule r of the module m, a LocalRule, to the function name. Analyze must have
-// run on m.
+// run on m. The terminal regions of the rule (corepass.TerminalRegions) are forms of the function
+// (flow.Forms), which the terminals pass may match as one program.
 func Lower(m *core.Module, r *core.Rule, name string, opts Options) (*code.Module, error) {
-	if err := checkOptions(opts); err != nil {
-		return nil, err
-	}
 	if !LocalRule(r) {
 		return nil, fmt.Errorf("rule %s is not lowered to a local function", r.Name)
 	}
@@ -213,6 +192,7 @@ func Lower(m *core.Module, r *core.Rule, name string, opts Options) (*code.Modul
 			l.localCuts = true
 		}
 	})
+	l.regions = corepass.TerminalRegions(r)
 	s := newScope(r.Scope)
 	body := l.node(r.Body, s, r.Want, l.at.Fail)
 	if !l.dead {
@@ -245,12 +225,18 @@ type lowerer struct {
 	// point, empty where cuts are discarded (at the rule's top level and inside lookaheads).
 	localCuts bool
 	cut       string
-	// guarded is the class that begins the alternative guardedAlt being lowered, which the guard
-	// has read and accepted; guardedSize holds the size of its character. node forgets guarded at
-	// any other node.
-	guarded     *core.ClassNode
-	guardedAlt  core.Node
-	guardedSize string
+	// guarded is the class that begins the alternative guardedAlt being lowered, which the guard of
+	// the choice guardedChoice has read and accepted. node forgets guarded at any other node.
+	guarded       *core.ClassNode
+	guardedAlt    core.Node
+	guardedChoice *flow.ChoiceForm
+	// forms record the forms of the function (flow.Attrs.Forms), formN counts their blocks, and
+	// formStack holds the forms being written, the innermost last; regions are the roots of the
+	// terminal regions of a local function.
+	forms     *flow.Forms
+	formN     int
+	formStack []*flow.Form
+	regions   map[core.Node]bool
 	// frame reports a framed function.
 	frame bool
 	// streaming is the repetition of the Stream node being lowered in a stream parse (Options.Stream).
@@ -261,8 +247,9 @@ type lowerer struct {
 // that it leaves on failure.
 func newLowerer(m *core.Module, opts Options, name string, at *flow.Attrs) *lowerer {
 	at.Fail = "fail"
+	at.Forms = &flow.Forms{}
 	l := &lowerer{m: m, opts: opts, at: at, fn: &code.Func{Name: name, Attrs: at}, body: &code.Block{Label: at.Fail},
-		used: map[string]bool{}, loops: map[string]bool{}}
+		used: map[string]bool{}, loops: map[string]bool{}, forms: at.Forms}
 	l.stack = []*[]code.Stmt{&l.body.Stmts}
 	return l
 }
@@ -278,6 +265,7 @@ func newLowerer(m *core.Module, opts Options, name string, at *flow.Attrs) *lowe
 // variables (Attrs.Vars).
 func (l *lowerer) module(value code.Expr) (*code.Module, error) {
 	fn, at := l.fn, l.at
+	at.Forms.N = l.n
 	fn.Body = l.body
 	for _, e := range []struct {
 		name string
@@ -304,6 +292,7 @@ func (l *lowerer) module(value code.Expr) (*code.Module, error) {
 			&code.Return{Values: []code.Expr{null(), code.BoolC(false)}})}
 	}
 	unshare(fn.Body)
+	at.Forms.Named, at.Forms.Order = flow.NamedVars(fn.Body), append([]string(nil), at.Vars...)
 	m := flow.NewModule("flow " + fn.Name)
 	m.Funcs = append(m.Funcs, fn)
 	if err := flow.VerifyModule(m); err != nil {
@@ -370,6 +359,7 @@ func (l *lowerer) local(name string, t flow.Type) string {
 
 // shared returns the variable name shared by the whole function, making it at its first use.
 func (l *lowerer) shared(name string, t flow.Type) string {
+	l.forms.Events = append(l.forms.Events, &flow.Event{Name: name, Vars: len(l.at.Vars), Outer: l.outer()})
 	for _, v := range l.at.Vars {
 		if v == name {
 			return v
@@ -560,35 +550,32 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail string) code.Expr
 	if l.outlines(n) {
 		return l.outlined(n, s, build, fail)
 	}
+	if l.regions[n] {
+		form := l.openForm(flow.FormRegion, n, build, fail)
+		delete(l.regions, n) // the region's root is lowered as itself inside its form
+		v := l.node(n, s, build, fail)
+		l.regions[n] = true
+		l.closeForm(form)
+		return v
+	}
 	switch n := n.(type) {
-	case *core.Terminal:
-		l.failIf(nil, code.Not(call(flow.OpSkipTerminal, n)), fail)
-		return null()
 	case *core.Lit:
 		return l.lit(n, build, fail)
 	case *core.Missing:
 		return l.node(n.Body, s, build, fail)
 	case *core.ClassNode:
+		form := l.openForm(flow.FormClass, n, build, fail)
 		if n == l.guarded {
-			return l.guardedClass(build)
+			form.Guard = l.guardedChoice
 		}
-		if l.opts.ClassTableRanges > 0 && len(n.Class.Ranges) >= l.opts.ClassTableRanges {
-			if !build {
-				l.failIf(nil, code.Not(call(flow.OpMatchClass, n.Class)), fail)
-				return null()
-			}
-			start := l.decl("x", flow.TypeInt)
-			l.set(start, pos())
-			l.failIf(nil, code.Not(call(flow.OpMatchClass, n.Class)), fail)
-			v := l.decl("v", flow.TypeValue)
-			l.set(v, l.match(use(start), call(flow.OpText, nil, use(start))))
-			return use(v)
-		}
+		l.forms.Classes = append(l.forms.Classes, form)
 		ch, size, ok := l.shared("ch", flow.TypeRune), l.shared("size", flow.TypeInt), l.ok()
 		l.emit(peek(ch, size, ok))
 		l.failIf(nil, code.Bin("||", code.Not(use(ok)), code.Not(call(flow.OpInClass, n.Class, use(ch)))), fail,
 			do(flow.OpExpect, flow.Expectation{Exp: n.Class.Exp}, pos()))
-		return l.single(size, build)
+		v := l.single(size, build)
+		l.closeForm(form)
+		return v
 	case *core.Any:
 		size, ok := l.shared("size", flow.TypeInt), l.ok()
 		l.emit(peek("", size, ok))
@@ -606,9 +593,6 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail string) code.Expr
 		return use(v)
 	case *core.Seq:
 		return l.seq(n, s, build, fail)
-	case *core.ClassRun:
-		l.failIf(nil, code.Not(call(flow.OpSkipClasses, n)), fail)
-		return null()
 	case *core.Choice:
 		return l.choice(n, s, build, fail)
 	case *core.Stream:
@@ -769,16 +753,7 @@ func (l *lowerer) lit(n *core.Lit, build bool, fail string) code.Expr {
 		l.set(start, pos())
 	}
 	ok := l.ok()
-	match := &code.Set{Dst: []code.Place{{}, {Name: ok}}, Values: []code.Expr{call(flow.OpMatchLit, n)}}
-	if k := len([]rune(n.Text)); k > 0 && k <= l.opts.InlineLiterals && !n.Fold {
-		// The code points compared in place; MatchLit records the expectation when they differ.
-		if !l.dead {
-			l.used[fail] = true
-		}
-		l.emit(&code.If{Cond: call(flow.OpHasLit, n), Then: &code.Block{Stmts: []code.Stmt{do(flow.OpAdvance, nil, num(k))}}, Else: &code.Block{Stmts: []code.Stmt{&code.If{Init: match, Cond: code.Not(use(ok)), Then: &code.Block{Stmts: []code.Stmt{l.jump(fail)}}}}}})
-	} else {
-		l.failIf(match, code.Not(use(ok)), fail)
-	}
+	l.failIf(&code.Set{Dst: []code.Place{{}, {Name: ok}}, Values: []code.Expr{call(flow.OpMatchLit, n)}}, code.Not(use(ok)), fail)
 	if !build {
 		return null()
 	}
@@ -808,19 +783,6 @@ func (l *lowerer) single(size string, build bool) code.Expr {
 	return use(v)
 }
 
-// guardedClass consumes the character the guard read for the class l.guarded.
-func (l *lowerer) guardedClass(build bool) code.Expr {
-	if !build {
-		l.emit(do(flow.OpAdvance, nil, use(l.guardedSize)))
-		return null()
-	}
-	start, v := l.decl("x", flow.TypeInt), l.decl("v", flow.TypeValue)
-	l.set(start, pos())
-	l.emit(do(flow.OpAdvance, nil, use(l.guardedSize)))
-	l.set(v, l.match(use(start), call(flow.OpText, nil, use(start))))
-	return use(v)
-}
-
 func (l *lowerer) seq(n *core.Seq, s *scope, build bool, fail string) code.Expr {
 	var start, kids string
 	if build {
@@ -829,8 +791,18 @@ func (l *lowerer) seq(n *core.Seq, s *scope, build bool, fail string) code.Expr 
 		l.set(kids, call(flow.OpNewVals, flow.Room(n.Attrs().Shape.K)))
 	}
 	// The value is the tuple node of the elements, flattened through nested sequences.
-	for _, it := range n.Items {
+	var seq *flow.SeqForm
+	if !build && !n.Attrs().Want {
+		seq = &flow.SeqForm{Node: n, Items: make([]*flow.Form, len(n.Items)), Outer: l.outer()}
+	}
+	classes := 0
+	for i, it := range n.Items {
+		before := len(l.forms.Classes)
 		v := l.node(it, s, build, fail)
+		if _, ok := it.(*core.ClassNode); ok && seq != nil && len(l.forms.Classes) == before+1 {
+			seq.Items[i] = l.forms.Classes[before]
+			classes++
+		}
 		if !build {
 			continue
 		}
@@ -841,6 +813,9 @@ func (l *lowerer) seq(n *core.Seq, s *scope, build bool, fail string) code.Expr 
 			l.emit(code.Assign(kids, call(flow.OpAppend, flow.Spread(false), use(kids), v)))
 		}
 	}
+	if classes >= 2 {
+		l.forms.Seqs = append(l.forms.Seqs, seq)
+	}
 	if !build {
 		return null()
 	}
@@ -849,11 +824,8 @@ func (l *lowerer) seq(n *core.Seq, s *scope, build bool, fail string) code.Expr 
 	return use(v)
 }
 
-// leadingClass returns the class that begins the alternative body n, also inside a Terminal.
+// leadingClass returns the class that begins the alternative body n.
 func leadingClass(n core.Node) *core.ClassNode {
-	if t, ok := n.(*core.Terminal); ok {
-		n = t.Body
-	}
 	if s, ok := n.(*core.Seq); ok && len(s.Items) > 0 {
 		n = s.Items[0]
 	}
@@ -868,15 +840,15 @@ func (l *lowerer) choice(n *core.Choice, s *scope, build bool, fail string) code
 		v = l.decl("v", flow.TypeValue)
 	}
 	done := l.label()
-	// The guards keep the size of the character they read when an alternative begins with a
-	// class.
-	var size string
-	if l.opts.GuardedClasses {
-		for _, a := range n.Alts {
-			if leadingClass(a.Body) != nil {
-				size = l.decl("x", flow.TypeInt)
-				break
-			}
+	// A choice with an alternative that begins with a class is a form: the guarded-classes pass may
+	// keep the size of the character the guards read, here, before the alternatives.
+	var form *flow.ChoiceForm
+	for _, a := range n.Alts {
+		if leadingClass(a.Body) != nil {
+			form = &flow.ChoiceForm{Node: n, Event: &flow.Event{Vars: len(l.at.Vars), Outer: l.outer()}, Outer: l.outer()}
+			l.forms.Events = append(l.forms.Events, form.Event)
+			l.forms.Choices = append(l.forms.Choices, form)
+			break
 		}
 	}
 	bd := l.open(done)
@@ -891,9 +863,13 @@ func (l *lowerer) choice(n *core.Choice, s *scope, build bool, fail string) code
 			// The alternative is skipped when the next character cannot begin it.
 			if ch == "" {
 				ch, more = l.decl("x", flow.TypeRune), l.decl("x", flow.TypeBool)
-				l.emit(peek(ch, size, more))
+				p := peek(ch, "", more)
+				if form != nil {
+					form.Peek = p.(*code.Set)
+				}
+				l.emit(p)
 			}
-			if size != "" && a.GuardedClass {
+			if a.GuardedClass {
 				guarded = leadingClass(a.Body)
 			}
 			skip := l.label()
@@ -906,7 +882,7 @@ func (l *lowerer) choice(n *core.Choice, s *scope, build bool, fail string) code
 		}
 		f := l.label()
 		bf := l.open(f)
-		l.guarded, l.guardedAlt, l.guardedSize = guarded, a.Body, size
+		l.guarded, l.guardedAlt, l.guardedChoice = guarded, a.Body, form
 		x, cut := l.cutNode(a.Body, s, build, f)
 		if build {
 			l.set(v, l.shapeOne(a.Body, x, m.at(), false))
@@ -1781,4 +1757,34 @@ func attach(x, start code.Expr, names *flow.Names, vals []string) code.Expr {
 		args = append(args, use(v))
 	}
 	return call(flow.OpAttachCaptures, flow.Attach{Names: names}, args...)
+}
+
+// openForm begins a form of the node n in the current statement list, which leaves fail
+// on failure; closeForm ends it.
+func (l *lowerer) openForm(kind flow.FormKind, n core.Node, build bool, fail string) *flow.Form {
+	form := &flow.Form{Kind: kind, Node: n, Build: build, Fail: fail, Loop: l.loops[fail], Outer: l.outer()}
+	if kind == flow.FormRegion {
+		l.forms.Regions = append(l.forms.Regions, form)
+	}
+	// The block has a label of its own, as every Flow block does; nothing exits to it, and
+	// flowpass.Finish splices it away.
+	form.Block = &code.Block{Label: fmt.Sprintf("form%d", l.formN+1)}
+	l.formN++
+	l.emit(form.Block)
+	l.stack = append(l.stack, &form.Block.Stmts)
+	l.formStack = append(l.formStack, form)
+	return form
+}
+
+func (l *lowerer) closeForm(form *flow.Form) {
+	l.stack = l.stack[:len(l.stack)-1]
+	l.formStack = l.formStack[:len(l.formStack)-1]
+}
+
+// outer returns the forms being written, outermost first.
+func (l *lowerer) outer() []*flow.Form {
+	if len(l.formStack) == 0 {
+		return nil
+	}
+	return append([]*flow.Form(nil), l.formStack...)
 }

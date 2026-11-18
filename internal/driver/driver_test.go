@@ -19,7 +19,7 @@ import (
 // names under the label of its table, calls the hook after every pass, and asks for the
 // verification after each pass when VerifyEach is set.
 func TestDriverRunCore(t *testing.T) {
-	off, err := pass.Settings{}.Without(corepass.PassTerminals)
+	off, err := pass.Settings{}.Without(corepass.PassScans)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,11 +35,10 @@ func TestDriverRunCore(t *testing.T) {
 		ran, err = corepass.Run(m, env, o)
 		return ran, err
 	}
-	lean := corepass.Mode{Lean: true, Ordinary: true}
-	if err := d.RunCore("typed", &core.Module{}, lean, func(*core.Rule) bool { return true }, nil); err != nil {
+	if err := d.RunCore("typed", &core.Module{}, nil); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{corepass.PassGuards, corepass.PassScans, corepass.PassClassRuns}
+	want := []string{corepass.PassGuards}
 	if !slices.Equal(ran, want) {
 		t.Errorf("ran %v, want %v", ran, want)
 	}
@@ -62,11 +61,11 @@ func TestDriverRunCore(t *testing.T) {
 	// Without a writer nothing is printed; "all" selects every pass that ran.
 	dump.Reset()
 	d = &Driver{PrintAfter: []string{"all"}}
-	if err := d.RunCore("rules", &core.Module{}, corepass.Mode{}, nil, nil); err != nil {
+	if err := d.RunCore("rules", &core.Module{}, nil); err != nil {
 		t.Fatal(err)
 	}
 	d.PrintTo = &dump
-	if err := d.RunCore("rules", &core.Module{}, corepass.Mode{}, nil, nil); err != nil {
+	if err := d.RunCore("rules", &core.Module{}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if n := strings.Count(dump.String(), "-- Core IR of the rules table after "); n != 3 {
@@ -78,7 +77,7 @@ func TestDriverRunCore(t *testing.T) {
 func TestDriverRunCoreError(t *testing.T) {
 	cause := errors.New("broken")
 	d := &Driver{CoreRun: func(*core.Module, *corepass.Env, corepass.RunOptions) ([]string, error) { return nil, cause }}
-	err := d.RunCore("typed", &core.Module{}, corepass.Mode{}, nil, nil)
+	err := d.RunCore("typed", &core.Module{}, nil)
 	if !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "internal error: ") {
 		t.Fatalf("error %v", err)
 	}
@@ -120,7 +119,7 @@ func TestDriverRunFlow(t *testing.T) {
 	var dump strings.Builder
 	d := &Driver{FlowRun: run, PrintAfter: []string{PrintFlow, testFlowPass}, PrintTo: &dump, VerifyEach: true}
 	f := framed()
-	if err := d.RunFlow("rules", f, false); err != nil {
+	if err := d.RunFlow("rules", f, false, flowpass.Target{}); err != nil {
 		t.Fatal(err)
 	}
 	if len(flow.FuncOf(f).Body.Stmts) != 1 {
@@ -142,21 +141,30 @@ func TestDriverRunFlow(t *testing.T) {
 	}
 	for name, s := range map[string]pass.Settings{"profile": byProfile, "flag": byFlag} {
 		f := framed()
-		if err := (&Driver{Opt: s, FlowRun: run}).RunFlow("rules", f, false); err != nil {
+		if err := (&Driver{Opt: s, FlowRun: run}).RunFlow("rules", f, false, flowpass.Target{}); err != nil {
 			t.Fatal(err)
 		}
 		if len(flow.FuncOf(f).Body.Stmts) != 0 {
 			t.Errorf("the pass ran although the %s turned it off", name)
 		}
 	}
-	// The real pipeline leaves a function alone and prints only the lowered function.
+	// The real pipeline leaves a function without forms alone, and prints it after each pass that
+	// applies: for a framed function of a target that has every form and no observability, every pass
+	// but terminals (local functions only) and class-tables (a number, off at its default 0).
+	all := flowpass.Target{Terminals: true, ClassRuns: true, ClassTables: true, GuardedClasses: true, InlineLiterals: true}
 	dump.Reset()
 	f = framed()
-	if err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).RunFlow("typed", f, true); err != nil {
+	if err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).RunFlow("typed", f, false, all); err != nil {
 		t.Fatal(err)
 	}
-	if n := strings.Count(dump.String(), "-- Flow IR of r in the typed table after "); n != 1+len(flowpass.Pipeline.Passes) {
-		t.Errorf("all printed %d sections:\n%s", n, dump.String())
+	var printed []string
+	for _, line := range strings.Split(dump.String(), "\n") {
+		if name, ok := strings.CutPrefix(line, "-- Flow IR of r in the typed table after "); ok {
+			printed = append(printed, strings.TrimSuffix(name, " --"))
+		}
+	}
+	if want := []string{PrintFlow, flowpass.PassGuardedClasses, flowpass.PassClassRuns, flowpass.PassInlineLiterals}; !slices.Equal(printed, want) {
+		t.Errorf("all printed %v, want %v:\n%s", printed, want, dump.String())
 	}
 }
 

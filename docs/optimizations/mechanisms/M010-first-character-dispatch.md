@@ -56,7 +56,8 @@ Evidence records:
 [112](../112-guarded-first-classes.md),
 [136](../136-measured-effect-of-the-generation-flags.md).
 
-Source owners: [`Guards pass`](../../../internal/middleend/corepass/passes.go),
+Source owners: [`Guards pass`](../../../internal/middleend/corepass/passes.go), the
+`guarded-classes` Flow pass,
 [`closure.Builder.Choice and Guard`](../../../internal/backend/closure/builder.go), the GUARD
 emission of the bytecode compiler, [`generated choice
 guards`](../../../internal/backend/codegen/golang/print/generator.go), [`TypeScript choice
