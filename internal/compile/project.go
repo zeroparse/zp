@@ -74,7 +74,7 @@ func ruleProjectionsControlled(prog *Program, r *Rule, control *cancel.Control) 
 		case *ast.Capture:
 			count[x.Name]++
 		case *ast.Predicate:
-			WalkTerm(x.Term, func(t ast.Term) {
+			WalkTerm(x.Action, func(t ast.ActionExpr) {
 				control.Poll()
 				if c, ok := t.(*ast.CaptureRef); ok {
 					delete(cands, c.Name)
@@ -84,8 +84,8 @@ func ruleProjectionsControlled(prog *Program, r *Rule, control *cancel.Control) 
 	}, control)
 	fields := map[string]string{}
 	bad := map[string]bool{}
-	var use func(t ast.Term, shadow map[string]bool)
-	use = func(t ast.Term, shadow map[string]bool) {
+	var use func(t ast.ActionExpr, shadow map[string]bool)
+	use = func(t ast.ActionExpr, shadow map[string]bool) {
 		control.Poll()
 		switch t := t.(type) {
 		case *ast.CaptureRef:
@@ -162,7 +162,7 @@ func ruleProjectionsControlled(prog *Program, r *Rule, control *cancel.Control) 
 }
 
 // projField reports whether the lambda is (e) => e.$f, or e.f in earlier syntax, and returns f.
-func projField(t ast.Term) (string, bool) {
+func projField(t ast.ActionExpr) (string, bool) {
 	l, ok := t.(*ast.Lambda)
 	if !ok || len(l.Params) != 1 {
 		return "", false
@@ -277,7 +277,7 @@ func nonNil(prog *Program, e ast.Expr, seen map[string]bool, control *cancel.Con
 }
 
 // lineNonNil reports whether a rule body or Operators Rule line e with the action t never has a nil value.
-func lineNonNil(prog *Program, e ast.Expr, t ast.Term, operator bool, seen map[string]bool, control *cancel.Control) bool {
+func lineNonNil(prog *Program, e ast.Expr, t ast.ActionExpr, operator bool, seen map[string]bool, control *cancel.Control) bool {
 	control.Poll()
 	switch t := t.(type) {
 	case nil:

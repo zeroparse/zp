@@ -11,7 +11,7 @@ import (
 
 // actionOrDefault builds the action of a rule or of an inline action: a value
 // expression, a block, or the default action, which has no term.
-func (c *canonical) actionOrDefault(n types.Action) (ast.Term, bool) {
+func (c *canonical) actionOrDefault(n types.Action) (ast.ActionExpr, bool) {
 	if _, ok := n.(*types.DefaultAction); ok {
 		return nil, true
 	}
@@ -19,8 +19,8 @@ func (c *canonical) actionOrDefault(n types.Action) (ast.Term, bool) {
 }
 
 // statements builds the statements of an action block.
-func (c *canonical) statements(list []types.ActionStmt) []ast.Term {
-	out := []ast.Term{}
+func (c *canonical) statements(list []types.ActionStmt) []ast.ActionExpr {
+	out := []ast.ActionExpr{}
 	for _, st := range list {
 		if isNil(st) {
 			c.fail("the source tree has a syntax error in an action block")
@@ -38,11 +38,11 @@ func (c *canonical) predicate(n *types.Predicate) *ast.Predicate {
 	stmts := c.statements(n.Actions)
 	p := &ast.Predicate{}
 	if len(stmts) == 1 {
-		p.Term = stmts[0]
+		p.Action = stmts[0]
 	} else {
 		b := &ast.Block{Statements: stmts}
 		c.span(&b.SourceInfo, n)
-		p.Term = b
+		p.Action = b
 	}
 	c.span(&p.SourceInfo, n)
 	return p
@@ -50,15 +50,15 @@ func (c *canonical) predicate(n *types.Predicate) *ast.Predicate {
 
 // terms builds the elements of a list of values, which the hand-written parser
 // holds in an empty list when there are none.
-func (c *canonical) terms(list []types.ActionExpr) []ast.Term {
-	out := []ast.Term{}
+func (c *canonical) terms(list []types.ActionExpr) []ast.ActionExpr {
+	out := []ast.ActionExpr{}
 	each(c, list, func(a types.ActionExpr) { out = append(out, c.action(a)) })
 	return out
 }
 
 // action builds a value expression: a types.ActionExpr, a types.ActionStmt or
 // a types.Action other than the default action.
-func (c *canonical) action(n any) ast.Term {
+func (c *canonical) action(n any) ast.ActionExpr {
 	switch n := n.(type) {
 	case *types.Int:
 		t := &ast.IntLit{Value: c.integer(n)}
@@ -167,13 +167,13 @@ func (c *canonical) action(n any) ast.Term {
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.ActionTuple:
-		t := &ast.TupleLit{Elems: []ast.Term{}}
+		t := &ast.TupleLit{Elems: []ast.ActionExpr{}}
 		t.Elems = append(t.Elems, c.terms(n.Elems)...)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.ActionGroup:
-		t := &ast.TermGroup{}
-		t.Term = c.action(n.Expr)
+		t := &ast.ActionGroup{}
+		t.Action = c.action(n.Expr)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.Lambda:

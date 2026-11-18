@@ -12,7 +12,7 @@ import (
 )
 
 // In the JSON representation, a value of an interface type (Decl,
-// TypeExpr, Expr, or Term) is an object whose "@type" member
+// TypeExpr, Expr, or ActionExpr) is an object whose "@type" member
 // holds the Go type name. Field names follow the json tags.
 
 var registry = map[string]reflect.Type{}
@@ -36,7 +36,7 @@ func init() {
 		(*IntLit)(nil), (*StringLit)(nil), (*BoolLit)(nil), (*NilLit)(nil),
 		(*CaptureRef)(nil), (*VarRef)(nil), (*Member)(nil),
 		(*New)(nil), (*Call)(nil), (*Lambda)(nil), (*Binary)(nil), (*Unary)(nil), (*Cast)(nil),
-		(*Bind)(nil), (*Block)(nil), (*TermGroup)(nil), (*ListConstructor)(nil), (*TupleLit)(nil),
+		(*Bind)(nil), (*Block)(nil), (*ActionGroup)(nil), (*ListConstructor)(nil), (*TupleLit)(nil),
 	)
 }
 

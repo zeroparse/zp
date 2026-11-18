@@ -63,7 +63,7 @@ type ValueInference struct {
 // keep the final one.
 type ValueRecord struct {
 	// Terms holds the type of each action, predicate and binding term and of their subterms.
-	Terms map[ast.Term]Ty
+	Terms map[ast.ActionExpr]Ty
 	// Proven reports, for each node type constructor that converts a value, that the conversion
 	// is proven: every value of the operand converts, without a check at run time.
 	Proven map[*ast.New]bool
@@ -75,7 +75,7 @@ type ValueRecord struct {
 }
 
 func newValueRecord() *ValueRecord {
-	return &ValueRecord{Terms: map[ast.Term]Ty{}, Proven: map[*ast.New]bool{}, Scopes: map[ast.Expr]map[string]Ty{}}
+	return &ValueRecord{Terms: map[ast.ActionExpr]Ty{}, Proven: map[*ast.New]bool{}, Scopes: map[ast.Expr]map[string]Ty{}}
 }
 
 // scope records the capture types of the scope with the body e and the captures caps.
@@ -375,7 +375,7 @@ func (v *ValueInference) predicates(e ast.Expr, env *valueEnv) {
 	}
 	switch e := e.(type) {
 	case *ast.Predicate:
-		if a, ok := e.Term.(*ast.Bind); ok {
+		if a, ok := e.Action.(*ast.Bind); ok {
 			t := v.term(a.Value, env)
 			if d := v.Prog.Vars().Lookup(a.Name); d != nil {
 				switch {
@@ -386,7 +386,7 @@ func (v *ValueInference) predicates(e ast.Expr, env *valueEnv) {
 				}
 			}
 		} else {
-			v.term(e.Term, env)
+			v.term(e.Action, env)
 		}
 	case *ast.Repeat:
 		if v.Prog.ElementScoped(e.Expr, v.control) {

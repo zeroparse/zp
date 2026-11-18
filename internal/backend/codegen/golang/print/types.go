@@ -1017,14 +1017,14 @@ func (t *TypedGen) transfers() map[*ast.Member]bool {
 	if rec == nil {
 		return out
 	}
-	var into func(x ast.Term, want types.Ty)
-	into = func(x ast.Term, want types.Ty) {
+	var into func(x ast.ActionExpr, want types.Ty)
+	into = func(x ast.ActionExpr, want types.Ty) {
 		for {
-			g, ok := x.(*ast.TermGroup)
+			g, ok := x.(*ast.ActionGroup)
 			if !ok {
 				break
 			}
-			x = g.Term
+			x = g.Action
 		}
 		switch x := x.(type) {
 		case *ast.Member:
@@ -1059,7 +1059,7 @@ func (t *TypedGen) transfers() map[*ast.Member]bool {
 		}
 	}
 	for _, term := range t.actionTerms() {
-		compile.WalkTerm(term, func(y ast.Term) {
+		compile.WalkTerm(term, func(y ast.ActionExpr) {
 			n, ok := y.(*ast.New)
 			if !ok {
 				return
@@ -1134,7 +1134,7 @@ func (t *TypedGen) fieldReadMembers() []*ast.Member {
 	}
 	var out []*ast.Member
 	for _, x := range t.actionTerms() {
-		compile.WalkTerm(x, func(y ast.Term) {
+		compile.WalkTerm(x, func(y ast.ActionExpr) {
 			if m, ok := y.(*ast.Member); ok && fields[m.Name] && !t.nodeMember(m) {
 				out = append(out, m)
 			}
@@ -1144,14 +1144,14 @@ func (t *TypedGen) fieldReadMembers() []*ast.Member {
 }
 
 // actionTerms returns the terms of the actions and predicates of the grammar.
-func (t *TypedGen) actionTerms() []ast.Term {
-	var terms []ast.Term
+func (t *TypedGen) actionTerms() []ast.ActionExpr {
+	var terms []ast.ActionExpr
 	var expr func(e ast.Expr)
 	expr = func(e ast.Expr) {
 		compile.WalkExpr(e, func(x ast.Expr) {
 			switch x := x.(type) {
 			case *ast.Predicate:
-				terms = append(terms, x.Term)
+				terms = append(terms, x.Action)
 			case *ast.InlineAction:
 				if x.Action != nil {
 					terms = append(terms, x.Action)

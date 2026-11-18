@@ -68,7 +68,7 @@ func ruleVariablesDFS(rules []*ast.RuleDef) map[string][]string {
 	calls := map[string][]string{}
 	for _, r := range rules {
 		set := map[string]bool{}
-		compile.WalkRuleTerms(r, func(t ast.Term) {
+		compile.WalkRuleTerms(r, func(t ast.ActionExpr) {
 			if v, ok := t.(*ast.VarRef); ok {
 				set[v.Name] = true
 			}

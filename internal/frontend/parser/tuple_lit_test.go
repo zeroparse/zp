@@ -28,7 +28,7 @@ rule multiline = "x" => (
 	if err != nil {
 		t.Fatal(err)
 	}
-	actions := map[string]ast.Term{}
+	actions := map[string]ast.ActionExpr{}
 	for _, d := range g.File.Decls {
 		if r, ok := d.(*ast.RuleDef); ok {
 			actions[r.Name] = r.Action
@@ -43,8 +43,8 @@ rule multiline = "x" => (
 			t.Errorf("%s: %d elements (nil %v), want %d", name, len(tup.Elems), tup.Elems == nil, want)
 		}
 	}
-	if _, ok := actions["group"].(*ast.TermGroup); !ok {
-		t.Errorf("group: action is %T, want *ast.TermGroup", actions["group"])
+	if _, ok := actions["group"].(*ast.ActionGroup); !ok {
+		t.Errorf("group: action is %T, want *ast.ActionGroup", actions["group"])
 	}
 	if inner, ok := actions["spaced"].(*ast.TupleLit).Elems[1].(*ast.TupleLit); !ok || len(inner.Elems) != 2 {
 		t.Errorf("nested tuple lost: %#v", actions["spaced"])

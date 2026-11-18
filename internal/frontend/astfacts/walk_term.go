@@ -3,14 +3,14 @@ package astfacts
 import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // WalkTerm visits the value expression and its subexpressions in preorder.
-func WalkTerm(t ast.Term, f func(ast.Term)) {
+func WalkTerm(t ast.ActionExpr, f func(ast.ActionExpr)) {
 	if t == nil {
 		return
 	}
 	f(t)
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		WalkTerm(t.Term, f)
+	case *ast.ActionGroup:
+		WalkTerm(t.Action, f)
 	case *ast.Block:
 		for _, stmt := range t.Statements {
 			WalkTerm(stmt, f)

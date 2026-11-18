@@ -128,7 +128,7 @@ func ruleFacts(m *core.Module, f *corepass.Facts, origin map[core.Node]ast.Expr,
 		out.Rules[i] = rf
 	}
 	for _, e := range f.BindingErrors(m) {
-		pos := origin[e.Node].(*ast.Predicate).Term.(*ast.Bind).Diagnostic()
+		pos := origin[e.Node].(*ast.Predicate).Action.(*ast.Bind).Diagnostic()
 		out.BindingErrors = append(out.BindingErrors, &diagnostic.Error{Pos: pos, Msg: e.Msg})
 	}
 	return out
