@@ -68,7 +68,7 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
   [050](../../optimizations/050-first-character-dispatch-in-the-closure-backend.md) and
   [051](../../optimizations/051-first-character-dispatch-in-the-vms-instruction-set-3.md).
 - The first terminal of an expression is defined by three recursive functions (`firstTerminal` in
-  `compile.go` with a cancellable copy in `class_context.go`, `gogen.Generator.first` in `internal/backend/codegen/golang/print/generator.go`,
+  `compile.go` with a cancellable copy in `class_context.go`, `Generator.first` of the Go printer in `internal/backend/codegen/golang/print/generator.go`,
   `terminalProgram.first` in `internal/backend/codegen/golang/print/terminal.go`), which a change to guard eligibility must keep in step.
   Guards are emitted in six places.
 - Generated Go is printed from Flow IR: the typed rules and Operators Rule lines, and the rules and lines of the
@@ -166,7 +166,7 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
 - Budget-control specialization exists twice in the compilers that duplicate code: the closure backend compiles a
   second, metered closure graph (`controlledDispatch`), and TypeScript rewrote printed conditions with regular
   expressions (`tsBudgetCond`). Generated Go and TypeScript print one form of each function, chosen by the options.
-- Code is shared as strings. TypeScript reused the Go conditions of `gogen.Generator.first` and
+- Code is shared as strings. TypeScript reused the Go conditions of `Generator.first` of the Go printer and
   `controlledClassReject` after rewriting `==` to `===` and rebalancing `&&`/`||` by parenthesis counting
   (`tsCond`, `tsBalancedCondition`). Helper sharing
   ([record 090](../../optimizations/090-share-identical-generated-helpers.md)) compares printed function
