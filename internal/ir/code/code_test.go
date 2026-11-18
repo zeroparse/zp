@@ -108,6 +108,13 @@ func TestVerifyRejects(t *testing.T) {
 			m.Stage, m.Dialects = "exec", []string{"exec"}
 			m.AddOp(&Op{Name: "counter.f", Component: "counter", Contract: "f", Dialect: "flow"})
 		}, `op counter.f: an operation of the dialect "flow", which is not legal at the exec stage`},
+		{"variadic without parameters", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.v", Component: "counter", Contract: "v", Variadic: true})
+		}, "op counter.v: variadic without parameters"},
+		{"variadic call with an argument of another type", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.v", Component: "counter", Contract: "v", Params: []Param{P("a", TBool), P("n", TInt)}, Variadic: true})
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Do("counter.v", BoolC(true), Int(1), BoolC(false)) })
+		}, "counter.v argument n"},
 		{"immediate of another type", func(m *Module) {
 			m.AddOp(&Op{Name: "counter.i", Component: "counter", Contract: "i", Imm: "a count", ImmType: reflect.TypeOf(0)})
 			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Append(&Do{Call: &Call{Callee: "counter.i", Imm: "x"}}) })
@@ -302,5 +309,23 @@ func TestVerifyRejectsCallableSignatureOfUndeclaredType(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "handle type Code parameter: undeclared handle type Nope") ||
 		!strings.Contains(err.Error(), "handle type Code result: undeclared handle type Gone") {
 		t.Fatalf("Verify = %v", err)
+	}
+}
+
+// TestVerifyVariadic checks that a call of a variadic operation passes zero or more arguments in
+// the place of its last parameter.
+func TestVerifyVariadic(t *testing.T) {
+	m := NewModule("v")
+	m.AddComponent("c", "C.")
+	m.AddOp(&Op{Name: "c.v", Component: "c", Contract: "v", Params: []Param{P("a", TBool), P("n", TInt)}, Variadic: true})
+	m.AddFunc("f", nil, nil, nil, func(b *Builder) {
+		b.Do("c.v", BoolC(true))
+		b.Do("c.v", BoolC(true), Int(1), Int(2))
+	})
+	if err := Verify(m); err != nil {
+		t.Fatal(err)
+	}
+	if s := String(m); !strings.Contains(s, "op c.v(a bool, n int...)") {
+		t.Errorf("printed declaration:\n%s", s)
 	}
 }

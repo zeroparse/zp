@@ -102,7 +102,11 @@ func results(ts []Type) string {
 }
 
 func (p *printer) op(o *Op) {
-	p.line(0, "%s %s(%s)%s", o.Kind, o.Name, params(o.Params), results(o.Results))
+	ps := params(o.Params)
+	if o.Variadic {
+		ps += "..."
+	}
+	p.line(0, "%s %s(%s)%s", o.Kind, o.Name, ps, results(o.Results))
 	p.line(1, "component %s", o.Component)
 	if len(o.Reads) > 0 {
 		p.line(1, "reads %s", strings.Join(o.Reads, ", "))

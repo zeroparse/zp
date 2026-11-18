@@ -149,7 +149,10 @@ type Op struct {
 	// Component is the state component the operation belongs to.
 	Component string
 	Params    []Param
-	Results   []Type
+	// Variadic reports that the last parameter repeats: a call passes zero or more arguments of its
+	// type in its place.
+	Variadic bool
+	Results  []Type
 	// Reads and Writes are the components and registers the operation reads and writes. An operation
 	// may write only its own component and registers; a transitional or primitive one, which stands
 	// for the work of several components of the runtime, may write theirs too, so that passes see
