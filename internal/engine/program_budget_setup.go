@@ -17,7 +17,7 @@ func (prog *Program) admitParse(start string, o ParseOptions, f state.Family, st
 	if err := prog.admitMissing(o, stream); err != nil {
 		return nil, nil, nil, err
 	}
-	if o.MissingTokens > 0 && prog.InsertionFlags != nil {
+	if o.MissingTokens > 0 && prog.InsertionCycles {
 		ins, err := prog.insertionProgram()
 		if err != nil {
 			return nil, nil, nil, err
@@ -93,14 +93,14 @@ func (prog *Program) admitParse(start string, o ParseOptions, f state.Family, st
 func (prog *Program) preflightRule(b Backend, name string, stream bool) (bool, error) {
 	switch prog.backend(b) {
 	case Closure:
-		if prog.Grammar == nil {
+		if prog.src == nil {
 			return false, errClosureNeedsSource
 		}
 	case Bytecode, BytecodeIterative:
 	default:
 		return false, fmt.Errorf("unknown backend %d", b)
 	}
-	if prog.Grammar != nil {
+	if prog.src != nil {
 		r := prog.ByName[name]
 		if r == nil {
 			return false, fmt.Errorf("rule %s is not defined", name)
@@ -161,9 +161,10 @@ func (prog *Program) prepareControlledProgram(b Backend, c *state.BudgetControl)
 // graph, whose loops charge the budget for each iteration: its closure families are built from the
 // Core IR of prog's, which it shares.
 func (prog *Program) meteredProgram() *Program {
-	if prog.buildFamily == nil {
-		return newProgram(prog.Static(), nil, nil)
+	metered := &Program{src: prog.src, core: prog.core}
+	state.InitSharedProgram(&metered.sharedProgram, prog.Runtime())
+	if prog.core != nil {
+		prog.core.share()
 	}
-	prog.coreIR.share()
-	return closureProgram(prog.Static(), prog.coreIR, false)
+	return metered
 }

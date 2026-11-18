@@ -2,11 +2,10 @@ package state
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
@@ -18,12 +17,12 @@ import (
 // Export returns the term code of t, adding the strings it refers to with str, which returns the
 // index of a string in the module's string table.
 func (t *TermProgram) Export(str func(string) int) (bytecode.Term, error) {
-	x := bytecode.Term{Regs: [4]int{int(t.na), int(t.nn), int(t.ns), int(t.nt)}}
-	x.Code = make([]bytecode.TermInstr, len(t.code))
-	for i, in := range t.code {
-		x.Code[i] = bytecode.TermInstr{Op: uint8(in.op), Dst: in.dst, A: in.a, B: in.b, C: in.c}
+	x := bytecode.Term{Regs: [4]int{int(t.NA), int(t.NN), int(t.NS), int(t.NT)}}
+	x.Code = make([]bytecode.TermInstr, len(t.Code))
+	for i, in := range t.Code {
+		x.Code[i] = bytecode.TermInstr{Op: uint8(in.Op), Dst: in.Dst, A: in.A, B: in.B, C: in.C}
 	}
-	for _, v := range t.consts {
+	for _, v := range t.Consts {
 		var c bytecode.TermConst
 		switch v := v.(type) {
 		case nil:
@@ -39,24 +38,24 @@ func (t *TermProgram) Export(str func(string) int) (bytecode.Term, error) {
 		}
 		x.Consts = append(x.Consts, c)
 	}
-	for _, n := range t.names {
+	for _, n := range t.Names {
 		x.Names = append(x.Names, str(n))
 	}
-	for _, m := range t.members {
-		x.Members = append(x.Members, bytecode.TermMember{Kind: m.kind, Name: str(m.name), Field: str(m.field)})
+	for _, m := range t.Members {
+		x.Members = append(x.Members, bytecode.TermMember{Kind: m.Kind, Name: str(m.Name), Field: str(m.Field)})
 	}
-	for _, k := range t.nodeTypes {
+	for _, k := range t.NodeTypes {
 		x.NodeTypes = append(x.NodeTypes, str(k[coreimpl.BaseList].Type))
 	}
-	for _, c := range t.casts {
+	for _, c := range t.Casts {
 		typ := -1
-		if c.t != nil {
-			typ = str(c.t.Text)
+		if c.Type != nil {
+			typ = str(c.Type.Text)
 		}
-		x.Casts = append(x.Casts, bytecode.TermCast{Type: typ, Line: c.line, Col: c.col})
+		x.Casts = append(x.Casts, bytecode.TermCast{Type: typ, Line: c.Line, Col: c.Col})
 	}
-	for _, s := range t.structs {
-		x.Structs = append(x.Structs, bytecode.TermStruct{Type: str(s.kind.Type), Fields: s.fields})
+	for _, s := range t.Structs {
+		x.Structs = append(x.Structs, bytecode.TermStruct{Type: str(s.Kind.Type), Fields: s.Fields})
 	}
 	return x, nil
 }
@@ -68,7 +67,7 @@ type TermTypes struct {
 	// Struct returns the kind of the nodes of the struct type name, or nil if there is none.
 	Struct func(name string) *coreimpl.Kind
 	// Cast returns the type of the resolved type text of a cast, or an error.
-	Cast func(text string) (*compile.FieldType, error)
+	Cast func(text string) (*program.FieldType, error)
 }
 
 // Kinds of the operands of term instructions, for the checks of LoadTerm.
@@ -95,56 +94,56 @@ const (
 )
 
 // termOperands holds, for each instruction, the kinds of its operands dst, a, b and c.
-var termOperands = map[termOp][4]uint8{
-	tNop:      {},
-	tConst:    {oA, oConst},
-	tIntK:     {oN, oImm},
-	tMoveA:    {oA, oA},
-	tMoveN:    {oN, oN},
-	tMoveS:    {oS, oS},
-	tMoveT:    {oT, oT},
-	tCap:      {oA, oSlot},
-	tLocal:    {oA, oName},
-	tVar:      {oA, oVar},
-	tUnbox:    {oA, oA},
-	tFromB:    {oA, oN},
-	tFromT:    {oA, oT},
-	tNot:      {oN, oN},
-	tLt:       {oN, oN, oN},
-	tAdd:      {oN, oN, oN},
-	tEqN:      {oN, oN, oN},
-	tIsNil:    {oN, oA},
-	tMember:   {oA, oA, oMember},
-	tUnary:    {oA, oA, oUnary},
-	tBinary:   {oA, oA, oA, oBinary},
-	tLogic:    {oN, oA, oLogic},
-	tText:     {oT, oA},
-	tTextEq:   {oN, oT, oT},
-	tLength:   {oA, oA},
-	tConvert:  {oA, oA, oNode},
-	tConforms: {oN, oA, oCast},
-	tCastErr:  {oA, oA, oCast},
-	tKids:     {oN},
-	tPush:     {oNone, oA, oName},
-	tPushAll:  {oNone, oA, oName},
-	tAbove:    {oS, oN},
-	tHull:     {oA, oS, oFlag},
-	tItems:    {oS, oA, oName},
-	tItemAt:   {oA, oS, oN, oFlag},
-	tSeqLen:   {oN, oS},
-	tStep:     {},
-	tKeep:     {oNone, oS, oN},
-	tFilter:   {oN, oA},
-	tCopy:     {oA, oS},
-	tStruct:   {oA, oStruct},
-	tSetField: {oNone, oA, oA, oName},
-	tCover:    {oN, oA, oA, oN},
-	tMade:     {oNone, oA, oN},
-	tJump:     {oJump},
-	tJumpF:    {oJump, oN},
-	tRet:      {oNone, oA},
-	tRetErr:   {oNone, oA},
-	tField:    {oN, oA, oA, oName},
+var termOperands = map[TermOp][4]uint8{
+	TNop:      {},
+	TConst:    {oA, oConst},
+	TIntK:     {oN, oImm},
+	TMoveA:    {oA, oA},
+	TMoveN:    {oN, oN},
+	TMoveS:    {oS, oS},
+	TMoveT:    {oT, oT},
+	TCap:      {oA, oSlot},
+	TLocal:    {oA, oName},
+	TVar:      {oA, oVar},
+	TUnbox:    {oA, oA},
+	TFromB:    {oA, oN},
+	TFromT:    {oA, oT},
+	TNot:      {oN, oN},
+	TLt:       {oN, oN, oN},
+	TAdd:      {oN, oN, oN},
+	TEqN:      {oN, oN, oN},
+	TIsNil:    {oN, oA},
+	TMember:   {oA, oA, oMember},
+	TUnary:    {oA, oA, oUnary},
+	TBinary:   {oA, oA, oA, oBinary},
+	TLogic:    {oN, oA, oLogic},
+	TText:     {oT, oA},
+	TTextEq:   {oN, oT, oT},
+	TLength:   {oA, oA},
+	TConvert:  {oA, oA, oNode},
+	TConforms: {oN, oA, oCast},
+	TCastErr:  {oA, oA, oCast},
+	TKids:     {oN},
+	TPush:     {oNone, oA, oName},
+	TPushAll:  {oNone, oA, oName},
+	TAbove:    {oS, oN},
+	THull:     {oA, oS, oFlag},
+	TItems:    {oS, oA, oName},
+	TItemAt:   {oA, oS, oN, oFlag},
+	TSeqLen:   {oN, oS},
+	TStep:     {},
+	TKeep:     {oNone, oS, oN},
+	TFilter:   {oN, oA},
+	TCopy:     {oA, oS},
+	TStruct:   {oA, oStruct},
+	TSetField: {oNone, oA, oA, oName},
+	TCover:    {oN, oA, oA, oN},
+	TMade:     {oNone, oA, oN},
+	TJump:     {oJump},
+	TJumpF:    {oJump, oN},
+	TRet:      {oNone, oA},
+	TRetErr:   {oNone, oA},
+	TField:    {oN, oA, oA, oName},
 }
 
 // LoadTerm makes the TermProgram of the term code x of a module with the string table strs and
@@ -175,13 +174,13 @@ func LoadTerms(xs []bytecode.Term, strs []string, vars int, types TermTypes) ([]
 // loadTerm fills t from x for LoadTerm. Each pool gets its exact capacity up front.
 func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types TermTypes) error {
 	*t = TermProgram{
-		na: int32(x.Regs[0]), nn: int32(x.Regs[1]), ns: int32(x.Regs[2]), nt: int32(x.Regs[3]),
-		consts:    make([]any, 0, len(x.Consts)),
-		names:     make([]string, 0, len(x.Names)),
-		members:   make([]termMember, 0, len(x.Members)),
-		nodeTypes: make([]*nodes.NodeTypeKinds, 0, len(x.NodeTypes)),
-		casts:     make([]termCast, 0, len(x.Casts)),
-		structs:   make([]termStruct, 0, len(x.Structs)),
+		NA: int32(x.Regs[0]), NN: int32(x.Regs[1]), NS: int32(x.Regs[2]), NT: int32(x.Regs[3]),
+		Consts:    make([]any, 0, len(x.Consts)),
+		Names:     make([]string, 0, len(x.Names)),
+		Members:   make([]TermMember, 0, len(x.Members)),
+		NodeTypes: make([]*nodes.NodeTypeKinds, 0, len(x.NodeTypes)),
+		Casts:     make([]TermCast, 0, len(x.Casts)),
+		Structs:   make([]TermStruct, 0, len(x.Structs)),
 	}
 	for _, n := range x.Regs {
 		if n < 0 || n > 1<<20 {
@@ -197,23 +196,23 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 	for _, c := range x.Consts {
 		switch c.Kind {
 		case bytecode.ConstNil:
-			t.consts = append(t.consts, nil)
+			t.Consts = append(t.Consts, nil)
 		case bytecode.ConstInt:
 			if int64(int(c.Int)) != c.Int {
 				return fmt.Errorf("term constant %d exceeds the implementation int range", c.Int)
 			}
-			t.consts = append(t.consts, int(c.Int))
+			t.Consts = append(t.Consts, int(c.Int))
 		case bytecode.ConstString:
 			s, err := str(int(c.Int))
 			if err != nil {
 				return err
 			}
-			t.consts = append(t.consts, s)
+			t.Consts = append(t.Consts, s)
 		case bytecode.ConstBool:
 			if c.Int != 0 && c.Int != 1 {
 				return fmt.Errorf("invalid boolean constant %d", c.Int)
 			}
-			t.consts = append(t.consts, c.Int == 1)
+			t.Consts = append(t.Consts, c.Int == 1)
 		default:
 			return fmt.Errorf("invalid constant kind %d", c.Kind)
 		}
@@ -223,7 +222,7 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 		if err != nil {
 			return err
 		}
-		t.names = append(t.names, s)
+		t.Names = append(t.Names, s)
 	}
 	for _, m := range x.Members {
 		name, err := str(m.Name)
@@ -234,10 +233,10 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 		if err != nil {
 			return err
 		}
-		if m.Kind < 0 || m.Kind >= len(exec.MemberKinds) {
+		if m.Kind < 0 || m.Kind > MemberCapture {
 			return fmt.Errorf("invalid member kind %d", m.Kind)
 		}
-		t.members = append(t.members, termMember{kind: m.Kind, name: name, field: field})
+		t.Members = append(t.Members, TermMember{Kind: m.Kind, Name: name, Field: field})
 	}
 	for _, i := range x.NodeTypes {
 		s, err := str(i)
@@ -248,13 +247,13 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 		if k == nil {
 			return fmt.Errorf("term conversion to %q, which is not a named node type", s)
 		}
-		t.nodeTypes = append(t.nodeTypes, k)
+		t.NodeTypes = append(t.NodeTypes, k)
 	}
 	for _, c := range x.Casts {
 		if c.Line < 0 || c.Col < 0 {
 			return fmt.Errorf("invalid cast position %d:%d", c.Line, c.Col)
 		}
-		var ft *compile.FieldType
+		var ft *program.FieldType
 		if c.Type >= 0 {
 			s, err := str(c.Type)
 			if err != nil {
@@ -264,7 +263,7 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 				return err
 			}
 		}
-		t.casts = append(t.casts, termCast{t: ft, line: c.Line, col: c.Col})
+		t.Casts = append(t.Casts, TermCast{Type: ft, Line: c.Line, Col: c.Col})
 	}
 	for _, s := range x.Structs {
 		name, err := str(s.Type)
@@ -278,7 +277,7 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 		if s.Fields < 0 {
 			return fmt.Errorf("invalid field count %d", s.Fields)
 		}
-		t.structs = append(t.structs, termStruct{kind: k, fields: s.Fields})
+		t.Structs = append(t.Structs, TermStruct{Kind: k, Fields: s.Fields})
 	}
 	n := len(x.Code)
 	if n == 0 {
@@ -287,43 +286,43 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 	limit := func(kind uint8) (int, bool) {
 		switch kind {
 		case oA:
-			return int(t.na), true
+			return int(t.NA), true
 		case oN:
-			return int(t.nn), true
+			return int(t.NN), true
 		case oS:
-			return int(t.ns), true
+			return int(t.NS), true
 		case oT:
-			return int(t.nt), true
+			return int(t.NT), true
 		case oJump:
 			return n, true
 		case oConst:
-			return len(t.consts), true
+			return len(t.Consts), true
 		case oName:
-			return len(t.names), true
+			return len(t.Names), true
 		case oMember:
-			return len(t.members), true
+			return len(t.Members), true
 		case oNode:
-			return len(t.nodeTypes), true
+			return len(t.NodeTypes), true
 		case oCast:
-			return len(t.casts), true
+			return len(t.Casts), true
 		case oStruct:
-			return len(t.structs), true
+			return len(t.Structs), true
 		case oVar:
 			return vars, true
 		case oUnary:
-			return len(exec.UnaryOps), true
+			return len(termUnaryOps), true
 		case oBinary:
-			return len(exec.BinaryOps), true
+			return len(termBinaryOps), true
 		case oLogic:
-			return len(exec.LogicalOps), true
+			return len(termLogicalOps), true
 		case oFlag:
 			return 2, true
 		}
 		return 0, false
 	}
-	t.code = make([]termInstr, n)
+	t.Code = make([]TermInstr, n)
 	for pc, in := range x.Code {
-		kinds, ok := termOperands[termOp(in.Op)]
+		kinds, ok := termOperands[TermOp(in.Op)]
 		if !ok {
 			return fmt.Errorf("invalid term instruction %d at %d", in.Op, pc)
 		}
@@ -335,10 +334,10 @@ func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types T
 				return fmt.Errorf("invalid operand %d of term instruction %d at %d", v, in.Op, pc)
 			}
 		}
-		t.code[pc] = termInstr{op: termOp(in.Op), dst: in.Dst, a: in.A, b: in.B, c: in.C}
+		t.Code[pc] = TermInstr{Op: TermOp(in.Op), Dst: in.Dst, A: in.A, B: in.B, C: in.C}
 	}
-	switch t.code[n-1].op {
-	case tRet, tRetErr, tJump:
+	switch t.Code[n-1].Op {
+	case TRet, TRetErr, TJump:
 	default:
 		return fmt.Errorf("term code does not end with a return or a jump")
 	}

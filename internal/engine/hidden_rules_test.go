@@ -31,10 +31,10 @@ rule _main_1 = "b"`)
 	if !names["_main_1"] || !names["_main_1_"] {
 		t.Fatalf("rules: %v", names)
 	}
-	if p.RuleList[len(p.RuleList)-1].Name != "_main_1" && p.ByName["_main_1_"].Def.Action == nil {
+	if p.RuleList[len(p.RuleList)-1].Name != "_main_1" && p.Static().ByName["_main_1_"].Def.Action == nil {
 		t.Fatal("the inline action's rule is not the one that has the action")
 	}
-	if p.ByName["_main_1"].Def.Action != nil {
+	if p.Static().ByName["_main_1"].Def.Action != nil {
 		t.Fatal("the declared rule was replaced")
 	}
 }
@@ -63,8 +63,8 @@ rule _b = "b"`
 		if inline != 1 || len(g.Rules()) != 2 {
 			t.Errorf("%+v: %d inline actions and %d rules in the grammar as written", opts, inline, len(g.Rules()))
 		}
-		if len(p.Grammar.Rules()) != 3 {
-			t.Errorf("%+v: the lowered grammar has %d rules", opts, len(p.Grammar.Rules()))
+		if len(p.Static().Grammar.Rules()) != 3 {
+			t.Errorf("%+v: the lowered grammar has %d rules", opts, len(p.Static().Grammar.Rules()))
 		}
 		// The compiled form keeps it and loads to the same behavior.
 		data, err := p.MarshalBinary("main")

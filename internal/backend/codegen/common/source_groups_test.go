@@ -6,6 +6,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -48,7 +49,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 				t.Fatal(err)
 			}
 		}
-		p, err := engine.Compile(input, compile.Options{})
+		p, err := entry.Compile(input, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
 		}

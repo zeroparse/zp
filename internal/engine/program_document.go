@@ -2,9 +2,8 @@ package engine
 
 import (
 	"fmt"
-
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/document"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 )
 
@@ -18,7 +17,7 @@ func (prog *Program) NewDocument(start, text string) (*Document, error) {
 // to Edit use the same unit.
 func (prog *Program) NewDocumentWith(start, text string, o ParseOptions) (d *Document, err error) {
 	if prog.HasMissing || o.MissingTokens != 0 {
-		return nil, compile.MissingUnsupported("Document parsing")
+		return nil, program.MissingUnsupported("Document parsing")
 	}
 	if err := state.ValidateStreamDiagnostics(o, false); err != nil {
 		return nil, err
@@ -77,7 +76,7 @@ func (prog *Program) PrepareRun(b Backend, c *state.BudgetControl) (document.Run
 	if err != nil {
 		return nil, err
 	}
-	if active.backend(b) == Closure && active.Grammar != nil {
+	if active.backend(b) == Closure && active.src != nil {
 		// A Document parse runs the call-preserving family (its parser sets NoPlain): build it
 		// here, after the check that ends prepareControlledProgram and before one more, rather than
 		// inside the parse.

@@ -309,7 +309,7 @@ func TestBudgetContextErrPanicIdentityLoadedASTOmittedProgram(t *testing.T) {
 	source := mustCompile(t, `rule main = "`+literal+`" $$`)
 	// The parse below is traced, which a compiled grammar serves in document mode.
 	prog := saveLoad(t, source, "main", CompiledDocument)
-	if prog.Grammar != nil {
+	if prog.Static() != nil {
 		t.Fatal("loaded fixture retained an AST")
 	}
 

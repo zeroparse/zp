@@ -9,8 +9,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 )
 
 // The codes of the binary operators, as the compositions of terms take them, for generated parsers;
@@ -525,7 +525,7 @@ func (p *Parser) termHull(c *EvalCtx, tuple bool, kids []*core.Node) *core.Node 
 // not the node of a repetition or a sequence.
 //
 // Printed from Exec IR function conforms of internal/ir/code/exec/compose.
-func (p *Parser) termConforms(t *compile.FieldType, v any) bool {
+func (p *Parser) termConforms(t *program.FieldType, v any) bool {
 	var i int
 	kt := int(t.Kind)
 	x := unboxed(v)
@@ -608,7 +608,7 @@ func (p *Parser) termConforms(t *compile.FieldType, v any) bool {
 // node has a string, and a tuple node or a list node its elements as value.
 //
 // Printed from Exec IR function valueConforms of internal/ir/code/exec/compose.
-func (p *Parser) termValueConforms(t *compile.FieldType, n *core.Node, shape int) bool {
+func (p *Parser) termValueConforms(t *program.FieldType, n *core.Node, shape int) bool {
 	var i int
 	kt := int(t.Kind)
 	// A node of a type whose value is a string, a tuple or a list.
@@ -649,7 +649,7 @@ func (p *Parser) termValueConforms(t *compile.FieldType, n *core.Node, shape int
 // of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.
 //
 // Printed from Exec IR function elemsConform of internal/ir/code/exec/compose.
-func (p *Parser) termElemsConform(t *compile.FieldType, items []*core.Node) bool {
+func (p *Parser) termElemsConform(t *program.FieldType, items []*core.Node) bool {
 	var j int
 	if int(t.Kind) == 95 {
 		return true
@@ -668,7 +668,7 @@ func (p *Parser) termElemsConform(t *compile.FieldType, items []*core.Node) bool
 // as many, and each of its own type, charging a step for each element it examines.
 //
 // Printed from Exec IR function tupleConform of internal/ir/code/exec/compose.
-func (p *Parser) termTupleConform(t *compile.FieldType, items []*core.Node) bool {
+func (p *Parser) termTupleConform(t *program.FieldType, items []*core.Node) bool {
 	var j int
 	count := len(items)
 	if count != len(t.Alts) {

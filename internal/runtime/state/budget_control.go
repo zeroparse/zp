@@ -113,6 +113,12 @@ func NewBudgetControl(ctx context.Context, limits core.Limits) *BudgetControl {
 // execution. Parse boundaries re-raise its original value after cleanup.
 type ContextPanic struct{ Value any }
 
+// BuildCancelled is the error of a build, made for a parse on first use, that the parse's
+// context ended: Err is the context's error, which the parse reports.
+type BuildCancelled struct{ Err error }
+
+func (e BuildCancelled) Error() string { return e.Err.Error() }
+
 func contextErr(ctx context.Context) error {
 	defer func() {
 		if x := recover(); x != nil {

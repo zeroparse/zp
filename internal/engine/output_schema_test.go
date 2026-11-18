@@ -114,7 +114,7 @@ rule unused = "z"`)
 		}
 	}
 	// A program without the grammar has no metadata to export from.
-	if _, err := outputSchemaPrototype(newProgram(compile.NewProgram(nil), nil, nil), "main", false); !errors.Is(err, schemaexport.ErrUnavailable) {
+	if _, err := outputSchemaPrototype(checkedProgram(compile.NewProgram(nil)), "main", false); !errors.Is(err, schemaexport.ErrUnavailable) {
 		t.Fatal(err)
 	}
 }

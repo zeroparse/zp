@@ -6,34 +6,32 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
-	"zeroparse.dev/zp/internal/frontend"
-
-	"zeroparse.dev/zp/internal/backend/closure"
-	"zeroparse.dev/zp/internal/backend/vmlower"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/frontend/desugar"
-	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/runtime/vm"
-	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // sharedProgram names the part of a program that every backend shares, so that Program embeds it
 // under an unexported field name.
 type sharedProgram = state.SharedProgram
 
+// A Source is the compiler side of a program compiled from a grammar (state.Source).
+type Source = state.Source
+
 // Program is a compiled grammar. It can be used by multiple parses concurrently.
 type Program struct {
 	sharedProgram
-	// buildFamily builds, from the program's Core IR (coreIR), the rules that the closure backend
-	// runs in a family, by ID (rule.id); it is nil when the closure backend cannot run the program (a
-	// program loaded without its grammar). families holds the rules of each family (state.Inlined,
-	// core.CallPreserving), built on first use.
-	buildFamily func(*ir.Module, state.Family) ([]*state.Rule, error)
-	families    [2]closureFamily
-	coreIR      *closureCore
+	// src is the compiler side of a program compiled from a grammar, nil for a program loaded from
+	// a compiled grammar, which only the bytecode backends run.
+	src Source
+	// plainDispatch leaves out the budget charge of the loop iterations in the closure families
+	// (Source.Family): the metered program that runs the parses under budget controls charges them.
+	plainDispatch bool
+	// families holds the rules of each closure family (state.Inlined, state.CallPreserving), built
+	// on first use from core.
+	families [2]closureFamily
+	core     *closureCore
 
 	budgetOnce    sync.Once
 	budgetProgram *Program
@@ -54,7 +52,7 @@ type Program struct {
 	loaded bool
 	mode   CompiledMode
 	// ins is the program that the parses with missing-token insertion enabled run when the
-	// grammar has left recursion through an insertion (InsertionFlags); it is built on first use.
+	// grammar has left recursion through an insertion (InsertionCycles); it is built on first use.
 	insOnce sync.Once
 	ins     *Program
 	insErr  error
@@ -70,64 +68,71 @@ type closureFamily struct {
 	err   error
 }
 
-// newProgram returns the program that runs the static program sp; buildFamily builds the rules of
-// the closure backend in a family from the Core IR of c, or is nil when that backend cannot run sp.
-func newProgram(sp *compile.Program, c *closureCore, buildFamily func(*ir.Module, state.Family) ([]*state.Rule, error)) *Program {
-	prog := &Program{buildFamily: buildFamily, coreIR: c}
-	state.InitSharedProgram(&prog.sharedProgram, sp)
+// New returns the program that runs the program compiled from a grammar that src is the compiler
+// side of.
+func New(src Source) *Program {
+	return newProgram(src.Runtime(), src)
+}
+
+// newProgram returns the program that runs the run-time program rt; src is the compiler side of a
+// program compiled from a grammar (Source), or nil for a program loaded from a compiled grammar.
+func newProgram(rt *program.Program, src Source) *Program {
+	prog := &Program{src: src, plainDispatch: true}
+	if src != nil {
+		prog.core = newClosureCore(src)
+	}
+	state.InitSharedProgram(&prog.sharedProgram, rt)
 	return prog
 }
 
-// closureProgram returns the program that runs the static program sp with the closure families
-// built from the Core IR of c; plainDispatch leaves out the budget charge of the loop iterations
-// (closure.Build).
-func closureProgram(sp *compile.Program, c *closureCore, plainDispatch bool) *Program {
-	return newProgram(sp, c, func(m *ir.Module, f state.Family) ([]*state.Rule, error) {
-		return closure.Build(sp, m, plainDispatch, f)
-	})
-}
+// Runtime returns the run-time program that p runs.
+func (p *Program) Runtime() *program.Program { return state.StaticProgramOf(&p.sharedProgram) }
 
-// closureCore is the Core IR of the static program sp that the closure families of a program, and
-// of the metered program that runs its parses under budget controls (prepareControlledProgram), are
-// built from. The first build of a family builds it. Nothing else reads it, so it is dropped once no
-// family that reads it is left to build: pending counts the families of those programs whose build
-// has not returned. A family that needs it after that builds it again.
+// Source returns the compiler side of p (Source), nil for a program loaded from a compiled
+// grammar.
+func (p *Program) Source() Source { return p.src }
+
+// closureCore is what the closure families of a program, and of the metered program that runs its
+// parses under budget controls (prepareControlledProgram), are built from (Source.Core). The first
+// build of a family builds it. Nothing else reads it, so it is dropped once no family that reads it
+// is left to build: pending counts the families of those programs whose build has not returned. A
+// family that needs it after that builds it again.
 type closureCore struct {
-	sp      *compile.Program
+	src     Source
 	mu      sync.Mutex
-	m       *ir.Module
+	m       any
 	pending int
 }
 
-// newClosureCore returns the Core IR of sp, not built yet, for the closure families of one program.
-func newClosureCore(sp *compile.Program) *closureCore {
-	c := &closureCore{sp: sp}
+// newClosureCore returns the core of src, not built yet, for the closure families of one program.
+func newClosureCore(src Source) *closureCore {
+	c := &closureCore{src: src}
 	c.share()
 	return c
 }
 
-// share counts the families of one more program that read the Core IR.
+// share counts the families of one more program that read the core.
 func (c *closureCore) share() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.pending += len(Program{}.families)
 }
 
-// module returns the Core IR for the build of a family, building it if it is not held; the build
+// module returns the core for the build of a family, building it if it is not held; the build
 // calls done when it returns. The build runs without holding c.mu, so a context method that parses on
-// the same program cannot deadlock it: concurrent builds may race, and the first module published
-// wins. A module built while no family is pending (the families were built meanwhile) is returned
+// the same program cannot deadlock it: concurrent builds may race, and the first core published
+// wins. A core built while no family is pending (the families were built meanwhile) is returned
 // without being held. The build polls ctx, the context of the parse that needs the family (nil for
-// none): if it ends, module returns a buildCancelled with its error and holds no module; a panic of a
-// method of ctx unwinds as state.ContextPanic and also leaves no module held.
-func (c *closureCore) module(ctx context.Context) (m *ir.Module, err error) {
+// none): if it ends, module returns a state.BuildCancelled with its error and holds no core; a panic
+// of a method of ctx unwinds as state.ContextPanic and also leaves no core held.
+func (c *closureCore) module(ctx context.Context) (m any, err error) {
 	c.mu.Lock()
 	m = c.m
 	c.mu.Unlock()
 	if m != nil {
 		return m, nil
 	}
-	if m, err = buildCore(c.sp, ctx); err != nil {
+	if m, err = c.src.Core(ctx); err != nil {
 		return nil, err
 	}
 	c.mu.Lock()
@@ -141,49 +146,7 @@ func (c *closureCore) module(ctx context.Context) (m *ir.Module, err error) {
 	return m, nil
 }
 
-// buildCore builds the Core IR of sp for the closures (closure.Core), polling ctx (nil for none):
-// an ended context returns a buildCancelled.
-func buildCore(sp *compile.Program, ctx context.Context) (m *ir.Module, err error) {
-	if ctx == nil {
-		return closure.Core(sp, nil)
-	}
-	defer func() {
-		if x := recover(); x != nil {
-			cancelled, ok := x.(cancel.Cancellation)
-			if !ok {
-				panic(x)
-			}
-			m, err = nil, buildCancelled{cancelled.Err}
-		}
-	}()
-	return closure.Core(sp, &cancel.Control{Ctx: attributedContext{ctx}})
-}
-
-// attributedContext is a parse's context whose Err attributes a panic to the caller's context
-// (state.ContextPanic), as the parse's own checks do, so the parse re-raises the caller's value.
-type attributedContext struct{ context.Context }
-
-func (c attributedContext) Err() error {
-	defer func() {
-		if x := recover(); x != nil {
-			switch x.(type) {
-			case state.Fatal, state.ContextPanic:
-				panic(x) // already attributed
-			default:
-				panic(state.ContextPanic{Value: x})
-			}
-		}
-	}()
-	return c.Context.Err()
-}
-
-// buildCancelled is the error of a build of the Core IR that the parse's context ended: err is the
-// context's error, which the parse reports.
-type buildCancelled struct{ err error }
-
-func (e buildCancelled) Error() string { return e.err.Error() }
-
-// done records that the build of a family returned, and drops the Core IR after the last one.
+// done records that the build of a family returned, and drops the core after the last one.
 func (c *closureCore) done() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -199,15 +162,6 @@ func (p *Program) SourceInfo() bool { return p.RecordsSourceInfo }
 // DefaultValue reports whether the program was compiled to make default values (Options.DefaultValue).
 func (p *Program) DefaultValue() bool { return p.MakesDefaultValue }
 
-// SourceGrammar returns the grammar the program was compiled from: the grammar as written, without
-// the hidden rules that inline actions are lowered to.
-func (p *Program) SourceGrammar() *ast.Grammar {
-	if p.Source != nil {
-		return p.Source
-	}
-	return p.Grammar
-}
-
 // Starts returns the start rules of the grammar, the rules marked @start where
 // parsing may begin, in declaration order.
 func (prog *Program) Starts() []string { return slices.Clone(prog.StartRules) }
@@ -218,21 +172,24 @@ func (prog *Program) DefaultStart() string { return prog.DefaultStartRule }
 
 // CheckStart reports an error unless name selects a start rule: it is the name
 // of a start rule, or empty for the default start rule.
-func (prog *Program) CheckStart(name string) error { return prog.Static().CheckStart(name) }
+func (prog *Program) CheckStart(name string) error { return prog.Runtime().CheckStart(name) }
 
-// Module compiles the program to bytecode (vm.Compile). The result is stored in the program and
-// reused on subsequent calls. It panics for a program whose grammar uses #missing, which has no
-// bytecode form, and on an internal error.
+// Module returns the bytecode module of the program: the module of a program loaded from a
+// compiled grammar, or the compilation of a program compiled from a grammar (Source.Module), which
+// the source makes once and reuses. It panics for a program whose grammar uses #missing, which has no bytecode form,
+// and on an internal error.
 func (prog *Program) Module() *bytecode.Module {
-	s := prog.Static()
-	if s.HasMissing {
-		panic(compile.MissingUnsupported("bytecode module construction"))
+	if prog.HasMissing {
+		panic(program.MissingUnsupported("bytecode module construction"))
 	}
-	s.BytecodeOnce.Do(func() { s.Bytecode, s.BytecodeErr = vmlower.Compile(s) })
-	if s.BytecodeErr != nil {
-		panic(s.BytecodeErr)
+	if prog.src == nil {
+		return prog.Bytecode
 	}
-	return s.Bytecode
+	m, err := prog.src.Module()
+	if err != nil {
+		panic(err)
+	}
+	return m
 }
 
 // moduleTerms returns the module m (Module) and the programs of its terms, loading them once for
@@ -255,14 +212,22 @@ func (prog *Program) moduleTerms() (*bytecode.Module, []*state.TermProgram, erro
 // reference to another rule is that rule's declared type, or the rule's name if it has none. It
 // reports false if the program has no such rule or its types were not checked
 // (a program loaded from a compiled grammar).
-func (prog *Program) RuleType(name string) (string, bool) { return prog.Static().RuleType(name) }
+func (prog *Program) RuleType(name string) (string, bool) {
+	if prog.src == nil {
+		return "", false
+	}
+	return prog.src.RuleType(name)
+}
 
 // RuleTypeWithPoll is RuleType with invocation-owned polling for editor display.
 // It does not retain poll. Callback panics propagate unchanged to the caller.
 // Individual allocations and string comparisons/concatenations may finish
 // before the next callback. A nil callback uses the ordinary type renderer.
 func (prog *Program) RuleTypeWithPoll(name string, poll func()) (string, bool) {
-	return prog.Static().RuleTypeWithPoll(name, poll)
+	if prog.src == nil {
+		return "", false
+	}
+	return prog.src.RuleTypeWithPoll(name, poll)
 }
 
 // ShapeSignature returns a text that describes the elements and captures that every subexpression
@@ -272,83 +237,18 @@ func (prog *Program) RuleTypeWithPoll(name string, poll func()) (string, bool) {
 // the program has no such rule or its types were not checked. poll, when not nil, is called at
 // every subexpression.
 func (prog *Program) ShapeSignature(name string, poll func()) (string, bool) {
-	if prog == nil {
+	if prog == nil || prog.src == nil {
 		return "", false
 	}
-	return prog.Static().ShapeSignature(name, poll)
+	return prog.src.ShapeSignature(name, poll)
 }
 
 // ValueType returns the type of the value that the rule name builds in the value model (for
 // example "node[(*node[string],)]"). It reports false if the program has no such rule or its
 // types were not checked.
-func (prog *Program) ValueType(name string) (string, bool) { return prog.Static().ValueType(name) }
-
-// Compile compiles the grammar.
-func Compile(g *ast.Grammar, opts Options) (*Program, error) {
-	return compileChecked(g, opts, nil)
-}
-
-// build builds a program from the grammar. If flags is not nil, it skips static analysis and
-// type checking and uses flags instead.
-func build(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags) (*Program, error) {
-	return buildControlled(g, opts, flags, nil)
-}
-
-func buildControlled(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags, control *cancel.Control) (*Program, error) {
-	names := desugar.InlineNames{}
-	prog, err := frontend.Check(g, opts, flags, names, control)
-	if err != nil {
-		return nil, names.Rewrite(err)
+func (prog *Program) ValueType(name string) (string, bool) {
+	if prog.src == nil {
+		return "", false
 	}
-	return lower(prog), nil
-}
-
-// compileChecked builds the program of g and checks its declarations of linear cost. The programs
-// that a compiled program builds again from its grammar, for other modes, skip the check, which
-// the first compilation made.
-func compileChecked(g *ast.Grammar, opts compile.Options, control *cancel.Control) (*Program, error) {
-	prog, err := buildControlled(g, opts, nil, control)
-	if err != nil {
-		return nil, err
-	}
-	if err := checkDeclaredLinear(g, control); err != nil {
-		return nil, err
-	}
-	return prog, nil
-}
-
-// CompileContext is the internal editor compilation entry point. Cancellation
-// discards the entire program and accumulated diagnostics. Existing Compile and
-// saved-program loading keep their ordinary path with no active control.
-// Polls cover grammar AST validation, source normalization, rule/dependency
-// loops, shared success proofs, expression checking and type checking. The Core
-// IR and the closures built from it are made when a parse first needs them,
-// outside the compilation: the parse's own context interrupts the Core IR build
-// and its passes, not the closures. Shared metadata and individual operations
-// still have uncancellable stretches.
-// This is not a wall-clock latency guarantee.
-func CompileContext(ctx context.Context, g *ast.Grammar, opts Options) (prog *Program, err error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	if ctx.Done() == nil {
-		return Compile(g, opts)
-	}
-	defer func() {
-		if failure := recover(); failure != nil {
-			if cancelled, ok := failure.(cancel.Cancellation); ok {
-				prog, err = nil, cancelled.Err
-			} else {
-				panic(failure)
-			}
-		}
-	}()
-	return compileChecked(g, opts, &cancel.Control{Ctx: ctx})
-}
-
-// lower returns the program that runs the checked program prog. Its Core IR and the closures of
-// each family built from it are made on first use, inside the parse that needs them and outside the
-// compilation and its control; the parse's context interrupts the Core IR build (closureCore).
-func lower(prog *compile.Program) *Program {
-	return closureProgram(prog, newClosureCore(prog), true)
+	return prog.src.ValueType(name)
 }

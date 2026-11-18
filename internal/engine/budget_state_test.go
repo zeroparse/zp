@@ -11,6 +11,7 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/backend/closure"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
@@ -21,7 +22,7 @@ import (
 
 func stateBudgetParser(limits core.Limits) *state.Parser {
 	prog := &state.SharedProgram{}
-	state.InitSharedProgram(prog, compile.NewProgram(nil))
+	state.InitSharedProgram(prog, &program.Program{})
 	return &state.Parser{Prog: prog, Input: state.Input{Control: state.NewBudgetControl(nil, limits)}}
 }
 
@@ -92,7 +93,7 @@ func TestBudgetAttachCapturesNilFrameAndFieldOrder(t *testing.T) {
 	retained := value.Ptr(value.Data{Text: "base", Fields: coreimpl.Fields{{Name: "existing", Value: "kept"}}})
 	allNil := &state.Frame{Vals: make([]*core.Node, 320)}
 	p := stateBudgetParser(core.Limits{Compute: 100_000})
-	got := p.AttachCaptures(retained, &compile.Scope{Names: make([]string, len(allNil.Vals))}, allNil, 2, 9)
+	got := p.AttachCaptures(retained, &program.Scope{Names: make([]string, len(allNil.Vals))}, allNil, 2, 9)
 	if got != retained || len(value.D(retained).Fields) != 1 || value.D(retained).Fields[0].Value != "kept" {
 		t.Fatal("all-nil capture frame changed the base node")
 	}
@@ -102,7 +103,7 @@ func TestBudgetAttachCapturesNilFrameAndFieldOrder(t *testing.T) {
 		value.Ptr(value.Data{Text: "first-value"}), value.Ptr(value.Data{Text: "old-duplicate"}), value.Ptr(value.Data{Text: "third-value"}), value.Ptr(value.Data{Text: "new-duplicate"}), value.Ptr(value.Data{Text: "late-value"}),
 	}
 	base := value.Ptr(value.Data{Text: "fresh-body", Fresh: true})
-	result := p.AttachCaptures(base, &compile.Scope{Names: fields}, &state.Frame{Vals: values}, 0, 5)
+	result := p.AttachCaptures(base, &program.Scope{Names: fields}, &state.Frame{Vals: values}, 0, 5)
 	if result != base {
 		t.Fatal("fresh body was unexpectedly wrapped")
 	}
@@ -126,7 +127,7 @@ func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 	prior := coreimpl.Fields{{Name: "prior", Value: "unchanged"}}
 	shared := value.Ptr(value.Data{Text: "shared", Fields: append(coreimpl.Fields(nil), prior...)})
 	p := stateBudgetParser(core.Limits{Compute: 100_000})
-	wrapped := p.AttachCaptures(shared, &compile.Scope{Names: []string{"child"}}, &state.Frame{Vals: []*core.Node{child}}, 4, 7)
+	wrapped := p.AttachCaptures(shared, &program.Scope{Names: []string{"child"}}, &state.Frame{Vals: []*core.Node{child}}, 4, 7)
 	if wrapped == shared || len(value.D(wrapped).Children) != 1 || value.D(wrapped).Children[0] != shared {
 		t.Fatal("nonfresh node was not wrapped before capture attachment")
 	}
@@ -138,7 +139,7 @@ func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 	}
 
 	self := value.Ptr(value.Data{Text: "self", Fresh: true})
-	got := p.AttachCaptures(self, &compile.Scope{Names: []string{"self"}}, &state.Frame{Vals: []*core.Node{self}}, 1, 2)
+	got := p.AttachCaptures(self, &program.Scope{Names: []string{"self"}}, &state.Frame{Vals: []*core.Node{self}}, 1, 2)
 	if got == self || len(value.D(got).Children) != 1 || value.D(got).Children[0] != self {
 		t.Fatal("self-capture did not wrap the body node")
 	}
@@ -152,7 +153,7 @@ func TestBudgetAttachCapturesInterruptsDiscoveryAndFieldWalk(t *testing.T) {
 	base := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "prior", Value: "kept"}}})
 	wide := &state.Frame{Vals: make([]*core.Node, 320)}
 	p := stateBudgetParser(core.Limits{Compute: 128})
-	if err := catchFatal(t, func() { _ = p.AttachCaptures(base, &compile.Scope{Names: make([]string, 320)}, wide, 0, 1) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { _ = p.AttachCaptures(base, &program.Scope{Names: make([]string, 320)}, wide, 0, 1) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("all-nil discovery interruption = %v, want ErrLimit", err)
 	}
 	if len(value.D(base).Fields) != 1 || value.D(base).Fields[0].Value != "kept" {
@@ -168,7 +169,7 @@ func TestBudgetAttachCapturesInterruptsDiscoveryAndFieldWalk(t *testing.T) {
 	}
 	retained := value.Ptr(value.Data{Text: "shared-retained", Fields: coreimpl.Fields{{Name: "existing", Value: "stable"}}})
 	p = stateBudgetParser(core.Limits{Compute: 256})
-	if err := catchFatal(t, func() { _ = p.AttachCaptures(retained, &compile.Scope{Names: names}, &state.Frame{Vals: vals}, 3, 9) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { _ = p.AttachCaptures(retained, &program.Scope{Names: names}, &state.Frame{Vals: vals}, 3, 9) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("capture field walk interruption = %v, want ErrLimit", err)
 	}
 	if len(value.D(retained).Fields) != 1 || value.D(retained).Fields[0].Name != "existing" || value.D(retained).Fields[0].Value != "stable" || value.D(retained).Text != "shared-retained" {

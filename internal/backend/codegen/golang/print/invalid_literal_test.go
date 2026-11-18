@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -44,7 +45,7 @@ func testGeneratedInvalidUTF8Literals(t *testing.T) {
 	i := 0
 	for _, tc := range codegentest.InvalidLiteralCorpus() {
 		g := codegentest.LiteralCorpusGrammar(t, tc)
-		prog, err := engine.Compile(g, compile.Options{})
+		prog, err := entry.Compile(g, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
 		}

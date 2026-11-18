@@ -63,7 +63,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 				t.Fatal(err)
 			}
 			limits := core.Limits{Compute: 1 << 30}
-			declared := checked.Typed.Fields["S"][0].T.String() // as the value checker resolves it
+			declared := checked.Static().Typed.Fields["S"][0].T.String() // as the value checker resolves it
 			for _, in := range codegentest.ResultCheckInputs() {
 				value := codegentest.FieldCheckValues[in[:1]]
 				rule := resultCheckRoutes[in[1]]

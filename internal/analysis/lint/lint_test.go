@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -29,7 +29,7 @@ func lintSourceWith(t *testing.T, parse func(string) (*ast.Grammar, error), src 
 		t.Fatal(err)
 	}
 	// The marks go on a copy, so that unreachable-rule sees the start rules of the source.
-	if _, err := engine.Compile(starttest.MarkAll(g.Clone()), engine.Options{}); err != nil {
+	if _, err := entry.Compile(starttest.MarkAll(g.Clone()), entry.Options{}); err != nil {
 		t.Fatalf("the test grammar does not compile: %v", err)
 	}
 	// A grammar that declares no start rule gets main as its start rule, as the classification
@@ -402,7 +402,7 @@ func TestAnyIsNotAType(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := engine.Compile(starttest.MarkAll(g), engine.Options{}); err == nil || !strings.Contains(err.Error(), tc.want) {
+		if _, err := entry.Compile(starttest.MarkAll(g), entry.Options{}); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%q: got %v; want it to contain %q", tc.src, err, tc.want)
 		}
 	}

@@ -1,10 +1,7 @@
 package check
 
 import (
-	"fmt"
-	"slices"
-
-	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -46,21 +43,5 @@ func (m *Model) ResolveStart(name string) string {
 // the default start rule def and the rules that defined reports. It is the check that every entry
 // to a parse makes, and that the classification of a grammar makes of its start rule.
 func CheckStartName(starts []string, def string, defined func(string) bool, name string) error {
-	resolved := name
-	if name == "" {
-		resolved = def
-	}
-	if slices.Contains(starts, resolved) {
-		return nil
-	}
-	if name == "" {
-		return fmt.Errorf("no start rule is given")
-	}
-	if err := desugar.EntryError(name); err != nil {
-		return err
-	}
-	if defined(name) {
-		return fmt.Errorf("rule %s is not a start rule; parsing can begin only at a rule marked @start", name)
-	}
-	return fmt.Errorf("rule %s is not defined", name)
+	return program.CheckStartName(starts, def, defined, name)
 }

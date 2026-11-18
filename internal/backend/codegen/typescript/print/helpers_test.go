@@ -1,6 +1,7 @@
 package print_test
 
 import (
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/testing/enginetest"
@@ -24,10 +25,10 @@ var (
 // refers to replaced by their values at the top level and in unions and optional types. RuleType
 // refers to a rule without a declared type by name instead.
 func inferredType(p *engine.Program, name string) (string, bool) {
-	t, ok := p.Typed.Values[name]
+	t, ok := entry.Checked(p).Typed.Values[name]
 	if !ok {
 		return "", false
 	}
-	v := &check.ValueInference{Prog: p.Static().Checker(), Out: p.Typed.Values}
+	v := &check.ValueInference{Prog: entry.Checked(p).Checker(), Out: entry.Checked(p).Typed.Values}
 	return v.Expand(t).String(), true
 }

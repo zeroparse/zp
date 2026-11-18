@@ -2,11 +2,11 @@ package closure
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
@@ -63,7 +63,7 @@ func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f state.Fami
 			return nil, fmt.Errorf("rule %s: %w", sr.Name, err)
 		}
 		r := b.rule(sr.ID)
-		*state.StaticRuleOf(r) = *sr
+		*state.StaticRuleOf(r) = *compile.RuntimeRule(sr)
 		// The frame of the rule's captures has the slots of its Core IR scope.
 		state.StaticRuleOf(r).Scope = scopeOf(cr.Scope)
 		r.InitVals = prog.Vars.ValuesOf(sr.Vars)
@@ -112,8 +112,8 @@ func Matcher(prog *compile.Program, m *ir.Module, n ir.Node, scope []ir.Slot, pl
 }
 
 // scopeOf returns the capture scope of the Core IR slots s.
-func scopeOf(s []ir.Slot) *check.Scope {
-	sc := check.NewScope()
+func scopeOf(s []ir.Slot) *program.Scope {
+	sc := program.NewScope()
 	for i, x := range s {
 		sc.Names = append(sc.Names, x.Name)
 		sc.Slots[x.Name] = i

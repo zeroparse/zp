@@ -1,4 +1,4 @@
-package engine_test
+package entry_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/analysis/complexity"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
@@ -44,7 +44,7 @@ func TestDeclaredLinear(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = engine.Compile(g, engine.Options{})
+			_, err = entry.Compile(g, entry.Options{})
 			if len(tc.want) == 0 {
 				if err != nil {
 					t.Fatalf("Compile: %v", err)
@@ -67,7 +67,7 @@ func TestDeclaredLinear(t *testing.T) {
 			// The editor entry point reports the same errors.
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			if _, cerr := engine.CompileContext(ctx, g, engine.Options{}); cerr == nil || cerr.Error() != err.Error() {
+			if _, cerr := entry.CompileContext(ctx, g, entry.Options{}); cerr == nil || cerr.Error() != err.Error() {
 				t.Errorf("CompileContext: %v", cerr)
 			}
 		})
@@ -86,7 +86,7 @@ func TestDeclaredLinearAttributeErrors(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := engine.Compile(g, engine.Options{}); err == nil || err.Error() != tc.want {
+		if _, err := entry.Compile(g, entry.Options{}); err == nil || err.Error() != tc.want {
 			t.Errorf("%q\n got %v\nwant %s", tc.src, err, tc.want)
 		}
 	}
@@ -154,7 +154,7 @@ func TestDeclaredLinearRewrites(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = engine.Compile(g, engine.Options{})
+			_, err = entry.Compile(g, entry.Options{})
 			if err == nil {
 				t.Fatal("Compile accepted the grammar")
 			}

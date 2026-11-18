@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"slices"
 	"sync"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
@@ -966,7 +966,7 @@ func (p *Parser) Finish(r *Rule, f *Frame, v *core.Node, start int) *core.Node {
 		var locals *Local
 		if r.OperatorsRule != nil {
 			// The whole-rule action of an Operators Rule sees the folded value as $value.
-			p.oplocals[0] = Local{Name: compile.OperatorsRuleValue, Val: NodeOrNil(v)}
+			p.oplocals[0] = Local{Name: program.OperatorsRuleValue, Val: NodeOrNil(v)}
 			locals = &p.oplocals[0]
 		}
 		v = p.runAction(r, f, locals, start, p.Pos)
@@ -1013,7 +1013,7 @@ func (p *Parser) convertResult(r *Rule, v *core.Node) *core.Node {
 
 // AttachCaptures attaches captures to the node as fields. Captures that did not match (nil) are
 // not attached. If the node belongs to another rule, it is wrapped in a tuple node first.
-func (p *Parser) AttachCaptures(v *core.Node, s *compile.Scope, f *Frame, start, end int) *core.Node {
+func (p *Parser) AttachCaptures(v *core.Node, s *program.Scope, f *Frame, start, end int) *core.Node {
 	found := false
 	wrap := v == nil || !nodes.D(v).Fresh
 	for _, c := range f.Vals {

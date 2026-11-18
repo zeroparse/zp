@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/runtime/document"
 
@@ -20,7 +21,7 @@ import (
 // ASCII text makes byte and code-point coordinates identical; this benchmark
 // does not model shifted spans, Unicode edits, errors, or slow consumers.
 func BenchmarkDocumentChangesSnapshotEdit(b *testing.B) {
-	prog, err := Compile(mustParse(`rule main = item* $$
+	prog, err := entry.Compile(mustParse(`rule main = item* $$
 rule item = [a-z]`), compile.Options{})
 	if err != nil {
 		b.Fatal(err)

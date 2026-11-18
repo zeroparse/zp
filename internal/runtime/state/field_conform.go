@@ -2,9 +2,8 @@ package state
 
 import (
 	"strconv"
-
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 )
 
 // Convert evaluates a node type constructor T{v}: it converts v to the named node type of ks, as the
@@ -17,13 +16,13 @@ func (p *Parser) Convert(ks *nodes.NodeTypeKinds, v any) (any, error) {
 // (term_exec.go) does. It charges a step for each list or tuple element it examines. node[T] is a node whose
 // value is of type T (node[_] any node with a value), and error an error value (an error or a missing token);
 // a list or tuple type takes a list or tuple value, not the node of a repetition or sequence.
-func (p *Parser) FieldConforms(t *compile.FieldType, v any) bool {
+func (p *Parser) FieldConforms(t *program.FieldType, v any) bool {
 	return p.termConforms(t, v)
 }
 
 // CastError reports a cast value that is not of the type it is cast to. pos is the input position
 // where the evaluation started, and gline:gcol the grammar position of the cast (0 if unknown).
-func (p *Parser) CastError(v any, t *compile.FieldType, pos, gline, gcol int) error {
+func (p *Parser) CastError(v any, t *program.FieldType, pos, gline, gcol int) error {
 	line, col := p.Input.lineCol(pos)
 	parts := []string{"cannot cast ", TypeName(v), " to ", t.Text, " at input position ", strconv.Itoa(pos),
 		" (line ", strconv.Itoa(line), ", column ", strconv.Itoa(col), ")"}

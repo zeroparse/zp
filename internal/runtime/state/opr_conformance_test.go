@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
@@ -45,7 +45,7 @@ func newOprMachine(cfg ref.Config) conform.Impl {
 	m := &oprMachine{engineMachine: newEngineMachine(cfg, false, false).(*engineMachine), lists: map[listKey]*listBox{}}
 	id := 0
 	line := func(scope int64) *OperatorsRuleLine {
-		return &OperatorsRuleLine{Scope: &compile.Scope{Names: make([]string, scope)}}
+		return &OperatorsRuleLine{Scope: &program.Scope{Names: make([]string, scope)}}
 	}
 	ops := func(os []ref.OprOp) []*OperatorsRuleOp {
 		var l []*OperatorsRuleOp

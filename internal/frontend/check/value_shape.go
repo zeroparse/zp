@@ -1,11 +1,9 @@
 package check
 
 import (
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
-
-	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
 // The static shapes of values in the value model. Every backend builds the values of an
@@ -116,12 +114,13 @@ func Recovers(e *ast.Attributed) bool {
 
 // SingleMode is how single (value_types.go) takes the value of an expression where it takes one
 // element: an alternative, the operand of ?, a capture or a recovered expression.
-type SingleMode uint8
+type SingleMode = program.SingleMode
 
+// The modes of SingleMode.
 const (
-	SingleNone  SingleMode = iota // no value
-	SinglePass                    // the one element
-	SingleTuple                   // the node of the tuple of the elements
+	SingleNone  = program.SingleNone
+	SinglePass  = program.SinglePass
+	SingleTuple = program.SingleTuple
 )
 
 // SingleModeOf returns how single takes the value of e.
@@ -180,11 +179,7 @@ func (c *ShapeCache) Facts(e ast.Expr) (k int, mode SingleMode, tuple bool) {
 
 // Shaper converts the result of an expression's matcher to the value where it takes one element
 // or is a scope.
-type Shaper struct {
-	Elems  bool // the matcher returns the tuple node of its elements
-	Shared bool // the tuple node is the result of a splice rule: a memo entry shares it
-	K      int  // the number of valued elements
-}
+type Shaper = program.Shaper
 
 // ShaperOf returns the Shaper of e.
 func ShaperOf(p *Checker, e ast.Expr) Shaper {
@@ -208,15 +203,4 @@ func SharesTuple(p *Checker, e ast.Expr) bool {
 			return false
 		}
 	}
-}
-
-// One returns the one element of the result v.
-func (s Shaper) One(v *core.Node) *core.Node {
-	if s.Elems {
-		if v == nil || len(nodes.D(v).Children) == 0 {
-			return nil
-		}
-		return nodes.D(v).Children[0]
-	}
-	return v
 }

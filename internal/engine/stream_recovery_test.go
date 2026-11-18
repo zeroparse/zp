@@ -31,7 +31,7 @@ func legacyStreamRecovery(t *testing.T, streamFirst bool) *Program {
 	if next != 1 {
 		t.Fatalf("legacy fixture has %d NEXT instructions", next)
 	}
-	a := p.Grammar.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.Attributed)
+	a := p.Static().Grammar.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.Attributed)
 	// Mutate the normalized executable AST, which is the .zpc payload.
 	stream := &ast.Attribute{Name: "stream", Pragma: true}
 	if streamFirst {

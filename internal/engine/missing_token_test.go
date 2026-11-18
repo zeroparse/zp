@@ -306,7 +306,7 @@ rule main Root = x:(";" #missing) => Root{Token: $x}`
 	if len(missingNodes(t, n)) != 1 {
 		t.Fatal("declared join lost Missing identity")
 	}
-	data, err := ast.MarshalJSON(prog.Grammar)
+	data, err := ast.MarshalJSON(prog.Static().Grammar)
 	if err != nil {
 		t.Fatal(err)
 	}

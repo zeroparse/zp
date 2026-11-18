@@ -283,7 +283,7 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a" $$`)
-	prog.buildFamily = func(*ir.Module, state.Family) ([]*state.Rule, error) { panic("build failed") }
+	prog.src = panickingFamily{prog.src}
 	func() {
 		defer func() {
 			if recover() == nil {
@@ -306,23 +306,23 @@ func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
 func TestClosureFamiliesReleaseTheCoreIR(t *testing.T) {
 	prog := mustCompile(t, `rule main = item+ $$
 rule item = "a" / "b"`)
-	if prog.coreIR.m != nil {
+	if prog.core.m != nil {
 		t.Fatal("Compile built the Core IR before a family needed it")
 	}
 	if _, err := prog.familyRules(state.Inlined, nil); err != nil {
 		t.Fatal(err)
 	}
-	if prog.coreIR.m == nil {
+	if prog.core.m == nil {
 		t.Fatal("the first family did not build the Core IR")
 	}
-	module := weak.Make(prog.coreIR.m)
-	if prog.coreIR.m == nil {
+	module := weak.Make(prog.core.m.(*ir.Module))
+	if prog.core.m == nil {
 		t.Fatal("the Core IR was dropped while the call-preserving family was not built")
 	}
 	if _, err := prog.familyRules(state.CallPreserving, nil); err != nil {
 		t.Fatal(err)
 	}
-	if prog.coreIR.m != nil {
+	if prog.core.m != nil {
 		t.Fatal("the Core IR is kept after both families were built")
 	}
 	runtime.GC()
@@ -348,7 +348,7 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	const src = "rule main = item+ $$\nrule item = \"a\" / \"b\""
 	prog := mustCompile(t, src)
 	metered := prog.meteredProgram()
-	if metered.Static() != prog.Static() || metered.coreIR != prog.coreIR {
+	if metered.Static() != prog.Static() || metered.core != prog.core {
 		t.Fatal("the metered program does not share the static program and the Core IR")
 	}
 	var m *ir.Module
@@ -358,11 +358,11 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 				if _, err := q.familyRules(f, nil); err != nil {
 					t.Fatal(err)
 				}
-				m = prog.coreIR.m
+				m = prog.core.m.(*ir.Module)
 				continue
 			}
 			if q == metered && f == state.CallPreserving {
-				if prog.coreIR.m != m {
+				if prog.core.m != m {
 					t.Fatal("the Core IR was dropped or built again while a family was not built")
 				}
 			}
@@ -371,7 +371,7 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 			}
 		}
 	}
-	if prog.coreIR.m != nil {
+	if prog.core.m != nil {
 		t.Fatal("the Core IR is kept after the families of both programs were built")
 	}
 	if a, b := prog.families[state.Inlined].rules, metered.families[state.Inlined].rules; len(a) == 0 || &a[0] == &b[0] {
@@ -388,7 +388,7 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	if _, err := lateMetered.familyRules(state.Inlined, nil); err != nil {
 		t.Fatal(err)
 	}
-	if late.coreIR.m == nil {
+	if late.core.m == nil {
 		t.Fatal("the metered program made after the release did not build the Core IR again")
 	}
 	if _, err := lateMetered.ParseWith("main", "ab", ParseOptions{Backend: Closure}); err != nil {
@@ -453,11 +453,11 @@ func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
 		t.Fatalf("%d checks inside the Core IR build saw the context ended, want 1", ctx.calls)
 	}
 	metered := prog.budgetProgram
-	if metered == nil || metered.families[state.Inlined].built.Load() || prog.coreIR.m != nil {
+	if metered == nil || metered.families[state.Inlined].built.Load() || prog.core.m != nil {
 		t.Fatal("a cancelled build left a family or the Core IR built")
 	}
-	if want := 2 * len(prog.families); prog.coreIR.pending != want {
-		t.Fatalf("pending = %d after a cancelled build, want %d", prog.coreIR.pending, want)
+	if want := 2 * len(prog.families); prog.core.pending != want {
+		t.Fatalf("pending = %d after a cancelled build, want %d", prog.core.pending, want)
 	}
 	if n, err := prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: base}); n == nil || err != nil {
 		t.Fatalf("the parse after the cancelled one: node=%v err=%v", n, err)
@@ -469,8 +469,8 @@ func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
 			}
 		}
 	}
-	if prog.coreIR.m != nil || prog.coreIR.pending != 0 {
-		t.Fatalf("after every family: Core IR held %v, pending %d", prog.coreIR.m != nil, prog.coreIR.pending)
+	if prog.core.m != nil || prog.core.pending != 0 {
+		t.Fatalf("after every family: Core IR held %v, pending %d", prog.core.m != nil, prog.core.pending)
 	}
 }
 
@@ -527,11 +527,11 @@ func TestClosureCoreBuildContextPanic(t *testing.T) {
 		_, _ = prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: ctx})
 	}()
 	metered := prog.budgetProgram
-	if metered == nil || metered.families[state.Inlined].built.Load() || prog.coreIR.m != nil {
+	if metered == nil || metered.families[state.Inlined].built.Load() || prog.core.m != nil {
 		t.Fatal("a build interrupted by a context panic left a family or the Core IR built")
 	}
-	if want := 2 * len(prog.families); prog.coreIR.pending != want {
-		t.Fatalf("pending = %d after a context panic, want %d", prog.coreIR.pending, want)
+	if want := 2 * len(prog.families); prog.core.pending != want {
+		t.Fatalf("pending = %d after a context panic, want %d", prog.core.pending, want)
 	}
 	if n, err := prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: base}); n == nil || err != nil {
 		t.Fatalf("the parse after the context panic: node=%v err=%v", n, err)
@@ -545,7 +545,7 @@ func TestClosureCoreBuildPanicIsAnError(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a" $$`)
 	// A rule list with a nil rule makes the Core IR builder panic (compile.Program.CoreInput).
-	prog.coreIR.sp.RuleList = append(prog.coreIR.sp.RuleList, nil)
+	prog.Static().RuleList = append(prog.Static().RuleList, nil)
 	func() {
 		defer func() {
 			if recover() == nil {
@@ -557,7 +557,14 @@ func TestClosureCoreBuildPanicIsAnError(t *testing.T) {
 	if _, err := prog.familyRules(state.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
 		t.Fatalf("err = %v, want the family not built", err)
 	}
-	if want := len(prog.families) - 1; prog.coreIR.pending != want {
-		t.Fatalf("pending = %d, want %d", prog.coreIR.pending, want)
+	if want := len(prog.families) - 1; prog.core.pending != want {
+		t.Fatalf("pending = %d, want %d", prog.core.pending, want)
 	}
+}
+
+// panickingFamily is a Source whose builds of closure families panic.
+type panickingFamily struct{ Source }
+
+func (panickingFamily) Family(any, state.Family, bool) ([]*state.Rule, error) {
+	panic("build failed")
 }

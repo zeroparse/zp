@@ -1,9 +1,9 @@
 package compile
 
 import (
-	"fmt"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -112,6 +112,4 @@ func (prog *Program) markMissingRules(control *cancel.Control) {
 
 // MissingUnsupported returns the error of an operation that does not support missing-token
 // recovery.
-func MissingUnsupported(operation string) error {
-	return fmt.Errorf("missing-token recovery is not supported for %s; use Closure whole-input parsing or recognition", operation)
-}
+func MissingUnsupported(operation string) error { return program.MissingUnsupported(operation) }

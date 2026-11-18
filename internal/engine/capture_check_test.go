@@ -64,11 +64,11 @@ func captureCheckProgram(src string) (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := newProgram(compile.NewProgram(g), nil, nil)
+	sp := compile.NewProgram(g)
 	for _, d := range g.Types() {
-		p.Types[d.DeclName()] = d
+		sp.Types[d.DeclName()] = d
 	}
-	return p, nil
+	return checkedProgram(sp), nil
 }
 
 func captureCheckSource(n int, shape string) string {

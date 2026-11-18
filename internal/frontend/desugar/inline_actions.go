@@ -5,6 +5,7 @@ import (
 	"strings"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/runtime/program"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -25,16 +26,11 @@ import (
 
 // HiddenRule reports whether the rule name is hidden: it begins with an underscore. A hidden rule
 // is not an entry point, and a hidden rule without an action makes no node of its own.
-func HiddenRule(name string) bool { return strings.HasPrefix(name, "_") }
+func HiddenRule(name string) bool { return program.HiddenRule(name) }
 
 // EntryError returns the error for using the rule name as a start rule or another entry point of
 // a parse, or nil if it can be one.
-func EntryError(name string) error {
-	if HiddenRule(name) {
-		return fmt.Errorf("rule %s is hidden: a rule whose name begins with an underscore is not an entry point", name)
-	}
-	return nil
-}
+func EntryError(name string) error { return program.EntryError(name) }
 
 // inlineSite is the place of an inline action in the grammar as written.
 type inlineSite struct {

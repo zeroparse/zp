@@ -200,8 +200,8 @@ func TestNegativeControls(t *testing.T) {
 	g.pkgs[mod("internal/unplaced")] = &pkg{ImportPath: mod("internal/unplaced"), Module: &struct{ Path string }{modulePath}}
 	addEdge(mod("cmd/zp"), mod("internal/unplaced"))
 	// An allowlisted edge that disappears.
-	doc := g.pkgs[mod("internal/runtime/document")]
-	doc.Imports = slices.DeleteFunc(doc.Imports, func(p string) bool { return p == mod("internal/compile") })
+	flags := g.pkgs[mod("internal/cliflag")]
+	flags.Imports = slices.DeleteFunc(flags.Imports, func(p string) bool { return p == mod("engine") })
 
 	msgs := check([]*graph{g}, generatedParsers(t)).compare(allowlist, 1)
 	for _, m := range msgs {
@@ -244,7 +244,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: internal/fakeaction -> internal/ir/code/exec", []string{"within internal/ir, code/action imports only code (internal/ir/code/action -> internal/ir/code/exec)"}},
 		{"rule 1a: internal/bench/parsers/json -> example.org/thirdparty", []string{"a generated parser imports no third-party package"}},
 		{"internal/unplaced: no row of layout places the package", nil},
-		{"rule 1: internal/runtime/document -> internal/compile: no build has this edge any more; remove it from the allowlist", nil},
+		{"rule 2: internal/cliflag -> engine: no build has this edge any more; remove it from the allowlist", nil},
 	}
 	for _, w := range want {
 		i := slices.IndexFunc(msgs, func(m string) bool { return strings.HasPrefix(m, w.key) })

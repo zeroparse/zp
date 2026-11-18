@@ -18,7 +18,7 @@ import (
 func TestEngineValueStructTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
-		InitSharedProgram(prog, compiletest.Program(t, "type S = { F0 int }\n@start\nrule main = \"a\"\n", compile.Options{}))
+		InitSharedProgram(prog, compiletest.Program(t, "type S = { F0 int }\n@start\nrule main = \"a\"\n", compile.Options{}).Runtime())
 		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
 		if controlled {
 			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
@@ -65,23 +65,23 @@ func TestEngineValueStructTableTermCode(t *testing.T) {
 	cp := compiletest.Program(t, "type S = { F0 int\n F1 int }\n@start\nrule main = \"a\"\n", compile.Options{})
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
-		InitSharedProgram(prog, cp)
+		InitSharedProgram(prog, cp.Runtime())
 		// literal returns the term code of a struct literal of the fields, fused or not, whose values
 		// are the locals v<i>.
 		literal := func(fields []string, fused bool) *TermProgram {
-			tp := &TermProgram{na: int32(len(fields)) + 1, nn: 1, structs: []termStruct{{kind: cp.TypeKind("S"), fields: 2}}}
-			tp.code = append(tp.code, termInstr{op: tStruct}, termInstr{op: tIntK, a: 1})
+			tp := &TermProgram{NA: int32(len(fields)) + 1, NN: 1, Structs: []TermStruct{{Kind: cp.TypeKind("S"), Fields: 2}}}
+			tp.Code = append(tp.Code, TermInstr{Op: TStruct}, TermInstr{Op: TIntK, A: 1})
 			for i := range fields {
-				tp.names = append(tp.names, fmt.Sprintf("v%d", i), fmt.Sprintf("F%d", i))
+				tp.Names = append(tp.Names, fmt.Sprintf("v%d", i), fmt.Sprintf("F%d", i))
 				v, name := int32(i)+1, int32(2*i+1)
-				tp.code = append(tp.code, termInstr{op: tLocal, dst: v, a: name - 1})
+				tp.Code = append(tp.Code, TermInstr{Op: TLocal, Dst: v, A: name - 1})
 				if fused {
-					tp.code = append(tp.code, termInstr{op: tField, a: 0, b: v, c: name})
+					tp.Code = append(tp.Code, TermInstr{Op: TField, A: 0, B: v, C: name})
 				} else {
-					tp.code = append(tp.code, termInstr{op: tStep}, termInstr{op: tSetField, a: 0, b: v, c: name}, termInstr{op: tCover, a: 0, b: v})
+					tp.Code = append(tp.Code, TermInstr{Op: TStep}, TermInstr{Op: TSetField, A: 0, B: v, C: name}, TermInstr{Op: TCover, A: 0, B: v})
 				}
 			}
-			tp.code = append(tp.code, termInstr{op: tMade, b: 0}, termInstr{op: tRet})
+			tp.Code = append(tp.Code, TermInstr{Op: TMade, B: 0}, TermInstr{Op: TRet})
 			return tp
 		}
 		text := nodes.Ptr(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})

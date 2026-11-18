@@ -3,12 +3,11 @@ package state
 import (
 	"fmt"
 	"strings"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
-	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Values of actions and predicates are *Node, int, string, bool or nil.
@@ -26,7 +25,7 @@ type Local struct {
 // EvalCtx is the context needed to evaluate value expressions.
 type EvalCtx struct {
 	P          *Parser
-	Scope      *compile.Scope
+	Scope      *program.Scope
 	Frame      *Frame
 	Items      []*core.Node // elements referenced by $n
 	Start, End int          // range matched by the rule
@@ -116,7 +115,7 @@ func (c *EvalCtx) Member(x any, name string) (any, error) {
 // struct n, and false if its type declares no such field. Under budget controls it charges for the
 // declared fields it scans, and for the values it makes.
 func (p *Parser) memberZero(c *EvalCtx, n *core.Node, name string) (any, bool) {
-	if !p.HasValueField(p.Prog.Types[n.Type()].(*ast.TypeDef), name) {
+	if !p.HasValueField(p.Prog.Types[n.Type()], name) {
 		return nil, false
 	}
 	v, err := c.zeroValue(p.Prog.StructZeroOf(n.Type()).Zeros[name])

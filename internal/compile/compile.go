@@ -1,7 +1,6 @@
 package compile
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"zeroparse.dev/zp/core/impl"
@@ -9,6 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/desugar"
@@ -73,6 +73,9 @@ type Program struct {
 	// they differ from the flags of the rules; nil otherwise. Such parses run a program built with
 	// them.
 	InsertionFlags []RuleFlags
+	// runtime is the run-time program (Runtime), made once under runtimeOnce.
+	runtimeOnce sync.Once
+	runtime     *program.Program
 }
 
 // Recognition is what a compiled program does with the input: build values or only check it.
@@ -191,7 +194,7 @@ type Rule struct {
 
 // ErrSchemaUnavailable reports that the checked grammar metadata an output schema is exported
 // from is unavailable.
-var ErrSchemaUnavailable = errors.New("output schema unavailable")
+var ErrSchemaUnavailable = program.ErrSchemaUnavailable
 
 // Reserved type names.
 var builtinTypes = map[string]bool{
@@ -305,7 +308,7 @@ func Canonicalize(g *ast.Grammar, opts Options, names desugar.InlineNames, contr
 		}
 	}
 	// The inline actions are checked as written, then lowered to hidden rules. A program keeps
-	// the grammar as written, whatever its options, for Program.SourceGrammar.
+	// the grammar as written, whatever its options, for checked.Source.Grammar.
 	source := g
 	if desugar.HasInlineAction(g, control) {
 		if errs := desugar.UndeclaredRules(g, control); errs != nil {
@@ -652,7 +655,7 @@ func NumberSeen(lists ...[]*Rule) int {
 	for _, rules := range lists {
 		for _, r := range rules {
 			r.Seen = -1
-			if r.Memo && !r.Transient && !r.Leader {
+			if program.Defers(r.Memo, r.Transient, r.Leader) {
 				r.Seen = n
 				n++
 			}
@@ -663,7 +666,7 @@ func NumberSeen(lists ...[]*Rule) int {
 
 // MaxLeaderBits is the number of leaders of a cycle that have a bit (Rule.LeaderBit). The engine
 // keeps the last bit of a word to tell the identity of a larger set from a word of bits.
-const MaxLeaderBits = 63
+const MaxLeaderBits = program.MaxLeaderBits
 
 // NumberLeaders numbers the leaders of each cycle of rules, in order (Rule.LeaderIndex), and gives
 // the first MaxLeaderBits of each a bit (Rule.LeaderBit).
@@ -674,10 +677,7 @@ func NumberLeaders(rules []*Rule) {
 		if r.Leader {
 			k := n[r.Cycle]
 			n[r.Cycle]++
-			r.LeaderIndex = k
-			if k < MaxLeaderBits {
-				r.LeaderBit = 1 << k
-			}
+			r.LeaderIndex, r.LeaderBit = k, program.LeaderBitOf(k)
 		}
 	}
 }
@@ -989,4 +989,10 @@ func (prog *Program) TypeKind(typ string) *coreimpl.Kind {
 		return k
 	}
 	return coreimpl.KindOf(typ, "")
+}
+
+// NewProgram returns a program of the grammar g with no rules or types yet, for the tests that fill
+// in a program of their own.
+func NewProgram(g *ast.Grammar) *Program {
+	return &Program{Model: check.NewModel(g, nil), ByName: map[string]*Rule{}}
 }

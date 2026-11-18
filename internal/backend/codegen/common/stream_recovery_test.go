@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -28,7 +28,7 @@ func testStreamRecoveryRejected(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, opts := range []compile.Options{{}, {Recognition: compile.RecognizeKeepStreamValues}} {
-			if _, err := engine.Compile(g, opts); err == nil || !strings.Contains(err.Error(), streamRecoveryError) {
+			if _, err := entry.Compile(g, opts); err == nil || !strings.Contains(err.Error(), streamRecoveryError) {
 				t.Errorf("%s: %v", src, err)
 			}
 		}
@@ -55,7 +55,7 @@ func testStreamRecoveryRejected(t *testing.T) {
 		Skip: &ast.Repeat{Expr: &ast.Any{}, Min: 0, Max: -1},
 	}}}}}
 	starttest.MarkAll(g)
-	_, err := engine.Compile(g, compile.Options{})
+	_, err := entry.Compile(g, compile.Options{})
 	if errs, ok := err.(diagnostic.ErrorList); !ok || len(errs) != 1 || errs[0].Pos != pos || !strings.Contains(err.Error(), streamRecoveryError) {
 		t.Errorf("public AST: %v; want positioned recovery error", err)
 	}

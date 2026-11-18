@@ -119,13 +119,13 @@ func TestTopBottomSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Grammar != nil || bytes.Contains(bin, []byte("_|_")) {
-		t.Fatalf("compiled file keeps the types: %v", loaded.Grammar)
+	if loaded.Static() != nil || bytes.Contains(bin, []byte("_|_")) {
+		t.Fatalf("compiled file keeps the types: checked program %v", loaded.Static() != nil)
 	}
 	if again, err := loaded.MarshalBinary("main"); err != nil || !bytes.Equal(again, bin) {
 		t.Fatalf("compiled round trip differs: %v", err)
 	}
-	if got := fmt.Format(program.Grammar); !strings.Contains(got, "type A ~ []B & *C | _ & (D | B) | _|_") || !strings.Contains(got, "$x.(_ & node[_])") {
+	if got := fmt.Format(program.Static().Grammar); !strings.Contains(got, "type A ~ []B & *C | _ & (D | B) | _|_") || !strings.Contains(got, "$x.(_ & node[_])") {
 		t.Fatalf("source grammar:\n%s", got)
 	}
 }

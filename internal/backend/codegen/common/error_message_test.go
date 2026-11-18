@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -109,7 +110,7 @@ func testErrorMessagesAgree(t *testing.T, node string) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			prog, err := engine.Compile(g, compile.Options{})
+			prog, err := entry.Compile(g, compile.Options{})
 			if err != nil {
 				t.Fatalf("%s: %v", c.Name, err)
 			}

@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -113,7 +114,7 @@ func TestStreamSeesThroughGroupsAndAttributes(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
-		if _, err := engine.Compile(g, compile.Options{}); err == nil {
+		if _, err := entry.Compile(g, compile.Options{}); err == nil {
 			t.Errorf("%s: compiled, want a #stream placement error", src)
 		}
 	}

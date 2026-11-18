@@ -2,9 +2,9 @@ package state
 
 import (
 	"testing"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -112,7 +112,7 @@ func oprParser() *Parser {
 }
 
 func oprLine(m Matcher) *OperatorsRuleLine {
-	return &OperatorsRuleLine{Scope: &compile.Scope{}, M: m}
+	return &OperatorsRuleLine{Scope: &program.Scope{}, M: m}
 }
 
 func oprOp(kind, assoc string, level int, m Matcher) *OperatorsRuleOp {

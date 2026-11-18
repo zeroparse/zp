@@ -49,7 +49,7 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 					}
 					// Saved ASTs use the compiled grammar, where source-only groups
 					// are removed. The caller's AST is checked separately below.
-					savedAST := executableASTJSON(t, p.Grammar)
+					savedAST := executableASTJSON(t, p.Static().Grammar)
 					found := false
 					for _, in := range p.Module().Code {
 						if in.Op == c.op {
@@ -74,7 +74,7 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 					if err := compile.ValidateModule(p.Module()); err != nil {
 						t.Errorf("module: %v", err)
 					}
-					if tree := executableASTJSON(t, p.Grammar); tree != savedAST {
+					if tree := executableASTJSON(t, p.Static().Grammar); tree != savedAST {
 						t.Fatal("compiled executable AST changed")
 					}
 					for _, mode := range allModes {

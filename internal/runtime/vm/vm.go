@@ -3,11 +3,11 @@ package vm
 import (
 	"fmt"
 	"unsafe"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 )
@@ -34,7 +34,7 @@ type Program struct {
 	// names, at every index of the name (nil when the module has none).
 	nodeKinds []*nodes.NodeTypeKinds
 	// vars is the module's variable table (nil when it declares none).
-	vars *compile.VarTable
+	vars *program.VarTable
 	// direct reports, by rule ID, that a call of the rule invokes it with state.Parser.InvokePlain,
 	// leaving out the call protocol of state.Parser.Call: the rule is plain (core.Rule.Plain) and the
 	// program runs the inlined family (state.Inlined).
@@ -100,12 +100,12 @@ func New(m *bytecode.Module, terms []*state.TermProgram, f state.Family) *Progra
 // Rule returns the rule called name, or nil when the module has none.
 func (vm *Program) Rule(name string) *state.Rule { return vm.byName[name] }
 
-// Descs returns the expectation table of the program: compile.FixedDescs followed by the string
+// Descs returns the expectation table of the program: program.FixedDescs followed by the string
 // table.
 func (vm *Program) Descs() []string { return vm.descs }
 
 // NumSeen returns the number of rules whose memoization a first call may defer
-// (compile.NumberSeen), which a parse uses as the stride of its memo table.
+// (program.NumberSeen), which a parse uses as the stride of its memo table.
 func (vm *Program) NumSeen() int { return vm.nseen }
 
 // execBody runs a rule body with the recursive model: each call recurses into exec.
@@ -118,7 +118,7 @@ func execBody(vm *Program, r *state.Rule, entry int) func(p *state.Parser, min i
 
 // buildVMProgram prepares a module for execution in the family f. bodies makes the rule bodies.
 func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Family, bodies vmBodies) *Program {
-	vm := &Program{m: m, byName: map[string]*state.Rule{}, descs: append(append([]string(nil), compile.FixedDescs...), m.Strings...)}
+	vm := &Program{m: m, byName: map[string]*state.Rule{}, descs: append(append([]string(nil), program.FixedDescs...), m.Strings...)}
 	vm.literals = m.Strings
 	normalized := false
 	for i, s := range m.Strings {
@@ -156,7 +156,7 @@ func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Fami
 			vm.nodeKinds[i] = nodeTypes[s]
 		}
 	}
-	vtable := compile.ModuleVarTable(m)
+	vtable := program.ModuleVarTable(m)
 	vm.vars = vtable
 	vm.terms = terms
 	for i := range m.Rules {
@@ -189,12 +189,12 @@ func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Fami
 			vm.byName[r.Name] = r
 		}
 	}
-	statics := make([]*compile.Rule, len(vm.rules))
+	statics := make([]*program.Rule, len(vm.rules))
 	for i, r := range vm.rules {
 		statics[i] = state.StaticRuleOf(r)
 	}
-	vm.nseen = compile.NumberSeen(statics)
-	compile.NumberLeaders(statics)
+	vm.nseen = program.NumberSeen(statics)
+	program.NumberLeaders(statics)
 	vm.runSites = make([]*vmRunSite, len(m.Code))
 	for ip, in := range m.Code {
 		if in.Op == bytecode.OpRepeat || in.Op == bytecode.OpRepeatWide {
@@ -232,8 +232,8 @@ func (vm *Program) names(ids []int) []string {
 	return out
 }
 
-func (vm *Program) scope(ids []int) *compile.Scope {
-	s := compile.NewScope()
+func (vm *Program) scope(ids []int) *program.Scope {
+	s := program.NewScope()
 	for _, n := range vm.names(ids) {
 		s.Slot(n)
 	}
@@ -255,10 +255,10 @@ func (vm *Program) block(entry int) state.Matcher {
 func (vm *Program) line(l *bytecode.LineInfo, operator bool) *state.OperatorsRuleLine {
 	// The code pushes the line's value already: the value of an operand line's scope, or the
 	// operator's value, which is the node of its tuple if IsSeq (its captures are attached to it).
-	pl := &state.OperatorsRuleLine{Scope: vm.scope(l.Scope), M: vm.block(l.Entry), Entry: l.Entry, Single: compile.SinglePass,
+	pl := &state.OperatorsRuleLine{Scope: vm.scope(l.Scope), M: vm.block(l.Entry), Entry: l.Entry, Single: program.SinglePass,
 		Value: func(_ *state.Parser, v *core.Node, _ int) *core.Node { return v }}
 	if operator && l.IsSeq {
-		pl.Single, pl.Shape = compile.SingleTuple, compile.Shaper{Elems: true}
+		pl.Single, pl.Shape = program.SingleTuple, program.Shaper{Elems: true}
 	}
 	if l.Action >= 0 {
 		pl.Act = vm.terms[l.Action].Eval
@@ -563,7 +563,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 		case bytecode.OpStr:
 			start := p.Pos
 			if !p.MatchLiteral(vm.runes[in.A], vm.bytes[in.A]) {
-				p.Expect(start, compile.NumFixedDescs+state.ExpID(in.B))
+				p.Expect(start, program.NumFixedDescs+state.ExpID(in.B))
 				goto fail
 			}
 			if in.C == 1 {
@@ -572,7 +572,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 		case bytecode.OpStrFold:
 			start := p.Pos
 			if !p.MatchLiteralFold(vm.runes[in.A]) {
-				p.Expect(start, compile.NumFixedDescs+state.ExpID(in.B))
+				p.Expect(start, program.NumFixedDescs+state.ExpID(in.B))
 				goto fail
 			}
 			if in.C == 1 {
@@ -581,14 +581,14 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 		case bytecode.OpClass:
 			ch, size, ok := p.Peek()
 			if !ok || !vm.has(p, in.A, ch) {
-				p.Expect(p.Pos, compile.NumFixedDescs+state.ExpID(in.B))
+				p.Expect(p.Pos, program.NumFixedDescs+state.ExpID(in.B))
 				goto fail
 			}
 			mc.single(size, in.C == 1)
 		case bytecode.OpGuard:
 			ch, _, ok := p.Peek()
 			if !(ok && vm.has(p, in.A, ch)) && p.Depth+int(in.B) <= p.MaxDepth {
-				p.Expect(p.Pos, compile.NumFixedDescs+state.ExpID(m.Classes[in.A].Desc))
+				p.Expect(p.Pos, program.NumFixedDescs+state.ExpID(m.Classes[in.A].Desc))
 				ip = int(in.C)
 				continue
 			}
@@ -603,9 +603,9 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				ch, size, ok := p.Peek()
 				if !ok || in.A >= 0 && !vm.has(p, in.A, ch) {
 					if in.A >= 0 {
-						p.Expect(p.Pos, compile.NumFixedDescs+state.ExpID(m.Classes[in.A].Desc))
+						p.Expect(p.Pos, program.NumFixedDescs+state.ExpID(m.Classes[in.A].Desc))
 					} else {
-						p.Expect(p.Pos, compile.IDAny)
+						p.Expect(p.Pos, program.IDAny)
 					}
 					break
 				}
@@ -635,9 +635,9 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				ch, size, ok := p.Peek()
 				if !ok || in.A >= 0 && !vm.has(p, in.A, ch) {
 					if in.A >= 0 {
-						p.Expect(p.Pos, compile.NumFixedDescs+state.ExpID(m.Classes[in.A].Desc))
+						p.Expect(p.Pos, program.NumFixedDescs+state.ExpID(m.Classes[in.A].Desc))
 					} else {
-						p.Expect(p.Pos, compile.IDAny)
+						p.Expect(p.Pos, program.IDAny)
 					}
 					break
 				}
@@ -653,7 +653,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 		case bytecode.OpAny:
 			_, size, ok := p.Peek()
 			if !ok {
-				p.Expect(p.Pos, compile.IDAny)
+				p.Expect(p.Pos, program.IDAny)
 				goto fail
 			}
 			mc.single(size, in.A == 1)
@@ -668,14 +668,14 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 			var desc state.ExpID
 			switch in.A {
 			case 0:
-				ok, desc = p.AtInputStart(), compile.IDBeginInput
+				ok, desc = p.AtInputStart(), program.IDBeginInput
 			case 1:
-				ok, desc = p.AtEOF(), compile.IDEndInput
+				ok, desc = p.AtEOF(), program.IDEndInput
 			case 2:
-				ok, desc = p.AtLineStart(), compile.IDBeginLine
+				ok, desc = p.AtLineStart(), program.IDBeginLine
 			default:
 				ch, _, more := p.Peek()
-				ok, desc = !more || ch == '\n' || ch == '\r', compile.IDEndLine
+				ok, desc = !more || ch == '\n' || ch == '\r', program.IDEndLine
 			}
 			if !ok {
 				p.Expect(p.Pos, desc)
@@ -866,7 +866,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 					mc.push(v)
 				} else if in.B != 0 { // in a value-free repetition, the element scope exists only for predicates
 					top := len(mc.vals) - 1
-					mc.vals[top] = p.AttachCaptures(asNodeValue(mc.vals[top]), &compile.Scope{Names: vm.scopes[rep.scope]}, p.Frame, e.save.pos, p.Pos)
+					mc.vals[top] = p.AttachCaptures(asNodeValue(mc.vals[top]), &program.Scope{Names: vm.scopes[rep.scope]}, p.Frame, e.save.pos, p.Pos)
 				}
 				p.Frame = e.save.frame
 			}
@@ -1087,9 +1087,9 @@ func (mc *Machine) unwind(m *bytecode.Module, ebase int) (ip int, ok bool) {
 			l := mc.popLab(&e)
 			far, inner := p.Unisolate(state.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
 			if l.mode == 0 {
-				p.Expect(far, state.MsgBit|(compile.NumFixedDescs+state.ExpID(l.msg)))
+				p.Expect(far, state.MsgBit|(program.NumFixedDescs+state.ExpID(l.msg)))
 			} else {
-				p.MergeExpected(far, state.RenamedExpected(p, inner, compile.NumFixedDescs+state.ExpID(l.msg)))
+				p.MergeExpected(far, state.RenamedExpected(p, inner, program.NumFixedDescs+state.ExpID(l.msg)))
 			}
 			continue
 		case eRecover:
@@ -1175,18 +1175,18 @@ func moduleTermTypes(m *bytecode.Module) state.TermTypes {
 		}
 	}
 	var typeNames map[string]bool
-	casts := map[string]*compile.FieldType{}
+	casts := map[string]*program.FieldType{}
 	return state.TermTypes{
 		NodeType: func(name string) *nodes.NodeTypeKinds { return nodeTypes[name] },
 		Struct:   func(name string) *coreimpl.Kind { return structs[name] },
-		Cast: func(text string) (*compile.FieldType, error) {
+		Cast: func(text string) (*program.FieldType, error) {
 			if t, ok := casts[text]; ok {
 				return t, nil
 			}
 			if typeNames == nil {
-				typeNames = compile.ModuleTypeNames(m)
+				typeNames = program.ModuleTypeNames(m)
 			}
-			t, err := compile.ParseFieldType(text, typeNames)
+			t, err := program.ParseFieldType(text, typeNames)
 			if err != nil {
 				return nil, err
 			}

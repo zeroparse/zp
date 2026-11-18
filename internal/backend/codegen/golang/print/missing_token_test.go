@@ -2,6 +2,7 @@ package print_test
 
 import (
 	"testing"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -24,7 +25,7 @@ rule main = "a"`)
 	if _, err := prog.MarshalBinary("main"); err == nil {
 		t.Fatal("saved a reserved type without a supported binary representation")
 	}
-	if _, err := codegentest.GenerateCode(t, prog.Grammar, common.GenOptions{Package: "example", Start: "main"}); err == nil {
+	if _, err := codegentest.GenerateCode(t, entry.Checked(prog).Grammar, common.GenOptions{Package: "example", Start: "main"}); err == nil {
 		t.Fatal("generated unsupported Missing type")
 	}
 }
@@ -39,7 +40,7 @@ func TestMissingTokensInsertionOnlyLeftRecursionRejected(t *testing.T) {
 func testMissingTokensInsertionOnlyLeftRecursionRejected(t *testing.T) {
 	prog := mustCompile(t, `rule main = a $$
 rule a = "(" #missing a "x" / "y"`)
-	if _, err := codegentest.GenerateCode(t, prog.Grammar, common.GenOptions{Package: "example", Start: "main"}); err == nil {
+	if _, err := codegentest.GenerateCode(t, entry.Checked(prog).Grammar, common.GenOptions{Package: "example", Start: "main"}); err == nil {
 		t.Fatal("generated a parser for the grammar")
 	}
 }

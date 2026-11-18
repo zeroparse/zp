@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"zeroparse.dev/zp/internal/backend/actionlower"
+	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
-	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -44,7 +47,7 @@ func CompileCore(prog *compile.Program, m *ir.Module) (*bytecode.Module, error) 
 	// The term code comes after the match code, so the strings the terms add follow those of the
 	// rules.
 	for i, s := range c.terms {
-		tp, err := state.CompileTerm(s.term, state.TermEnv{Prog: prog, Scope: scopeOf(s.scope), Proj: s.proj})
+		tp, err := actionlower.Compile(s.term, actionlower.Env{Prog: prog, Scope: scopeOf(s.scope), Proj: s.proj})
 		if err != nil {
 			return nil, fmt.Errorf("internal error: %w", err)
 		}
@@ -79,8 +82,8 @@ type termSite struct {
 }
 
 // scopeOf returns the capture scope of the Core IR slots s.
-func scopeOf(s []ir.Slot) *compile.Scope {
-	sc := compile.NewScope()
+func scopeOf(s []ir.Slot) *program.Scope {
+	sc := program.NewScope()
 	for i, x := range s {
 		sc.Names = append(sc.Names, x.Name)
 		sc.Slots[x.Name] = i
@@ -168,9 +171,9 @@ func (c *compiler) compile() {
 		}
 		ti := bytecode.TypeInfo{Name: int(c.str(td.DeclName())), Node: -1}
 		if n, ok := c.prog.NodeTypeOf(td.DeclName()); ok {
-			ti.Node = int(c.str(compile.NewFieldType(n.Underlying()).Text))
+			ti.Node = int(c.str(types.NewFieldType(n.Underlying()).Text))
 		}
-		for _, f := range compile.DefFields(spec) {
+		for _, f := range check.DefFields(spec) {
 			ti.Fields = append(ti.Fields, int(c.str(f.Name)))
 		}
 		if z := c.prog.StructZeroOf(td.DeclName()); z != nil {

@@ -15,7 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -130,12 +130,12 @@ rule num Num = t:([0-9]) #atomic => Num{$t}`, Inputs: []string{"", "a1", "a1b2"}
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		codegentest.GeneratePackageIn(t, dir, "replay", fmt.Sprintf("g%d", i), g, common.GenOptions{Start: "main", Types: true, ConvertTypes: true, Recognize: true})
-		prog, err := engine.Compile(g, compile.Options{})
+		prog, err := entry.Compile(g, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		meta := &print.TypedGen{G: &print.Generator{Prog: prog.Static()}, Info: prog.Typed, Joins: map[string]string{}, Anon: map[string]types.JoinTy{}}
-		meta.ValueResolver = common.NewValueResolver(prog.Static(), func(x types.Ty) bool { _, ok := meta.Joins[x.String()]; return ok })
+		meta := &print.TypedGen{G: &print.Generator{Prog: entry.Checked(prog)}, Info: entry.Checked(prog).Typed, Joins: map[string]string{}, Anon: map[string]types.JoinTy{}}
+		meta.ValueResolver = common.NewValueResolver(entry.Checked(prog), func(x types.Ty) bool { _, ok := meta.Joins[x.String()]; return ok })
 		if err := meta.Name(); err != nil {
 			t.Fatal(err)
 		}

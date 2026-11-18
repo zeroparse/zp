@@ -191,7 +191,7 @@ func TestCompiledRecognitionASTSaveAfterClassMutation(t *testing.T) {
 	t.Parallel()
 	p := mustCompile(t, `rule main = [a-z]`)
 	p.Module() // Keep the compiled bytecode as it was before the AST change.
-	class := p.Grammar.Rules()[0].Expr.(*ast.CharClass)
+	class := p.Static().Grammar.Rules()[0].Expr.(*ast.CharClass)
 	class.Ranges[0] = ast.CharRange{Lo: 'z', Hi: 'a'}
 	data, err := p.MarshalBinary("main")
 	if err != nil {
