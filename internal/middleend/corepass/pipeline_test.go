@@ -13,7 +13,7 @@ func TestPipelineIsValid(t *testing.T) {
 	if err := Pipeline.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{PassTerminals, PassGuards, PassScans, PassClassRuns}
+	want := []string{PassGuards, PassScans}
 	if got := Pipeline.Names(); !slices.Equal(got, want) {
 		t.Fatalf("passes %v, want %v", got, want)
 	}
@@ -24,10 +24,9 @@ func TestPipelineIsValid(t *testing.T) {
 	}
 }
 
-// The passes that run depend on the mode, and a flag that is off removes its pass but never adds a
-// pass that does not apply.
-func TestPipelineAppliesByMode(t *testing.T) {
-	all := []string{PassTerminals, PassGuards, PassScans, PassClassRuns}
+// The passes know no mode: a flag that is off removes its pass, and nothing else does.
+func TestPipelineAppliesByFlag(t *testing.T) {
+	all := []string{PassGuards, PassScans}
 	off := func(names ...string) func(string) bool {
 		return func(name string) bool { return !slices.Contains(names, name) }
 	}
@@ -36,17 +35,13 @@ func TestPipelineAppliesByMode(t *testing.T) {
 		env  Env
 		want []string
 	}{
-		{"lean", Env{Mode: Mode{Lean: true, Ordinary: true}}, all},
-		{"lean observable", Env{Mode: Mode{Lean: true, Ordinary: true, Observe: true}}, []string{PassGuards, PassScans, PassClassRuns}},
-		{"controlled", Env{}, []string{PassGuards, PassScans}},
-		{"recognizer", Env{Mode: Mode{Ordinary: true}}, []string{PassGuards, PassScans}},
-		{"lean without guards", Env{Mode: Mode{Lean: true, Ordinary: true}, Flag: off(PassGuards)}, []string{PassTerminals, PassScans, PassClassRuns}},
-		{"controlled with class runs on", Env{Flag: func(string) bool { return true }}, []string{PassGuards, PassScans}},
-		{"nothing", Env{Mode: Mode{Lean: true, Ordinary: true}, Flag: func(string) bool { return false }}, nil},
+		{"default", Env{}, all},
+		{"without guards", Env{Flag: off(PassGuards)}, []string{PassScans}},
+		{"without scans", Env{Flag: off(PassScans)}, []string{PassGuards}},
+		{"nothing", Env{Flag: func(string) bool { return false }}, nil},
 	}
 	for _, c := range cases {
 		env := c.env
-		env.Local = func(*core.Rule) bool { return true }
 		m := &core.Module{}
 		got, err := Run(m, &env, RunOptions{})
 		if err != nil {

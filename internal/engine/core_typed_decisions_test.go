@@ -15,14 +15,15 @@ import (
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
-// The lowering decisions of the Core IR passes over the corpus are frozen in two golden files:
-// testdata/typed_decisions.golden for the typed Go rules (table trules) and
-// testdata/recognizer_decisions.golden for the recognizers (recRules). They are Core's own
-// decisions, as coreDecisionLines encodes them: the Terminals, the guard of every alternative,
-// the class runs, the scans and the scopes. A run of TestCoreTypedDecisionsFrozen or
-// TestCoreRecognizerDecisionsFrozen compares the Core IR of every corpus grammar with its golden
-// entry; the negative controls of core_passes_test.go break a pass and require the comparison to
-// notice.
+// The lowering decisions of the Core IR passes and of the Flow passes over the corpus are frozen in
+// two golden files: testdata/typed_decisions.golden for the typed Go rules (table trules) and
+// testdata/recognizer_decisions.golden for the recognizers (recRules). They are the decisions that
+// coreDecisionLines encodes: Core's guard of every alternative, scans and scopes, and the terminal
+// programs, class runs and guarded classes that the Flow passes chose in the functions the generator
+// lowered (core_flow_decisions_test.go); a rule that no function is lowered from has none of the
+// latter. A run of TestCoreTypedDecisionsFrozen or TestCoreRecognizerDecisionsFrozen compares every
+// corpus grammar with its golden entry; the negative controls of core_passes_test.go break a pass, or
+// the decisions of one, and require the comparison to notice.
 //
 // A golden is a regression freeze, not an oracle: regenerating it makes a changed decision pass.
 // Regenerate it only for a change of a pass's decisions that is intended and justified, and review
@@ -61,9 +62,9 @@ type decisionsGolden struct {
 
 var (
 	typedGolden = &decisionsGolden{path: typedDecisionsGolden,
-		header: "# Typed lowering decisions of the Core IR passes (see core_typed_decisions_test.go).\n"}
+		header: "# Typed lowering decisions of the Core IR and Flow passes (see core_typed_decisions_test.go).\n"}
 	recognizerGolden = &decisionsGolden{path: recognizerDecisionsGolden,
-		header: "# Recognizer lowering decisions of the Core IR passes (see core_typed_decisions_test.go).\n"}
+		header: "# Recognizer lowering decisions of the Core IR and Flow passes (see core_typed_decisions_test.go).\n"}
 )
 
 // typedDecisionsWalk returns the expressions of the rule's body in walk order, and their indexes.

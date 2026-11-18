@@ -50,12 +50,11 @@ func (d *Driver) prints(pass string) bool {
 	return d.PrintTo != nil && (slices.Contains(d.PrintAfter, pass) || slices.Contains(d.PrintAfter, PrintAll))
 }
 
-// RunCore runs the pipeline of Core passes on m in the mode, with the optimizations of the driver.
-// local selects the rules that terminal regions are made in, and prepareScans is called around the
-// scans (corepass.Env). The module is the one of the table named table, which the printed Core IR is
-// labeled with. A failure is an internal error that names the pass.
-func (d *Driver) RunCore(table string, m *core.Module, mode corepass.Mode, local func(*core.Rule) bool, prepareScans func(*core.Module) func()) error {
-	env := &corepass.Env{Mode: mode, Flag: d.Opt.On, Local: local, PrepareScans: prepareScans}
+// RunCore runs the pipeline of Core passes on m, with the optimizations of the driver; prepareScans
+// is called around the scans (corepass.Env). The module is the one of the table named table, which the
+// printed Core IR is labeled with. A failure is an internal error that names the pass.
+func (d *Driver) RunCore(table string, m *core.Module, prepareScans func(*core.Module) func()) error {
+	env := &corepass.Env{Flag: d.Opt.On, PrepareScans: prepareScans}
 	run := corepass.Run
 	if d.CoreRun != nil {
 		run = d.CoreRun
@@ -80,11 +79,11 @@ func (d *Driver) RunCore(table string, m *core.Module, mode corepass.Mode, local
 
 // RunFlow runs the pipeline of Flow passes on the module m of one lowered function (flow.FuncOf),
 // which the lowering has verified, with the optimizations of the driver; observe says that the parser
-// reports its rules and skipped alternatives (flowpass.Env). The function belongs to the table named
+// reports its rules and skipped alternatives, and target what the backend prints (flowpass.Env). The function belongs to the table named
 // table, which the printed Flow IR is labeled with, as the dump of "flow" before the first pass. A
 // failure is an internal error that names the pass.
-func (d *Driver) RunFlow(table string, m *code.Module, observe bool) error {
-	env := &flowpass.Env{Observe: observe, Flag: d.Opt.On}
+func (d *Driver) RunFlow(table string, m *code.Module, observe bool, target flowpass.Target) error {
+	env := &flowpass.Env{Func: flow.AttrsOf(flow.FuncOf(m)), Observe: observe, Flag: d.Opt.On, Value: d.Opt.Value, Target: target}
 	var dump func(pass string, m *code.Module)
 	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
 		dump = func(pass string, m *code.Module) {
@@ -101,6 +100,7 @@ func (d *Driver) RunFlow(table string, m *code.Module, observe bool) error {
 	} else {
 		_, err = flowpass.Run(m, env, o)
 	}
+	flowpass.Finish(m)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}

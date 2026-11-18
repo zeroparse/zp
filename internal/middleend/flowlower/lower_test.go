@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 )
 
 // valueFree makes a module of one value-free rule with the body, as the builder does: the
@@ -42,13 +43,15 @@ func alts(bodies ...core.Node) *core.Choice {
 // TestLower checks the functions lowered from small rules: their statements and the variables
 // they declare, and that they verify.
 func TestLower(t *testing.T) {
+	// inline is the number of code points of the inline-literals pass that runs after a case's lowering.
+	inline := map[string]int{"choice of literals": 1}
 	for _, c := range []struct {
 		name string
 		body core.Node
 		opts Options
 		want string
 	}{
-		{"choice of literals", alts(&core.Lit{Text: "ab"}, &core.Lit{Text: "c"}), Options{InlineLiterals: 1}, `
+		{"choice of literals", alts(&core.Lit{Text: "ab"}, &core.Lit{Text: "c"}), Options{}, `
 func r() {
   var x1 int
   var ok bool
@@ -140,7 +143,7 @@ func r() {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			m, r := valueFree(c.body)
-			f, err := Lower(m, r, "r", c.opts)
+			f, err := lowerFinished(t, m, r, c.opts, inline[c.name])
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -284,6 +287,7 @@ func r() (value, bool) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			finish(t, f, flowpass.Target{}, 0)
 			if err := flow.VerifyModule(f); err != nil {
 				t.Fatal(err)
 			}
@@ -374,7 +378,7 @@ func TestVerifyDocumentReads(t *testing.T) {
 	lit := &core.Lit{Text: "ab"}
 	m, r := valueFree(lit)
 	build := func(document bool) *code.Module {
-		f, err := Lower(m, r, "r", Options{InlineLiterals: 4, Document: document})
+		f, err := lowerFinished(t, m, r, Options{Document: document}, 4)
 		if err != nil {
 			t.Fatal(err)
 		}

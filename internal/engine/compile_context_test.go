@@ -78,7 +78,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify"} {
+	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-guards", "core-pass-scans", "core-verify"} {
 		t.Run(phase, func(t *testing.T) {
 			ctx := compileTestContext(t, 1)
 			control := &cancel.Control{Ctx: ctx}
@@ -132,7 +132,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				c.CheckTerm(&grammar.ListConstructor{Elem: elem}, compile.NewScope(), nil)
 			case "core-build":
 				_, _ = corebuild.CoreControlled(p.Static(), control)
-			case "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify":
+			case "core-analysis", "core-passes", "core-pass-guards", "core-pass-scans", "core-verify":
 				m, err := corebuild.CoreFrom(p.Static(), nil)
 				if err != nil {
 					t.Fatal(err)
@@ -148,14 +148,10 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 					ir.Analyze(m)
 				case "core-passes":
 					_, _ = corepass.Run(m, &corepass.Env{}, corepass.RunOptions{})
-				case "core-pass-terminals":
-					corepass.Terminals(m, func(*ir.Rule) bool { return true })
 				case "core-pass-guards":
-					corepass.Guards(m, true)
+					corepass.Guards(m)
 				case "core-pass-scans":
 					corepass.Scans(m)
-				case "core-pass-class-runs":
-					corepass.ClassRuns(m)
 				case "core-verify":
 					_ = ir.Verify(m)
 				}

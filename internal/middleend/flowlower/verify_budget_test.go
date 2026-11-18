@@ -7,6 +7,8 @@ import (
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 )
 
 // stripSteps removes the calls of step from b, at any depth.
@@ -142,31 +144,75 @@ func TestVerifyBudgetCharges(t *testing.T) {
 	}
 }
 
-// TestLowerRejectsBudgetWithLeanClasses checks that the class options that charge no spend for the input
-// cannot be combined with Options.Budget.
-func TestLowerRejectsBudgetWithLeanClasses(t *testing.T) {
-	for _, opts := range []Options{{Budget: true, ClassTableRanges: 5}, {Budget: true, GuardedClasses: true}} {
-		m, r := valueFree(&core.Lit{Text: "a"})
-		if _, err := Lower(m, r, "r", opts); err == nil {
-			t.Errorf("Lower accepted %+v", opts)
-		}
+// leanClasses returns a value-free rule whose first alternative begins with two classes and is guarded
+// by the first, the forms that the class passes rewrite.
+func leanClasses() (*core.Module, *core.Rule) {
+	class := func(lo, hi rune) *core.ClassNode {
+		return &core.ClassNode{Class: &core.Class{Ranges: []core.Range{{Lo: lo, Hi: hi}}}}
 	}
-	m, r := valueFree(&core.Lit{Text: "a"})
-	if _, err := Lower(m, r, "r", Options{ClassTableRanges: 5, GuardedClasses: true}); err != nil {
-		t.Error(err)
+	m, r := valueFree(alts(&core.Seq{Items: []core.Node{class('a', 'z'), class('0', '9')}}, &core.Lit{Text: "q"}))
+	corepass.Guards(m)
+	return m, r
+}
+
+// lean is the Go target with the passes that charge no spend for the input they read.
+var lean = flowpass.Target{Terminals: true, ClassRuns: true, ClassTables: true, GuardedClasses: true}
+
+// leanFinish runs the lean passes on f, with class-tables at one range so that every class is a
+// candidate, ends them, and returns the listing.
+func leanFinish(t *testing.T, f *code.Module) string {
+	t.Helper()
+	env := &flowpass.Env{Target: lean, Value: func(name string) int {
+		if name == flowpass.PassClassTables {
+			return 1
+		}
+		return 0
+	}}
+	if _, err := flowpass.Run(f, env, flowpass.RunOptions{VerifyEach: true}); err != nil {
+		t.Fatal(err)
+	}
+	flowpass.Finish(f)
+	return dump(f)
+}
+
+// TestLeanClassesSkipBudget checks that the class passes, which charge no spend for the input, leave a
+// function with budget controls as the lowering wrote it, and rewrite the same function without them.
+func TestLeanClassesSkipBudget(t *testing.T) {
+	for _, budget := range []bool{true, false} {
+		m, r := leanClasses()
+		plain, err := lowerFinished(t, m, r, Options{Budget: budget}, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m, r = leanClasses()
+		f, err := Lower(m, r, "r", Options{Budget: budget})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := leanFinish(t, f)
+		if same := got == dump(plain); same != budget {
+			t.Errorf("budget %v: the passes rewrote it %v, want %v:\n%s", budget, !same, !budget, got)
+		}
 	}
 }
 
-// TestLowerFrameRejectsBudgetWithLeanClasses is the same check for the framed lowering.
-func TestLowerFrameRejectsBudgetWithLeanClasses(t *testing.T) {
-	for _, opts := range []Options{{Budget: true, ClassTableRanges: 5}, {Budget: true, GuardedClasses: true}} {
-		m, r := valueFree(&core.Lit{Text: "a"})
-		for name, lower := range map[string]func() (*code.Module, error){
-			"LowerFrame": func() (*code.Module, error) { return LowerFrame(m, r, r.Body, nil, false, "r", opts) },
-		} {
-			if _, err := lower(); err == nil || !strings.Contains(err.Error(), "Options.Budget") {
-				t.Errorf("%s accepted %+v: %v", name, opts, err)
-			}
+// TestLeanClassesSkipBudgetFrame is the same check for the framed lowering.
+func TestLeanClassesSkipBudgetFrame(t *testing.T) {
+	for _, budget := range []bool{true, false} {
+		m, r := leanClasses()
+		plain, err := LowerFrame(m, r, r.Body, nil, false, "r", Options{Budget: budget})
+		if err != nil {
+			t.Fatal(err)
+		}
+		finish(t, plain, flowpass.Target{}, 0)
+		m, r = leanClasses()
+		f, err := LowerFrame(m, r, r.Body, nil, false, "r", Options{Budget: budget})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := leanFinish(t, f)
+		if same := got == dump(plain); same != budget {
+			t.Errorf("budget %v: the passes rewrote it %v, want %v:\n%s", budget, !same, !budget, got)
 		}
 	}
 }

@@ -56,6 +56,8 @@ type coreGenCase struct {
 	broken bool
 	// lines holds the decisions of the Core IR (coreDecisionLines), once compared.
 	lines []string
+	// flow holds the decisions of the Flow passes on the functions of the table (flowDecisions).
+	flow *flowDecisions
 }
 
 func (c *coreGenCase) g() *gogen.Generator { return c.gen }
@@ -68,29 +70,25 @@ func (c *coreGenCase) altOrigin(x *core.Choice, i int) (grammar.Expr, bool) {
 	if ce, ok := c.origin[x].(*grammar.Choice); ok && len(ce.Alts) == len(x.Alts) {
 		return ce.Alts[i], true
 	}
-	body := x.Alts[i].Body
-	if t, ok := body.(*core.Terminal); ok {
-		body = t.Body
-	}
-	e, ok := c.origin[body]
-	return e, ok
+	return altOriginIn(c.origin, x, i)
 }
 
 // coreGenerate generates the parser of the grammar source with the options and returns the
 // generator that wrote it, for the Core IR of the same options (gogen.Generator.TypedCore), in the
-// state of its traced pass with observability. It reports false for a grammar that the generator
-// rejects.
+// state of its traced pass with observability, and records the decisions of its Flow passes
+// (flowRecordOf). It reports false for a grammar that the generator rejects.
 func coreGenerate(src string, opts codegen.GenOptions) (*gogen.Generator, bool) {
 	g, err := parseTest(src)
 	if err != nil {
 		return nil, false
 	}
-	var gen *gogen.Generator
-	h := &gogen.Hooks{Generator: func(x *gogen.Generator) { gen = x }}
+	rec := &flowRecord{}
 	opts.Module = "example.com/p"
-	if _, err := gogen.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h); err != nil || gen == nil {
+	if _, err := gogen.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), recordingHooks(rec)); err != nil || rec.gen == nil {
 		return nil, false
 	}
+	gen := rec.gen
+	flowRecords.Store(gen, rec)
 	if opts.Observability {
 		// The bodies that observe are the traced copies, which the generator prints in its traced pass;
 		// the other bodies are those of the build without observability.
@@ -115,6 +113,7 @@ func recognizerOf(g *gogen.Generator) (*compile.Program, error) {
 // after each pass, before the module is verified: a negative control breaks a pass there.
 func coreTypedCase(name, mode string, gen *gogen.Generator, breaks func(c *coreGenCase, pass string, m *core.Module)) (*coreGenCase, error) {
 	c := &coreGenCase{name: name, mode: mode, table: "trules", golden: typedGolden, gen: gen, origin: map[core.Node]grammar.Expr{}}
+	c.flow = flowRecordOf(gen).decisions(c.table, gen)
 	c.rules = typedRules(gen)
 	var repeats []func()
 	gen.CoreHook = func(pass string, m *core.Module) {
@@ -260,9 +259,10 @@ type coreDecisionCounts struct {
 // counts them in n. It returns the problems of nodes it cannot encode, each prefixed with its
 // aspect. The decisions are those of every node of the module:
 //
-//   - the Terminals;
-//   - the guard of every alternative of a choice, and whether its first class is a guarded class;
-//   - the class runs of every value-free sequence;
+//   - the terminal regions that the Flow passes match as one program (c.flow);
+//   - the guard of every alternative of a choice, and whether the Flow passes let its first class
+//     consume the guard's character;
+//   - the class runs that the Flow passes make in every value-free sequence;
 //   - the scans;
 //   - the scopes of repetition elements and Operators Rule lines.
 func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems []string) {
@@ -285,18 +285,26 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 			lines = append(lines, fmt.Sprintf("%s\t%d\t%d", kind, cr.ID, at)+fmt.Sprintf(format, args...))
 		}
 		names := func(s []core.Slot) string { return strings.Join(core.SlotNames(s), ",") }
+		for k := range c.flow.terminals {
+			if k.rule != cr.ID {
+				continue
+			}
+			if i, ok := at("terminal", k.e); ok {
+				add("terminal", i, "")
+				n.terminals++
+			}
+		}
+		for k, runs := range c.flow.runs {
+			if k.rule != cr.ID {
+				continue
+			}
+			if i, ok := at("class runs", k.e); ok {
+				add("runs", i, "\t%s", runs)
+				n.classRuns += len(strings.Fields(runs))
+			}
+		}
 		coreNodes(cr, func(x core.Node) {
 			switch x := x.(type) {
-			case *core.Terminal:
-				e, ok := c.origin[x.Body]
-				if !ok {
-					problem("terminal", "terminal without origin")
-					return
-				}
-				if i, ok := at("terminal", e); ok {
-					add("terminal", i, "")
-					n.terminals++
-				}
 			case *core.Choice:
 				for i, a := range x.Alts {
 					e, ok := c.altOrigin(x, i)
@@ -308,41 +316,17 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 					if !ok {
 						continue
 					}
+					guarded := c.flow.guarded[flowKey{cr.ID, e}]
 					if a.Guard == nil {
-						add("guard", ei, "\t0\t0\t%d\t%q\t%q", typedDecisionsBit(a.GuardedClass), "", "")
+						add("guard", ei, "\t0\t0\t%d\t%q\t%q", typedDecisionsBit(guarded), "", "")
 						continue
 					}
 					cond, desc := guardString(g, c.m, a.Guard)
-					add("guard", ei, "\t1\t%d\t%d\t%q\t%q", a.Guard.Depth, typedDecisionsBit(a.GuardedClass), desc, cond)
+					add("guard", ei, "\t1\t%d\t%d\t%q\t%q", a.Guard.Depth, typedDecisionsBit(guarded), desc, cond)
 					n.guards++
-					if a.GuardedClass {
+					if guarded {
 						n.guardedClasses++
 					}
-				}
-			case *core.Seq:
-				e, ok := c.origin[x].(*grammar.Seq)
-				if !ok || x.Attrs().Want {
-					return
-				}
-				var runs []string
-				pos := 0
-				for _, it := range x.Items {
-					if run, ok := it.(*core.ClassRun); ok {
-						runs = append(runs, fmt.Sprintf("%d:%d", pos, len(run.Classes)))
-						pos += len(run.Classes)
-						n.classRuns++
-						continue
-					}
-					pos++
-				}
-				if pos != len(e.Items) {
-					problem("class runs", "%d items in %s, %d in the Core sequence", len(e.Items), grammar.FormatExpr(e), pos)
-				}
-				if len(runs) == 0 {
-					return
-				}
-				if i, ok := at("class runs", e); ok {
-					add("runs", i, "\t%s", strings.Join(runs, " "))
 				}
 			case *core.Scan:
 				e, ok := c.origin[x]

@@ -203,6 +203,8 @@ func generateOnce(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOption
 		}
 	}
 	genGo := &Generator{typedOnly: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes, Document: opts.Document, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, CoreRun: h.CoreRun, FlowRun: h.FlowRun, ExecRun: h.ExecRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, VerifyEach: opts.VerifyEachPass, hooks: *h, live: live, collect: collect, keepTableRules: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes}
+	// Go prints every form of the Flow passes.
+	genGo.FlowTarget = flowpass.Target{Terminals: true, ClassRuns: true, ClassTables: true, GuardedClasses: true, InlineLiterals: true}
 	if live != nil {
 		genGo.SeedDescs()
 		for _, d := range live.descs[len(genGo.Descs):] {

@@ -36,7 +36,7 @@ of that record.
 Evidence records: [105](../105-character-class-tables.md),
 [136](../136-measured-effect-of-the-generation-flags.md).
 
-Source owners: [`ClassRuns pass`](../../../internal/middleend/corepass/passes.go),
+Source owners: [`the class-runs Flow pass`](../../../internal/middleend/flowpass/passes.go),
 [`ClassesSkip`](../../../codegen/go/lib/class.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

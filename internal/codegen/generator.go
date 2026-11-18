@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -15,7 +16,6 @@ import (
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/pass"
@@ -30,10 +30,13 @@ type Generator struct {
 	// no control exists to charge: the statements, and the closures that only held one.
 	NoBudget bool
 	// Ordinary prints the bodies in their ordinary form (no budget controls and no Documents): the
-	// helpers with an Ordinary form, no charges, inline class tests, and for typed rule bodies the
-	// lean lowering (terminal programs, class runs and tables, guarded classes).
+	// helpers with an Ordinary form, no charges and inline class tests. The Flow passes choose the lean
+	// forms of such functions (terminal programs, class runs and tables, guarded classes) that the
+	// backend prints (FlowTarget).
 	Ordinary bool
-	Document bool
+	// FlowTarget says which forms of the Flow passes the backend prints (flowpass.Target).
+	FlowTarget flowpass.Target
+	Document   bool
 	// Traced reports the traced pass of a Go parser generated with observability: it prints the copies
 	// of the rule tables that an observed parse runs (named with TracedSuffix), whose bodies report the
 	// rule calls and record, in the primitives that read the input, how far each call examined it.
@@ -241,7 +244,7 @@ func (g *Generator) FlowPasses(m *code.Module, err error) (*code.Module, error) 
 	if err != nil {
 		return nil, err
 	}
-	if err := g.RunFlow(g.IRTable(), m, g.Observability); err != nil && g.FlowErr == nil {
+	if err := g.RunFlow(g.IRTable(), m, g.Observability, g.FlowTarget); err != nil && g.FlowErr == nil {
 		g.FlowErr = fmt.Errorf("function %s of table %s: %w", flow.FuncOf(m).Name, g.IRTable(), err)
 	}
 	return m, nil
@@ -308,15 +311,6 @@ func (g *Generator) TracedSuffix() string {
 // input in the primitives that read it: those of a build with Documents, and the traced bodies.
 func (g *Generator) RecordsExamined() bool { return g.Document || g.Traced }
 
-// InlineLiterals is the lowering's InlineLiterals: the traced bodies read every literal through the
-// primitive that records it.
-func (g *Generator) InlineLiterals() int {
-	if g.Traced {
-		return 0
-	}
-	return g.Opt.Value("inline-literals")
-}
-
 // FrameScope returns the scope of the frame whose slots are names.
 func FrameScope(names []string) *check.Scope {
 	s := check.NewScope()
@@ -328,10 +322,10 @@ func FrameScope(names []string) *check.Scope {
 
 // StartRecFlow builds the Core IR of the program rec (the recognizer, or the program of the Node
 // table), with the passes of the untyped tables (no terminal programs and no class runs), for
-// printing its eligible rules from Flow IR. It runs the pipeline of Core passes in a mode that is not
-// Lean: the rewrites, the guards and the scans, with the repeats that irbuild.FollowRepeats keeps in
-// step with them. Terminals and class runs apply only to lean typed rules (gogen.Generator.TypedCore):
-// the Node recognizer writes its terminals and classes as inline tests.
+// printing its eligible rules from Flow IR. It runs the pipeline of Core passes: the guards and the
+// scans, with the repeats that irbuild.FollowRepeats keeps in step with them. Terminals and class runs
+// apply only to lean typed rules (the Flow passes, flowpass.Target): the Node recognizer writes its
+// terminals and classes as inline tests.
 func (g *Generator) StartRecFlow(rec *compile.Program) error {
 	origin := map[core.Node]grammar.Expr{}
 	m, err := irbuild.CoreProjecting(rec, origin, g.Table != "recRules")
@@ -347,21 +341,14 @@ func (g *Generator) StartRecFlow(rec *compile.Program) error {
 			}
 		}
 	}
-	if err := g.RunCore(g.IRTable(), m, corepass.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, nil, prepare); err != nil {
+	if err := g.RunCore(g.IRTable(), m, prepare); err != nil {
 		return err
 	}
 	// Classes are inline tests, as the Node library's generated code writes them.
-	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), GuardedClasses: g.GuardedClasses(),
-		InlineLiterals: g.InlineLiterals(), Observe: g.Observability, Node: true, Document: g.RecordsExamined(), Traced: g.Traced}
+	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), Observe: g.Observability, Node: true,
+		Document: g.RecordsExamined(), Traced: g.Traced}
 	g.Flow = &FlowState{M: m, Origin: origin, Opts: opts, Rules: append(append([]*compile.Rule(nil), rec.RuleList...), rec.Twins...)}
 	return nil
-}
-
-// GuardedClasses reports whether the first class of a guarded alternative consumes the character that
-// the guard read: the parser prints bodies in their ordinary form, and the guards and their guarded
-// classes are on.
-func (g *Generator) GuardedClasses() bool {
-	return g.Ordinary && g.Opt.On(corepass.PassGuards) && g.Opt.On(corepass.FlagGuardedClasses)
 }
 
 // CstJoin reports whether the join has members that stay *Node. The members are read as

@@ -166,8 +166,9 @@ func TestOutputChangingFlagChecks(t *testing.T) {
 // and the profiles over it are valid, and the profiles resolve to the values they declare.
 func TestRegistryOfTheGenerators(t *testing.T) {
 	want := []string{
-		"class-runs", "guarded-classes", "guards", "scans", "terminals",
-		"class-tables", "field-compare", "inline-literals", "text-dispatch",
+		"guards", "scans",
+		"field-compare", "text-dispatch",
+		"class-runs", "class-tables", "guarded-classes", "inline-literals", "terminals",
 		"literal-sharing", "method-sharing", "ts-literal-sharing", "used-features",
 		"sparse-memo", "typed-list-slabs", "typed-object-slabs", "typed-output-bootstrap",
 	}
