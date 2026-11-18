@@ -14,11 +14,11 @@ import (
 	ir "zeroparse.dev/zp/internal/ir/core"
 )
 
-// Terms of the action language lowered to Exec IR.
+// Action expressions lowered to the Action dialect.
 //
-// A term (an action, a predicate or the value of a binding) becomes a function of Exec IR that calls
+// A term (an action, a predicate or the value of a binding) becomes a function of Code IR that calls
 // the compositions of the operators of terms (binary, unary, logic, member, length, text, convert,
-// conforms) of the parser VM, in the order the term evaluates its operands. Each call returns its value
+// conforms) of the abstract machine, in the order the term evaluates its operands. Each call returns its value
 // and a failure; the failure is checked right after the call. The function returns the term's value and
 // a failure, as a composition does: a failure ends the evaluation and the function returns it, for its
 // caller to handle (a predicate fails, an action ends the parse). The logical operators && and || are
@@ -26,93 +26,16 @@ import (
 //
 // The leaves of a term (constants, captures, locals and variables), the context of the evaluation and
 // the static operands of the compositions (a member's name, a node type, the checked type of a cast)
-// are transitional operations whose immediate operand the target prints.
+// are the leaves of the Action dialect (action.DeclareLeaves): primitive operations, each with a typed
+// immediate operand, that the target prints in place.
 //
 // A built-in function that takes a function (map, filter, foldl, foldr) is a loop over the elements of
 // its list argument: each step charges the step of the element (seq.step), binds the parameters of the
 // lambda to locals of the loop and evaluates its body in place.
 
-// TermConst is the immediate operand of term.const: an int, a string, a bool or nil.
-type TermConst struct{ Value any }
-
-func (c TermConst) String() string {
-	if s, ok := c.Value.(string); ok {
-		return strconv.Quote(s)
-	}
-	return fmt.Sprint(c.Value)
-}
-
-// TermRead is the immediate operand of term.read: a ir.SlotRef, ir.Local or ir.VarRef.
-type TermRead struct{ Term ir.ActionExpr }
-
-func (r TermRead) String() string {
-	switch t := r.Term.(type) {
-	case *ir.SlotRef:
-		return "$" + t.Name
-	case *ir.Local:
-		return "$" + t.Name
-	case *ir.VarRef:
-		return "var " + t.Name
-	}
-	return fmt.Sprintf("%T", r.Term)
-}
-
-// TermCast is the immediate operand of term.castType and term.castError: the cast.
-type TermCast struct{ Cast *ir.Cast }
-
-func (c TermCast) String() string { return fmt.Sprintf("cast %d:%d", c.Cast.Line, c.Cast.Col) }
-
 // CtxParam is the parameter of a lowered term: the context the term is applied to. A term's results are those of
 // the callable type Term (action.Term) unless the term is evaluated in place of an action (TermOptions.Result).
 const CtxParam = "c"
-
-// Names of the operations that lowered terms call besides the compositions.
-const (
-	OpTermConst      = "term.const"
-	OpTermRead       = "term.read"
-	OpTermName       = "term.name"
-	OpTermField      = "term.field"
-	OpTermNodeType   = "term.nodeType"
-	OpTermCastType   = "term.castType"
-	OpTermRaise      = "term.raise"
-	OpTermCastError  = "term.castError"
-	OpTermTextEqual  = "term.textEqual"
-	OpTermFromStr    = "term.fromStr"
-	OpTermSpend      = "term.spend"
-	OpTermElemsAbove = "term.elemsAbove"
-	OpTermStruct     = "term.struct"
-	OpTermSetField   = "term.setField"
-	OpTermFromObj    = "term.fromObj"
-	OpTermKeep       = "term.keep"
-	OpTermCopyList   = "term.copyList"
-	// The operations of the lowering options FieldCompare and TextDispatch.
-	OpTermFieldOperand = "term.fieldOperand"
-	OpTermOperand      = "term.operand"
-	OpTermCompare      = "term.compare"
-	OpTermUncontrolled = "term.uncontrolled"
-	OpTermTextIn       = "term.textIn"
-	// OpTermNew is the prefix of term.newN, the call of the constructor of a struct type with N
-	// declared fields (TermOptions.StructCall).
-	OpTermNew = "term.new"
-)
-
-// opTermKids is the operation of the parser VM that returns the base of the elements of a list or a
-// tuple that starts being made: the number of elements gathered so far (act.push).
-const opTermKids = "term.kids"
-
-// HandleOperand is the handle type of an operand of term.compare.
-const HandleOperand = "Operand"
-
-// TermField is the immediate operand of term.field: the name of a member (Name) and the name of the
-// field or capture that it reads (Field), which is Name without the $ of a capture.
-type TermField struct{ Name, Field string }
-
-func (f TermField) String() string { return f.Field + " of " + f.Name }
-
-// TermNew is the immediate operand of term.newN: the struct literal.
-type TermNew struct{ New *ir.New }
-
-func (n TermNew) String() string { return n.New.Type }
 
 // TermCompositions are the compositions of the parser VM that lowered terms call.
 var TermCompositions = []string{"binary", "unary", "logic", "member", "length", "text", "convert", "conforms",
@@ -188,9 +111,9 @@ func Term(t ir.ActionExpr, o TermOptions) (*TermLowered, error) {
 			res = b.Var(o.Result, datum)
 		}
 		if x, lits, ok := textMembership(t); ok && o.TextDispatch && res == nil {
-			b.If(code.C(OpTermUncontrolled), func(b *code.Builder) {
-				s := l.fallible(b, "ts", code.C("text", imm(OpTermRead, TermRead{x})))
-				var in code.Expr = &code.Call{Callee: OpTermTextIn, Args: []code.Expr{s}, Imm: lits}
+			b.If(code.C(action.OpTermUncontrolled), func(b *code.Builder) {
+				s := l.fallible(b, "ts", code.C("text", imm(action.OpTermRead, readOf(x))))
+				var in code.Expr = &code.Call{Callee: action.OpTermTextIn, Args: []code.Expr{s}, Imm: lits}
 				if len(lits) > 1 {
 					// A target may print the binding as one switch; one literal stays an equality.
 					in = b.Let(l.local("tin"), in)
@@ -323,8 +246,7 @@ func termModule() (*code.Module, error) {
 		base := compose.Build()
 		m := &code.Module{Name: "term", Features: base.Features, Components: slices.Clip(base.Components),
 			Registers: base.Registers, Handles: slices.Clip(base.Handles), Ops: slices.Clip(base.Ops)}
-		m.AddComponent(termComponent, "The state of the hand-written runtime.")
-		addTermOps(m)
+		action.DeclareLeaves(m)
 		seen := map[string]bool{}
 		var add func(name string)
 		add = func(name string) {
@@ -364,63 +286,6 @@ func termModule() (*code.Module, error) {
 	return &m, nil
 }
 
-// addTermOps declares the operations of the leaves of terms.
-func addTermOps(m *code.Module) {
-	datum, failT := code.THandle(exec.Datum), code.THandle(action.Fail)
-	str := code.THandle(action.Str)
-	reads := []string{termComponent}
-	op := func(o *code.Op) {
-		o.Component = termComponent
-		o.Kind = code.OpTransitional
-		m.AddOp(o)
-	}
-	op(&code.Op{Name: OpTermConst, Results: []code.Type{datum}, Imm: "the constant (TermConst)",
-		Contract: "Returns the constant in Imm."})
-	op(&code.Op{Name: OpTermRead, Results: []code.Type{datum}, Reads: reads, Imm: "the capture, local or variable (TermRead)",
-		Contract: "Returns the value of the capture, the local or the variable in Imm, as the target reads a leaf of an action."})
-	op(&code.Op{Name: OpTermName, Results: []code.Type{code.THandle(action.Name)}, Imm: "the name (a string)",
-		Contract: "Returns the name in Imm."})
-	op(&code.Op{Name: OpTermField, Results: []code.Type{code.THandle(action.Name)}, Imm: "the member and the name it reads (TermField)",
-		Contract: "Returns the name of the field or the capture that the member in Imm reads. A target whose comparisons of names charge less for the same string data than for equal bytes cuts it from the name of the member, as its evaluation of terms does, so that the charge does not depend on whether equal literals share their data."})
-	op(&code.Op{Name: OpTermNodeType, Results: []code.Type{code.THandle(action.NodeType)}, Reads: reads, Imm: "the name of the node type (a string)",
-		Contract: "Returns the named node type in Imm."})
-	op(&code.Op{Name: OpTermCastType, Results: []code.Type{code.THandle(action.FType)}, Imm: "the cast (TermCast)",
-		Contract: "Returns the checked type of the cast in Imm."})
-	op(&code.Op{Name: OpTermRaise, Params: []code.Param{code.P("f", failT)}, Reads: reads, Writes: reads, NoReturn: true,
-		Contract: "Ends the parse with the failure f of a term evaluated in place of an action (TermOptions.Result), as the failure of an action does."})
-	op(&code.Op{Name: OpTermCastError, Params: []code.Param{code.P("v", datum)}, Results: []code.Type{failT}, Reads: reads, Writes: reads,
-		Imm: "the cast (TermCast)", Contract: "Returns the failure of the cast in Imm of the value v."})
-	op(&code.Op{Name: OpTermTextEqual, Params: []code.Param{code.P("l", str), code.P("r", str)}, Results: []code.Type{code.TBool},
-		Reads: reads, Writes: reads, Contract: "Returns whether the strings l and r are equal, comparing them as == compares two strings."})
-	op(&code.Op{Name: OpTermSpend, Reads: reads, Writes: reads, NoReturn: true, Cost: code.Cost{Const: 1},
-		Contract: "Charges one step of the budget for a subterm, under budget controls."})
-	op(&code.Op{Name: OpTermFromStr, Params: []code.Param{code.P("s", str)}, Results: []code.Type{datum},
-		Contract: "Returns the string s as a value."})
-	obj, seq := code.THandle(action.Obj), code.THandle(action.Seq)
-	op(&code.Op{Name: OpTermFromObj, Params: []code.Param{code.P("n", obj)}, Results: []code.Type{datum},
-		Contract: "Returns the struct, list value or tuple value n as a value."})
-	op(&code.Op{Name: OpTermStruct, Results: []code.Type{obj}, Reads: reads, Writes: reads, NoReturn: true, Imm: "the struct literal (TermNew)",
-		Contract: "Returns a new struct of the type of the literal in Imm with no field set and an empty range, with room for the fields the literal gives."})
-	op(&code.Op{Name: OpTermSetField, Params: []code.Param{code.P("n", obj), code.P("v", datum)}, Reads: reads, Writes: reads, NoReturn: true,
-		Imm:      "the name of the field (a string)",
-		Contract: "Sets the field in Imm of the struct n, which a term is making, to v. A target that bounds the work charges for the fields it scans and the bytes of the names it compares."})
-	op(&code.Op{Name: OpTermCopyList, Params: []code.Param{code.P("items", seq)}, Results: []code.Type{datum}, Reads: reads, Writes: reads,
-		Contract: "Returns a new list value of the elements items, which items returned, as they are, charging for copying them under budget controls."})
-	m.Handles = append(m.Handles, &code.HandleType{Name: HandleOperand, Component: termComponent,
-		Doc: "An operand of a comparison: a value, or a string field read without making a value of it."})
-	operand := code.THandle(HandleOperand)
-	op(&code.Op{Name: OpTermFieldOperand, Params: []code.Param{code.P("x", datum)}, Results: []code.Type{operand, failT}, Reads: reads, Writes: reads,
-		Imm: "the name of the member (a string)", Contract: "Reads the field in Imm of x as member does, and returns it as an operand and the failure of the read; a string field stays a string, with no value made of it."})
-	op(&code.Op{Name: OpTermOperand, Params: []code.Param{code.P("v", datum)}, Results: []code.Type{operand},
-		Contract: "Returns the value v as an operand."})
-	op(&code.Op{Name: OpTermCompare, Params: []code.Param{code.P("l", operand), code.P("r", operand)}, Results: []code.Type{datum, failT}, Reads: reads, Writes: reads,
-		Imm: "the comparison operator (a string)", Contract: "Applies the comparison in Imm to l and r as binary does, comparing two strings directly, and returns the value and the failure."})
-	op(&code.Op{Name: OpTermUncontrolled, Results: []code.Type{code.TBool}, Reads: reads,
-		Contract: "Returns whether the parse runs without limit controls."})
-	op(&code.Op{Name: OpTermTextIn, Params: []code.Param{code.P("s", str)}, Results: []code.Type{code.TBool},
-		Imm: "the literals (a []string of distinct strings)", Contract: "Returns whether s is one of the literals in Imm, charging nothing."})
-}
-
 type termLowerer struct {
 	m          *code.Module
 	n          int
@@ -439,7 +304,7 @@ type termLowerer struct {
 // an action, term.raise ends the parse.
 func (l *termLowerer) raise(b *code.Builder, f code.Expr) {
 	if l.inPlace {
-		b.Do(OpTermRaise, f)
+		b.Do(action.OpTermRaise, f)
 		return
 	}
 	b.Return(code.Null(code.THandle(exec.Datum)), f)
@@ -482,28 +347,28 @@ func opCode(list []string, sym string) code.Expr {
 // local or the call of a leaf.
 func (l *termLowerer) value(b *code.Builder, t ir.ActionExpr) code.Expr {
 	if l.steps {
-		b.Do(OpTermSpend)
+		b.Do(action.OpTermSpend)
 	}
 	switch t := t.(type) {
 	case *ir.Const:
-		return imm(OpTermConst, TermConst{t.Value})
+		return imm(action.OpTermConst, action.Const{Value: t.Value})
 	case *ir.Local:
 		if t.Kind == ir.LocalParam {
 			// A parameter may hold a box, which stands for its value.
 			return code.C("val.unbox", l.params[t.Lambda][slices.Index(t.Lambda.Params, t.Name)])
 		}
-		return imm(OpTermRead, TermRead{t})
+		return imm(action.OpTermRead, readOf(t))
 	case *ir.SlotRef:
-		return imm(OpTermRead, TermRead{t})
+		return imm(action.OpTermRead, readOf(t))
 	case *ir.VarRef:
 		// Reading a variable charges the budget, so it is read where the term reads it, before the
 		// operands that follow.
-		return b.Let(l.local("tv"), imm(OpTermRead, TermRead{t}))
+		return b.Let(l.local("tv"), imm(action.OpTermRead, readOf(t)))
 	case *ir.Member:
 		x := l.value(b, t.X)
 		kind, field := memberKind(t.Name)
 		return l.fallible(b, "tv", code.C("member", code.L(CtxParam), code.Int(int64(kind)), x,
-			imm(OpTermName, t.Name), imm(OpTermField, TermField{t.Name, field})))
+			imm(action.OpTermName, t.Name), imm(action.OpTermField, action.Field{Name: t.Name, Field: field})))
 	case *ir.Unary:
 		x := l.value(b, t.X)
 		return l.fallible(b, "tv", code.C("unary", opCode(action.UnaryOps, t.Op), x))
@@ -517,7 +382,7 @@ func (l *termLowerer) value(b *code.Builder, t ir.ActionExpr) code.Expr {
 					// Two texts compare as strings, without making a value of either.
 					ls := l.fallible(b, "ts", code.C("text", l.value(b, lx)))
 					rs := l.fallible(b, "ts", code.C("text", l.value(b, rx)))
-					var eq code.Expr = code.C(OpTermTextEqual, ls, rs)
+					var eq code.Expr = code.C(action.OpTermTextEqual, ls, rs)
 					if t.Op == "!=" {
 						eq = code.Not(eq)
 					}
@@ -528,7 +393,7 @@ func (l *termLowerer) value(b *code.Builder, t ir.ActionExpr) code.Expr {
 		if l.fieldCompare && comparison(t.Op) && (fieldRead(t.L) || fieldRead(t.R)) {
 			x := l.operand(b, t.L)
 			y := l.operand(b, t.R)
-			return l.fallible(b, "tv", &code.Call{Callee: OpTermCompare, Args: []code.Expr{x, y}, Imm: t.Op})
+			return l.fallible(b, "tv", &code.Call{Callee: action.OpTermCompare, Args: []code.Expr{x, y}, Imm: t.Op})
 		}
 		x := l.value(b, t.L)
 		y := l.value(b, t.R)
@@ -545,45 +410,45 @@ func (l *termLowerer) value(b *code.Builder, t ir.ActionExpr) code.Expr {
 			if fusable(t) {
 				// The elements of the arguments are pushed as they are made, without making the lists of
 				// the arguments.
-				base := b.Let(l.local("tm"), code.C(opTermKids))
+				base := b.Let(l.local("tm"), code.C(action.OpTermKids))
 				l.concatParts(b, t)
 				return l.hull(b, false, base)
 			}
 			vals := l.values(b, t.Args)
-			base := b.Let(l.local("tm"), code.C(opTermKids))
+			base := b.Let(l.local("tm"), code.C(action.OpTermKids))
 			for _, v := range vals {
 				l.step(b)
 				if l.steps {
-					b.Do(OpTermSpend)
+					b.Do(action.OpTermSpend)
 				}
-				l.check(b, code.C("pushItems", code.L(CtxParam), imm(OpTermName, "concat"), v))
+				l.check(b, code.C("pushItems", code.L(CtxParam), imm(action.OpTermName, "concat"), v))
 			}
 			return l.hull(b, false, base)
 		case "map":
 			if x, ok := l.projected(t); ok {
-				items := l.fallible(b, "ti", code.C("items", imm(OpTermName, "map"), l.value(b, x)))
-				return b.Let(l.local("tv"), code.C(OpTermCopyList, items))
+				items := l.fallible(b, "ti", code.C("items", imm(action.OpTermName, "map"), l.value(b, x)))
+				return b.Let(l.local("tv"), code.C(action.OpTermCopyList, items))
 			}
 			list := l.value(b, t.Args[0])
-			base := b.Let(l.local("tm"), code.C(opTermKids))
+			base := b.Let(l.local("tm"), code.C(action.OpTermKids))
 			l.mapPush(b, list, t.Args[1].(*ir.Lambda))
 			return l.hull(b, false, base)
 		case "filter":
 			list := l.value(b, t.Args[0])
-			base := b.Let(l.local("tm"), code.C(opTermKids))
+			base := b.Let(l.local("tm"), code.C(action.OpTermKids))
 			f := t.Args[1].(*ir.Lambda)
-			items := l.fallible(b, "ti", code.C("items", imm(OpTermName, "filter"), list))
+			items := l.fallible(b, "ti", code.C("items", imm(action.OpTermName, "filter"), list))
 			l.loop(b, items, func(b *code.Builder, i code.Expr) {
 				v := l.call(b, f, code.C("itemAt", items, i, code.BoolC(false)))
 				keep := l.fallible(b, "tb", code.C("filterKeep", v))
-				b.If(keep, func(b *code.Builder) { b.Do(OpTermKeep, items, i) })
+				b.If(keep, func(b *code.Builder) { b.Do(action.OpTermKeep, items, i) })
 			})
 			return l.hull(b, false, base)
 		case "foldl", "foldr":
 			init := l.value(b, t.Args[0])
 			list := l.value(b, t.Args[1])
 			f := t.Args[2].(*ir.Lambda)
-			items := l.fallible(b, "ti", code.C("items", imm(OpTermName, t.Func), list))
+			items := l.fallible(b, "ti", code.C("items", imm(action.OpTermName, t.Func), list))
 			acc := l.local("ta")
 			b.Let(acc, init)
 			l.loop(b, items, func(b *code.Builder, i code.Expr) {
@@ -595,18 +460,18 @@ func (l *termLowerer) value(b *code.Builder, t ir.ActionExpr) code.Expr {
 		if t.Func == "len" {
 			return l.fallible(b, "tv", code.C("length", x))
 		}
-		return code.C(OpTermFromStr, l.fallible(b, "ts", code.C("text", x)))
+		return code.C(action.OpTermFromStr, l.fallible(b, "ts", code.C("text", x)))
 	case *ir.Convert:
 		x := l.value(b, t.X)
-		return l.fallible(b, "tv", code.C("convert", imm(OpTermNodeType, t.NodeType), x))
+		return l.fallible(b, "tv", code.C("convert", imm(action.OpTermNodeType, t.NodeType), x))
 	case *ir.Cast:
 		if t.Check == nil {
 			// Every value fits the type.
 			return l.value(b, t.X)
 		}
 		x := b.Let(l.local("tc"), l.value(b, t.X))
-		b.If(code.Not(code.C("conforms", imm(OpTermCastType, TermCast{t}), x)), func(b *code.Builder) {
-			l.raise(b, &code.Call{Callee: OpTermCastError, Args: []code.Expr{x}, Imm: TermCast{t}})
+		b.If(code.Not(code.C("conforms", imm(action.OpTermCastType, castOf(t)), x)), func(b *code.Builder) {
+			l.raise(b, &code.Call{Callee: action.OpTermCastError, Args: []code.Expr{x}, Imm: castOf(t)})
 		})
 		return x
 	}
@@ -632,7 +497,7 @@ func (l *termLowerer) check(b *code.Builder, c *code.Call) {
 // the literal or the built-in function fn gives: it pushes each, charging a step for it, and the hull
 // takes them over.
 func (l *termLowerer) sequence(b *code.Builder, tuple bool, fn string, vals []code.Expr) code.Expr {
-	base := b.Let(l.local("tm"), code.C(opTermKids))
+	base := b.Let(l.local("tm"), code.C(action.OpTermKids))
 	l.pushes(b, fn, vals)
 	return l.hull(b, tuple, base)
 }
@@ -642,18 +507,18 @@ func (l *termLowerer) sequence(b *code.Builder, tuple bool, fn string, vals []co
 // gathering them.
 func (l *termLowerer) pushes(b *code.Builder, fn string, vals []code.Expr) {
 	if l.steps {
-		b.Do(OpTermSpend)
+		b.Do(action.OpTermSpend)
 	}
 	for _, v := range vals {
 		l.step(b)
-		l.check(b, code.C("push", code.L(CtxParam), imm(OpTermName, fn), v))
+		l.check(b, code.C("push", code.L(CtxParam), imm(action.OpTermName, fn), v))
 	}
 }
 
 // hull returns the tuple value, if tuple, or the list value of the elements pushed since base.
 func (l *termLowerer) hull(b *code.Builder, tuple bool, base code.Expr) code.Expr {
-	kids := b.Let(l.local("tk"), code.C(OpTermElemsAbove, base))
-	return code.C(OpTermFromObj, b.Let(l.local("tn"), code.C("hull", code.L(CtxParam), code.BoolC(tuple), kids)))
+	kids := b.Let(l.local("tk"), code.C(action.OpTermElemsAbove, base))
+	return code.C(action.OpTermFromObj, b.Let(l.local("tn"), code.C("hull", code.L(CtxParam), code.BoolC(tuple), kids)))
 }
 
 // concatParts pushes the elements of the arguments of the fusable concat call t: those of a list call
@@ -670,9 +535,9 @@ func (l *termLowerer) concatParts(b *code.Builder, t *ir.Builtin) {
 				// The elements of the projected capture are pushed as concat pushes those of an argument.
 				v := l.value(b, x)
 				if l.steps {
-					b.Do(OpTermSpend)
+					b.Do(action.OpTermSpend)
 				}
-				l.check(b, code.C("pushItems", code.L(CtxParam), imm(OpTermName, "concat"), v))
+				l.check(b, code.C("pushItems", code.L(CtxParam), imm(action.OpTermName, "concat"), v))
 				break
 			}
 			l.mapPush(b, l.value(b, call.Args[0]), call.Args[1].(*ir.Lambda))
@@ -704,12 +569,12 @@ func fusable(t *ir.Builtin) bool {
 // map charges one.
 func (l *termLowerer) mapPush(b *code.Builder, list code.Expr, f *ir.Lambda) {
 	if l.steps {
-		b.Do(OpTermSpend)
+		b.Do(action.OpTermSpend)
 	}
-	items := l.fallible(b, "ti", code.C("items", imm(OpTermName, "map"), list))
+	items := l.fallible(b, "ti", code.C("items", imm(action.OpTermName, "map"), list))
 	l.loop(b, items, func(b *code.Builder, i code.Expr) {
 		v := l.call(b, f, code.C("itemAt", items, i, code.BoolC(false)))
-		l.check(b, code.C("push", code.L(CtxParam), imm(OpTermName, "map"), v))
+		l.check(b, code.C("push", code.L(CtxParam), imm(action.OpTermName, "map"), v))
 	})
 }
 
@@ -797,37 +662,31 @@ func (l *termLowerer) structLiteral(b *code.Builder, t *ir.New) code.Expr {
 		}
 	}
 	if l.structCall {
-		name := OpTermNew + strconv.Itoa(len(t.Declared))
+		name := action.OpTermNew + strconv.Itoa(len(t.Declared))
 		if l.m.Op(name) == nil {
-			params := make([]code.Param, len(t.Declared))
-			for i := range params {
-				params[i] = code.P("f"+strconv.Itoa(i), code.THandle(exec.Datum))
-			}
-			l.m.AddOp(&code.Op{Name: name, Component: termComponent, Kind: code.OpTransitional, Params: params,
-				Results: []code.Type{code.THandle(exec.Datum)}, Reads: []string{termComponent}, Writes: []string{termComponent},
-				Imm: "the struct literal (TermNew)", Contract: "Returns the struct that the literal in Imm makes of the field values, given in the order its type declares them; nil for a field the literal does not give."})
+			l.m.AddOp(action.NewOp(len(t.Declared)))
 		}
 		args := make([]code.Expr, len(t.Declared))
 		for i, d := range t.Declared {
-			args[i] = imm(OpTermConst, TermConst{nil})
+			args[i] = imm(action.OpTermConst, action.Const{Value: nil})
 			for j, f := range t.Fields {
 				if f.Name == d {
 					args[i] = vals[j]
 				}
 			}
 		}
-		return b.Let(l.local("tv"), &code.Call{Callee: name, Args: args, Imm: TermNew{t}})
+		return b.Let(l.local("tv"), &code.Call{Callee: name, Args: args, Imm: newOf(t)})
 	}
-	n := b.Let(l.local("tn"), &code.Call{Callee: OpTermStruct, Imm: TermNew{t}})
+	n := b.Let(l.local("tn"), &code.Call{Callee: action.OpTermStruct, Imm: newOf(t)})
 	first := l.local("tfirst")
 	b.Let(first, code.BoolC(true))
 	for i, f := range t.Fields {
 		l.step(b)
-		b.Append(&code.Do{Call: &code.Call{Callee: OpTermSetField, Args: []code.Expr{n, vals[i]}, Imm: f.Name}})
+		b.Append(&code.Do{Call: &code.Call{Callee: action.OpTermSetField, Args: []code.Expr{n, vals[i]}, Imm: f.Name}})
 		b.Set(first, code.C("cover", n, vals[i], code.L(first)))
 	}
 	b.Do("made", code.L(CtxParam), n, code.L(first))
-	return code.C(OpTermFromObj, n)
+	return code.C(action.OpTermFromObj, n)
 }
 
 // settled reports whether the expression e is a local or a constant, which can be used more than
@@ -837,7 +696,7 @@ func settled(e code.Expr) bool {
 	case *code.Local, *code.Const:
 		return true
 	case *code.Call:
-		return e.Callee == OpTermConst
+		return e.Callee == action.OpTermConst
 	}
 	return false
 }
@@ -879,14 +738,14 @@ func fieldRead(t ir.ActionExpr) bool {
 // term.fieldOperand, any other term is a value.
 func (l *termLowerer) operand(b *code.Builder, t ir.ActionExpr) code.Expr {
 	if !fieldRead(t) {
-		return code.C(OpTermOperand, l.value(b, t))
+		return code.C(action.OpTermOperand, l.value(b, t))
 	}
 	if l.steps {
-		b.Do(OpTermSpend)
+		b.Do(action.OpTermSpend)
 	}
 	m := t.(*ir.Member)
 	x := l.value(b, m.X)
-	return l.fallible(b, "to", &code.Call{Callee: OpTermFieldOperand, Args: []code.Expr{x}, Imm: m.Name})
+	return l.fallible(b, "to", &code.Call{Callee: action.OpTermFieldOperand, Args: []code.Expr{x}, Imm: m.Name})
 }
 
 // textMembership reports whether t compares the text of one capture with string literals,
@@ -969,5 +828,25 @@ func memberKind(name string) (int, string) {
 	return action.MemberField, name
 }
 
-// termComponent is the state component of the leaves of terms: the state of the hand-written runtime.
-const termComponent = "runtime"
+// readOf returns the immediate operand of term.read of the capture, local or variable t.
+func readOf(t ir.ActionExpr) action.Read {
+	switch t := t.(type) {
+	case *ir.SlotRef:
+		return action.Read{Kind: action.ReadCapture, Name: t.Name}
+	case *ir.Local:
+		return action.Read{Kind: action.ReadLocal, Name: t.Name}
+	case *ir.VarRef:
+		return action.Read{Kind: action.ReadVar, Name: t.Name}
+	}
+	panic(fmt.Sprintf("lower: a read of %T", t))
+}
+
+// castOf returns the immediate operand of term.castType and term.castError of the cast t.
+func castOf(t *ir.Cast) action.Cast {
+	return action.Cast{Check: t.Check, Key: t.Key, Line: t.Line, Col: t.Col}
+}
+
+// newOf returns the immediate operand of term.struct and term.newN of the struct literal t.
+func newOf(t *ir.New) action.New {
+	return action.New{Type: t.Type, Fields: len(t.Fields), Final: t.Final}
+}
