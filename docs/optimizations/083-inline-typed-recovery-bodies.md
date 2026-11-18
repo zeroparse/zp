@@ -129,8 +129,8 @@ Build the engine benchmark binary once, then alternate its reference setting
 over five pairs. Grammar parsing is outside the benchmark's timed loop:
 
 ```sh
-go test -c -o /tmp/zp-typed-recovery-engine.test ./internal/engine
-(cd internal/engine && for pair in 1 2 3 4 5; do
+go test -c -o /tmp/zp-typed-recovery-engine.test ./internal/runtime/engine
+(cd internal/runtime/engine && for pair in 1 2 3 4 5; do
   if [ "$((pair % 2))" -eq 1 ]; then first=1; second=0; else first=0; second=1; fi
   for reference in "$first" "$second"; do
     ZP_REFERENCE_RECOVERY=$reference /tmp/zp-typed-recovery-engine.test \

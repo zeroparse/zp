@@ -1,0 +1,134 @@
+package engine
+
+import (
+	"encoding/binary"
+	"hash/crc32"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/grammar/ast"
+)
+
+// constructorGrammar builds text structs in typed list constructors, through an alias too.
+const constructorGrammar = `type Int = { Text string }
+type Alias ~ Int
+type Values = { Items []Int; Nested [][]Int; Maybe []*Int; Default Int; Empty []Int }
+rule main Values = v1:"😀" => Values{Items: []Int{Int{Text: "0"}, Alias{Text: text($v1)}}, Nested: [][]Int{[]Int{}, []Int{Int{Text: "1"}}}, Maybe: []*Int{nil, Int{Text: "2"}}, Default: Int{Text: "0"}, Empty: []Int{}}
+`
+
+func TestTypedNodeConstructors(t *testing.T) {
+	t.Parallel()
+	const source = constructorGrammar
+	g, err := parseTest(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := ast.MarshalJSON(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := ast.DecodeJSON(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, input := range []*ast.Grammar{g, decoded} {
+		p, err := Compile(input, compile.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			var want string
+			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				n, err := p.ParseWith("main", "😀", ParseOptions{Backend: backend, Unit: unit})
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := codegentest.ResultJSON(n, nil)
+				if want == "" {
+					want = got
+				} else if got != want {
+					t.Fatalf("%s/%s differs: %s / %s", backend, unit, got, want)
+				}
+				items := n.Field("Items").(*core.Node)
+				if len(nodes.D(items).Children) != 2 || nodes.D(items).Children[0].Kind() != core.KindStruct || nodes.D(items).Children[0].Field("Text") != "0" || nodes.D(items).Children[1].Field("Text") != "😀" || nodes.D(items).Children[1].Type() != "Int" {
+					t.Fatal(got)
+				}
+				end := int32(1)
+				if unit == core.Bytes {
+					end = 4
+				}
+				if nodes.D(items).Start != 0 || nodes.D(items).End != end || nodes.D(nodes.D(items).Children[0]).Start != 0 || nodes.D(nodes.D(items).Children[0]).End != end {
+					t.Fatal(got)
+				}
+				maybe := n.Field("Maybe").(*core.Node)
+				if len(nodes.D(maybe).Children) != 2 || nodes.D(maybe).Children[0] != nil {
+					t.Fatal(got)
+				}
+				empty := n.Field("Empty").(*core.Node)
+				if empty == nil || len(nodes.D(empty).Children) != 0 || nodes.D(empty).Start != 0 || nodes.D(empty).End != 0 {
+					t.Fatal(got)
+				}
+			}
+		}
+		unchanged, err := ast.MarshalJSON(input)
+		if err != nil || string(unchanged) != string(data) {
+			t.Fatalf("constructor compilation changed AST: %v", err)
+		}
+	}
+}
+
+func TestNodeConstructorCompiledVersions(t *testing.T) {
+	t.Parallel()
+	for _, mode := range valueModes {
+		p := mustCompile(t, constructorGrammar)
+		data, err := p.Marshal("main", mode)
+		if err != nil || data[isaOffset] != bytecode.ISAVersion {
+			t.Fatalf("constructor ISA: %v", err)
+		}
+		loaded, _, err := LoadProgram(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				opts := ParseOptions{Backend: backend, Unit: unit}
+				if got, want := codegentest.ResultJSON(loaded.ParseWith("main", "😀", servedBy(mode, opts))), codegentest.ResultJSON(p.ParseWith("main", "😀", opts)); got != want {
+					t.Fatalf("loaded constructors: %s / %s", got, want)
+				}
+			}
+		}
+		data[isaOffset] = bytecode.ISAVersion - 1
+		binary.LittleEndian.PutUint32(data[len(data)-4:], crc32.ChecksumIEEE(data[:len(data)-4]))
+		if _, _, err := LoadProgram(data); err == nil || !strings.Contains(err.Error(), "compile the grammar again") {
+			t.Fatalf("wrong ISA accepted: %v", err)
+		}
+		module := *p.Module()
+		module.Terms = cloneTerms(module.Terms)
+		mutated := false
+		for i := range module.Terms {
+			if x := module.Terms[i].Structs; len(x) > 0 {
+				x[0].Type = module.Rules[0].Name // a rule, not a struct type
+				mutated = true
+				break
+			}
+		}
+		if !mutated {
+			t.Fatal("no struct literal in the term code")
+		}
+		if err := compile.ValidateModule(&module); err == nil || !strings.Contains(err.Error(), "is not a struct type") {
+			t.Fatalf("invalid struct literal type accepted: %v", err)
+		}
+	}
+	for _, source := range []string{`rule main = "x"`, `rule main = v1:"x" => []node[string]{$v1}`} {
+		p := mustCompile(t, source)
+		data, err := p.MarshalBinary("main")
+		if err != nil || data[isaOffset] != bytecode.ISAVersion {
+			t.Fatalf("unchanged/list-only ISA: %v", err)
+		}
+	}
+}

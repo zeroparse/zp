@@ -106,12 +106,12 @@ done
 ```
 
 For generation, compile the engine test binary once. Run it from
-`internal/engine`, where its fixture paths resolve, alternating
+`internal/runtime/engine`, where its fixture paths resolve, alternating
 `ZP_REFERENCE_LOCAL_LAYOUTS=0` and `1` across five pairs:
 
 ```sh
-go test -c -o /tmp/zp-typed-local-layout-engine.test ./internal/engine
-(cd internal/engine && for pair in 1 2 3 4 5; do
+go test -c -o /tmp/zp-typed-local-layout-engine.test ./internal/runtime/engine
+(cd internal/runtime/engine && for pair in 1 2 3 4 5; do
   if [ "$((pair % 2))" -eq 1 ]; then first=1; second=0; else first=0; second=1; fi
   for reference in "$first" "$second"; do
     ZP_REFERENCE_LOCAL_LAYOUTS=$reference /tmp/zp-typed-local-layout-engine.test \

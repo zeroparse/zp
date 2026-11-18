@@ -546,7 +546,7 @@ func TestCodeReferencesScanner(t *testing.T) {
 		goFiles:     map[string]bool{"internal/runtime/state/scan.go": true, "cmd/zp/main.go": true},
 		goBases:     map[string]bool{"scan.go": true, "main.go": true},
 		goDirs:      map[string]bool{"internal/runtime/state": true},
-		codeDirs:    map[string]bool{"internal": true, "internal/engine": true, "internal/runtime/state": true, "internal/runtime/state/sub": true, "cmd": true, "cmd/zp": true},
+		codeDirs:    map[string]bool{"internal": true, "internal/runtime/engine": true, "internal/runtime/state": true, "internal/runtime/state/sub": true, "cmd": true, "cmd/zp": true},
 		declared:    map[string]bool{"scanSpan": true, "seq": true},
 		unexported:  map[string]bool{"scanSpan": true},
 		internalPkg: map[string]bool{"core": true},
@@ -594,7 +594,7 @@ func TestCodeReferencesScanner(t *testing.T) {
 func TestCodeReferencesTargetPaths(t *testing.T) {
 	c := &repoCode{
 		goDirs:   map[string]bool{"internal/runtime/state": true},
-		codeDirs: map[string]bool{"internal": true, "internal/engine": true, "internal/runtime/state": true, "internal/bench": true, "internal/bench/parsers": true},
+		codeDirs: map[string]bool{"internal": true, "internal/runtime/engine": true, "internal/runtime/state": true, "internal/bench": true, "internal/bench/parsers": true},
 	}
 	doc := "The package `internal/runtime/state`, the directory `internal/bench` and the missing `internal/absent`.\n"
 	kinds := func(file string, internal bool) []string {

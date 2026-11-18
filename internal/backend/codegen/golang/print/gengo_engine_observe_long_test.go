@@ -28,7 +28,7 @@ type engineObservationMutant struct {
 
 var (
 	agreementRun     = engineObservationRun{"./internal/backend/codegen/golang/print", "TestEngineObservationsAgreeWithGenerated", ""}
-	discardRun       = engineObservationRun{"./internal/engine", "TestProfileStreamMemory", ""}
+	discardRun       = engineObservationRun{"./internal/runtime/engine", "TestProfileStreamMemory", ""}
 	engineOptionsRun = engineObservationRun{"./engine", "TestTraceOptions", ""}
 	// The generated parsers of the agreement use a copy of the library that the overlay does not
 	// change; a mutant of the library changes that copy too (agreeLibPatchEnv).

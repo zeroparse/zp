@@ -105,7 +105,7 @@ latter workload; the optimization primarily reduces source and build costs,
 without an established general parsing-speed improvement.
 
 The generated-sharing harness is `TestGeneratedSharingWorkloads` and
-`BenchmarkGeneratedSharing` in `internal/engine`. It writes standalone Go and
+`BenchmarkGeneratedSharing` in `internal/runtime/engine`. It writes standalone Go and
 TypeScript fixtures when `ZP_GENERATED_SHARING_DIR` is set. The benchmark
 controls are selected with `ZP_GENERATED_SHARING`:
 

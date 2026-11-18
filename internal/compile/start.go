@@ -3,8 +3,8 @@ package compile
 import (
 	"slices"
 
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // CheckStart reports why name cannot begin a parse of prog: it is empty and there is no default

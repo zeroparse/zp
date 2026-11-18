@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	iengine "zeroparse.dev/zp/internal/engine"
+	iengine "zeroparse.dev/zp/internal/runtime/engine"
 )
 
 func TestMissingTokensPublicOptions(t *testing.T) {

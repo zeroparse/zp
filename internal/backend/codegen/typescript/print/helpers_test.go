@@ -2,8 +2,8 @@ package print_test
 
 import (
 	"zeroparse.dev/zp/internal/driver/entry"
-	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 

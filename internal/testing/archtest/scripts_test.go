@@ -175,7 +175,7 @@ func TestTrainLandRequiresACompletedGate(t *testing.T) {
 		mustRun(t, w, env, "git", "add", file)
 		mustRun(t, w, env, "git", "commit", "-q", "-m", "Add "+file, "-m", "The test needs it.")
 	}
-	branch("feat/code", "internal/engine/x.go")
+	branch("feat/code", "internal/runtime/engine/x.go")
 	branch("feat/doc", "docs/a.md")
 	train := filepath.Join(w, ".agents", "scripts", "train.sh")
 	step := func(wantOK bool, genv []string, args ...string) string {
@@ -207,7 +207,7 @@ func TestTrainLandRequiresACompletedGate(t *testing.T) {
 		t.Errorf("default levels of an engine stack: %s", out)
 	}
 	step(true, nil, "land", "c1")
-	if got := mustRun(t, w, env, "git", "--git-dir", remote, "log", "--format=%s", "main"); !strings.Contains(got, "Add internal/engine/x.go") {
+	if got := mustRun(t, w, env, "git", "--git-dir", remote, "log", "--format=%s", "main"); !strings.Contains(got, "Add internal/runtime/engine/x.go") {
 		t.Errorf("main does not hold the landed commit:\n%s", got)
 	}
 
@@ -221,7 +221,7 @@ func TestTrainLandRequiresACompletedGate(t *testing.T) {
 	// A file moved out of an engine path still counts as a change of that path.
 	mustRun(t, w, env, "git", "fetch", "-q", "origin")
 	mustRun(t, w, env, "git", "checkout", "-q", "-b", "feat/mv", "origin/main")
-	mustRun(t, w, env, "git", "mv", "internal/engine/x.go", "docs/moved.md")
+	mustRun(t, w, env, "git", "mv", "internal/runtime/engine/x.go", "docs/moved.md")
 	mustRun(t, w, env, "git", "commit", "-q", "-m", "Move x out of the engine", "-m", "The test needs it.")
 	step(true, nil, "stack", "m1", "feat/mv")
 	if out := step(true, nil, "gate", "m1"); !strings.Contains(out, "engine full") {

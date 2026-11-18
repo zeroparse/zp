@@ -54,9 +54,9 @@ process pairs with forced GC.
 
 ```sh
 GOMAXPROCS=16 GOGC=100 go test -tags zp_snapshot_sharing_reference \
-  ./internal/engine -run '^$' \
+  ./internal/runtime/engine -run '^$' \
   -bench '^BenchmarkDocumentSnapshotCapture$' -benchmem -benchtime=300ms -count=1
-GOMAXPROCS=16 GOGC=100 go test ./internal/engine -run '^$' \
+GOMAXPROCS=16 GOGC=100 go test ./internal/runtime/engine -run '^$' \
   -bench '^BenchmarkDocumentSnapshotCapture$' \
   -benchmem -benchtime=300ms -count=1
 

@@ -1,0 +1,253 @@
+package engine
+
+import (
+	"slices"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/bytecode"
+)
+
+// compileStarts compiles source as written, without marking start rules for the test.
+func compileStarts(t *testing.T, src string) (*Program, error) {
+	t.Helper()
+	g, err := parser.Parse(src)
+	if err != nil {
+		t.Fatalf("syntax error: %v\n%s", err, src)
+	}
+	return Compile(g, compile.Options{})
+}
+
+// checkStartRestriction checks that every way into prog parses only from start rules. Streams
+// and documents do not recognize, so they are left out with o.Recognize.
+func checkStartRestriction(t *testing.T, prog *Program, o ParseOptions) {
+	t.Helper()
+	// A program loaded from a compiled grammar serves the parses of its mode only.
+	parses, documents := prog.checkMode(o, false) == nil, prog.checkMode(o, true) == nil
+	notStart := "rule other is not a start rule; parsing can begin only at a rule marked @start"
+	for _, tc := range []struct{ start, want string }{
+		{"other", notStart},
+		{"nope", "rule nope is not defined"},
+	} {
+		surfaces := map[string]error{}
+		if parses {
+			_, surfaces["Parse"] = prog.ParseWith(tc.start, "a", o)
+			_, surfaces["ParsePrefix"] = prog.ParsePrefixWith(tc.start, "a", o)
+		}
+		if !o.Recognize {
+			if parses {
+				surfaces["ParseStream"] = prog.ParseStreamWith(tc.start, strings.NewReader("a"), func(*core.Node) error { return nil }, o)
+				_, surfaces["Iterate"] = prog.Iterate(tc.start, strings.NewReader("a"), o)
+			}
+			if documents {
+				_, surfaces["NewDocument"] = prog.NewDocumentWith(tc.start, "a", o)
+			}
+		}
+		if tc.start != "" {
+			_, surfaces["MarshalBinary"] = prog.MarshalBinary(tc.start)
+		}
+		for name, err := range surfaces {
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("%s(%q): got %v, want %s", name, tc.start, err, tc.want)
+			}
+		}
+	}
+	// A surface that the mode does not serve reports the mode.
+	if !parses {
+		if _, err := prog.ParseWith("", "aa", o); err == nil || !strings.Contains(err.Error(), " mode") {
+			t.Errorf("Parse(\"\") outside the mode: %v", err)
+		}
+	}
+	if !documents && !o.Recognize {
+		if _, err := prog.NewDocumentWith("", "aa", o); err == nil || !strings.Contains(err.Error(), " mode") {
+			t.Errorf("NewDocument(\"\") outside the mode: %v", err)
+		}
+	}
+	// An empty name selects the default start rule, main, which consumes "aa"
+	// where item consumes only "a".
+	if parses {
+		if _, err := prog.ParseWith("", "aa", o); err != nil {
+			t.Errorf("Parse(\"\"): %v", err)
+		}
+		if r, err := prog.ParsePrefixWith("", "aa", o); err != nil || r.Consumed != 2 {
+			t.Errorf("ParsePrefix(\"\"): consumed %d, %v", r.Consumed, err)
+		}
+		if r, err := prog.ParsePrefixWith("item", "aa", o); err != nil || r.Consumed != 1 {
+			t.Errorf("ParsePrefix(item): consumed %d, %v", r.Consumed, err)
+		}
+	}
+	if err := prog.CheckStart(""); err != nil {
+		t.Errorf("CheckStart(\"\"): %v", err)
+	}
+	if !o.Recognize {
+		if documents {
+			if _, err := prog.NewDocumentWith("", "aa", o); err != nil {
+				t.Errorf("NewDocument(\"\"): %v", err)
+			}
+		}
+		if parses {
+			if err := prog.ParseStreamWith("", strings.NewReader("aa"), func(*core.Node) error { return nil }, o); err != nil {
+				t.Errorf("ParseStream(\"\"): %v", err)
+			}
+			if it, err := prog.Iterate("", strings.NewReader("aa"), o); err != nil {
+				t.Errorf("Iterate(\"\"): %v", err)
+			} else {
+				it.Close()
+			}
+		}
+	}
+	// Negative control: the start rules are accepted.
+	for _, start := range []string{"main", "item"} {
+		if parses {
+			if _, err := prog.ParseWith(start, "a", o); err != nil {
+				t.Errorf("Parse(%q): %v", start, err)
+			}
+			if _, err := prog.ParsePrefixWith(start, "a", o); err != nil {
+				t.Errorf("ParsePrefix(%q): %v", start, err)
+			}
+		}
+		if o.Recognize || !documents {
+			continue
+		}
+		if _, err := prog.NewDocumentWith(start, "a", o); err != nil {
+			t.Errorf("NewDocument(%q): %v", start, err)
+		}
+	}
+	if o.Recognize || !parses {
+		return
+	}
+	if err := prog.ParseStreamWith("main", strings.NewReader("aa"), func(*core.Node) error { return nil }, o); err != nil {
+		t.Errorf("ParseStream: %v", err)
+	}
+	it, err := prog.Iterate("main", strings.NewReader("aa"), o)
+	if err != nil {
+		t.Errorf("Iterate: %v", err)
+	} else {
+		it.Close()
+	}
+}
+
+func TestStartRestriction(t *testing.T) {
+	t.Parallel()
+	for _, recognition := range []bool{false, true} {
+		g, err := parser.Parse(codegentest.StartRestrictionSource)
+		if err != nil {
+			t.Fatal(err)
+		}
+		prog, err := Compile(g, compile.Options{Recognition: recognitionMode(recognition)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, b := range []Backend{Default, Closure, Bytecode, BytecodeIterative} {
+			for _, recognize := range []bool{false, true} {
+				t.Run(b.String(), func(t *testing.T) {
+					checkStartRestriction(t, prog, ParseOptions{Backend: b, Recognize: recognize})
+				})
+			}
+		}
+	}
+}
+
+func TestStartRoundTrip(t *testing.T) {
+	t.Parallel()
+	for _, recognition := range []bool{false, true} {
+		for _, mode := range allModes {
+			g, err := parser.Parse(codegentest.StartRestrictionSource)
+			if err != nil {
+				t.Fatal(err)
+			}
+			prog, err := Compile(g, compile.Options{Recognition: recognitionMode(recognition)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, start := range []string{"", "item"} {
+				data, err := prog.Marshal(start, mode)
+				if err != nil {
+					t.Fatal(err)
+				}
+				loaded, gotStart, err := LoadProgram(data)
+				if err != nil {
+					t.Fatalf("recognition=%t %s mode start=%q: %v", recognition, mode, start, err)
+				}
+				if gotStart != start {
+					t.Errorf("start %q, want %q", gotStart, start)
+				}
+				if !slices.Equal(loaded.Starts(), []string{"main", "item"}) || loaded.DefaultStart() != "main" {
+					t.Errorf("recognition=%t %s mode: starts %v default %q", recognition, mode, loaded.Starts(), loaded.DefaultStart())
+				}
+				for _, b := range []Backend{Bytecode, BytecodeIterative} {
+					checkStartRestriction(t, loaded, servedBy(mode, ParseOptions{Backend: b}))
+				}
+				_, err = loaded.ParseWith("", "aa", servedBy(mode, ParseOptions{Backend: Closure}))
+				wantClosureRefused(t, err)
+			}
+		}
+	}
+	// A single start rule is the default without (default), and stays so.
+	prog, err := compileStarts(t, "@start\nrule a = b\nrule b = \"x\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := prog.MarshalBinary("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, _, err := LoadProgram(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(loaded.Starts(), []string{"a"}) || loaded.DefaultStart() != "a" {
+		t.Errorf("starts %v default %q", loaded.Starts(), loaded.DefaultStart())
+	}
+}
+
+func TestStartModuleValidation(t *testing.T) {
+	t.Parallel()
+	fresh := func() *bytecode.Module {
+		prog, err := compileStarts(t, codegentest.StartRestrictionSource)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := *prog.Module()
+		m.Starts = slices.Clone(m.Starts)
+		return &m
+	}
+	m := fresh()
+	if err := compile.ValidateModule(m); err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Starts) != 2 || m.DefaultStart != m.Starts[0] {
+		t.Fatalf("starts %v default %d", m.Starts, m.DefaultStart)
+	}
+	for _, tc := range []struct {
+		name   string
+		mutate func(*bytecode.Module)
+		want   string
+	}{
+		{"no start rule", func(m *bytecode.Module) { m.Starts = nil }, "no start rule"},
+		{"out of range", func(m *bytecode.Module) { m.Starts[1] = len(m.Rules) }, "start rule"},
+		{"negative", func(m *bytecode.Module) { m.Starts[0] = -1 }, "start rule"},
+		{"repeated", func(m *bytecode.Module) { m.Starts[1] = m.Starts[0] }, "invalid start rule"},
+		{"out of order", func(m *bytecode.Module) { m.Starts[0], m.Starts[1] = m.Starts[1], m.Starts[0] }, "invalid start rule"},
+		{"default not a start rule", func(m *bytecode.Module) {
+			for i := range m.Rules {
+				if !slices.Contains(m.Starts, i) {
+					m.DefaultStart = i
+					return
+				}
+			}
+		}, "is not a start rule"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := fresh()
+			tc.mutate(m)
+			if err := compile.ValidateModule(m); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("got %v, want %s", err, tc.want)
+			}
+		})
+	}
+}

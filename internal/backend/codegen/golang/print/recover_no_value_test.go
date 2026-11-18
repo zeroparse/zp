@@ -11,7 +11,7 @@ import (
 
 // TestGeneratedRecoverNoValue checks that a generated Go parser gives an expression without a
 // value under #recover no value, as the engine does, whether it matches or recovers.
-// TestRecoverWithoutValueAddsNoElement in internal/engine checks the engine's results.
+// TestRecoverWithoutValueAddsNoElement in internal/runtime/engine checks the engine's results.
 func TestGeneratedRecoverNoValue(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {

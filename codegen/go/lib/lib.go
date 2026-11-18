@@ -5,7 +5,7 @@
 // core/impl) and the standard library. The code generated from a grammar sets up the rules and
 // calls the exported names that are documented as for generated parsers; those are not a stable
 // API. The file api.go of the generated parser re-exports the names its users need. Its behavior
-// must match internal/engine exactly; the generator tests in internal/engine compare them.
+// must match internal/runtime/engine exactly; the generator tests in internal/runtime/engine compare them.
 package libgo
 
 import (

@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // TestConstructedFieldChecksAreSelective checks that a constructed field is never checked when it

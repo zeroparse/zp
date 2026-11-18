@@ -5,8 +5,8 @@
 package check
 
 import (
-	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/bytecode"
 )
 
 // A parser variable is declared by a top-level var declaration. Its type is int, string or

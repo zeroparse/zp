@@ -11,7 +11,7 @@ import (
 const checkedProgramPackage = modulePath + "/internal/compile"
 
 // TestRuntimeReadsNoCheckedProgram checks, in every build, that no package of the internal runtime
-// (internal/runtime/** and internal/engine, the run-time entries) reaches the checked program of the
+// (internal/runtime/** and internal/runtime/engine, the run-time entries) reaches the checked program of the
 // compiler, directly or through another package. The runtime runs the run-time program
 // (internal/runtime/program) and reaches what the compiler builds only through state.Source. Rule 1
 // forbids such an edge too, but the allowlist can hold one; this check holds no exceptions.
@@ -20,7 +20,7 @@ func TestRuntimeReadsNoCheckedProgram(t *testing.T) {
 		var runtime []string
 		for path := range g.pkgs {
 			rel, ok := strings.CutPrefix(path, modulePath+"/")
-			if ok && (strings.HasPrefix(rel, "internal/runtime/") || rel == "internal/engine") {
+			if ok && (strings.HasPrefix(rel, "internal/runtime/") || rel == "internal/runtime/engine") {
 				runtime = append(runtime, path)
 			}
 		}

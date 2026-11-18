@@ -46,7 +46,7 @@ For ordinary generated typed workloads, export same-generator controls with the 
 
 ```sh
 ZP_TYPED_OUTPUT_SWEEP_EXPORT_DIR=/tmp/ordinary \
-  go test ./internal/engine -run '^TestExportOrdinaryTypedSweepBenchmarks$' -count=1
+  go test ./internal/runtime/engine -run '^TestExportOrdinaryTypedSweepBenchmarks$' -count=1
 ```
 
 Build both benchmark binaries before timing, apply the generated `legacy` and `ref` overlays from the export, then run the selected `generated_ast` cases serially with the same inputs and alternating order. The full ordinary inputs include JSON, XML, Minilang, Outline and Recovery. Do not compare only aggregate benchmark runs as a causal before/after result.

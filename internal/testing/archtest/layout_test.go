@@ -118,12 +118,12 @@ var layout = []place{
 	{pkg: "internal/lsp/zpls", target: "internal/lsp/zpls"},
 
 	// Runtime side.
-	{pkg: "internal/bytecode", target: "pkg/bytecode"},
+	{pkg: "pkg/bytecode", target: "pkg/bytecode"},
 	// The run-time program: the tables a parser runs, built by the compiler or loaded.
 	{pkg: "internal/runtime/program", target: "internal/runtime/program"},
 	// engine keeps the parse, document and stream entries; the compile entry and the complexity
 	// advice moved to internal/driver/entry and internal/driver/checked.
-	{pkg: "internal/engine", target: "internal/runtime/engine"},
+	{pkg: "internal/runtime/engine", target: "internal/runtime/engine"},
 	{pkg: "internal/runtime/document", target: "internal/runtime/document"},
 	{pkg: "internal/runtime/state", target: "internal/runtime/state"},
 	// vm moves to internal/runtime/vm (the machines); the bytecode compiler is already

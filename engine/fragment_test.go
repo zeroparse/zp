@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	iengine "zeroparse.dev/zp/internal/engine"
+	iengine "zeroparse.dev/zp/internal/runtime/engine"
 )
 
 func TestParsePrefixCursor(t *testing.T) {

@@ -171,7 +171,7 @@ func TestNegativeControls(t *testing.T) {
 	addEdge(mod("pkg/grammar/ast"), mod("core"))
 	addEdge(mod("pkg/grammar/ast"), "example.org/thirdparty")
 	// Rule 2: the grammar source operations import the engine, which links the compiler.
-	addEdge(mod("pkg/grammar"), mod("internal/engine"))
+	addEdge(mod("pkg/grammar"), mod("internal/runtime/engine"))
 	// Rule 2: edges against the arrows of the layer graph (TestLayerGraph checks every pair).
 	addEdge(mod("internal/frontend/desugar"), mod("internal/ir/exec/lower"))
 	addEdge(mod("internal/backend/closure"), mod("internal/analysis/lint"))
@@ -234,7 +234,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: pkg/grammar/ast -> internal/diagnostic", []string{"the grammar AST layer does not import the utility layer (pkg/grammar/ast -> internal/diagnostic)"}},
 		{"rule 2: pkg/grammar/ast -> core", []string{"the grammar AST imports only the standard library (pkg/grammar/ast -> "}},
 		{"rule 2: pkg/grammar/ast -> example.org/thirdparty", []string{"the grammar AST imports only the standard library"}},
-		{"rule 2: pkg/grammar -> internal/engine", []string{"pkg/grammar imports only pkg/grammar/ast, internal/frontend/parser, internal/syntax/fmt and pkg/bytecode (pkg/grammar -> "}},
+		{"rule 2: pkg/grammar -> internal/runtime/engine", []string{"pkg/grammar imports only pkg/grammar/ast, internal/frontend/parser, internal/syntax/fmt and pkg/bytecode (pkg/grammar -> "}},
 		{"rule 2: internal/frontend/desugar -> internal/ir/exec/lower", []string{"the front end layer does not import the middle end layer"}},
 		{"rule 2: internal/backend/closure -> internal/analysis/lint", []string{"the back end layer does not import the analysis layer"}},
 		{"rule 1a: codegen/go/lib -> internal/fakevm", []string{"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not pkg/runtime/vm"}},

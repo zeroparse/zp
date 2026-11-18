@@ -31,9 +31,9 @@ measurement. Warm parse results do not quantify avoided setup, and first-use
 timing must separate preparation from steady-state matching.
 
 Source owners: [`Program.BytecodeOnce`](../../../internal/compile/compile.go),
-[`Program.recOnce, vms, prepareVM and Module`](../../../internal/engine/program.go),
+[`Program.recOnce, vms, prepareVM and Module`](../../../internal/runtime/engine/program.go),
 the engine program's bytecode module, [`Program.Recognizer
-and rule`](../../../internal/engine/program_parse.go).
+and rule`](../../../internal/runtime/engine/program_parse.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.
