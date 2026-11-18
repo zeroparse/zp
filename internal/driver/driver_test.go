@@ -88,24 +88,28 @@ const testFlowPass = "test-flow-comment"
 
 // withTestFlowPass adds a profile that turns testFlowPass (registered on in speed) off for the
 // duration of the test, and returns a FlowRun that runs a pipeline with the pass.
-func withTestFlowPass(t *testing.T) func(string, *flow.Func, *flow.Env, flow.RunOptions) ([]string, error) {
+func withTestFlowPass(t *testing.T) func(string, *code.Module, *flow.Env, flow.RunOptions) ([]string, error) {
 	defs := profileDefs
 	profileDefs = append(slices.Clone(profileDefs), profileDef{Name: "no-comment", Doc: "x", Values: map[string]int{testFlowPass: 0}})
 	t.Cleanup(func() { profileDefs = defs })
 	p := *flow.Pipeline
-	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*flow.Func, *flow.Env]{
+	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flow.Env]{
 		Name: testFlowPass, Obligation: "a comment changes nothing",
-		Run: func(f *flow.Func, _ *flow.Env) error {
-			f.Body = append(f.Body, &flow.Comment{Text: "tested"})
+		Run: func(m *code.Module, _ *flow.Env) error {
+			b := flow.FuncOf(m).Body
+			b.Stmts = append(b.Stmts, &code.Comment{Text: "tested"})
 			return nil
 		}})
-	return func(_ string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error) {
-		return p.Run(f, env, o.Options(env))
+	return func(_ string, m *code.Module, env *flow.Env, o flow.RunOptions) ([]string, error) {
+		return p.Run(m, env, o.Options(env))
 	}
 }
 
-func framed() *flow.Func {
-	return &flow.Func{Name: "r", Frame: true, Fail: &flow.Label{Name: "fail"}}
+// framed returns the module of an empty framed function r at the Flow stage.
+func framed() *code.Module {
+	m := flow.NewModule("t")
+	m.Funcs = append(m.Funcs, &code.Func{Name: "r", Attrs: &flow.Attrs{Frame: true, Fail: "fail"}, Body: &code.Block{Label: "fail"}})
+	return m
 }
 
 // A Flow pass runs when its flag is on, and a profile or a flag turns it off; the dumps show the
@@ -118,8 +122,8 @@ func TestDriverRunFlow(t *testing.T) {
 	if err := d.RunFlow("rules", f, false); err != nil {
 		t.Fatal(err)
 	}
-	if len(f.Body) != 1 {
-		t.Errorf("the pass did not run: %d statements", len(f.Body))
+	if len(flow.FuncOf(f).Body.Stmts) != 1 {
+		t.Errorf("the pass did not run: %d statements", len(flow.FuncOf(f).Body.Stmts))
 	}
 	got := dump.String()
 	for _, label := range []string{"-- Flow IR of r in the rules table after flow --", "-- Flow IR of r in the rules table after " + testFlowPass + " --"} {
@@ -140,7 +144,7 @@ func TestDriverRunFlow(t *testing.T) {
 		if err := (&Driver{Opt: s, FlowRun: run}).RunFlow("rules", f, false); err != nil {
 			t.Fatal(err)
 		}
-		if len(f.Body) != 0 {
+		if len(flow.FuncOf(f).Body.Stmts) != 0 {
 			t.Errorf("the pass ran although the %s turned it off", name)
 		}
 	}

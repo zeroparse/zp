@@ -39,7 +39,7 @@ func (g *Generator) flowRecRule(r *compile.Rule) *flatRule {
 	g.Cur, g.Proj = r, g.Projections(r)
 	defer func() { g.Proj = nil }()
 	p := newFlowPrinter(g, false)
-	p.document = f.Document
+	p.document = flow.AttrsOf(flow.FuncOf(f)).Document
 	return g.execRecRule(p, f)
 }
 

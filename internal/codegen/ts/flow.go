@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
@@ -57,7 +58,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *check.Scope) (call string, 
 	if g.Flow == nil {
 		return "", false
 	}
-	var f *flow.Func
+	var f *code.Module
 	var slots []core.Slot
 	cr := g.Flow.M.Rules[r.ID]
 	if flowlower.RecEligible(r) && flowlower.LocalRule(cr) {
@@ -65,7 +66,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *check.Scope) (call string, 
 		if f, err = g.FlowPasses(flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts)); err != nil {
 			panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // LocalRule holds
 		}
-		if f.Binds {
+		if flow.AttrsOf(flow.FuncOf(f)).Binds {
 			f = nil // the library owns the frame the binds write
 		}
 	}
@@ -85,7 +86,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *check.Scope) (call string, 
 // flowFunc prints the function f, whose capture scope has the slots, as a function of its own and
 // returns the call expression that runs it, or false if the printer does not print f. On success it
 // sets scope to the capture scope of a framed f. The comment describes the function.
-func (g *Generator) flowFunc(f *flow.Func, slots []core.Slot, scope *check.Scope, comment string) (call string, ok bool) {
+func (g *Generator) flowFunc(f *code.Module, slots []core.Slot, scope *check.Scope, comment string) (call string, ok bool) {
 	defer func() {
 		if e := recover(); e != nil {
 			if _, unsupported := e.(tsFlowUnsupported); !unsupported {
@@ -94,6 +95,7 @@ func (g *Generator) flowFunc(f *flow.Func, slots []core.Slot, scope *check.Scope
 			call, ok = "", false
 		}
 	}()
+	frame := flow.AttrsOf(flow.FuncOf(f)).Frame // the conversion to the Exec stage moves the function out of f
 	var body string
 	var vars []string
 	var decls []tsDecl
@@ -103,7 +105,7 @@ func (g *Generator) flowFunc(f *flow.Func, slots []core.Slot, scope *check.Scope
 		b.WriteString(v)
 	}
 	b.WriteString(indent(body))
-	if f.Frame {
+	if frame {
 		*scope = *check.NewScope()
 		for _, sl := range slots {
 			scope.Slot(sl.Name)

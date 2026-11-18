@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
@@ -74,7 +75,7 @@ func (g *Generator) flowTypedRule(r *compile.Rule) *flatRule {
 	g.Cur, g.Proj = r, g.Projections(r)
 	defer func() { g.Proj = nil }()
 	p := newFlowPrinter(g, false)
-	p.document = f.Document
+	p.document = flow.AttrsOf(flow.FuncOf(f)).Document
 	return g.execFlatRule(p, f)
 }
 
@@ -192,9 +193,9 @@ func (g *Generator) flowOperatorsRule(r *compile.Rule) *core.OperatorsRule {
 // flowFramed prints the framed function f, whose capture scope has the slots, as a matcher method
 // with the comment, as finishFrameBody does, and sets scope to its capture scope. A rule body (ruleBody)
 // has the signature of the Body field of the rule table (see bodyMethod).
-func (g *Generator) flowFramed(f *flow.Func, slots []core.Slot, scope *check.Scope, comment string, ruleBody bool) string {
+func (g *Generator) flowFramed(f *code.Module, slots []core.Slot, scope *check.Scope, comment string, ruleBody bool) string {
 	p := newFlowPrinter(g, true)
-	p.document = f.Document
+	p.document = flow.AttrsOf(flow.FuncOf(f)).Document
 	return g.execFramed(p, f, slots, scope, comment, ruleBody)
 }
 

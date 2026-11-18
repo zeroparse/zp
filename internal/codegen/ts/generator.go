@@ -52,7 +52,7 @@ type Hooks struct {
 	Generator func(*Generator)
 	// FlowRun runs the Flow passes in place of flow.Run (driver.Driver.FlowRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks a function added.
-	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
+	FlowRun func(table string, m *code.Module, env *flow.Env, o flow.RunOptions) ([]string, error)
 	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as FlowRun does
 	// for the Flow passes.
 	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)
