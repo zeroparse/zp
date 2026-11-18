@@ -84,8 +84,9 @@ calls no rule when the call is the first that the two share, and it shows,
 apart from two nestings that it leaves open, through a
 part that a dropped step evaluates before its read of the seed and through a
 later kept step that does not match its result through a read of its seed
-outside lookaheads, which the conditions exclude apart from a few narrower
-cases, and apart from a unit that commits only by a negative
+outside lookaheads, which the conditions exclude outside the cases that
+*Later steps that abandon their reads of the seed* leaves open or aside
+(step 1 of [Open Steps](#open-steps)), and apart from a unit that commits only by a negative
 lookahead on its own side, after which it shows that what follows starts
 no scanning source other than a bounded scan, apart from memoized calls inside the lookaheads that the decision passes over, that evaluations of a call that nest without a
 bound and end at one position make the call nest at one end. It proves the sum
@@ -550,7 +551,8 @@ lookaheads it observed is evaluated again, a result that read
 the growing result of an open growth is evaluated again in the steps whose
 growing results differ, and a leader that grows again at its position inside
 another growth there grows at most once for each context; Lemma 5 bounds these under
-condition 5.
+condition 5, apart from the parts that step 4 of [Open Steps](#open-steps)
+leaves open.
 
 The memo that this lemma counts is that of
 [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules). It memoizes
@@ -775,7 +777,9 @@ the sum of four numbers.
    activations of the outer growths.
 3. The steps of the growths that a step of a growth of another leader starts
    at its own position. *Growths inside a step*, with the paragraph after
-   it and *Reuse in a context*, bounds them for each step of the enclosing
+   it and *Reuse in a context*, apart from the parts of Lemma 5 that are not
+   shown on kept steps (*Open parts of the kept steps*), bounds them for each
+   step of the enclosing
    growth by a constant, by the length by which the result passes the seed,
    or by the length of one of a constant number of results, and otherwise
    counts the growth as an activation of the call that starts it, a scanning
@@ -874,7 +878,8 @@ for the activations outside those iterations where the claim says so. *The posit
 in Lemma 5 shows the claims of that lemma at the position of a growth,
 and with them the second case of *Repeats inside a growth*, of such a
 parse, and *Reuse in a context* the bounds from *Calls in a context of
-growths* to *Growths inside a step*. *Families in a parse that keeps
+growths* to *Growths inside a step*, apart from *Open parts of the kept
+steps*. *Families in a parse that keeps
 records* and *Families in a parse that resumes runs* show the family
 claims for the activations that they call outside, and *Growth
 activations in a parse that keeps records or resumes runs* the claims
@@ -3298,24 +3303,41 @@ succeeds in the first step of $G$ along a path $P_1$ that goes on at its
 start after its left calls fail, and the grammar fails condition 2 through
 the check of those paths at their own start, apart from one case:
 
-- (3) $P_1$ begins with a word $w$ and $e' < q + |w|$: $\sigma'$ ends
-  inside the text that $P_1$ matched at $q$.
+- (3) the path of the check that $P_1$ follows has a word $w$ and
+  $e' \le q + |w|$: $\sigma'$ ends inside the text that $P_1$ matched at
+  $q$ with the literal of $w$, or at its end.
 
 When $U$ is an alternative of a choice in the body of another rule of the
-cycle of $R$, condition 2 compares it with $Q$ as an alternative that is not
-growing on all its paths, the one through $\rho$ included
+cycle of $R$, it succeeds in the first step along a path $P_1$ that goes on
+at its start after its left calls fail, as above, and condition 2 compares
+it with $Q$ as an alternative that is not growing on all its paths, the one
+through $\rho$ included
 ([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)),
-so the case before applies.
+so the grammar fails condition 2 outside cases (1) and (2), apart from one
+more case:
+
+- (4) after its failed left calls, $P_1$ makes, before it examines the
+  input, a left call at $q$ of a leader of the cycle other than $R$,
+  through which it goes on.
 
 *Proof.* Every read of the seed in $\sigma'$ is a call of $R$ at $q$ that
 returns the seed, a success. Only those reads answer otherwise in
 $\sigma'$ than in the first step $\sigma_1$ of $G$, where they fail.
 $\sigma'$ answers otherwise than $\sigma_1$, which ends at the end of the
-first seed, no later than $e_s$. Of an evaluation made in both steps at the
-same position that answers otherwise, and is not a read of the seed, the
-children are evaluated alike in both, at the same positions, up to the first
-child that answers otherwise, and one does, since an evaluation whose
-children all answer alike answers alike. Going down from $\sigma'$ to that
+first seed, no later than $e_s$. Both steps evaluate the body of $R$ at $q$
+from the same call, with the same values of the variables and in the same
+lookahead state. Here an evaluation answers alike in both when it has the
+same outcome and end and binds the same values, so a child that answers
+alike leaves the next child the same values and lookahead state; and a call
+that the memo or a kept result answers gives the answer that its evaluation
+would give there ([Memoization Never Changes the
+Result](memoization.md#theorem-memoization-never-changes-the-result)), so
+the argument reads such a call as that evaluation. Of an evaluation made in
+both steps at the same position, with the same values and lookahead state,
+that answers otherwise, and is not a read of the seed, the children are
+evaluated alike in both, at the same positions and with the same values
+and lookahead state, up to the first child that answers otherwise, and one
+does, since an evaluation whose children all answer alike answers alike. Going down from $\sigma'$ to that
 child each time reaches, after finitely many steps, an evaluation without
 such a child, which is a read of the seed: this is $\rho$, a success.
 The result of $\sigma'$ does not include the seed, so not every evaluation
@@ -3337,16 +3359,19 @@ condition 2 rejects it as it rejects the lookahead `&E` that its text names
 ([Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost)).
 
-Otherwise $U$ is an alternative of a choice, and it fails. The evaluations
-above $U$, up to $\sigma'$, succeed and are kept, so the choice of an
-alternative $U$ tries a later alternative, a cut in $U$ not having
-committed it, and $\sigma'$ goes on from $q$ with $Q$, a later alternative
-that succeeds followed by what follows the choice, through the ends of the
-enclosing expressions, to $e'$: $Q$ consumes the input from $q$ to
-$e' > e_s \ge q$. When condition 2 compares $U$ with $Q$ as an alternative
+Otherwise $U$ examines the input before $\rho$ on its path to $\rho$, or
+it is an alternative of a choice. The evaluations above $U$, up to
+$\sigma'$, succeed and are kept, so the evaluation that holds $U$ goes on at
+$q$ after $U$ is abandoned, without failing, and $\sigma'$ goes on from $q$
+with $Q$, what the parser evaluates next at $q$ after $U$ is abandoned,
+through the ends of the enclosing expressions, to $e'$: $Q$ is a
+continuation of $U$, such as a later alternative of the choice followed by
+what follows the choice when $U$ is an alternative, a cut in $U$ not having
+committed it, or what follows an option, a repetition or a lookahead, and
+$Q$ consumes the input from $q$ to $e' > e_s \ge q$. When condition 2 compares $U$ with $Q$ as an alternative
 that is not growing, as it does for a $U$ that examines the input before
-$\rho$ on its path to $\rho$ and for a $U$ of another rule of the cycle, on
-all its paths, then outside case (1) condition 2 holds for $U$ and $Q$ in
+$\rho$ on its path to $\rho$ and, outside case (4), for a $U$ of another
+rule of the cycle, on all its paths (shown below), then outside case (1) condition 2 holds for $U$ and $Q$ in
 none of its ways:
 
 - First characters. The calls that $U$ and $Q$ share at their starts end
@@ -3404,9 +3429,17 @@ $\sigma_1$, along a path $P_1$. Up to the call at $q$ of $R$ that stands
 where $\rho$ stands in $\sigma'$, $U$ evaluates the same in both steps, so
 $P_1$ reaches that call before it examines the input; the call reads the
 seed of the first step and fails, as every call of $R$ at $q$ in
-$\sigma_1$ does, and $P_1$ goes on after it. So $P_1$ is one of the paths
-on which $U$ goes on at its start after a path through its left call
-fails, and $U$ and its leader contain a scanning source, so condition 2
+$\sigma_1$ does, and $P_1$ goes on after it. After that call, and after
+any further call of $R$ at $q$, which fails too, $P_1$ follows a path of
+the expression of $U$ that the check reads: the rest of $U$ from where the
+evaluation that holds the failed call goes on without it, a later
+alternative of a choice, or what follows an option, a repetition or a
+negative lookahead, as `""` and what follows the group does in
+`(E [x]* / "") "x"`. Along that path $P_1$ evaluates something other than a
+call of $R$ first, or reaches the end of $U$ without consuming input. So
+$P_1$ follows one of the paths on which $U$ goes on at its start after a
+path through its left call fails, and $U$ and its leader contain a
+scanning source, so condition 2
 requires those paths to be committing against the later alternatives of the choice
 at their own start: no later alternative can begin with a character with
 which one of the paths can begin, unless the words of the paths exclude it,
@@ -3419,19 +3452,56 @@ character $c$ at $q$ first, so the later alternative with which $Q$ begins
 can begin with $c$. Two cases remain.
 
 - $P_1$ consumes input in $\sigma_1$. It starts at $q$, so the first
-  character that it consumes is $c$, a character with which $P_1$ can
-  begin. If $P_1$ has a word $w$, the input at $q$ begins with $w$, since
-  $P_1$ matched it there, and outside case (3) $Q$ consumes the input from
-  $q$ up to the end of $w$ or past it, so, as in the words of the case before, $w$ does
-  not exclude $Q$.
-- $P_1$ consumes no input in $\sigma_1$. Then it can match without
-  consuming input, so it begins with every character, $c$ included,
-  whatever its lookaheads examine, and it has no word, since a word begins
-  with a literal that is not empty, which consumes input.
+  character that it consumes is $c$, which is therefore a first character
+  of the path of the check that it follows. If that path has a word $w$,
+  the input at $q$ begins with the literal of $w$, since $P_1$ matched it
+  there, and $P_1$ passed the negative lookahead of $w$ there if $w$ has
+  one, so the input at $q$ is one on which the word is compared. Outside
+  case (3) $Q$ consumes the input from $q$ past the end of $w$, up to
+  $e' > q + |w|$, so, as in the words of the case before, not every path of
+  $Q$ fails, examines nothing more or meets a known negative lookahead
+  before the end of $w$, and $w$ does not exclude $Q$. Case (3) includes
+  $e' = q + |w|$, where the step ends at the end of the word and the check
+  of the word counts that end as excluding.
+- $P_1$ consumes no input in $\sigma_1$. Then the path of the check that it
+  follows can match without consuming input, so it begins with every
+  character, $c$ included, whatever its lookaheads examine, and it has no
+  word, since a word begins with a literal that is not empty, which
+  consumes input.
 
 Either way the paths of $U$ are not committing at their own start against
 the later alternative with which $Q$ begins, and the grammar fails
-condition 2. $\square$
+condition 2.
+
+Let $U$ be an alternative of a choice in the body of a rule $F$ of the
+cycle of $R$ other than a leader that reaches $\rho$ before it examines the
+input. As in the case before, $U$ is made in $\sigma_1$ at $q$, fails in
+$\sigma'$ and so succeeds in $\sigma_1$ along a path $P_1$, which reaches
+the call at $q$ of $R$ that stands where $\rho$ stands before it examines
+the input, fails there and goes on. Condition 2 checks $U$ as an
+alternative that is not growing, on all its paths, when its paths can go on
+at its start after a path through its left call fails, and also when $F$ is evaluated where its cycle
+does not grow ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)). After the failed
+call, and any further call of $R$ at $q$, $P_1$ follows a path of the
+expression of $U$ as above; calls of other rules of the cycle that are not
+leaders on it stand for the paths of their bodies. Outside case (4), along
+that path $P_1$ evaluates something other than a left call of a leader
+first, or reaches the end of $U$ without consuming input, and so it is a
+path on which $U$ goes on at its start after a path through its left call
+fails, and condition 2 checks
+$U$ on all its paths: the comparison with $Q$ above applies, the path
+through $\rho$ included, and the grammar fails condition 2 outside cases
+(1) and (2). In case (4) the analysis reads the path through the left call
+of the other leader $T$ as a path through a left call, not as one that goes
+on at the start, so unless $F$ is evaluated where its cycle does not grow,
+the check is not shown to apply. Grammars of that shape, such as
+`E = F; T = F "t" / "x"; F = (E [x]* / T) "x" / "x" H; H = E ";"`, fail
+condition 5 instead: a call of $T$ in $F$, a rule of the cycle other than
+a leader, can drop the result of $T$, which grows where $E$ grows from its
+growing result, and a call of $E$ there can drop the result of $E$ in the
+same way; but that condition 5 excludes every grammar of case (4) is not
+shown. $\square$
 
 The claim needs the finite reading for every decision, not only for the
 form of `!K`: without it the comparison would follow the path $P$ through
@@ -5030,7 +5100,8 @@ a growth at $p$, the owner call lies inside that step on a path that
 follows no read of its seed, and is first of its class in $\mathcal{R}$.
 The claims of Lemma 5 that bound such parts, *Sources at fixed offsets*
 and *Failures at the position of the growth*, are proved of the parse,
-where they leave out a constant number of steps for each growth and one
+the second apart from the parts that *Open parts of the kept steps* leaves
+open, where they leave out a constant number of steps for each growth and one
 step for each rule that the memo answers afterwards; they are not read
 here for the first evaluations of the classes in $\mathcal{R}$, where
 freshness would take the place of the memo, and in the steps that they
@@ -7952,7 +8023,8 @@ the memo answers it, or a call around it, from the third on. $\square$
 
 **Results that do not include the seed.** At most a constant number of the
 steps of a growth whose values of variables do not change have a result that
-does not include the seed.
+does not include the seed, apart from the parts that *Open parts of the kept
+steps* leaves open, through *Growths inside a step*.
 
 *Proof.* Such a result is the match of a path of the body of the leader that
 makes no successful left call at $p$ whose result includes the seed. On it,
@@ -8056,7 +8128,11 @@ the first, the one whose seed is empty and the last. In every other step, let
 $x$ be an evaluation at $p$ that calls no rule of the cycle at $p$ and fails
 after one of its scanning sources has examined input. Then, apart from a
 constant number of steps for each unit and each memoized rule, $x$ examines
-at most a constant amount of the input.
+at most a constant amount of the input. The claim rests on the hypothesis
+of *Steps that begin anew* on kept steps and is not shown for an $x$ in a
+later step, with a seed that is not empty, of a growth of another leader
+that the step nests at $p$, when that step is not kept and its result is
+not empty (*Open parts of the kept steps*).
 
 *Proof.* By induction, first on the number of leaders that do not grow at $p$
 around $x$, then on the number of evaluations that the step makes after $x$
@@ -8194,7 +8270,8 @@ left out are those of *Sources at fixed offsets* for the parts after the
 shared calls, and one step for each memoized rule. $\square$
 
 **Decided units at the position of the growth.** In the steps that
-*Failures at the position of the growth* does not leave out, let the unit $V$
+*Failures at the position of the growth* does not leave out, outside the
+evaluations for which that claim is not shown, let the unit $V$
 that holds $x$ be decided by its continuation $g$, and let $C$ be a call of a
 rule that calls no rule that $V$ passes alike before it parts. Then $C$
 examines at most a constant amount of the input, and $V$ fails at $p$ at the
@@ -8462,13 +8539,16 @@ whose result includes one. Let every step of the growth after the first that
 is kept, with a result longer than its seed, have a result that includes the
 growing result: *Later steps that abandon their reads of the
 seed* derives this from condition 2 for a leader that contains a scanning
-source, outside the cases that it leaves open or aside. Let $\bar{r}$ be the first result
+source, outside the cases that it leaves open or aside, and it is not shown
+otherwise (*Open parts of the kept steps*). Let $\bar{r}$ be the first result
 of the growth that is not empty, the result of its first or second step. Then
 every result of the growth after $\bar{r}$ begins with the result before it, so
 every result from $\bar{r}$ on includes $\bar{r}$. A growth of another leader $T$ that
 a step of $R$ nests at $p$ either has only results, from its first result that
 is not empty on, that include the growing result of $R$, or reads it only on
-paths that fail and takes the steps it takes where that read fails.
+paths that fail and takes the steps it takes where that read fails, apart
+from a step of $T$ that goes on in an alternative that it does not reach
+where the read fails, which is not shown (*Open parts of the kept steps*).
 
 *Proof.* By induction on the number of leaders that do not grow at $p$, the
 claim for $T$ first. In a step of $R$, the evaluations at $p$ read the same
@@ -8534,13 +8614,35 @@ which condition 5 excludes. $\square$
 
 So the claims of this lemma that apply *Steps that begin anew* to the growths
 that nest at $p$ need no hypothesis on the reads: condition 5 makes them plain.
-They do need its hypothesis on kept steps, which *Later steps that abandon
-their reads of the seed* gives for a leader that contains a scanning source,
-outside the cases that it leaves open or aside, and which is not shown here
-for a leader without one. Without that clause of condition 5, a cut passed after a
-read can make the enclosing choice fail where the first step went on, and a
-lookahead can change its outcome between steps, so that a later step takes an
-alternative that the first step did not reach.
+They do need its hypothesis on kept steps. Without that clause of condition
+5, a cut passed after a read can make the enclosing choice fail where the
+first step went on, and a lookahead can change its outcome between steps, so
+that a later step takes an alternative that the first step did not reach.
+
+**Open parts of the kept steps.** The following are not shown, and the
+claims of this lemma that rest on them hold apart from them:
+
+1. the hypothesis of *Steps that begin anew* on kept steps for a leader that
+   contains no scanning source;
+2. that hypothesis for a leader that contains one, in the cases that *Later
+   steps that abandon their reads of the seed* leaves open or aside: its
+   cases (1) to (4), and an abandoned unit that is a dropped step of another
+   growth or lies in a growth of another leader at the position;
+3. the claim of *Steps that begin anew* for a growth of another leader $T$
+   that a step nests, in a step of $T$ that goes on in an alternative that
+   it does not reach where the read of the growing result fails;
+4. in *Failures at the position of the growth*, an evaluation in a later
+   step, with a seed that is not empty, of a growth of another leader that
+   the step nests at $p$, when that step is not kept and its result is not
+   empty.
+
+The first three bear on every claim that applies *Steps that begin anew*:
+*Growths inside a step*, which takes the hypothesis on kept steps as a
+premise and uses the claim for a nested growth, and through it *Results
+that do not include the seed*, *Failures at the position of the growth*,
+*Reuse in a context*, *Suffix copies in every parse*, *Growths at many
+positions* and the claims that cite them. The fourth bears on *Failures at
+the position of the growth* and the claims that cite it.
 
 **Growths inside a step.** Let a step of the growth of a leader $S$ at $p$,
 after the first, start a growth of another leader $R$ at $p$, let $e$ be the
@@ -8566,7 +8668,8 @@ growth of $R$ in the context took from it ([Evaluations of
 Rules](../runtime/parsing.md#evaluations-of-rules)), and the growth of $S$ is
 in progress, so the context keeps it; a run of steps that read only the result
 of $R$ is taken at once. By *Steps that begin anew* for the growth of $S$,
-applied to the growth of $R$ that its step nests, that growth either includes
+applied to the growth of $R$ that its step nests, apart from its case that
+is not shown (part 3 of *Open parts of the kept steps*), that growth either includes
 the growing result of $S$ in all its results from the first that is not
 empty, or reads it only on paths that fail and takes the steps it takes where
 that read fails. In the first
@@ -8626,7 +8729,8 @@ that it has not shown equal as different, and where it records the input that
 evaluations examine, it takes results with different examined ranges as
 different too, and evaluates again what it could have reused. The bounds of
 this lemma on the evaluations, from *Calls in a context of growths* to
-*Growths inside a step*, hold in every parse, whatever it answers in
+*Growths inside a step*, apart from *Open parts of the kept steps*, hold in
+every parse, whatever it answers in
 contexts, whether it keeps records or resumes runs of a
 [Document](../runtime/documents.md) or not.
 The counts of the activations from *Repeats inside a family* to
@@ -8647,7 +8751,8 @@ them to the input that the growth of $S$ consumes, to the constant number of
 steps of *Results that do not include the seed*, or to a scanning source. A
 growth of the first kind that the parse takes again in full, because it did not
 find the growing results equal, is a growth of the second or the third kind:
-by *Steps that begin anew*, every growth of $R$ that a step of $S$ nests either
+by *Steps that begin anew*, apart from its case that is not shown, every
+growth of $R$ that a step of $S$ nests either
 includes the growing result of $S$ in all its results from the first that is
 not empty, or reads it only on paths that fail, or not at all. So it is
 bounded as those kinds are, and the comparison changes the constant of the
@@ -8729,7 +8834,8 @@ alternatives after a growing unit fails, the parts that a unit goes on with at
 its start or what a unit examines at $p$ before a left call; *Evaluations that
 read no growing result*, *Results that do not include the seed*, *Sources at
 fixed offsets*, *Calls shared with a growing unit* and *Failures at the
-position of the growth* bound these as stated, whether $\alpha'$ lies in the
+position of the growth* bound these as stated, apart from *Open parts of
+the kept steps*, whether $\alpha'$ lies in the
 own region of the step or in a call that the part makes. $\square$
 
 So the sequence $\alpha_1, \alpha_2, \ldots$ of Lemma 4 leaves out, beside case
@@ -9709,7 +9815,7 @@ of the parse has its image in $\mathcal{P}$ through the evaluation that
 holds it.
 
 The growth steps themselves remain. By *Calls in a context of growths* and
-*Growths inside a step*, the steps of the growths that are not outer are
+*Growths inside a step*, apart from *Open parts of the kept steps*, the steps of the growths that are not outer are
 charged to the outer growths whose families hold them, to the input that those
 consume and to scanning sources, so what is left is the steps of the outer
 growths. Each starts at a call of a rule of the cycle that is not a left call
@@ -9791,7 +9897,7 @@ result and answers the call in every later step that makes it, in the same
 lookahead state, after the first two at most, whether or not an earlier step
 made it. A growth of another leader of the cycle of $g$ that the step
 starts at $p$ is of the first or the third kind of *Growths inside a step*,
-since a result of the second kind includes the growing result of $g$, so it
+apart from *Open parts of the kept steps*, since a result of the second kind includes the growing result of $g$, so it
 has the result of an earlier growth that it takes again or one of a constant
 number of results. The other evaluations that the path makes at $p$ call no
 rule of the cycle at $p$, and the steps evaluate them alike (*Evaluations
@@ -10395,7 +10501,8 @@ inside a growth*, which *The position of a growth in a parse that keeps
 records or resumes runs*, *Repeats inside a growth in a parse that keeps
 records* and *Repeats inside a growth in a parse that resumes runs* show;
 *Families of growths*, *Answered calls*, *Evaluations that read no growing
-result* and *Growths inside a step*, which hold in every parse, *Answered
+result* and *Growths inside a step*, which hold in every parse apart from
+*Open parts of the kept steps*, *Answered
 calls* through 4 of *Restarts in a parse that resumes runs* when the parse
 resumes runs; *Covered growths*,
 which holds of such a parse with the path followed through the records and
@@ -12611,8 +12718,10 @@ theorem covers such a parse.
    abandons, which *Later steps that abandon their reads of the seed*
    excludes apart from a dropped step of another growth or a growth of
    another leader at the position in its place, a growing unit whose path
-   in the first step begins with a word inside which the kept step ends, a
-   seed that ends inside the calls
+   in the first step has a word inside which or at whose end the kept step
+   ends, a unit of a rule of the cycle other than a leader whose path in the
+   first step goes on through a left call of another leader, a seed that
+   ends inside the calls
    that the unit shares with what the step evaluates after it (an empty
    seed included) or at the end of the word, a unit without a scanning
    source after those calls, and a unit decided through a negative
@@ -12672,7 +12781,19 @@ theorem covers such a parse.
    position from a growing result, which leaves those claims in force (*Values
    bound from a growing result*), and that a decided unit examines a constant
    amount of the input there (*Decided units at the position of the growth*).
-   No part of this step remains open.
+   What remains open in this step is in *Open parts of the kept steps*: the
+   bound of *Failures at the position of the growth* is not shown for an
+   evaluation in a later step of a growth of another leader that the step
+   nests, with a seed that is not empty, when that step is not kept and its
+   result is not empty; and it rests, through *Growths inside a step* and
+   *Results that do not include the seed*, on the hypothesis of *Steps that
+   begin anew* on kept steps, which is not shown for a leader without a
+   scanning source, nor, for a leader with one, in the cases that *Later
+   steps that abandon their reads of the seed* leaves open or aside, cases
+   (1) to (4) among them (step 1), and on the claim of *Steps that begin
+   anew* for a nested growth of another leader, which is not shown for a
+   step of that growth that goes on in an alternative that it does not reach
+   where the read of the growing result fails.
 3. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
    applies and its units among the activations and units of its claims, with the
    operator parts that an enclosing level tries again as a continuation of an
@@ -12712,7 +12833,19 @@ theorem covers such a parse.
    that the outer growth consumes, apart from the growths at calls that are
    scanning sources (*Steps that begin anew*, *Growths inside a step*), and
    shows that these bounds hold in every parse, whatever it answers in a
-   context (*Reuse in a context*). It also relates two activations at one position whose innermost
+   context (*Reuse in a context*). These bounds hold apart from the parts
+   that *Open parts of the kept steps* lists, which remain open: they take
+   as a hypothesis that every kept step of a growth after the first has a
+   result that includes the growing result, which *Later steps that abandon
+   their reads of the seed* gives only for a leader that contains a
+   scanning source and outside its cases (1) to (4) and the units that it
+   leaves aside (step 1), and is not shown for a leader without one; and
+   *Steps that begin anew* is not shown for a step of a nested growth of
+   another leader that goes on in an alternative that it does not reach
+   where the read of the growing result fails. The claims that use these
+   bounds, *Results that do not include the seed*, *Failures at the
+   position of the growth*, *Suffix copies in every parse* and *Growths at
+   many positions* among them, are conditional on the same parts. It also relates two activations at one position whose innermost
    common evaluation is a growth, which the restarts of Lemma 4 leave out, as
    the restarts relate the others, unless the later one lies in a part that a
    step evaluates at the position of the growth without reading a growing
