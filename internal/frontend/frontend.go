@@ -38,7 +38,7 @@ type Result struct {
 // generate shown as written.
 func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Result, error) {
 	names := desugar.InlineNames{}
-	prog, err := compile.Check(g, opts, nil, names, control)
+	prog, err := Check(g, opts, nil, names, control)
 	if err != nil {
 		// The facts of a grammar that checks have no error (the compiler reports the same ones),
 		// so they are looked for only when checking fails.

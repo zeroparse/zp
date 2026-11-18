@@ -2,7 +2,6 @@ package complexity
 
 import (
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
@@ -10,7 +9,7 @@ import (
 //
 // A repetition without an upper bound whose walks keep records, as those of a skip-run site do, is
 // not a scanning source: the records bound the evaluations of its element at each position by a
-// constant. The engine marks the same repetitions (run_sites.go). The marking is off in the
+// constant. The engine marks the same repetitions (internal/middleend/corepass/sites.go). The marking is off in the
 // classification until the proofs of the bounds exist, so the classes do not move; the tests and
 // measurements switch it on.
 var runSitesOn = false
@@ -52,7 +51,7 @@ func (k *classifier) runSite(e *grammar.Repeat) bool {
 			names[i] = r.Name
 			byName[r.Name] = r.Expr
 		}
-		k.runRestart = compile.RestartableRepeats(names, func(n string) grammar.Expr { return byName[n] }, k.calls)
+		k.runRestart = restartableRepeats(names, func(n string) grammar.Expr { return byName[n] }, k.calls)
 	}
 	if !k.runRestart[e] {
 		return false
@@ -68,7 +67,7 @@ func (k *classifier) runSite(e *grammar.Repeat) bool {
 		case *grammar.OperatorsRule, *grammar.Stream:
 			ok = false
 		case *grammar.Attributed:
-			ok = !compile.BlocksRunAttrs(x)
+			ok = !blocksRunAttrs(x)
 		case *grammar.Ref:
 			ok = k.byName[x.Name] != nil && x.Level == "" && !k.runBad[x.Name]
 		}
@@ -97,7 +96,7 @@ func (k *classifier) badRules() {
 			case *grammar.Stream:
 				k.runBad[r.Name] = true
 			case *grammar.Attributed:
-				if compile.BlocksRunAttrs(x) {
+				if blocksRunAttrs(x) {
 					k.runBad[r.Name] = true
 				}
 			}

@@ -53,30 +53,22 @@ func testClassifierRules(t *testing.T, g *grammar.Grammar) (*grammar.Grammar, []
 // testRuleFacts returns the rule facts of rules, the rules of g, for a test of the normal view,
 // which may take rules that the classifier would canonicalize first: the facts are those of the
 // canonical rules of g (testClassifierRules), by name. The view tests also take grammars that the
-// compiler rejects (a predicate that reads a capture out of its scope), of which Core IR cannot
-// be built; for those it takes the analyses of the grammar, with the leaders and the rules off
-// every cycle that are not transient memoized (none of those grammars has #missing).
+// compiler rejects (a predicate that reads a capture out of its scope); of those Core IR cannot be
+// built, and the test fails.
 func testRuleFacts(t *testing.T, g *grammar.Grammar, rules []*grammar.RuleDef) *ruleFacts {
 	t.Helper()
 	canon, canonRules := testClassifierRules(t, g)
-	if rf, err := classifierFacts(canon, canonRules, nil); err == nil {
-		return rf
-	} else if _, cerr := compileStatic(starttest.MarkAll(g)); cerr == nil {
-		t.Fatalf("no Core IR of a grammar that compiles: %v", err)
+	rf, err := classifierFacts(canon, canonRules, nil)
+	if err != nil {
+		t.Fatalf("no Core IR of the rules: %v", err)
 	}
-	an := compile.AnalyzeControlled(rules, nil)
-	transient := compile.TransientRules(rules, nil)
-	memo := map[string]bool{}
-	for _, r := range rules {
-		memo[r.Name] = an.Leaders[r.Name] || !an.Cyclic[r.Name] && !transient[r.Name]
-	}
-	return &ruleFacts{an: an, memo: memo, members: map[string]bool{}, vars: compile.RuleVariables(rules)}
+	return rf
 }
 
-// renderRuleFacts writes the rule facts of rules that the analyses of the grammar compute too, one
-// line per rule, with the cycles numbered in the order of their first rule, so that two numberings
-// of the same cycles render alike. The memoized rules are checked against the compiled rules
-// instead (TestComplexityMemoPolicy).
+// renderRuleFacts writes the rule facts of rules that the compiled rules carry too, one line per
+// rule, with the cycles numbered in the order of their first rule, so that two numberings of the
+// same cycles render alike. The memoized rules are checked against the compiled rules instead
+// (TestComplexityMemoPolicy).
 func renderRuleFacts(rules []*grammar.RuleDef, rf *ruleFacts) string {
 	var b strings.Builder
 	cycles := map[int]int{}
@@ -91,22 +83,39 @@ func renderRuleFacts(rules []*grammar.RuleDef, rf *ruleFacts) string {
 			}
 			cycle = c
 		}
-		fmt.Fprintf(&b, "%s nullable=%v succeeds=%v leader=%v cyclic=%v cycle=%d positional=%v recovering=%v vars=%v\n",
-			n, rf.an.Nullable[n], rf.an.Succeeding[n], rf.an.Leaders[n], rf.an.Cyclic[n], cycle, rf.an.Positional[n],
-			rf.an.Recovering[n] != "", rf.vars[n])
+		fmt.Fprintf(&b, "%s leader=%v member=%v cyclic=%v cycle=%d positional=%v vars=%v\n",
+			n, rf.an.Leaders[n], rf.members[n], rf.an.Cyclic[n], cycle, rf.an.Positional[n], rf.vars[n])
 	}
 	return b.String()
 }
 
-// astRuleFacts returns the rule facts of rules as the analyses of the grammar compute them.
-func astRuleFacts(rules []*grammar.RuleDef) *ruleFacts {
-	return &ruleFacts{an: compile.AnalyzeControlled(rules, nil), vars: compile.RuleVariables(rules)}
+// programRuleFacts returns the rule facts of rules as the rules of prog, the compiled grammar,
+// carry them, or false if prog lacks one of rules.
+func programRuleFacts(prog *compile.Program, rules []*grammar.RuleDef) (*ruleFacts, bool) {
+	an := newRuleAnalysis(nil)
+	rf := &ruleFacts{an: an, members: map[string]bool{}, vars: map[string][]string{}}
+	for _, rd := range rules {
+		r := prog.ByName[rd.Name]
+		if r == nil {
+			return nil, false
+		}
+		an.Leaders[r.Name], an.Cyclic[r.Name], an.Positional[r.Name] = r.Leader, r.Leader || r.Member, r.Positional
+		if r.Leader || r.Member {
+			an.Cycle[r.Name] = r.Cycle
+		}
+		rf.members[r.Name] = r.Member && !r.Transient && !r.Missing
+		if len(r.Vars) > 0 {
+			rf.vars[r.Name] = r.Vars
+		}
+	}
+	return rf, true
 }
 
-// TestClassifierFactsMatchAnalysis requires the rule facts that the classifier reads from the
-// Core IR module of a grammar to equal those that the analyses of the grammar compute, for every
-// grammar of the corpus, as written and with every rule a start rule.
-func TestClassifierFactsMatchAnalysis(t *testing.T) {
+// TestClassifierFactsMatchProgram requires the rule facts that the classifier reads from the
+// Core IR module of its view of a grammar to equal those of the compiled rules, for every grammar
+// of the corpus that compiles, as written and with every rule a start rule: the classifier and the
+// compiler take the facts of the same rules.
+func TestClassifierFactsMatchProgram(t *testing.T) {
 	t.Parallel()
 	for path, src := range classifierCorpus(t) {
 		t.Run(path, func(t *testing.T) {
@@ -116,17 +125,25 @@ func TestClassifierFactsMatchAnalysis(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, g := range []*grammar.Grammar{parsed, starttest.MarkAll(parsed)} {
+				prog, err := compileStatic(g)
+				if err != nil {
+					continue
+				}
 				g, rules := testClassifierRules(t, g)
 				rf := testRuleFacts(t, g, rules)
-				if got, want := renderRuleFacts(rules, rf), renderRuleFacts(rules, astRuleFacts(rules)); got != want {
-					t.Errorf("facts differ\nfacts:\n%s\nanalysis:\n%s", got, want)
+				want, ok := programRuleFacts(prog, rules)
+				if !ok {
+					t.Fatalf("a rule of the classifier is not compiled")
+				}
+				if got, want := renderRuleFacts(rules, rf), renderRuleFacts(rules, want); got != want {
+					t.Errorf("facts differ\nfacts:\n%s\ncompiled:\n%s", got, want)
 				}
 			}
 		})
 	}
 }
 
-// TestClassifierFactsDetectsDifference is the negative control of TestClassifierFactsMatchAnalysis:
+// TestClassifierFactsDetectsDifference is the negative control of TestClassifierFactsMatchProgram:
 // changing one fact of one rule must change the rendering.
 func TestClassifierFactsDetectsDifference(t *testing.T) {
 	g, err := parser.Parse("@start\nrule a = a \"x\" / b\nrule b = \"y\"\n")

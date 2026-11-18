@@ -3,6 +3,7 @@ package complexity
 import (
 	"os"
 	"testing"
+	"zeroparse.dev/zp/internal/frontend"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -69,13 +70,13 @@ func TestRunSitesMatchClassifier(t *testing.T) {
 		classifier := 0
 		for _, r := range rules {
 			astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
-				if rep, ok := x.(*grammar.Repeat); ok && !compile.IsScan(rep) && k.runSite(rep) {
+				if rep, ok := x.(*grammar.Repeat); ok && !isScan(rep) && k.runSite(rep) {
 					classifier++
 				}
 			})
 		}
 		runSitesOn = false
-		prog, err := compile.Check(g, compile.Options{}, nil, desugar.InlineNames{}, nil)
+		prog, err := frontend.Check(g, compile.Options{}, nil, desugar.InlineNames{}, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}

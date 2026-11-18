@@ -634,7 +634,7 @@ func (b *Builder) skipRepeat(min int, m state.Matcher, skip int) state.Matcher {
 	}
 }
 
-// runRepeat is Repeat for the run site run (compile/run_sites.go): the walks of its iterations
+// runRepeat is Repeat for the run site run (middleend/corepass/sites.go): the walks of its iterations
 // record the rest of them from each position and reuse the records (state/skip_runs.go). The
 // iterations have a scope of their own where they capture; build says whether they have values,
 // which the walk gathers in a list.

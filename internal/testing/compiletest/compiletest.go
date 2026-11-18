@@ -6,6 +6,7 @@ package compiletest
 
 import (
 	"testing"
+	"zeroparse.dev/zp/internal/frontend"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -25,7 +26,7 @@ func Parse(src string) (*grammar.Grammar, error) {
 // rules of inline actions as the engine's do.
 func Compile(g *grammar.Grammar, opts compile.Options) (*compile.Program, error) {
 	names := desugar.InlineNames{}
-	p, err := compile.Check(g, opts, nil, names, nil)
+	p, err := frontend.Check(g, opts, nil, names, nil)
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}

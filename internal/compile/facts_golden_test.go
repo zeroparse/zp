@@ -1,6 +1,8 @@
 package compile
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
@@ -10,8 +12,9 @@ import (
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
-// TestFactsGolden pins the grammar facts that compilation computes for the repository's grammars
-// (internal/testing/factstest).
+// TestFactsGolden requires the rule flags of the program of every repository grammar, which the
+// compiler takes from the facts of its Core IR module, and the first terminals of its rules and
+// alternatives, to be those pinned (internal/testing/factstest).
 func TestFactsGolden(t *testing.T) {
 	t.Parallel()
 	for _, path := range factstest.Corpus {
@@ -27,47 +30,47 @@ func TestFactsGolden(t *testing.T) {
 			if err != nil {
 				t.Fatal(names.Rewrite(err))
 			}
-			factstest.Golden(t, path, factstest.Render(programFacts(prog)))
+			want := factstest.Load(t, path)
+			// Cycles are numbered in the golden files in the order of their first rule.
+			cycles, insCycles := map[int]int{}, map[int]int{}
+			number := func(m map[int]int, c int) string {
+				if c == 0 {
+					return "0"
+				}
+				if m[c] == 0 {
+					m[c] = len(m) + 1
+				}
+				return strconv.Itoa(m[c])
+			}
+			for _, r := range prog.RuleList {
+				w := want[r.Name]
+				if w == nil {
+					t.Fatalf("rule %s is not pinned", r.Name)
+				}
+				vars := strings.Join(r.Vars, ",")
+				if vars == "" {
+					vars = "-"
+				}
+				got := map[string]string{"cyclic": strconv.FormatBool(r.Cycle != 0), "cycle": number(cycles, r.Cycle),
+					"leader": strconv.FormatBool(r.Leader), "member": strconv.FormatBool(r.Member), "rec": strconv.FormatBool(r.Rec),
+					"positional": strconv.FormatBool(r.Positional), "vars": vars, "memo": strconv.FormatBool(r.Memo),
+					"transient": strconv.FormatBool(r.Transient), "missing": strconv.FormatBool(r.Missing),
+					"first": terminalFact(firstTerminal(prog, r.Def.Expr, 0, map[string]bool{})).String()}
+				if _, ok := w["ins-cycle"]; ok {
+					ins := RuleFlags{Cycle: r.Cycle, Leader: r.Leader, Member: r.Member}
+					if prog.InsertionFlags != nil {
+						ins = prog.InsertionFlags[r.ID]
+					}
+					got["ins-cycle"], got["ins-leader"], got["ins-member"] = number(insCycles, ins.Cycle), strconv.FormatBool(ins.Leader), strconv.FormatBool(ins.Member)
+				}
+				for k, v := range got {
+					if w[k] != v {
+						t.Errorf("rule %s: %s=%s, pinned %s", r.Name, k, v, w[k])
+					}
+				}
+			}
 		})
 	}
-}
-
-// programFacts returns the facts of the program's rules: the flags compilation set and the
-// analysis it computed them from.
-func programFacts(prog *Program) []factstest.Rule {
-	defs := make([]*grammar.RuleDef, len(prog.RuleList))
-	for i, r := range prog.RuleList {
-		defs[i] = r.Def
-	}
-	an := analyze(defs)
-	var out []factstest.Rule
-	for _, r := range prog.RuleList {
-		f := factstest.Rule{
-			Name: r.Name, Nullable: an.Nullable[r.Name], Cyclic: an.Cyclic[r.Name], Cycle: r.Cycle,
-			Leader: r.Leader, Member: r.Member, Rec: r.Rec, Positional: r.Positional,
-			Recovering: an.Recovering[r.Name], Vars: r.Vars,
-			Memo: r.Memo, Transient: r.Transient, Missing: r.Missing,
-			First: terminalFact(firstTerminal(prog, r.Def.Expr, 0, map[string]bool{})),
-		}
-		f.InsCycle, f.InsLeader, f.InsMember = f.Cycle, f.Leader, f.Member
-		if prog.InsertionFlags != nil {
-			ins := prog.InsertionFlags[r.ID]
-			f.InsCycle, f.InsLeader, f.InsMember = ins.Cycle, ins.Leader, ins.Member
-		}
-		WalkExpr(r.Def.Expr, func(e grammar.Expr) {
-			c, ok := e.(*grammar.Choice)
-			if !ok {
-				return
-			}
-			pos := c.Diagnostic()
-			for i, alt := range c.Alts {
-				f.Alts = append(f.Alts, factstest.Alt{Line: pos.Line, Col: pos.Col, Index: i,
-					First: terminalFact(firstTerminal(prog, alt, 0, map[string]bool{}))})
-			}
-		})
-		out = append(out, f)
-	}
-	return out
 }
 
 func terminalFact(e grammar.Expr, depth int) factstest.Terminal {

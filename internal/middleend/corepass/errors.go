@@ -37,11 +37,19 @@ func (f *Facts) Errors(m *core.Module, bindings bool) []Error {
 		}
 	}
 	if bindings {
-		seen := map[core.Node]bool{}
-		errs = append(errs, f.bindings(m, false, seen)...)
-		if f.c.inserts {
-			errs = append(errs, f.bindings(m, true, seen)...)
-		}
+		errs = append(errs, f.BindingErrors(m)...)
+	}
+	return errs
+}
+
+// BindingErrors returns the errors of the bindings of variables that a left-recursion cycle reads
+// and that may run before a left call into the cycle (see bindings): those of the cycles without
+// token insertion, then those of the cycles with it that are not reported already.
+func (f *Facts) BindingErrors(m *core.Module) []Error {
+	seen := map[core.Node]bool{}
+	errs := f.bindings(m, false, seen)
+	if f.c.inserts {
+		errs = append(errs, f.bindings(m, true, seen)...)
 	}
 	return errs
 }

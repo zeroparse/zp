@@ -7,7 +7,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // rejected are grammars that the compiler rejects for the errors that depend on the facts and on
@@ -26,11 +25,11 @@ func TestStructuralErrorsMatchCompile(t *testing.T) {
 	for _, tc := range rejected {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			g, err := compiletest.Parse(tc.src)
+			g, err := parseMarked(tc.src)
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, cerr := compiletest.Compile(g, compile.Options{})
+			_, cerr := compileGrammar(g, compile.Options{})
 			want, ok := cerr.(diagnostic.ErrorList)
 			if !ok {
 				t.Fatalf("compile error %v is not a list", cerr)
@@ -55,11 +54,11 @@ func TestRunErrorsMatchCompile(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			g, err := compiletest.Parse(tc.src)
+			g, err := parseMarked(tc.src)
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, cerr := compiletest.Compile(g, compile.Options{})
+			_, cerr := compileGrammar(g, compile.Options{})
 			if cerr == nil {
 				t.Fatal("compile accepted the grammar")
 			}
@@ -104,7 +103,7 @@ func grammarPos(line int) grammar.Pos { return grammar.Pos{Line: line, Col: 1} }
 // depend on the facts. TestStructuralErrorsMatchCompile requires the facts alone to report it.
 func TestRunRejectsStreamOnCycleInAnyRule(t *testing.T) {
 	t.Parallel()
-	g, err := compiletest.Parse("@start\nrule main = r $$\nrule r = (r / \"y\")+ #stream")
+	g, err := parseMarked("@start\nrule main = r $$\nrule r = (r / \"y\")+ #stream")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +129,7 @@ func TestRunRejectsFactErrors(t *testing.T) {
 		{"@start\nrule main = _s\nrule _s = \"x\" _s",
 			"3:1: rule _s contains itself in its sequence of elements, so it has no fixed number of them"},
 	} {
-		g, err := compiletest.Parse(tc.src)
+		g, err := parseMarked(tc.src)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// Skip runs: the records of the walks of skip-run sites (compile/skip_sites.go; see "Skip Runs" in
+// Skip runs: the records of the walks of skip-run sites (middleend/corepass/sites.go; see "Skip Runs" in
 // spec/runtime/parsing.md and the proofs in spec/proofs/skip-runs.md).
 //
 // A walk of a site repetition visits positions r0 < r1 < ... with one iteration each. The slot of

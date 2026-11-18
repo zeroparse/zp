@@ -130,11 +130,6 @@ func (c *walker) Expr(e grammar.Expr, s *check.Scope, build bool) {
 
 // repeat walks a repetition.
 func (c *walker) repeat(e *grammar.Repeat, s *check.Scope, build bool) {
-	if c.Prog.SkipSite(e) != 0 {
-		// A skip-run site has no captures, values or stream.
-		c.Expr(e.Expr, s, false)
-		return
-	}
 	elemScope := s
 	if elementScopedControlled(e.Expr, c.Control) {
 		elemScope = check.NewElementScope(s)
@@ -211,11 +206,10 @@ func (c *walker) compileOperatorsRule(r *Rule, e *grammar.OperatorsRule) {
 	if len(e.Operands) == 0 {
 		c.errorf(e.Diagnostic(), "operatorsRule needs at least one operand")
 	}
-	for _, o := range e.Operands {
-		// A loaded compiled grammar (c.an is nil) has already been checked. A grammar must be valid
+	for i, o := range e.Operands {
+		// A loaded compiled grammar (no facts) has already been checked. A grammar must be valid
 		// whether or not insertion is enabled, so the left calls are also those with insertion.
-		if c.an != nil && (contains(c.an.LeftCalls(o.Expr, nil), r.Name) ||
-			c.ins != nil && contains(c.ins.LeftCalls(o.Expr, nil), r.Name)) {
+		if c.facts != nil && r.ID < len(c.facts.Rules) && i < len(c.facts.Rules[r.ID].LeftOperands) && c.facts.Rules[r.ID].LeftOperands[i] {
 			c.errorf(e.Diagnostic(), "operand of %s calls %s at its start (left recursion); use infix or postfix instead", r.Name, r.Name)
 		}
 		c.checkValueCaptures(o.Diagnostic(), c.operatorsRuleLine(o.Expr, o.Action, nil))

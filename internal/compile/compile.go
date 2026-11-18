@@ -64,22 +64,12 @@ type Program struct {
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
 	NodeKinds map[string]*value.NodeTypeKinds
-	// skipSites numbers the skip-run sites (skip_sites.go), NumSkipSites of them; inSite holds,
-	// while they are marked, the repetitions inside a site.
-	skipSites    map[*grammar.Repeat]int
-	inSite       map[*grammar.Repeat]bool
-	NumSkipSites int
-	// runSites numbers the run sites (run_sites.go) after the skip-run sites, NumRunSites of them.
-	runSites    map[*grammar.Repeat]int
-	NumRunSites int
-	// envFree[site] reports that the records of the site are not keyed by the environment (EnvFree).
-	envFree []bool
-	// scanRepeats numbers the scan sites (scan_sites.go) after the run sites: NumScanSites of them,
-	// two numbers each, one for the walks that build a value and one for those that do not.
-	scanRepeats  map[*grammar.Repeat]int
-	NumScanSites int
+	// sites numbers the skip-run, run and scan sites of the program's repetitions (SetSites).
+	sites Sites
+	// NumSkipSites, NumRunSites and NumScanSites count the sites (Sites).
+	NumSkipSites, NumRunSites, NumScanSites int
 	// InsertionFlags are the rule flags of the parses with missing-token insertion enabled, in
-	// which left recursion through an insertion forms cycles of its own (AnalyzeInsertion), when
+	// which left recursion through an insertion forms cycles of its own (RuleFact.CycleIns), when
 	// they differ from the flags of the rules; nil otherwise. Such parses run a program built with
 	// them.
 	InsertionFlags []RuleFlags
@@ -216,10 +206,9 @@ type Compiler struct {
 	Control *cancel.Control
 	Prog    *Program
 	proj    map[string]string // projected captures of the rule being compiled (ruleProjections)
-	an      *Analysis
-	// ins is the analysis with missing-token insertion enabled (AnalyzeInsertion) when the grammar
-	// has an insertion, and nil otherwise or for a loaded compiled grammar.
-	ins     *Analysis
+	// facts are the rule facts the program is checked with, or nil if the rules take the flags of
+	// a compiled grammar, which was checked when it was compiled.
+	facts   *RuleFacts
 	opts    Options
 	errs    diagnostic.ErrorList
 	rule    *Rule
@@ -270,22 +259,19 @@ func (p *Program) Flags() []RuleFlags {
 	return flags
 }
 
-// insertionFlags returns the rule flags of prog under the insertion analysis ins, which the
-// compilation sets as it sets the rules' own from the analysis without insertion, or nil if they
-// equal the rules' own.
-func insertionFlags(prog *Program, ins *Analysis, opts Options, control *cancel.Control) []RuleFlags {
+// insertionFlags returns the rule flags of prog under the facts with token insertion enabled,
+// which the compilation sets as it sets the rules' own from the facts without insertion, or nil if
+// they equal the rules' own.
+func insertionFlags(prog *Program, facts *RuleFacts, opts Options, control *cancel.Control) []RuleFlags {
 	out := make([]RuleFlags, len(prog.RuleList))
 	differ := false
 	for i, r := range prog.RuleList {
 		control.Poll()
-		f := RuleFlags{Leader: ins.Leaders[r.Name], Positional: r.Positional}
-		f.Member = ins.Cyclic[r.Name] && !f.Leader
-		if ins.Cyclic[r.Name] {
-			f.Cycle = ins.Cycle[r.Name] + 1
-		}
+		rf := &facts.Rules[i]
+		f := RuleFlags{Leader: rf.LeaderIns, Member: rf.MemberIns, Cycle: rf.CycleIns, Positional: r.Positional}
 		f.Memo = !opts.DisableMemo && !f.Leader
 		_, isOperatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
-		f.Twin = r.Action == nil && !isOperatorsRule && !ins.Cyclic[r.Name] && !hasStream(r.Def.Expr, control)
+		f.Twin = r.Action == nil && !isOperatorsRule && rf.CycleIns == 0 && !hasStream(r.Def.Expr, control)
 		out[i] = f
 		differ = differ || f != (RuleFlags{Memo: r.Memo, Leader: r.Leader, Member: r.Member, Positional: r.Positional, Cycle: r.Cycle, Twin: r.TwinOK})
 	}
@@ -415,16 +401,51 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 	return &Canonical{Grammar: g, Source: source, Starts: starts, DefaultStart: defaultStart, StartErrors: startErrors}, nil
 }
 
-// Check checks the grammar into its static program: the rules with their flags, scopes and
-// value-free twins, the types and the expectation table, everything a backend lowers and a
-// generator reads, without building any backend's form (the front end's Result holds it). names
-// receives the hidden rules that the lowering of inline actions generates. If flags is not nil,
-// it skips static analysis and type checking and uses flags instead.
-func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control) (*Program, error) {
-	canon, err := Canonicalize(g, opts, names, control)
-	if err != nil {
-		return nil, err
-	}
+// RuleFacts are the facts of the rules of a canonical grammar that CheckCanonical reads. They are
+// the facts of the untyped Core IR module of the rules (internal/middleend/corepass), which the
+// caller computes (internal/frontend): the compiler takes every rule fact from them.
+type RuleFacts struct {
+	// Rules holds the facts of each rule of the grammar, the rules of UniqueRules in order.
+	Rules []RuleFact
+	// BindingErrors are the bindings of variables that a left-recursion cycle reads and that may
+	// run before a left call into the cycle, with or without token insertion, in the order of the
+	// rules. CheckCanonical reports them unless Options.LeftRecursionBindings.
+	BindingErrors diagnostic.ErrorList
+}
+
+// RuleFact holds the facts of one rule.
+type RuleFact struct {
+	// Cycle numbers the rule's left-recursion cycle from 1, or is 0 for a rule on none; Leader
+	// reports a leader of a cycle and Member a rule on a cycle that is not one.
+	Cycle          int
+	Leader, Member bool
+	// CycleIns, LeaderIns and MemberIns are Cycle, Leader and Member with token insertion enabled.
+	CycleIns             int
+	LeaderIns, MemberIns bool
+	// Positional reports that the rule or a rule it calls reads positions.
+	Positional bool
+	// Transient reports that ordinary parses do not memoize the rule.
+	Transient bool
+	// Rec reports that the rule is on a cycle of calls.
+	Rec bool
+	// Vars are the variables the rule or a rule it calls reads, sorted.
+	Vars []string
+	// Recovering names a rule whose #recover can put an error value in the rule's value: the rule
+	// itself or one it calls; it is "" for none.
+	Recovering string
+	// LeftOperands reports, for each operand of an Operators Rule, that the operand may call the
+	// rule before it consumes input, with or without token insertion.
+	LeftOperands []bool
+}
+
+// CheckCanonical checks the canonical grammar canon into its static program: the rules with their
+// flags, scopes and value-free twins, the types and the expectation table, everything a backend
+// lowers and a generator reads, without building any backend's form (the front end's Result holds
+// it). The rule flags come from facts, the facts of canon's rules. names receives the hidden rules
+// that the lowering of inline actions generates. If flags is not nil, it skips type checking and
+// the checks of the facts and takes the flags of a compiled grammar instead; facts still give the
+// other rule facts. The site numbers are set afterwards (SetSites).
+func CheckCanonical(canon *Canonical, opts Options, flags []RuleFlags, names desugar.InlineNames, facts *RuleFacts, control *cancel.Control) (*Program, error) {
 	g, source, starts, defaultStart, startErrors := canon.Grammar, canon.Source, canon.Starts, canon.DefaultStart, canon.StartErrors
 	prog := &Program{Model: check.NewModel(g, source), ByName: map[string]*Rule{},
 		DescTable: append([]string(nil), FixedDescs...)}
@@ -434,12 +455,6 @@ func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.In
 		defer func() {
 			prog.Checker().SetShapeControl(nil)
 			c.Control = nil
-			if c.an != nil {
-				c.an.Control = nil
-			}
-			if c.ins != nil {
-				c.ins.Control = nil
-			}
 		}()
 	}
 	prog.StartRules, prog.DefaultStartRule = starts, defaultStart
@@ -481,57 +496,41 @@ func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.In
 	c.checkSpliceCycles(rules)
 	c.declareVars(g)
 	prog.markMissingRules(control)
-	if flags == nil {
-		c.an = AnalyzeControlled(rules, control)
-	} else if len(flags) != len(prog.RuleList) {
+	if facts == nil || len(facts.Rules) != len(prog.RuleList) {
+		return nil, fmt.Errorf("internal error: no rule facts for the %d rules of the grammar", len(prog.RuleList))
+	}
+	if flags != nil && len(flags) != len(prog.RuleList) {
 		return nil, fmt.Errorf("compiled grammar has %d rule flags for %d rules", len(flags), len(prog.RuleList))
 	}
-	transient := TransientRules(rules, control)
-	vars := ruleVariablesControlled(rules, control)
-	recursive := check.RuleCycles(rules, prog.defsByName(), control)
+	if flags == nil {
+		c.facts = facts
+	}
 	for i, r := range prog.RuleList {
 		control.Poll()
+		rf := &facts.Rules[i]
 		twin := false
 		if flags != nil {
 			r.Memo, r.Leader, r.Member, r.Positional, twin = flags[i].Memo, flags[i].Leader, flags[i].Member, flags[i].Positional, flags[i].Twin
 			r.Cycle = flags[i].Cycle
 		} else {
-			r.Leader = c.an.Leaders[r.Name]
-			r.Member = c.an.Cyclic[r.Name] && !r.Leader
-			r.Cycle = 0
-			if c.an.Cyclic[r.Name] {
-				r.Cycle = c.an.Cycle[r.Name] + 1
-			}
-			r.Positional = c.an.Positional[r.Name]
+			r.Leader, r.Member, r.Cycle, r.Positional = rf.Leader, rf.Member, rf.Cycle, rf.Positional
 			// Leaders are always memoized (Leader); the other members of a cycle memoize the results
 			// that read no growing seed.
 			r.Memo = !opts.DisableMemo && !r.Leader
-		}
-		r.Transient = transient[r.Name]
-		r.Rec = recursive[r.Name] != nil
-		r.Vars = vars[r.Name]
-		if flags == nil {
 			_, isOperatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
-			twin = r.Action == nil && !isOperatorsRule && !c.an.Cyclic[r.Name] && !hasStream(r.Def.Expr, control)
+			twin = r.Action == nil && !isOperatorsRule && rf.Cycle == 0 && !hasStream(r.Def.Expr, control)
 		}
+		r.Transient, r.Rec, r.Vars = rf.Transient, rf.Rec, rf.Vars
 		r.TwinOK = twin
 	}
-	var ins *Analysis
 	if flags == nil && prog.HasMissing {
-		ins = AnalyzeInsertion(rules, control)
-		c.ins = ins
-		prog.InsertionFlags = insertionFlags(prog, ins, opts, control)
+		prog.InsertionFlags = insertionFlags(prog, facts, opts, control)
 	}
 	if flags == nil && !opts.LeftRecursionBindings {
 		// A grammar must be valid whether or not insertion is enabled, so the bindings are checked
-		// against the cycles of both analyses.
-		reported := map[*grammar.Bind]bool{}
-		c.checkLeftRecursionBindings(c.an, rules, vars, reported)
-		if ins != nil {
-			c.checkLeftRecursionBindings(ins, rules, vars, reported)
-		}
+		// against the cycles of both.
+		c.errs = append(c.errs, facts.BindingErrors...)
 	}
-	prog.markSkipSites(control)
 	if opts.Recognition != Evaluate {
 		// Only rules whose values are referenced by predicates, and the rules needed to build those
 		// values, are evaluated as usual; so are the rules with a #stream repetition, whose elements
@@ -712,41 +711,6 @@ func (c *Compiler) twinOf(r *Rule) *Rule {
 	return r.Twin
 }
 
-// TransientRules returns the rules that ordinary parses do not memoize: those that call no rule,
-// and those called from at most one place, except a start rule on a cycle of calls whose rules are
-// each called from one place. A parse can enter such a start rule without a call, and its body
-// calls it again, so it is memoized; no rule outside the cycle calls a rule of it.
-func TransientRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]bool {
-	refs := map[string]int{}
-	caller := map[string]string{}
-	for _, rd := range rules {
-		control.Poll()
-		for _, name := range AllCallsControlled(rd.Expr, nil, control) {
-			refs[name]++
-			caller[name] = rd.Name
-		}
-	}
-	// selfCalled reports whether following the one caller of each rule from name leads back to name.
-	selfCalled := func(name string) bool {
-		seen := map[string]bool{}
-		for r := name; refs[r] == 1 && !seen[r]; r = caller[r] {
-			control.Poll()
-			seen[r] = true
-			if caller[r] == name {
-				return true
-			}
-		}
-		return false
-	}
-	out := map[string]bool{}
-	for _, rd := range rules {
-		control.Poll()
-		calls := len(AllCallsControlled(rd.Expr, nil, control))
-		out[rd.Name] = calls == 0 || refs[rd.Name] < 2 && !(desugar.StartMarked(rd) && selfCalled(rd.Name))
-	}
-	return out
-}
-
 // valueNeededRules returns the rules that must build values even in a program that builds no
 // tree: the rules called within captures that predicates can read, and every rule they call. With
 // streams, also the rules with a #stream repetition (see Program.ParseStream) and every rule they call.
@@ -813,7 +777,7 @@ func (c *Compiler) noCaptures(e grammar.Expr) {
 // and no farthest failure, so its position and message would differ from those of the same call
 // outside one, and memoization could not answer both alike.
 func (c *Compiler) noRecoveringCaptures(e grammar.Expr) {
-	if c.an == nil {
+	if c.facts == nil {
 		return // a compiled grammar, checked when it was compiled
 	}
 	control := c.Control
@@ -837,7 +801,11 @@ func (c *Compiler) noRecoveringCaptures(e grammar.Expr) {
 			return
 		}
 		for _, name := range calls {
-			switch w := c.an.Recovering[name]; w {
+			var w string
+			if r := c.Prog.ByName[name]; r != nil {
+				w = c.facts.Rules[r.ID].Recovering
+			}
+			switch w {
 			case "":
 				continue
 			case name:

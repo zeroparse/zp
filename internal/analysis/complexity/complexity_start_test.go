@@ -3,6 +3,7 @@ package complexity
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/frontend"
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
@@ -59,7 +60,7 @@ func TestClassifyComplexityStartRule(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		prog, err := compile.Check(g, compile.Options{}, nil, desugar.InlineNames{}, nil)
+		prog, err := frontend.Check(g, compile.Options{}, nil, desugar.InlineNames{}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
