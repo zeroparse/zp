@@ -98,7 +98,7 @@ type Hooks struct {
 	CoreRun func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error)
 	// FlowRun runs the Flow passes in place of flow.Run (driver.Driver.FlowRun), as CoreRun does for the
 	// Core passes.
-	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
+	FlowRun func(table string, m *code.Module, env *flow.Env, o flow.RunOptions) ([]string, error)
 	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as CoreRun does
 	// for the Core passes.
 	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)

@@ -231,28 +231,31 @@ func (g *Generator) FlowNodeFrameOK(r *compile.Rule) (*core.Rule, bool) {
 	return cr, true
 }
 
-// FlowPasses runs the pipeline of Flow passes on the function f that the lowering returned with err,
-// and returns it. Every function that a generator prints from Flow IR goes through it, labeled with
-// the table being generated ("typed" for the typed rules, as in the dumps of Core IR). An error of the
-// lowering is returned; a failure of the passes is kept as the first internal error of the
-// generation (FlowErr), which fails it, and the function is returned for the printing to go on.
-func (g *Generator) FlowPasses(f *flow.Func, err error) (*flow.Func, error) {
+// FlowPasses writes the function f that the lowering returned with err at the Flow stage of Code IR
+// (flowlower.Emit), runs the pipeline of Flow passes on its module and returns the module. Every
+// function that a generator prints goes through it, labeled with the table being generated ("typed"
+// for the typed rules, as in the dumps of Core IR). An error of the lowering is returned; a failure of
+// the passes is kept as the first internal error of the generation (FlowErr), which fails it, and the
+// module is returned for the printing to go on.
+func (g *Generator) FlowPasses(f *flow.Func, err error) (*code.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := g.RunFlow(g.IRTable(), f, g.Observability); err != nil && g.FlowErr == nil {
+	m, _, err := flowlower.Emit(f)
+	if err != nil {
+		// The lowering verified f: a function that its Code IR form breaks is an internal error.
+		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, g.IRTable(), err))
+	}
+	if err := g.RunFlow(g.IRTable(), m, g.Observability); err != nil && g.FlowErr == nil {
 		g.FlowErr = fmt.Errorf("function %s of table %s: %w", f.Name, g.IRTable(), err)
 	}
-	return f, nil
+	return m, nil
 }
 
-// LowerFlow writes the lowered function f at the Flow stage of Code IR (flowlower.Emit) and converts
-// it to the Exec stage (execlower.Lower), which the backends print.
-func LowerFlow(f *flow.Func) (*execlower.Lowered, error) {
-	m, fn, err := flowlower.Emit(f)
-	if err != nil {
-		return nil, err
-	}
+// LowerFlow converts the module m of one lowered function from the Flow stage of Code IR to the Exec
+// stage (execlower.Lower), which the backends print.
+func LowerFlow(m *code.Module) (*execlower.Lowered, error) {
+	fn := flow.FuncOf(m)
 	x, err := execlower.Lower(m)
 	if err != nil {
 		return nil, err
