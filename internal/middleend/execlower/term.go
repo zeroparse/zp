@@ -370,7 +370,7 @@ func addTermOps(m *code.Module) {
 	reads := []string{Component}
 	op := func(o *code.Op) {
 		o.Component = Component
-		o.Transitional = true
+		o.Kind = code.OpTransitional
 		m.AddOp(o)
 	}
 	op(&code.Op{Name: OpTermConst, Results: []code.Type{datum}, Imm: "the constant (TermConst)",
@@ -802,7 +802,7 @@ func (l *termLowerer) structLiteral(b *code.Builder, t *ir.New) code.Expr {
 			for i := range params {
 				params[i] = code.P("f"+strconv.Itoa(i), code.THandle(exec.Datum))
 			}
-			l.m.AddOp(&code.Op{Name: name, Component: Component, Transitional: true, Params: params,
+			l.m.AddOp(&code.Op{Name: name, Component: Component, Kind: code.OpTransitional, Params: params,
 				Results: []code.Type{code.THandle(exec.Datum)}, Reads: []string{Component}, Writes: []string{Component},
 				Imm: "the struct literal (TermNew)", Contract: "Returns the struct that the literal in Imm makes of the field values, given in the order its type declares them; nil for a field the literal does not give."})
 		}

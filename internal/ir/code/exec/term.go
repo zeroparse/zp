@@ -36,7 +36,7 @@ func addTermCode(m *code.Module) {
 	act := code.THandle(Act)
 	m.AddCallable(Term, Host, "A term of a predicate or a binding, in the form the target holds: code that is applied to a context.",
 		[]code.Type{act}, []code.Type{datum, fail})
-	m.AddOp(&code.Op{Name: "term.ctx", Component: Host, Results: []code.Type{act}, Reads: []string{Host, Pos, Made}, Writes: []string{Host}, Host: true,
+	m.AddOp(&code.Op{Name: "term.ctx", Component: Host, Results: []code.Type{act}, Reads: []string{Host, Pos, Made}, Writes: []string{Host}, Kind: code.OpHost,
 		Contract: `Returns the context in which a term runs: the current capture frame, an empty span at the
 position, and the mark of the values made so far, as term.created returns it.`})
 }
