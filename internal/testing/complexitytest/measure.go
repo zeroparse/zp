@@ -14,8 +14,9 @@ import (
 	"math"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/value"
@@ -40,11 +41,11 @@ func BackendName(b engine.Backend) string {
 // Compile compiles the ZeroParse source with every rule a start rule and main as the default start
 // rule.
 func Compile(src string) (*engine.Parser, error) {
-	g, err := engine.ParseGrammar(src)
+	g, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		return nil, err
 	}
-	return engine.Compile(starttest.MarkAll(g), "")
+	return enginetest.Compile(starttest.MarkAll(g), "")
 }
 
 // Cost is the measured cost of one parse.

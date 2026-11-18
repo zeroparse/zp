@@ -1,24 +1,13 @@
 // Package cliflag parses the names that command-line flags and serialized files use for the
-// values of the zp options: backends and position units. The zp command and the editfuzz sequence
-// format share it.
+// values of the zp options: position units. The zp command and the editfuzz sequence format
+// share it.
 package cliflag
 
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/pkg/runtime/input"
 )
-
-// ParseBackend returns the backend named closure, bytecode or bytecode-iterative.
-func ParseBackend(name string) (engine.Backend, error) {
-	for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-		if b.String() == name {
-			return b, nil
-		}
-	}
-	return 0, fmt.Errorf("unknown backend %q", name)
-}
 
 // ParseUnit returns the unit named codepoints or bytes.
 func ParseUnit(name string) (input.PositionUnit, error) {

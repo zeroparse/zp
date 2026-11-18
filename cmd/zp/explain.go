@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
 

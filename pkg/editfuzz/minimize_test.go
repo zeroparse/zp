@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
@@ -36,9 +36,9 @@ func TestMinimize(t *testing.T) {
 			}
 			ops := []Operation{edit(0, 0, "abc "), checkpoint, edit(4, 4, "x\xffyz"), checkpoint, undo, checkpoint, redo,
 				edit(0, 1, "q"), checkpoint, edit(2, 2, "wordé!"), edit(0, 0, " "), checkpoint, checkpoint, edit(0, 1, "")}
-			seq := sequence(src, engine.Closure, u, "start text", ops...)
+			seq := sequence(src, Closure, u, "start text", ops...)
 			original := clone(seq)
-			p, err := engine.CompileSource(src, "main")
+			p, err := enginetest.CompileSource(src, "main")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -73,15 +73,15 @@ func TestMinimizeAttemptCeiling(t *testing.T) {
 		}
 	}
 	src := testGrammars[0]
-	seq := sequence(src, engine.Bytecode, input.Bytes, "aaaa", checkpoint, edit(1, 2, "b"), checkpoint, edit(0, 0, "cc"), checkpoint)
-	p, _ := engine.CompileSource(src, "main")
+	seq := sequence(src, Bytecode, input.Bytes, "aaaa", checkpoint, edit(1, 2, "b"), checkpoint, edit(0, 0, "cc"), checkpoint)
+	p, _ := enginetest.CompileSource(src, "main")
 	for _, ceiling := range []int{1, 3} {
 		got, _, attempts, err := minimize(p, seq, ceiling)
 		if err != nil || attempts != ceiling || len(got.Operations) > 3 {
 			t.Fatalf("ceiling %d: %d attempts, %+v, %v", ceiling, attempts, got, err)
 		}
 	}
-	if _, _, err := Minimize([]byte(src), sequence(src, engine.Bytecode, input.Bytes, "a", checkpoint), 0); err == nil ||
+	if _, _, err := Minimize([]byte(src), sequence(src, Bytecode, input.Bytes, "a", checkpoint), 0); err == nil ||
 		!strings.Contains(err.Error(), "does not fail") {
 		t.Fatalf("passing sequence: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestMinimizeFailureMovesEarlier(t *testing.T) {
 		}
 	}
 	src := testGrammars[2]
-	seq := sequence(src, engine.Closure, input.CodePoints, "", edit(0, 0, "éZ"), checkpoint, edit(1, 2, "x"), checkpoint)
+	seq := sequence(src, Closure, input.CodePoints, "", edit(0, 0, "éZ"), checkpoint, edit(1, 2, "x"), checkpoint)
 	got, m, err := Minimize([]byte(src), seq, 0)
 	if err != nil {
 		t.Fatal(err)

@@ -12,8 +12,9 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	gensrc "zeroparse.dev/zp/internal/driver/generate"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // The graphs are loaded once per test binary: every test of the package reads them.
@@ -66,19 +67,20 @@ func generateParsers(t *testing.T) []generatedParser {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := engine.ParseGrammar(string(src))
+	g, err := enginetest.ParseGrammar(string(src))
 	if err != nil {
 		t.Fatal(err)
 	}
 	var gens []generatedParser
-	for _, lib := range []codegen.LibMode{codegen.LibImport, codegen.LibEmbed} {
+	for _, lib := range []common.LibMode{common.LibImport, common.LibEmbed} {
 		var imports []string
-		for _, c := range []codegen.Go{
+		for _, c := range []common.GenOptions{
 			{Types: true, Document: true, Stream: true, Observability: true, LimitControls: true, Recognize: true, Expectations: true, SourceInfo: true},
 			{RecognizeOnly: true},
 		} {
 			c.Module, c.Lib = genModule, lib
-			files, err := c.Generate(g, "main")
+			c.Start = "main"
+			files, err := gensrc.Go(g, c)
 			if err != nil {
 				t.Fatalf("generate with -lib %v: %v", lib, err)
 			}
@@ -103,9 +105,9 @@ func generateParsers(t *testing.T) []generatedParser {
 		// module: a parser in either mode reaches the runtime through the module.
 		golibPath := modulePath + "/pkg/runtime/golib"
 		switch {
-		case lib == codegen.LibImport && !slices.Contains(imports, golibPath):
+		case lib == common.LibImport && !slices.Contains(imports, golibPath):
 			t.Fatalf("a parser generated with -lib import does not import %s: %v", golibPath, imports)
-		case lib == codegen.LibEmbed && (slices.Contains(imports, golibPath) || !slices.ContainsFunc(imports, inModule)):
+		case lib == common.LibEmbed && (slices.Contains(imports, golibPath) || !slices.ContainsFunc(imports, inModule)):
 			t.Fatalf("a parser generated with -lib embed imports %s or no package of the module: %v", golibPath, imports)
 		}
 		gens = append(gens, generatedParser{name: "generated parser (-lib " + lib.String() + ")", module: genModule, imports: imports})
@@ -200,8 +202,8 @@ func TestNegativeControls(t *testing.T) {
 	g.pkgs[mod("internal/unplaced")] = &pkg{ImportPath: mod("internal/unplaced"), Module: &struct{ Path string }{modulePath}}
 	addEdge(mod("cmd/zp"), mod("internal/unplaced"))
 	// An allowlisted edge that disappears.
-	flags := g.pkgs[mod("internal/cliflag")]
-	flags.Imports = slices.DeleteFunc(flags.Imports, func(p string) bool { return p == mod("engine") })
+	front := g.pkgs[mod("internal/frontend")]
+	front.Imports = slices.DeleteFunc(front.Imports, func(p string) bool { return p == mod("internal/middleend/corepass") })
 
 	msgs := check([]*graph{g}, generatedParsers(t)).compare(allowlist, 1)
 	for _, m := range msgs {
@@ -218,7 +220,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 1a: pkg/runtime/golib -> internal/runtime/vm", []string{
 			"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not internal/runtime/vm",
 			"a generated parser links neither pkg/runtime/vm nor internal/runtime/**",
-			"\tchain: pkg/runtime/golib -> internal/runtime/vm\n",
+			"pkg/runtime/golib -> internal/runtime/vm\n",
 			"generated parser (-lib import)", "internal/bench/parsers/json,", "internal/frontend/parser/zpparser,"}},
 		{"rule 1a: pkg/runtime/value/impl -> internal/runtime/nodes", []string{"pkg/runtime/golib -> pkg/runtime/value/impl -> internal/runtime/nodes\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
 		{"rule 2: internal/ir/code -> internal/ir/flow", []string{"\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n"}},
@@ -244,7 +246,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: internal/fakeaction -> internal/ir/code/exec", []string{"within internal/ir, code/action imports only code (internal/ir/code/action -> internal/ir/code/exec)"}},
 		{"rule 1a: internal/bench/parsers/json -> example.org/thirdparty", []string{"a generated parser imports no third-party package"}},
 		{"internal/unplaced: no row of layout places the package", nil},
-		{"rule 2: internal/cliflag -> engine: no build has this edge any more; remove it from the allowlist", nil},
+		{"rule 2: internal/frontend -> internal/middleend/corepass: no build has this edge any more; remove it from the allowlist", nil},
 	}
 	for _, w := range want {
 		i := slices.IndexFunc(msgs, func(m string) bool { return strings.HasPrefix(m, w.key) })
@@ -287,7 +289,7 @@ func TestLayerGraph(t *testing.T) {
 	allowed := map[layer][]layer{
 		layerCmd:      append([]layer{layerPublic, layerLSP}, below...),
 		layerPublic:   below,
-		layerLSP:      below[1:],
+		layerLSP:      below,
 		layerDriver:   below[1:],
 		layerAnalysis: below[2:],
 		layerBackend:  below[3:],

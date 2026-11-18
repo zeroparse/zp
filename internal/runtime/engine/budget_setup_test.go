@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/runtime/document"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/runtime"
@@ -400,7 +401,7 @@ func TestBudgetSetupPostBackendPanicIdentity(t *testing.T) {
 					reader := &setupCountingReader{r: strings.NewReader("#records\na=1\n")}
 					o := ParseOptions{Backend: backend, Context: gate, Trace: func(TraceEvent) { callbacks++ }}
 					var n *value.Node
-					var d *Document
+					var d *document.Document
 					var err error
 					got := budgetContextRecover(func() {
 						switch api {

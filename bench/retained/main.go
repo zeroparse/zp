@@ -13,8 +13,9 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/bench/inputs"
+	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
@@ -103,7 +104,7 @@ func run(args []string, out io.Writer) error {
 	owners := make([]*engine.Parser, o.count)
 	before := liveHeap()
 	for i := range owners {
-		owners[i], err = engine.CompileSource(source, "main")
+		owners[i], err = entry.CompileSource(source, "main", entry.Options{})
 		if err != nil {
 			return fmt.Errorf("compilation %d: %w", i, err)
 		}
@@ -148,7 +149,7 @@ func corpus(repo, name string) (source, input string, err error) {
 func warm(source, input string, count int) (string, error) {
 	var result string
 	for i := 0; i < count; i++ {
-		p, err := engine.CompileSource(source, "main")
+		p, err := entry.CompileSource(source, "main", entry.Options{})
 		if err != nil {
 			return "", fmt.Errorf("warmup compilation %d: %w", i, err)
 		}

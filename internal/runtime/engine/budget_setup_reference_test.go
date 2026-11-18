@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/runtime/document"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
@@ -26,7 +27,7 @@ func TestBudgetSetupReferenceAdmission(t *testing.T) {
 				o := ParseOptions{Backend: backend, Context: ctx, Trace: func(TraceEvent) { callbacks++ }}
 				reader := &streamCallbackReader{text: "#records\na=1\n", onRead: func() { callbacks++ }}
 				var n *value.Node
-				var d *Document
+				var d *document.Document
 				var err error
 				switch api {
 				case "batch":

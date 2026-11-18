@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
 	"zeroparse.dev/zp/pkg/runtime/instrument"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // Exercise the CLI formatters with real Document events: an ordinary trace
@@ -16,7 +18,7 @@ import (
 func TestTraceReusedElementsPresentation(t *testing.T) {
 	for _, format := range []string{"text", "json"} {
 		t.Run(format, func(t *testing.T) {
-			p, err := engine.CompileSource(`@start
+			p, err := enginetest.CompileSource(`@start
 rule main = lines $$
 rule lines = line*
 rule line = [a-z]+ #atomic "\n"`, "main")
@@ -26,7 +28,7 @@ rule line = [a-z]+ #atomic "\n"`, "main")
 			var out bytes.Buffer
 			printer := tracePrinter{w: bufio.NewWriter(&out), json: format == "json", rules: []string{"main"}, showDepth: 1}
 			// The profile records the parses after the edit only, from the trace.
-			var profile engine.Profile
+			var profile instrument.Profile
 			var rec *instrument.ProfileRecorder
 			doc, err := p.NewDocument(strings.Repeat("ab\n", 32), engine.WithTrace(func(e engine.TraceEvent) {
 				if rec != nil {

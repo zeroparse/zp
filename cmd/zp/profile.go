@@ -10,22 +10,23 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // profileKeys are the columns profile can sort by, with how to compare two rules (descending,
 // except for the name).
-var profileKeys = map[string]func(a, b *engine.RuleProfile) int{
-	"self":     func(a, b *engine.RuleProfile) int { return cmp.Compare(b.SelfTime, a.SelfTime) },
-	"time":     func(a, b *engine.RuleProfile) int { return cmp.Compare(b.Time, a.Time) },
-	"calls":    func(a, b *engine.RuleProfile) int { return cmp.Compare(b.Calls, a.Calls) },
-	"evals":    func(a, b *engine.RuleProfile) int { return cmp.Compare(b.Evals, a.Evals) },
-	"memo":     func(a, b *engine.RuleProfile) int { return cmp.Compare(b.MemoHits, a.MemoHits) },
-	"failed":   func(a, b *engine.RuleProfile) int { return cmp.Compare(b.Failed, a.Failed) },
-	"repeats":  func(a, b *engine.RuleProfile) int { return cmp.Compare(b.Repeats, a.Repeats) },
-	"consumed": func(a, b *engine.RuleProfile) int { return cmp.Compare(b.Consumed, a.Consumed) },
-	"wasted":   func(a, b *engine.RuleProfile) int { return cmp.Compare(b.Wasted, a.Wasted) },
-	"name":     func(a, b *engine.RuleProfile) int { return cmp.Compare(a.Rule, b.Rule) },
+var profileKeys = map[string]func(a, b *instrument.RuleProfile) int{
+	"self":     func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.SelfTime, a.SelfTime) },
+	"time":     func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.Time, a.Time) },
+	"calls":    func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.Calls, a.Calls) },
+	"evals":    func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.Evals, a.Evals) },
+	"memo":     func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.MemoHits, a.MemoHits) },
+	"failed":   func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.Failed, a.Failed) },
+	"repeats":  func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.Repeats, a.Repeats) },
+	"consumed": func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.Consumed, a.Consumed) },
+	"wasted":   func(a, b *instrument.RuleProfile) int { return cmp.Compare(b.Wasted, a.Wasted) },
+	"name":     func(a, b *instrument.RuleProfile) int { return cmp.Compare(a.Rule, b.Rule) },
 }
 
 // profileCmd parses the input once with profiling and prints the cost of each rule.
@@ -45,11 +46,11 @@ func profileCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 	if *format != "text" && *format != "json" {
 		return fmt.Errorf("unknown format %q", *format)
 	}
-	var prof engine.Profile
+	var prof instrument.Profile
 	_, perr := p.Parse(src, append(opts, engine.WithProfile(&prof))...)
 	snap := prof.Snapshot()
 	rules := slices.Clone(snap.Rules)
-	slices.SortStableFunc(rules, func(a, b engine.RuleProfile) int {
+	slices.SortStableFunc(rules, func(a, b instrument.RuleProfile) int {
 		return cmp.Or(less(&a, &b), cmp.Compare(a.Rule, b.Rule))
 	})
 	if *rows > 0 && len(rules) > *rows {
@@ -59,7 +60,7 @@ func profileCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 		// The profile with the rules shown, in their order, and the hints
 		out := struct {
 			Result string `json:"result"`
-			engine.ProfileSnapshot
+			instrument.ProfileSnapshot
 			Hints []string `json:"hints"`
 		}{"ok", snap, snap.Hints()}
 		out.Rules = rules
@@ -73,7 +74,7 @@ func profileCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 	return printProfile(stdout, &snap, rules, perr, len(snap.Rules))
 }
 
-func printProfile(w io.Writer, prof *engine.ProfileSnapshot, rules []engine.RuleProfile, perr error, all int) error {
+func printProfile(w io.Writer, prof *instrument.ProfileSnapshot, rules []instrument.RuleProfile, perr error, all int) error {
 	result := "ok"
 	if perr != nil {
 		result = strings.ReplaceAll(perr.Error(), "\n", "; ")

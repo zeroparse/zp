@@ -7,7 +7,8 @@ import (
 	"os"
 	"text/template"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/frontend/parser"
+
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 )
 
@@ -23,7 +24,7 @@ func generate() error {
 	if err != nil {
 		return err
 	}
-	g, err := engine.ParseGrammar(string(full))
+	g, err := parser.Parse(string(full))
 	if err != nil {
 		return err
 	}

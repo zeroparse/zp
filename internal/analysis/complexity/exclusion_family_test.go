@@ -2,10 +2,11 @@ package complexity_test
 
 import (
 	"testing"
+
 	"zeroparse.dev/zp/internal/analysis/complexity"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/testing/complexitytest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -31,12 +32,12 @@ func TestSharedContinuationsFlip(t *testing.T) {
 	count := complexitytest.SharedContinuationCount(complexitytest.DefaultDifferentialGrammars / 4)
 	var compiled, flipped, linearOn int
 	for i, src := range complexitytest.SharedContinuationGrammars(count) {
-		g, err := engine.ParseGrammar(src)
+		g, err := enginetest.ParseGrammar(src)
 		if err != nil {
 			t.Fatalf("grammar %d does not parse: %v\n%s", i, err, src)
 		}
 		g = starttest.MarkAll(g)
-		if _, err := engine.Compile(g, "main"); err != nil {
+		if _, err := enginetest.Compile(g, "main"); err != nil {
 			continue
 		}
 		compiled++

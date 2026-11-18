@@ -8,9 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	gensrc "zeroparse.dev/zp/internal/driver/generate"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
@@ -25,7 +27,7 @@ func TestSourceCommentBoundaryGrammar(t *testing.T) {
 	}
 	parsers := map[string]*engine.Parser{}
 	for _, rule := range []string{"start", "after", "owner_example"} {
-		p, err := engine.CompileSource(string(src), rule)
+		p, err := enginetest.CompileSource(string(src), rule)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -128,11 +130,11 @@ func TestSourceCommentBoundaryGeneratedGo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := engine.ParseGrammar(string(src))
+	g, err := enginetest.ParseGrammar(string(src))
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := codegen.Go{Module: "comments", Types: true}.Generate(g, "owner_example")
+	code, err := gensrc.Go(g, common.GenOptions{Module: "comments", Types: true, Start: "owner_example"})
 	if err != nil {
 		t.Fatal(err)
 	}

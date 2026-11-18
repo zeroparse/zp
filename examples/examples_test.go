@@ -14,7 +14,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -34,7 +35,7 @@ func TestExamples(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			p, err := engine.CompileSource(string(src), "main")
+			p, err := enginetest.CompileSource(string(src), "main")
 			if err != nil {
 				t.Fatalf("%s:%v", gpath, err)
 			}

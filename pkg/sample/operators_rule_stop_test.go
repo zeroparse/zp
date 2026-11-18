@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // Pending scopes can outlive later choices and caller continuations. Their immutable state remains
@@ -18,7 +18,7 @@ func TestOperatorsRuleStopCheckOwnershipAndCacheBound(t *testing.T) {
 		fmt.Fprintf(&src, "level { infix none \"<%d>\" }; ", i)
 	}
 	src.WriteByte('}')
-	ast, err := engine.ParseGrammar(src.String())
+	ast, err := enginetest.ParseGrammar(src.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestOperatorsRuleStopCheckOwnershipAndCacheBound(t *testing.T) {
 }
 
 func TestOperatorsRulePendingNestedScopes(t *testing.T) {
-	ast, err := engine.ParseGrammar(`rule main = e $$
+	ast, err := enginetest.ParseGrammar(`rule main = e $$
 rule e = #operators {
     operand "a"
     level { infix none "<" }
@@ -85,7 +85,7 @@ rule e = #operators {
 }
 
 func TestOperatorsRuleScopeBudgetBudget(t *testing.T) {
-	ast, err := engine.ParseGrammar(`rule main = e $$
+	ast, err := enginetest.ParseGrammar(`rule main = e $$
 rule e = #operators {
     operand "a"
     level { postfix "!" }

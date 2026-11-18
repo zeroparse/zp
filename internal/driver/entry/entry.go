@@ -7,6 +7,8 @@ package entry
 import (
 	"context"
 
+	"zeroparse.dev/zp/internal/frontend/parser"
+
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/checked"
@@ -18,6 +20,9 @@ import (
 // Options configures compilation.
 type Options = compile.Options
 
+// A checked source exports the output schemas of the parsers of its programs.
+var _ engine.SchemaSource = (*checked.Source)(nil)
+
 // Compile compiles the grammar.
 func Compile(g *ast.Grammar, opts Options) (*engine.Program, error) {
 	s, err := checked.Compile(g, opts, nil)
@@ -25,6 +30,25 @@ func Compile(g *ast.Grammar, opts Options) (*engine.Program, error) {
 		return nil, err
 	}
 	return engine.New(s), nil
+}
+
+// CompileParser compiles g and returns a parser that starts at the rule start, which must be a
+// start rule; an empty start selects the default start rule.
+func CompileParser(g *ast.Grammar, start string, opts Options) (*engine.Parser, error) {
+	prog, err := Compile(g, opts)
+	if err != nil {
+		return nil, err
+	}
+	return engine.NewParser(prog, start)
+}
+
+// CompileSource parses the grammar source src and compiles it with CompileParser.
+func CompileSource(src, start string, opts Options) (*engine.Parser, error) {
+	g, err := parser.Parse(src)
+	if err != nil {
+		return nil, err
+	}
+	return CompileParser(g, start, opts)
 }
 
 // CompileContext is the internal editor compilation entry point. Cancellation

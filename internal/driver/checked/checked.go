@@ -15,11 +15,13 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // Source is the compiler side of a checked program (state.Source).
@@ -156,3 +158,9 @@ func (s *Source) ShapeSignature(name string, poll func()) (string, bool) {
 
 // ValueType is compile.Program.ValueType.
 func (s *Source) ValueType(name string) (string, bool) { return s.prog.ValueType(name) }
+
+// OutputSchema exports the output schema of the rule start, or of every rule and type with
+// allRules, from the checked grammar.
+func (s *Source) OutputSchema(start string, allRules bool) (*schema.Output, error) {
+	return schemaexport.Export(s.prog, start, allRules)
+}

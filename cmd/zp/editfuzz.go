@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/cliflag"
 	"zeroparse.dev/zp/pkg/editfuzz"
 	"zeroparse.dev/zp/pkg/runtime"
@@ -77,9 +76,9 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 			return err
 		}
 	}
-	var bs []engine.Backend
+	var bs []editfuzz.Backend
 	for _, name := range strings.Split(*backends, ",") {
-		b, err := cliflag.ParseBackend(name)
+		b, err := editfuzz.ParseBackend(name)
 		if err != nil {
 			return err
 		}

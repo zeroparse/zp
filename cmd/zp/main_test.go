@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
 	igen "zeroparse.dev/zp/internal/backend/codegen/common"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 )
 
 func writeFile(t *testing.T, name, content string) string {

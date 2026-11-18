@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/query"
 	"zeroparse.dev/zp/pkg/runtime/schema"

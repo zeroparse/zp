@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/complexitytest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -31,12 +31,12 @@ func TestCopyStopsScale(t *testing.T) {
 		{"predicate in a called rule", `!(L "c" L "z") E "c" M "z" / L`, "rule M = x:L {len(text($x)) >= 0}\n"},
 	} {
 		src := copyScaleHead + "rule W = " + c.w + "\n" + c.rules
-		g, err := engine.ParseGrammar(src)
+		g, err := enginetest.ParseGrammar(src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
 		g = starttest.MarkAll(g)
-		p, err := engine.Compile(g, "main")
+		p, err := enginetest.Compile(g, "main")
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}

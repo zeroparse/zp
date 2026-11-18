@@ -8,7 +8,6 @@ import (
 // engine re-exports them under the same names for the package engine.
 
 type (
-	Document        = document.Document
 	ChangeDocument  = document.ChangeDocument
 	DocumentVersion = document.DocumentVersion
 	DocumentChange  = document.DocumentChange

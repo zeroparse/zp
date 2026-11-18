@@ -5,8 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -23,7 +25,7 @@ rule expr Node = #operators {
  level { infix left "+" => Node{} }
 } => ...
 `
-	g, err := engine.ParseGrammar(src)
+	g, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +49,7 @@ rule expr Node = #operators {
 	if !bytes.Equal(before, after) || fmt.Format(g) != beforeText {
 		t.Fatal("input AST mutated")
 	}
-	projected, err := engine.ParseGrammar(out)
+	projected, err := enginetest.ParseGrammar(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,15 +59,15 @@ rule expr Node = #operators {
 }
 
 func TestFormatSyntaxNormalizedPragmas(t *testing.T) {
-	g, err := engine.ParseGrammar(`rule main = "a"* #stream`)
+	g, err := enginetest.ParseGrammar(`rule main = "a"* #stream`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := engine.Compile(starttest.MarkAll(g), "main")
+	p, err := enginetest.Compile(starttest.MarkAll(g), "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	normalized := p.Grammar()
+	normalized := entry.Grammar(p.Program())
 	before, _ := ast.MarshalJSON(normalized)
 	if out := fmt.FormatSyntax(normalized); !strings.Contains(out, "#stream") {
 		t.Fatalf("normalized #stream lost: %s", out)
@@ -77,7 +79,7 @@ func TestFormatSyntaxNormalizedPragmas(t *testing.T) {
 }
 
 func TestFormatSyntaxValueDependentPredicate(t *testing.T) {
-	g, err := engine.ParseGrammar(`type T = { N int }
+	g, err := enginetest.ParseGrammar(`type T = { N int }
 rule main = x:value {$x.N == 1}
 rule value T = "x" => T{N: 1}`)
 	if err != nil {
@@ -90,11 +92,11 @@ rule value T = "x" => T{N: 1}`)
 	if strings.Contains(out, "x:value") {
 		t.Fatalf("capture retained: %s", out)
 	}
-	proj, err := engine.ParseGrammar(out)
+	proj, err := enginetest.ParseGrammar(out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := engine.Compile(starttest.MarkAll(proj), "main"); err == nil {
+	if _, err := enginetest.Compile(starttest.MarkAll(proj), "main"); err == nil {
 		t.Fatal("expected value-dependent projection to require the full grammar")
 	}
 }
@@ -109,7 +111,7 @@ func TestFormatSyntaxGrouping(t *testing.T) {
 		{"rule main = (\n \"a\"\n \"b\"\n)", "rule main = (\n    \"a\"\n    \"b\"\n)"},
 	} {
 		t.Run(tc.source, func(t *testing.T) {
-			g, err := engine.ParseGrammar(tc.source)
+			g, err := enginetest.ParseGrammar(tc.source)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -117,26 +119,26 @@ func TestFormatSyntaxGrouping(t *testing.T) {
 			if strings.TrimSpace(out) != tc.want {
 				t.Fatalf("got:\n%s\nwant:\n%s", out, tc.want)
 			}
-			projected, err := engine.ParseGrammar(out)
+			projected, err := enginetest.ParseGrammar(out)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if fmt.FormatSyntax(projected) != out {
 				t.Fatal("projection not idempotent")
 			}
-			p, err := engine.Compile(starttest.MarkAll(projected), "main")
+			p, err := enginetest.Compile(starttest.MarkAll(projected), "main")
 			if err != nil {
 				t.Fatal(err)
 			}
 			// The corresponding full grammar has identical matching behavior
 			// whenever it does not require an unimplemented inline action.
-			full, err := engine.Compile(starttest.MarkAll(g), "main")
+			full, err := enginetest.Compile(starttest.MarkAll(g), "main")
 			if err != nil {
 				return
 			}
 			for _, input := range []string{"", "a", "b", "c", "ab", "ac", "bc", "abab"} {
-				_, originalErr := full.Parse(input, engine.RecognizeOnly())
-				_, projectedErr := p.Parse(input, engine.RecognizeOnly())
+				_, originalErr := full.Parse(input, engine.WithRecognize())
+				_, projectedErr := p.Parse(input, engine.WithRecognize())
 				if (originalErr == nil) != (projectedErr == nil) {
 					t.Fatalf("matching changed for %q: %v / %v", input, originalErr, projectedErr)
 				}
@@ -151,7 +153,7 @@ func TestFormatSyntaxGroupComments(t *testing.T) {
 		"rule main = (\n // keep\n \"a\"\n)",
 		"rule main = (\n \"a\"\n /* keep */\n)",
 	} {
-		g, err := engine.ParseGrammar(source)
+		g, err := enginetest.ParseGrammar(source)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -159,7 +161,7 @@ func TestFormatSyntaxGroupComments(t *testing.T) {
 		if strings.Count(out, "keep") != 1 {
 			t.Fatalf("group comment lost or duplicated: %s", out)
 		}
-		projected, err := engine.ParseGrammar(out)
+		projected, err := enginetest.ParseGrammar(out)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/value"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func snapshotVariants(t *testing.T, run func(*testing.T, state.ParseOptions)) {

@@ -150,7 +150,7 @@ var (
 	// The traced copies, in a build with observability.
 	tracedStreamBodyRef = regexp.MustCompile(`(?m)^\tstreamRuleTraced\.Body = (e\d+)$`)
 	tracedBatchBodyRef  = regexp.MustCompile(`(?m)^\trulesTraced\[\d+\]\.Body = (e\d+)$`)
-	streamMethodRe      = regexp.MustCompile(`(?ms)^func (e\d+)\(p \*rt\.Parser(?:, _ int)?\) \(\*core\.Node, bool\) \{\n.*?^\}\n`)
+	streamMethodRe      = regexp.MustCompile(`(?ms)^func (e\d+)\(p \*rt\.Parser(?:, _ int)?\) \(\*zpvalue\.Node, bool\) \{\n.*?^\}\n`)
 	methodRefRe         = regexp.MustCompile(`\be\d+\b`)
 	scopeVarRe          = regexp.MustCompile(`\bscope\d+\b`)
 	// streamStatements are the statements that the stream repetition adds to the batch body.

@@ -7,7 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 const kvList = `@start(default)
@@ -41,7 +42,7 @@ func quotedLines(t *testing.T, out string) []string {
 
 func TestSample(t *testing.T) {
 	g := writeFile(t, "kv.zp", kvList)
-	p, err := engine.CompileSource(kvList, "main")
+	p, err := enginetest.CompileSource(kvList, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +176,7 @@ rule item = "a" / "b"`)
 
 func TestSampleInvalid(t *testing.T) {
 	g := writeFile(t, "kv.zp", kvList)
-	p, err := engine.CompileSource(kvList, "main")
+	p, err := enginetest.CompileSource(kvList, "main")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,11 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 func TestParseCheckCompiledRecognition(t *testing.T) {
-	p, err := engine.CompileSource(`@start(default)
+	p, err := enginetest.CompileSource(`@start(default)
 rule main = "a" $$
 @start
 rule other = "é" $$`, "main")

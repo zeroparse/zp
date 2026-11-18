@@ -3,7 +3,7 @@ package complexitytest
 import (
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/linearity"
 	"zeroparse.dev/zp/pkg/runtime"

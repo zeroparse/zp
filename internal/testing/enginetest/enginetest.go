@@ -171,3 +171,35 @@ func Result(prog *engine.Program, input string, o engine.ParseOptions) string {
 	}
 	return n.String()
 }
+
+// ParseGrammar parses ZeroParse source to its syntax tree, as the compiler does.
+func ParseGrammar(src string) (*ast.Grammar, error) { return parser.Parse(src) }
+
+// CompileOption configures Compile and CompileSource.
+type CompileOption func(*entry.Options)
+
+// WithSourceInfo records the rule of each node and the names of captures in parse results.
+func WithSourceInfo() CompileOption { return func(o *entry.Options) { o.SourceInfo = true } }
+
+// WithDefaultValue drops value actions and declared rule types, so that the parser returns the
+// default node tree.
+func WithDefaultValue() CompileOption { return func(o *entry.Options) { o.DefaultValue = true } }
+
+// Compile compiles g to an engine parser that starts at the rule start (empty for the default
+// start rule) and runs on the program's default backend, the closure backend.
+func Compile(g *ast.Grammar, start string, opts ...CompileOption) (*engine.Parser, error) {
+	var o entry.Options
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return entry.CompileParser(g, start, o)
+}
+
+// CompileSource parses ZeroParse source and compiles it with Compile.
+func CompileSource(src, start string, opts ...CompileOption) (*engine.Parser, error) {
+	g, err := ParseGrammar(src)
+	if err != nil {
+		return nil, err
+	}
+	return Compile(g, start, opts...)
+}

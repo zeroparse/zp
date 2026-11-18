@@ -13,9 +13,11 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	gensrc "zeroparse.dev/zp/internal/driver/generate"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 var updateTriage = flag.Bool("update-triage", false, "rewrite the cause lists in testdata/triage")
@@ -27,7 +29,7 @@ func classifyFile(t *testing.T, path string) *complexity.Complexity {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := engine.ParseGrammar(string(src))
+	g, err := enginetest.ParseGrammar(string(src))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +201,7 @@ func TestTriageMeasure(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					if p, err = engine.CompileSource(string(src), ""); err != nil {
+					if p, err = enginetest.CompileSource(string(src), ""); err != nil {
 						t.Fatal(err)
 					}
 					parsers[g.Grammar] = p
@@ -346,11 +348,11 @@ func generatedSteps(t, top *testing.T, name, path string, inputs []string, lenie
 		if err != nil {
 			t.Fatal(err)
 		}
-		g, err := engine.ParseGrammar(string(src))
+		g, err := enginetest.ParseGrammar(string(src))
 		if err != nil {
 			t.Fatal(err)
 		}
-		files, err := codegen.Go{Module: "triage/p", Lib: codegen.LibImport, LimitControls: true}.Generate(g, "")
+		files, err := gensrc.Go(g, common.GenOptions{Module: "triage/p", Lib: common.LibImport, LimitControls: true})
 		if err != nil {
 			t.Fatal(err)
 		}

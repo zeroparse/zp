@@ -5,7 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/sample"
 )
 
@@ -20,7 +21,7 @@ func ExampleGenerate() {
 	if err != nil {
 		panic(err)
 	}
-	inputs, err := sample.Generate(p, 5, sample.WithSeed(1))
+	inputs, err := sample.Generate(engine.Reference(p), 5, sample.WithSeed(1))
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +43,7 @@ func ExampleGenerator_Coverage() {
 	}
 	// Two inputs leave some alternatives out; with WithCoverage, Generate would prefer them. (This is the
 	// code of the guide docs/guide/sampling-and-fuzzing.md, with its output.)
-	g, err := sample.New(p, sample.WithSeed(1))
+	g, err := sample.New(engine.Reference(p), sample.WithSeed(1))
 	if err != nil {
 		panic(err)
 	}
@@ -68,7 +69,7 @@ func ExampleGenerator_GenerateInvalid() {
 	if err != nil {
 		panic(err)
 	}
-	g, err := sample.New(p, sample.WithSeed(1))
+	g, err := sample.New(engine.Reference(p), sample.WithSeed(1))
 	if err != nil {
 		panic(err)
 	}
@@ -93,16 +94,16 @@ func FuzzCalculator(f *testing.F) {
 	if err != nil {
 		f.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "main")
+	p, err := enginetest.CompileSource(string(src), "main")
 	if err != nil {
 		f.Fatal(err)
 	}
 	// Valid inputs, and near-miss invalid ones for the error paths.
 	valid := map[string]bool{}
-	for _, in := range sample.Seed(f, p, 20, sample.WithMaxLen(64)) {
+	for _, in := range sample.Seed(f, engine.Reference(p), 20, sample.WithMaxLen(64)) {
 		valid[in] = true
 	}
-	g, err := sample.New(p, sample.WithSeed(1), sample.WithMaxLen(64))
+	g, err := sample.New(engine.Reference(p), sample.WithSeed(1), sample.WithMaxLen(64))
 	if err != nil {
 		f.Fatal(err)
 	}

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/sample"
 )
 
@@ -29,7 +30,7 @@ func TestCoverageReportsInlineActionsAsWritten(t *testing.T) {
 			[]string{"missed rule: _h", "the inline action in rule _h"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			g, err := sample.New(compile(t, tc.src), sample.WithSeed(1), sample.WithCoverage())
+			g, err := sample.New(engine.Reference(compile(t, tc.src)), sample.WithSeed(1), sample.WithCoverage())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -67,7 +68,7 @@ func TestCoverageReportsInlineActionsAsWritten(t *testing.T) {
 			if strings.Contains(strings.ReplaceAll(all, "_h", ""), "_main") {
 				t.Errorf("a generated name in the report:\n%s", all)
 			}
-			g2, _ := sample.New(compile(t, tc.src), sample.WithSeed(1), sample.WithCoverage())
+			g2, _ := sample.New(engine.Reference(compile(t, tc.src)), sample.WithSeed(1), sample.WithCoverage())
 			empty := g2.Coverage()
 			text := empty.Report()
 			for _, w := range tc.want {

@@ -15,15 +15,17 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	gensrc "zeroparse.dev/zp/internal/driver/generate"
+	"zeroparse.dev/zp/internal/testing/enginetest"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
 )
 
 // generation is a zp gen command of generate.go.
 type generation struct {
 	grammar, module, out string
 	hasTypes             bool
-	config               codegen.Go
+	config               common.GenOptions
 }
 
 // generationsIn reads the go:generate lines of the generate.go in dir. The grammar and output paths
@@ -60,7 +62,7 @@ func generationsIn(t *testing.T, dir string) []generation {
 				if fs[i] != "import" {
 					t.Fatalf("generate.go: unknown library mode %s", fs[i])
 				}
-				g.config.Lib = codegen.LibImport
+				g.config.Lib = common.LibImport
 			case "-types":
 				g.hasTypes = true
 				g.config.Types = true
@@ -146,11 +148,11 @@ func conformanceSchema(t *testing.T, path string) confSchema {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "")
+	p, err := enginetest.CompileSource(string(src), "")
 	if err != nil {
 		t.Fatalf("%s: %v", path, err)
 	}
-	s, err := p.OutputSchema(engine.WithAllSchemaRules())
+	s, err := p.OutputSchema(zpruntime.WithAllSchemaRules())
 	if err != nil {
 		t.Fatalf("%s: schema: %v", path, err)
 	}
@@ -616,11 +618,11 @@ func checkTypedGeneration(t *testing.T, sc confSchema, g typedGeneration, src st
 			out = append(out, "Go: "+v)
 		}
 	}
-	gr, err := engine.ParseGrammar(src)
+	gr, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ts, err := codegen.TypeScript{Types: true}.Generate(gr, "")
+	ts, err := gensrc.TypeScript(gr, common.GenOptions{Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}

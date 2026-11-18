@@ -8,7 +8,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp/engine"
+
 	gcalc "zeroparse.dev/zp/internal/bench/parsers/calc"
 	gcalclr "zeroparse.dev/zp/internal/bench/parsers/calclr"
 	gcsv "zeroparse.dev/zp/internal/bench/parsers/csv"
@@ -16,10 +16,11 @@ import (
 	gminilang "zeroparse.dev/zp/internal/bench/parsers/minilang"
 	goutline "zeroparse.dev/zp/internal/bench/parsers/outline"
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/value"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 type fullGeneratedProbe struct {
@@ -215,8 +216,8 @@ func TestControlledFullWorkloads(t *testing.T) {
 							if got := check(n, err); got != want {
 								t.Fatalf("%s full fingerprint differs", mode)
 							}
-							recNode, recErr := p.Parse(input, append(active, engine.RecognizeOnly())...)
-							plainRecNode, plainRecErr := p.Parse(input, append(opts, engine.RecognizeOnly())...)
+							recNode, recErr := p.Parse(input, append(active, engine.WithRecognize())...)
+							plainRecNode, plainRecErr := p.Parse(input, append(opts, engine.WithRecognize())...)
 							if recNode != nil || plainRecNode != nil {
 								t.Fatal("recognition returned a tree")
 							}

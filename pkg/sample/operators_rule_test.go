@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/sample"
 )
@@ -86,7 +86,7 @@ func TestSampleOperatorsRulePrefixBindings(t *testing.T) {
 				if coverage {
 					opts = append(opts, sample.WithCoverage())
 				}
-				g, err := sample.New(p, opts...)
+				g, err := sample.New(engine.Reference(p), opts...)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -120,7 +120,7 @@ rule e = #operators {
 	if _, err := p.Parse("x=@x=x"); err == nil {
 		t.Fatal("a tighter prefix erased an outer nonassociative restriction")
 	}
-	g, err := sample.New(p, sample.WithAttempts(2), sample.WithBudget(500))
+	g, err := sample.New(engine.Reference(p), sample.WithAttempts(2), sample.WithBudget(500))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ rule atom = "x"
 rule prefixPart = "~"
 rule middle = "+" / "*"
 rule blocked = "|" / "/"`)
-	g, err := sample.New(p, sample.WithSeed(0), sample.WithCoverage())
+	g, err := sample.New(engine.Reference(p), sample.WithSeed(0), sample.WithCoverage())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ rule e = #operators {
     level tight { infix left "*" }
 }
 rule helper = e / "y"`)
-	g, err = sample.New(p)
+	g, err = sample.New(engine.Reference(p))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestSampleOperatorsRulePrefixBoundsAndDeterminism(t *testing.T) {
 	p := compile(t, "rule main = level(e, tight) $$\n"+samplePrefixLevels)
 	makeGen := func() *sample.Generator {
 		t.Helper()
-		g, err := sample.New(p, sample.WithSeed(17), sample.WithCoverage(), sample.WithMaxRepeat(2), sample.WithMaxDepth(0), sample.WithMaxLen(12), sample.WithBudget(500))
+		g, err := sample.New(engine.Reference(p), sample.WithSeed(17), sample.WithCoverage(), sample.WithMaxRepeat(2), sample.WithMaxDepth(0), sample.WithMaxLen(12), sample.WithBudget(500))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -225,7 +225,7 @@ func TestSampleOperatorsRulePrefixBoundsAndDeterminism(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			p := compile(t, `rule main = &"~x" level(e, tight) $$`+"\n"+samplePrefixLevels)
-			g, err := sample.New(p, append(c.opts, sample.WithAttempts(2))...)
+			g, err := sample.New(engine.Reference(p), append(c.opts, sample.WithAttempts(2))...)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -243,7 +243,7 @@ func TestSampleOperatorsRulePrefixBoundsAndDeterminism(t *testing.T) {
     level tight {}
 }`)
 	for _, depth := range []int{0, 32} {
-		g, err := sample.New(p, sample.WithMaxDepth(depth), sample.WithMaxLen(0), sample.WithMaxRepeat(1), sample.WithAttempts(2))
+		g, err := sample.New(engine.Reference(p), sample.WithMaxDepth(depth), sample.WithMaxLen(0), sample.WithMaxRepeat(1), sample.WithAttempts(2))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -312,7 +312,7 @@ func TestSampleOperatorsRuleNoneCallerStops(t *testing.T) {
 				if coverage {
 					opts = append(opts, sample.WithCoverage())
 				}
-				g, err := sample.New(p, opts...)
+				g, err := sample.New(engine.Reference(p), opts...)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -349,7 +349,7 @@ func TestSampleOperatorsRuleNoneCallerStops(t *testing.T) {
 					}
 				}
 			}
-			g, err := sample.New(p, sample.WithSeed(1), sample.WithAttempts(2), sample.WithBudget(500))
+			g, err := sample.New(engine.Reference(p), sample.WithSeed(1), sample.WithAttempts(2), sample.WithBudget(500))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -364,7 +364,7 @@ func TestSampleOperatorsRuleNoneStopsDeterminism(t *testing.T) {
 	p := compile(t, `rule main = e "<" e $$`+"\n"+sampleNoneLevels)
 	makeGen := func() *sample.Generator {
 		t.Helper()
-		g, err := sample.New(p, sample.WithSeed(29), sample.WithCoverage(), sample.WithMaxRepeat(2), sample.WithMaxDepth(0), sample.WithMaxLen(8), sample.WithBudget(1000))
+		g, err := sample.New(engine.Reference(p), sample.WithSeed(29), sample.WithCoverage(), sample.WithMaxRepeat(2), sample.WithMaxDepth(0), sample.WithMaxLen(8), sample.WithBudget(1000))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -383,7 +383,7 @@ func TestSampleOperatorsRuleNoneStopsDeterminism(t *testing.T) {
 		checkParse(t, p, []string{x})
 	}
 	for _, option := range []sample.Option{sample.WithMaxRepeat(0), sample.WithBudget(1)} {
-		g, err := sample.New(p, option, sample.WithAttempts(2))
+		g, err := sample.New(engine.Reference(p), option, sample.WithAttempts(2))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -451,13 +451,13 @@ rule e = #operators {
 			b.Run(fmt.Sprintf("%s/coverage=%t/New", c.name, coverage), func(b *testing.B) {
 				b.ReportAllocs()
 				for range b.N {
-					if _, err := sample.New(p, opts...); err != nil {
+					if _, err := sample.New(engine.Reference(p), opts...); err != nil {
 						b.Fatal(err)
 					}
 				}
 			})
 			b.Run(fmt.Sprintf("%s/coverage=%t/Next", c.name, coverage), func(b *testing.B) {
-				g, err := sample.New(p, opts...)
+				g, err := sample.New(engine.Reference(p), opts...)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -498,13 +498,13 @@ rule e = #operators { operand "a"; level { infix left "|" }; level { infix none 
 			b.Run(fmt.Sprintf("pairs=%d/coverage=%t/New", n, coverage), func(b *testing.B) {
 				b.ReportAllocs()
 				for range b.N {
-					if _, err := sample.New(p, opts...); err != nil {
+					if _, err := sample.New(engine.Reference(p), opts...); err != nil {
 						b.Fatal(err)
 					}
 				}
 			})
 			b.Run(fmt.Sprintf("pairs=%d/coverage=%t/Next", n, coverage), func(b *testing.B) {
-				g, err := sample.New(p, opts...)
+				g, err := sample.New(engine.Reference(p), opts...)
 				if err != nil {
 					b.Fatal(err)
 				}

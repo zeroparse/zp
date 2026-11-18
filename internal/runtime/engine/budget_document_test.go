@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"zeroparse.dev/zp/internal/runtime/document"
 	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
@@ -32,7 +33,7 @@ func TestBudgetDocumentConstructorCallerPanicIdentity(t *testing.T) {
 			if at == 0 {
 				o.Context = &budgetContextDonePanic{Context: context.Background(), token: token}
 			}
-			var d *Document
+			var d *document.Document
 			var err error
 			got := budgetContextRecover(func() { d, err = prog.NewDocumentWith("main", "é💡abc", o) })
 			if got != token || d != nil || err != nil {

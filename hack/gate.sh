@@ -88,7 +88,7 @@ step() {
 # the run alone; naming these first lets them overlap with each other and with the rest. Only the order changes: the
 # same packages run with the same flags. A package that no longer exists makes go test fail, so the list cannot go
 # stale silently.
-export GATE_HEAVY='zeroparse.dev/zp/internal/backend/codegen/golang/print zeroparse.dev/zp/internal/backend/codegen/common zeroparse.dev/zp/internal/runtime/engine zeroparse.dev/zp/internal/backend/codegen/typescript/print zeroparse.dev/zp/spec/language zeroparse.dev/zp/codegen/go/lib zeroparse.dev/zp/internal/testing/complexitytest'
+export GATE_HEAVY='zeroparse.dev/zp/internal/backend/codegen/golang/print zeroparse.dev/zp/internal/backend/codegen/common zeroparse.dev/zp/internal/runtime/engine zeroparse.dev/zp/internal/backend/codegen/typescript/print zeroparse.dev/zp/spec/language zeroparse.dev/zp/pkg/runtime/golib zeroparse.dev/zp/internal/testing/complexitytest'
 
 # affected_cmd GO-TEST-ARGS: go test over the packages of the changes since $GATE_BASE and their reverse dependencies,
 # those of $GATE_HEAVY first. internal/backend/codegen/golang/print, the longest package, runs as GATE_SHARDS (default 2) concurrent

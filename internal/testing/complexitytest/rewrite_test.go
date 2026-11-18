@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 func controlByName(t *testing.T, name string) Control {
@@ -84,7 +85,7 @@ var zpFence = regexp.MustCompile("(?s)```zp\n(.*?)```")
 // the recipe and the controls compare equal when they differ in layout and the @start line only.
 func normalized(t *testing.T, src string) string {
 	t.Helper()
-	g, err := engine.ParseGrammar(src)
+	g, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		t.Fatalf("%v\n%s", err, src)
 	}

@@ -42,8 +42,8 @@ trap 'rm -rf "$dir"' EXIT
 check() { # check TAG: vet then test one tag; the status is the result
 	t=$1
 	pkgs=$(constrained -w "^//go:build .*$t" | xargs -n1 dirname | sort -u)
-	go vet -tags "$t" ./internal/runtime/engine/... ./engine $pkgs || { echo "test-reference-tags: $t: vet failed"; return 1; }
-	go test -count=1 -short -tags "$t" ./internal/runtime/engine/... ./engine $pkgs || { echo "test-reference-tags: $t: tests failed"; return 1; }
+	go vet -tags "$t" ./internal/runtime/engine/... $pkgs || { echo "test-reference-tags: $t: vet failed"; return 1; }
+	go test -count=1 -short -tags "$t" ./internal/runtime/engine/... $pkgs || { echo "test-reference-tags: $t: tests failed"; return 1; }
 }
 n=0
 for t in $tags; do

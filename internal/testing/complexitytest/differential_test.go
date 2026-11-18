@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -250,12 +251,12 @@ func linearClaims(t *testing.T, count int, claimsLinear func(*ast.Grammar) bool,
 			src = shared[n-count-2*(count/4)]
 			inputs = SharedContinuationInputs
 		}
-		g, err := engine.ParseGrammar(src)
+		g, err := enginetest.ParseGrammar(src)
 		if err != nil {
 			t.Fatalf("generated grammar %d does not parse: %v\n%s", n, err, src)
 		}
 		g = starttest.MarkAll(g)
-		p, err := engine.Compile(g, "main")
+		p, err := enginetest.Compile(g, "main")
 		if err != nil {
 			continue // left recursion without a base case, a repetition of nothing and the like
 		}

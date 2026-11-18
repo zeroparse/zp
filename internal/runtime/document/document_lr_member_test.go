@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
 	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -27,7 +28,7 @@ func memberDocumentDiffers(t *testing.T, c codegentest.Case) []string {
 			if strings.Contains(want, "limit") || strings.Contains(want, "budget") {
 				continue
 			}
-			check := func(d *Document, step string) {
+			check := func(d *document.Document, step string) {
 				if got := resultJSON(d.Parse()); got != want {
 					diffs = append(diffs, fmt.Sprintf("%s %q %s %s:\n got %s\nwant %s", c.Name, in, backend, step, got, want))
 				}

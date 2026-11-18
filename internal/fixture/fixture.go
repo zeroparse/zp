@@ -16,7 +16,10 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/frontend/parser"
+
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
@@ -355,7 +358,7 @@ func Load(path string) (*Suite, error) {
 	if strings.HasSuffix(grammarPath, ".json") {
 		suite.grammar, err = ast.UnmarshalJSON(grammarBytes)
 	} else {
-		suite.grammar, err = engine.ParseGrammar(string(grammarBytes))
+		suite.grammar, err = parser.Parse(string(grammarBytes))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%s: grammar %s: %w", path, suite.Grammar, err)
@@ -396,7 +399,7 @@ func Run(suite *Suite, opts RunOptions) (Report, error) {
 	}
 	parsers := make(map[string]*engine.Parser, len(backends))
 	for _, backend := range backends {
-		p, err := engine.Compile(suite.grammar, suite.Start)
+		p, err := entry.CompileParser(suite.grammar, suite.Start, entry.Options{})
 		if err != nil {
 			return Report{}, fmt.Errorf("compile grammar: %w", err)
 		}

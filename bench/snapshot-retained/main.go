@@ -10,7 +10,8 @@ import (
 	"runtime"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	zpruntime "zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/input"
 	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
@@ -77,9 +78,9 @@ func run() error {
 	default:
 		return fmt.Errorf("invalid unit %q", *unitName)
 	}
-	parser, err := engine.CompileSource(`@start
+	parser, err := entry.CompileSource(`@start
 rule main = item* $$
-rule item = [a-z]`, "main")
+rule item = [a-z]`, "main", entry.Options{})
 	if err != nil {
 		return err
 	}

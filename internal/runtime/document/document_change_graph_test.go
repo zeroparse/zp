@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/value"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func changeGraphSnapshot(t *testing.T, root *value.Node) *Snapshot {

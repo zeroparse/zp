@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/runtime/document"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/runtime/vm"
@@ -224,14 +225,14 @@ func TestBudgetDocumentPreRunPreservesOversizedValues(t *testing.T) {
 	}
 }
 
-func budgetDocumentAssertAborted(t *testing.T, d *Document) {
+func budgetDocumentAssertAborted(t *testing.T, d *document.Document) {
 	t.Helper()
 	if d.Memo().Len() != 0 || d.Runs() != nil || d.Kids() != nil || d.Machine() != nil || d.Input().Control != nil {
 		t.Fatal("interruption retained reusable state or invocation control")
 	}
 }
 
-func budgetDocumentAssertPreserved(t *testing.T, d *Document, before Document) {
+func budgetDocumentAssertPreserved(t *testing.T, d *document.Document, before document.Document) {
 	t.Helper()
 	if d.Memo() != before.Memo() || fmt.Sprintf("%p", d.Runs()) != fmt.Sprintf("%p", before.Runs()) ||
 		fmt.Sprintf("%p", d.Kids()) != fmt.Sprintf("%p", before.Kids()) ||
@@ -240,7 +241,7 @@ func budgetDocumentAssertPreserved(t *testing.T, d *Document, before Document) {
 	}
 }
 
-func budgetDocumentAssertRetry(t *testing.T, d *Document) {
+func budgetDocumentAssertRetry(t *testing.T, d *document.Document) {
 	t.Helper()
 	o := d.ParseDefaults()
 	o.Context, o.Limits, o.Trace = nil, runtime.Limits{}, nil

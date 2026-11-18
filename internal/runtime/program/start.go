@@ -1,10 +1,11 @@
 package program
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
+
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // HiddenRule reports whether the rule name is hidden: a name that begins with an underscore,
@@ -51,7 +52,7 @@ func MissingUnsupported(operation string) error {
 
 // ErrSchemaUnavailable reports that the checked grammar metadata an output schema is exported
 // from is unavailable.
-var ErrSchemaUnavailable = errors.New("output schema unavailable")
+var ErrSchemaUnavailable = runtime.ErrSchemaUnavailable
 
 // ErrSchemaNeedsSource reports that an output schema was asked of a program loaded from a compiled
 // grammar, which holds no schema. It wraps ErrSchemaUnavailable.

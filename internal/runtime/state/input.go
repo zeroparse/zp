@@ -66,15 +66,9 @@ type ParseOptions struct {
 	ContextMemoUnexamined bool
 }
 
-// TraceSelection selects the events of a parse that the trace function receives. Neither field
-// changes the parse or what the profiles record. Options replace a TraceSelection instead of
-// changing it: a Document's defaults share theirs with each parse.
-type TraceSelection struct {
-	// Rules, if not empty, selects the calls of these rules and the calls nested in them.
-	Rules []string
-	// MaxDepth, if positive, selects the calls at most that deep; the start rule has depth 1.
-	MaxDepth int
-}
+// TraceSelection selects the events of a parse that the trace function receives
+// (instrument.TraceSelection).
+type TraceSelection = instrument.TraceSelection
 
 // Traced reports whether the parse reports its rule calls: to a trace function or to profiles.
 func (o ParseOptions) Traced() bool {

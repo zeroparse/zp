@@ -1,5 +1,5 @@
 // Package editfuzz checks incremental parsing with a grammar against fresh parses by applying sequences of
-// edits to a engine.Document, and saves a failing sequence as a file that replays it exactly.
+// edits to a Document, and saves a failing sequence as a file that replays it exactly.
 //
 // A Sequence is a versioned event log: the initial text, then edit, undo, redo and checkpoint operations.
 // At the start and at each checkpoint, the Document's parse result is compared with a fresh parse of the
@@ -27,8 +27,8 @@ import (
 	"slices"
 	"sort"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/cliflag"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/input"
 )
@@ -123,13 +123,49 @@ func (o *Operation) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Backend names the parser that a sequence runs on, as the sequence format and the -backend flag of
+// zp editfuzz write it.
+type Backend string
+
+// The backends.
+const (
+	// Closure is the reference parser (compiler.NewReferenceParser).
+	Closure Backend = "closure"
+	// Bytecode is the bytecode VM that uses Go recursion for rule calls (compiler.Compile).
+	Bytecode Backend = "bytecode"
+	// BytecodeIterative is the bytecode VM that keeps rule calls on its own stack
+	// (vm.Parser.Iterative).
+	BytecodeIterative Backend = "bytecode-iterative"
+)
+
+// ParseBackend returns the backend named closure, bytecode or bytecode-iterative.
+func ParseBackend(name string) (Backend, error) {
+	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+		if string(b) == name {
+			return b, nil
+		}
+	}
+	return "", fmt.Errorf("unknown backend %q", name)
+}
+
+// engine returns the engine backend that b names.
+func (b Backend) engine() engine.Backend {
+	switch b {
+	case Bytecode:
+		return engine.Bytecode
+	case BytecodeIterative:
+		return engine.BytecodeIterative
+	}
+	return engine.Closure
+}
+
 // A Sequence is a replayable edit history for one grammar, start rule, backend and unit.
 type Sequence struct {
 	// GrammarSHA256 is the hex SHA-256 hash of the exact grammar source bytes; replay refuses other
 	// sources.
 	GrammarSHA256 string
 	Start         string
-	Backend       engine.Backend
+	Backend       Backend
 	Unit          input.PositionUnit
 	// Limits bound the Documents and the fresh parses of a replay. A Document that reuses earlier work
 	// spends less than a fresh parse, so a check in which either parse exhausts its budget compares
@@ -230,7 +266,7 @@ func (s *Sequence) UnmarshalJSON(data []byte) error {
 	if j.Start == "" {
 		return errors.New("missing start rule")
 	}
-	backend, err := cliflag.ParseBackend(j.Backend)
+	backend, err := ParseBackend(j.Backend)
 	if err != nil {
 		return err
 	}
@@ -252,14 +288,14 @@ func (s *Sequence) UnmarshalJSON(data []byte) error {
 var sequenceFields = []string{"version", "grammar_sha256", "grammar_normalization", "start", "backend", "unit", "seed",
 	"text_encoding", "initial_base64", "operations"}
 
-func backendName(b engine.Backend) (string, error) {
-	if b == engine.DefaultBackend {
+func backendName(b Backend) (string, error) {
+	if b == "" {
 		return "", errors.New("a sequence needs an explicit backend")
 	}
-	if _, err := cliflag.ParseBackend(b.String()); err != nil {
+	if _, err := ParseBackend(string(b)); err != nil {
 		return "", err
 	}
-	return b.String(), nil
+	return string(b), nil
 }
 
 func checkHash(h string) error {

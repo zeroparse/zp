@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	gjson "zeroparse.dev/zp/internal/bench/parsers/json"
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/runtime"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )

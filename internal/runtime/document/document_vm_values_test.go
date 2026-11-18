@@ -7,6 +7,7 @@ import (
 	"testing"
 	"unsafe"
 	"weak"
+
 	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/runtime/document"
@@ -18,7 +19,7 @@ import (
 	"zeroparse.dev/zp/internal/runtime/vm"
 	"zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/value"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func BenchmarkDocumentVMValuesUnchanged(b *testing.B) {
@@ -277,7 +278,7 @@ func benchmarkDocumentVMValuesShrink(b *testing.B, edit bool) {
 }
 
 // documentVMValues returns the VM value stack that the Document d keeps for its next parse, or nil.
-func documentVMValues(d *Document) []any {
+func documentVMValues(d *document.Document) []any {
 	if mc, ok := d.Machine().(*vm.Machine); ok {
 		return mc.Values()
 	}

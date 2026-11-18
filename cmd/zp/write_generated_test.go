@@ -6,13 +6,13 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	igen "zeroparse.dev/zp/internal/backend/codegen/common"
 
-	"zeroparse.dev/zp/codegen"
+	igen "zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/pkg/compiler"
 )
 
-func generatedFile(path string) codegen.File {
-	return codegen.File{Path: path, Content: []byte(igen.Header() + "\n\npackage p\n")}
+func generatedFile(path string) compiler.File {
+	return compiler.File{Path: path, Content: []byte(igen.Header() + "\n\npackage p\n")}
 }
 
 // TestWriteGeneratedSymlink checks that nothing is written through a symbolic link at an owned
@@ -21,7 +21,7 @@ func TestWriteGeneratedSymlink(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symbolic links need privileges")
 	}
-	files := []codegen.File{generatedFile("parser.go"), generatedFile("types/types.go")}
+	files := []compiler.File{generatedFile("parser.go"), generatedFile("types/types.go")}
 	t.Run("file", func(t *testing.T) {
 		dir, outside := t.TempDir(), t.TempDir()
 		target := filepath.Join(outside, "target.go")
@@ -82,7 +82,7 @@ func TestWriteGeneratedChecksBeforeWriting(t *testing.T) {
 	if err := os.WriteFile(parser, old, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	err := writeGenerated(dir, []codegen.File{generatedFile("parser.go"), generatedFile("types/types.go")}, libEmbed, false)
+	err := writeGenerated(dir, []compiler.File{generatedFile("parser.go"), generatedFile("types/types.go")}, libEmbed, false)
 	if err == nil {
 		t.Fatal("no error for an unreadable owned file")
 	}

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/runtime/nodes"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func TestDocumentChangesDirectoryEqualityUsesPositionOverlay(t *testing.T) {

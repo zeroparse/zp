@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 func TestFmtSyntax(t *testing.T) {
 	const src = `type T = {}
 rule main T = "x" #atomic @error(message="x") => T{}`
-	g, err := engine.ParseGrammar(src)
+	g, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		t.Fatal(err)
 	}

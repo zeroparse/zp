@@ -18,7 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime/value"
 	"zeroparse.dev/zp/pkg/sample"
 )
@@ -55,7 +56,7 @@ func compile(t *testing.T, path string) *engine.Parser {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "main")
+	p, err := enginetest.CompileSource(string(src), "main")
 	if err != nil {
 		t.Fatalf("%s: %v", path, err)
 	}
@@ -66,7 +67,7 @@ func compile(t *testing.T, path string) *engine.Parser {
 // the first difference from the base.
 func generate(t *testing.T, name, grammar string, size int, opts []sample.Option) []testCase {
 	t.Helper()
-	g, err := sample.New(compile(t, filepath.Join("../../../testdata/grammars", grammar, grammar+".zp")), opts...)
+	g, err := sample.New(engine.Reference(compile(t, filepath.Join("../../../testdata/grammars", grammar, grammar+".zp"))), opts...)
 	if err != nil {
 		t.Fatal(err)
 	}

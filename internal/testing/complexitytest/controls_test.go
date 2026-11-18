@@ -5,8 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -93,7 +93,7 @@ func TestControlClasses(t *testing.T) {
 	t.Parallel()
 	for _, c := range Controls() {
 		t.Run(c.Name, func(t *testing.T) {
-			g, err := engine.ParseGrammar(c.Source)
+			g, err := enginetest.ParseGrammar(c.Source)
 			if err != nil {
 				t.Fatal(err)
 			}

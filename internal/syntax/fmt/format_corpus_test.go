@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestFormatRoundTripThroughParseGrammar checks, through the public API only, that Format is the
-// inverse of engine.ParseGrammar on the grammar AST: the printed text parses back to the same grammar
+// inverse of enginetest.ParseGrammar on the grammar AST: the printed text parses back to the same grammar
 // (apart from source ranges) and printing it again gives the same text.
 func TestFormatRoundTripThroughParseGrammar(t *testing.T) {
 	var paths []string
@@ -33,12 +33,12 @@ func TestFormatRoundTripThroughParseGrammar(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			g, err := engine.ParseGrammar(string(src))
+			g, err := enginetest.ParseGrammar(string(src))
 			if err != nil {
 				t.Skipf("does not parse on its own: %v", err)
 			}
 			text := fmt.Format(g)
-			g2, err := engine.ParseGrammar(text)
+			g2, err := enginetest.ParseGrammar(text)
 			if err != nil {
 				t.Fatalf("printed grammar does not parse: %v", err)
 			}

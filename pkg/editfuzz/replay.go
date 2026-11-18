@@ -11,7 +11,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/input"
 	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
@@ -21,7 +23,7 @@ import (
 // or the initial text, its result differs from a fresh parse of its text; after an edit, undo or redo,
 // its text is not the edited text; or an operation or a parse panicked.
 type Mismatch struct {
-	Backend engine.Backend
+	Backend Backend
 	Unit    input.PositionUnit
 	// Event is the index of the operation, or -1 for the initial text.
 	Event int
@@ -119,6 +121,16 @@ func Replay(src []byte, seq *Sequence) error {
 	return replay(p, seq)
 }
 
+// compile compiles the grammar source src to a parser that starts at the rule start (empty for the
+// default start rule).
+func compile(src []byte, start string) (*engine.Parser, error) {
+	g, err := parser.Parse(string(src))
+	if err != nil {
+		return nil, err
+	}
+	return entry.CompileParser(g, start, entry.Options{})
+}
+
 func compileFor(src []byte, seq *Sequence) (*engine.Parser, error) {
 	if GrammarHash(src) != seq.GrammarSHA256 {
 		return nil, &InvalidError{-1, errors.New("grammar source does not match the recorded hash")}
@@ -129,7 +141,7 @@ func compileFor(src []byte, seq *Sequence) (*engine.Parser, error) {
 	if _, err := unitName(seq.Unit); err != nil {
 		return nil, &InvalidError{-1, err}
 	}
-	p, err := engine.CompileSource(string(src), seq.Start)
+	p, err := compile(src, seq.Start)
 	if err != nil {
 		return nil, &InvalidError{-1, err}
 	}
@@ -170,7 +182,7 @@ func replay(p *engine.Parser, seq *Sequence) error {
 
 // start creates the Document of seq's initial text and checks it.
 func start(p *engine.Parser, seq *Sequence) (r *replayer, err error) {
-	r = &replayer{p: p, seq: seq, opts: []engine.ParseOption{engine.WithExpectations(), engine.WithBackend(seq.Backend), engine.WithUnit(seq.Unit), engine.WithLimits(seq.Limits)}}
+	r = &replayer{p: p, seq: seq, opts: []engine.ParseOption{engine.WithExpectations(), engine.WithBackend(seq.Backend.engine()), engine.WithUnit(seq.Unit), engine.WithLimits(seq.Limits)}}
 	initial := string(seq.Initial)
 	defer func() {
 		if x := recover(); x != nil {

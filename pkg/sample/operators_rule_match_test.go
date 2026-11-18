@@ -2,7 +2,8 @@ package sample
 
 import (
 	"testing"
-	"zeroparse.dev/zp/engine"
+
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -24,7 +25,7 @@ func TestOperatorsRuleStopSelectionStatus(t *testing.T) {
 		{"unsupported part", `level { postfix "!?" #cut }; level { postfix "!" }`, "!?a", 1, false, true, unknown},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			tree, err := engine.ParseGrammar(`rule main = e $$
+			tree, err := enginetest.ParseGrammar(`rule main = e $$
 rule e = #operators { skip " "*; operand "a"; ` + c.levels + ` }`)
 			if err != nil {
 				t.Fatal(err)

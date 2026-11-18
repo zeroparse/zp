@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime"
 )
 
@@ -19,7 +20,7 @@ var termBackends = []struct {
 // termResult returns the tree of input as JSON, or the error, on the backend b.
 func termResult(t *testing.T, src, input string, b engine.Backend) string {
 	t.Helper()
-	p, err := engine.CompileSource(src, "main")
+	p, err := enginetest.CompileSource(src, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,11 +130,11 @@ func TestTermChargesCreatedNodes(t *testing.T) {
 	one, two := src(`list(T{N: 1})`), src(`list(T{N: 1}, T{N: 2})`)
 	for _, be := range termBackends {
 		t.Run(be.name, func(t *testing.T) {
-			p1, err := engine.CompileSource(one, "main")
+			p1, err := enginetest.CompileSource(one, "main")
 			if err != nil {
 				t.Fatal(err)
 			}
-			p2, err := engine.CompileSource(two, "main")
+			p2, err := enginetest.CompileSource(two, "main")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -158,11 +159,11 @@ func TestTermChargesGatheredValues(t *testing.T) {
 	}
 	for _, be := range termBackends {
 		t.Run(be.name, func(t *testing.T) {
-			p1, err := engine.CompileSource(src("1"), "main")
+			p1, err := enginetest.CompileSource(src("1"), "main")
 			if err != nil {
 				t.Fatal(err)
 			}
-			p2, err := engine.CompileSource(src("1, 2"), "main")
+			p2, err := enginetest.CompileSource(src("1, 2"), "main")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -194,7 +195,7 @@ rule e = #operators {
 		t.Run(be.name, func(t *testing.T) {
 			cost := map[string]uint64{}
 			for _, local := range []string{"$rhs", "$op"} {
-				p, err := engine.CompileSource(src(local), "main")
+				p, err := enginetest.CompileSource(src(local), "main")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -219,7 +220,7 @@ func TestStructFieldValueReadOnce(t *testing.T) {
 	for _, be := range termBackends {
 		t.Run(be.name, func(t *testing.T) {
 			cost := func(action string) uint64 {
-				p, err := engine.CompileSource(src(action), "main")
+				p, err := enginetest.CompileSource(src(action), "main")
 				if err != nil {
 					t.Fatal(err)
 				}

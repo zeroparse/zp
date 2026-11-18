@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+
 	"zeroparse.dev/zp/internal/runtime/document"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
@@ -9,13 +10,13 @@ import (
 
 // NewDocument creates a Document that parses text with the rule start. Positions are in code
 // points.
-func (prog *Program) NewDocument(start, text string) (*Document, error) {
+func (prog *Program) NewDocument(start, text string) (*document.Document, error) {
 	return prog.NewDocumentWith(start, text, ParseOptions{})
 }
 
 // NewDocumentWith creates a Document with options such as the position unit. Positions passed
 // to Edit use the same unit.
-func (prog *Program) NewDocumentWith(start, text string, o ParseOptions) (d *Document, err error) {
+func (prog *Program) NewDocumentWith(start, text string, o ParseOptions) (d *document.Document, err error) {
 	if prog.HasMissing || o.MissingTokens != 0 {
 		return nil, program.MissingUnsupported("Document parsing")
 	}

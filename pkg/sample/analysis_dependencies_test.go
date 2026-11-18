@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -84,7 +85,7 @@ func TestAnalysisDependencyChains(t *testing.T) {
 	for _, n := range []int{128, 2048} {
 		for _, reverse := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%d/leaf-first=%t", n, reverse), func(t *testing.T) {
-				g, err := engine.ParseGrammar(analysisChain(n, reverse))
+				g, err := enginetest.ParseGrammar(analysisChain(n, reverse))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -99,11 +100,11 @@ func TestAnalysisDependencyChains(t *testing.T) {
 					}
 				}
 				if n == 128 {
-					p, err := engine.Compile(starttest.MarkAll(g), "main")
+					p, err := enginetest.Compile(starttest.MarkAll(g), "main")
 					if err != nil {
 						t.Fatal(err)
 					}
-					gen, err := New(p, WithSeed(17), WithCoverage())
+					gen, err := New(engine.Reference(p), WithSeed(17), WithCoverage())
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -143,7 +144,7 @@ rule expr = #operators {
 }`
 
 func TestAnalysisDependencyCyclesAndCoverage(t *testing.T) {
-	g, err := engine.ParseGrammar(analysisMixed)
+	g, err := enginetest.ParseGrammar(analysisMixed)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +175,7 @@ func BenchmarkSampleAnalysis(b *testing.B) {
 	for _, n := range []int{128, 512, 1024, 2048} {
 		for _, reverse := range []bool{false, true} {
 			b.Run(fmt.Sprintf("chain/%d/leaf-first=%t", n, reverse), func(b *testing.B) {
-				g, err := engine.ParseGrammar(analysisChain(n, reverse))
+				g, err := enginetest.ParseGrammar(analysisChain(n, reverse))
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -188,7 +189,7 @@ func BenchmarkSampleAnalysis(b *testing.B) {
 	}
 	for name, src := range map[string]string{"mixed": analysisMixed, "small": `rule main = ("a" / "b")* $$`} {
 		b.Run(name, func(b *testing.B) {
-			g, err := engine.ParseGrammar(src)
+			g, err := enginetest.ParseGrammar(src)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -209,7 +210,7 @@ func BenchmarkSampleAnalysis(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			g, err := engine.ParseGrammar(string(src))
+			g, err := enginetest.ParseGrammar(string(src))
 			if err != nil {
 				b.Fatal(err)
 			}

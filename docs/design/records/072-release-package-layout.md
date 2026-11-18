@@ -158,7 +158,8 @@ flowchart TD
   ir --> pass["internal/pass: manager, analysis manager, registry"]
   util["utilities: diagnostics, cancellation, command-line flag names"] --> gram["pkg/grammar/ast"]
   ir --> gram
-  cmd --> lsp["internal/lsp: protocol, zpls"] --> analysis["internal/analysis: lint, complexity"]
+  cmd --> lsp["internal/lsp: protocol, zpls"] --> driver
+  lsp --> analysis["internal/analysis: lint, complexity"]
   driver --> analysis
   analysis --> backend
   backend --> middle

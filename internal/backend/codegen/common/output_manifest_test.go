@@ -13,9 +13,10 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	gensrc "zeroparse.dev/zp/internal/driver/generate"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // manifestFile is the checked-in manifest of the generated output of manifestGrammars in every
@@ -47,27 +48,27 @@ var manifestGrammars = []struct{ name, path string }{
 // manifestModes are the configurations of the output manifest. Each is generated for every grammar.
 var manifestModes = []struct {
 	name   string
-	config codegen.Go
+	config common.GenOptions
 }{
-	{"node", codegen.Go{}},
-	{"node-exp", codegen.Go{Expectations: true}},
-	{"typed-exp", codegen.Go{Types: true, Expectations: true}},
-	{"node-rec", codegen.Go{Recognize: true}},
-	{"node-wc", codegen.Go{LimitControls: true}},
-	{"node-rec-wc", codegen.Go{Recognize: true, LimitControls: true}},
-	{"node-doc", codegen.Go{Document: true}},
-	{"node-obs", codegen.Go{Observability: true}},
-	{"node-rec-obs", codegen.Go{Recognize: true, Observability: true}},
-	{"node-doc-wc", codegen.Go{Document: true, LimitControls: true}},
-	{"node-stream", codegen.Go{Stream: true}},
-	{"typed", codegen.Go{Types: true}},
-	{"typed-only", codegen.Go{Types: true, TypedOnly: true}},
-	{"typed-rec-wc", codegen.Go{Types: true, Recognize: true, LimitControls: true}},
-	{"typed-doc", codegen.Go{Types: true, Document: true}},
-	{"typed-stream", codegen.Go{Types: true, Stream: true}},
-	{"typed-only-wc", codegen.Go{Types: true, TypedOnly: true, LimitControls: true}},
-	{"default-value", codegen.Go{DefaultValue: true}},
-	{"source-info", codegen.Go{SourceInfo: true}},
+	{"node", common.GenOptions{}},
+	{"node-exp", common.GenOptions{Expectations: true}},
+	{"typed-exp", common.GenOptions{Types: true, Expectations: true}},
+	{"node-rec", common.GenOptions{Recognize: true}},
+	{"node-wc", common.GenOptions{LimitControls: true}},
+	{"node-rec-wc", common.GenOptions{Recognize: true, LimitControls: true}},
+	{"node-doc", common.GenOptions{Document: true}},
+	{"node-obs", common.GenOptions{Observability: true}},
+	{"node-rec-obs", common.GenOptions{Recognize: true, Observability: true}},
+	{"node-doc-wc", common.GenOptions{Document: true, LimitControls: true}},
+	{"node-stream", common.GenOptions{Stream: true}},
+	{"typed", common.GenOptions{Types: true}},
+	{"typed-only", common.GenOptions{Types: true, TypedOnly: true}},
+	{"typed-rec-wc", common.GenOptions{Types: true, Recognize: true, LimitControls: true}},
+	{"typed-doc", common.GenOptions{Types: true, Document: true}},
+	{"typed-stream", common.GenOptions{Types: true, Stream: true}},
+	{"typed-only-wc", common.GenOptions{Types: true, TypedOnly: true, LimitControls: true}},
+	{"default-value", common.GenOptions{DefaultValue: true}},
+	{"source-info", common.GenOptions{SourceInfo: true}},
 }
 
 // manifestOutputs generates every output of the manifest and returns its lines, sorted by grammar,
@@ -98,21 +99,21 @@ func manifestOutputs(t *testing.T) ([]string, map[string]string) {
 					r.err = err
 					return
 				}
-				gr, err := engine.ParseGrammar(string(src))
+				gr, err := enginetest.ParseGrammar(string(src))
 				if err != nil {
 					r.err = fmt.Errorf("%s: %v", g.path, err)
 					return
 				}
 				c := m.config
-				c.Module, c.Lib = "codegentest/"+g.name, codegen.LibImport
-				files, err := c.Generate(gr, "")
+				c.Module, c.Lib = "codegentest/"+g.name, common.LibImport
+				files, err := gensrc.Go(gr, c)
 				if err != nil {
 					// A combination the generator rejects, such as -stream without a #stream repetition,
 					// is a line of the manifest too, so that a change of rejection fails the test.
 					r.lines = append(r.lines, fmt.Sprintf("%s %s error %s", g.name, m.name, strings.ReplaceAll(err.Error(), "\n", " ")))
 					return
 				}
-				slices.SortFunc(files, func(a, b codegen.File) int { return strings.Compare(a.Path, b.Path) })
+				slices.SortFunc(files, func(a, b common.GeneratedFile) int { return strings.Compare(a.Path, b.Path) })
 				for _, f := range files {
 					sum := sha256.Sum256(f.Content)
 					funcs := 0
