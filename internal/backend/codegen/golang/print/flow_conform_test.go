@@ -40,6 +40,16 @@ import (
 //
 // Every Flow operation has a case: a call of it in the generated parsers of flowConformCases that
 // ran, or for flow.declareNames, which has no Go form, its printing as nothing. The operations of
+// runValueGrammar returns the source of the grammar of codegentest.RunValueGrammars with the name.
+func runValueGrammar(name string) string {
+	for _, g := range codegentest.RunValueGrammars {
+		if g.Name == name {
+			return g.Src
+		}
+	}
+	panic("flow conformance: no run-value grammar " + name)
+}
+
 // flowOtherTargets are not printed for Go, which the test checks instead.
 
 // flowConformCase is a grammar, the options it is generated with and the inputs its parser runs on,
@@ -142,9 +152,15 @@ rule id = [a-z]+ ";"
 	// site that builds values and is keyed by a variable, through both forms of the parser.
 	{name: "runsites", src: codegentest.RunSiteGrammars[0].Src,
 		inputs: []string{strings.Repeat("x", 300) + "z", strings.Repeat("xxq", 100) + "y", strings.Repeat("xyq", 40), "xq"}},
-	{name: "runvalues", src: codegentest.RunValueGrammars[6].Src, opts: common.GenOptions{Types: true},
+	{name: "runvalues", src: runValueGrammar("two environments at one position"), opts: common.GenOptions{Types: true},
 		inputs:  []string{strings.Repeat("xxxq?xxxq!", 30), strings.Repeat("x", 200) + "q?" + strings.Repeat("x", 100) + "w!", "xxxq!"},
 		entries: []string{flowConformParse, "_, err = ParseValue(in, opts...)"}},
+	// Run sites whose elements may be empty and repeat a minimum number of times, and whose walks run
+	// under lookahead before the walk of a list, capturing and testing the value there.
+	{name: "runmin", src: runValueGrammar("minimum and empty elements"),
+		inputs: []string{strings.Repeat("xy", 150) + "!", strings.Repeat("x", 200) + "z", strings.Repeat("xyx!", 60) + "q"}},
+	{name: "runlook", src: runValueGrammar("lookahead walks before lists"),
+		inputs: []string{strings.Repeat("ab", 150) + "!", strings.Repeat("a", 200) + "?" + strings.Repeat("ab", 100) + ",", strings.Repeat("aba?", 60)}},
 }
 
 // flowOtherTargets are the operations that the Go printer never prints, with the reason; the test
@@ -460,6 +476,9 @@ func TestProbe(t *testing.T) {
 // entries that recording one expectation compares at the farthest failure.
 const flowConformExps = 16
 
+// flowConformSlots is the most capture slots of a frame of flowConformCases.
+const flowConformSlots = 4
+
 // flowConformKeyVars is the most variables that key the records of a run site of flowConformCases.
 const flowConformKeyVars = 1
 
@@ -486,7 +505,8 @@ const flowUnbounded = 1 << 30
 //   - text: the length of the result;
 //   - key: hashing, comparing and binding the values of the variables of a run key
 //     (flowConformKeyVars), each at most the input and a constant;
-//   - records, walk_vals: one for each position of the input.
+//   - records, walk_vals: one for each position of the input;
+//   - trail: flowConformSlots for each position of the input.
 func flowBound(in *ref.Input, o *code.Op, c *code.Call, e *flowEvent) int {
 	exps := 1
 	for _, i := range []int{0, 1} {
@@ -544,6 +564,10 @@ func flowBound(in *ref.Input, o *code.Op, c *code.Call, e *flowEvent) int {
 			// The variables of the key of a run site of flowConformCases hold values no longer than the
 			// input; hashing, comparing and binding each charges at most its bytes and a constant.
 			q = 3 * flowConformKeyVars * (in.Len() + 8)
+		case flow.QTrail:
+			// An iteration that writes a capture slot again consumes input, so at most
+			// flowConformSlots writes for each position follow a mark.
+			q = flowConformSlots * (in.Len() + 1)
 		case flow.QRecords:
 			q = in.Len() + 1
 		case flow.QWalkVals:
