@@ -266,7 +266,7 @@ parser (see [typescript.md](typescript.md)). `-g` is required (except with `-lib
 types come from the dropped actions.
 `-optimize <profile>` selects an optimization profile (`speed`, the default, `memory` or `size`), `-opt <name>[=<count>][,...]`
 turns on an optimization that the profile leaves off or sets a count, `-no-opt <name>[,<name>]`
-turns named optimizations off, and `-print-after <pass>[,<pass>]` writes the Core IR, Flow IR or Exec IR to standard
+turns named optimizations off, and `-print-after <pass>[,<pass>]` writes the Core IR or Code IR at the Flow or Exec stage to standard
 error after the named steps and passes. None of them changes what the generated parser returns; the names are in
 [Optimizations](code-generation.md#optimizations). They cannot be combined with `-lib only`.
 

@@ -1,10 +1,10 @@
 # Compositions
 
-A composition is a function of Exec IR that every runtime shares: an algorithm that each runtime would otherwise
-write for itself, written once over the operations of the parser VM. A composition declares the features it can be
+A composition is a function of Code IR at the Exec stage that every runtime shares: an algorithm that each runtime would otherwise
+write for itself, written once over the operations of the abstract machine. A composition declares the features it can be
 specialized for, and a runtime prints the specializations it needs (see [Specializations](#specializations)). The
 compositions are listed below by the mechanism they write, each with its declaration as the
-[text form](text-form.md#catalog-entries) writes it and its meaning.
+[text form](printing.md#catalog-entries) writes it and its meaning.
 
 ## Calls
 
@@ -129,7 +129,7 @@ A runtime may print one composition for several sets, and the generated Go runti
 node and its typed values separately.
 
 Each row lists, for one composition, the feature sets of the specializations that each runtime prints, in the
-form of the [text form](text-form.md#catalog-entries); `[]` is the specialization with every feature off. The engine's
+form of the [text form](printing.md#catalog-entries); `[]` is the specialization with every feature off. The engine's
 row includes what its backends print into packages of their own.
 
 | Composition | Generated Go, nodes | Generated Go, typed values | The engine | TypeScript |

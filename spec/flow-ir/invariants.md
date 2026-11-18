@@ -1,7 +1,9 @@
 # Invariants
 
-A function of Flow IR is well formed when it satisfies the rules of this chapter, from lowering on. Verification checks
-them and reports the first violation it finds; every function that lowering from Core IR produces is verified.
+A function at the Flow stage is well formed when it satisfies the rules of [Code IR](../code-ir/invariants.md) and those of
+this chapter, from lowering on. The Flow verifier first applies the verification of Code IR to the module, which requires that it hold only operations of
+the Flow and Action dialects, and then checks each function against the rules of this chapter; it reports the first
+violation it finds in a function, naming the function. Every function that lowering from Core IR produces is verified.
 
 ## Structure
 

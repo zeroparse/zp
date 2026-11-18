@@ -1,7 +1,7 @@
-# Values
+# Values: The Action Dialect
 
 The component `value` holds the operations on the values of terms: actions, predicates and the values of bindings.
-They read and write no state of the parse. A value is a datum of the host, opaque to the rest of the parser VM; these
+They read and write no state of the parse. A value is a datum of the host, opaque to the rest of the abstract machine; these
 operations look inside it. Each acts on one kind of value and has none of the policy of an operator of the grammar:
 the compositions `binary`, `unary`, `equal`, `index`, `logic`, `member`, `push`, `pushItems`, `items`, `itemAt`, `filterKeep`, `length`, `text`, `convert`, `cover`, `made` and `hull` (see
 [Compositions](compositions.md#terms)) decide which operation applies, which operands are valid and which failure a term

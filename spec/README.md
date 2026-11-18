@@ -17,8 +17,9 @@ they link to nothing else.
 | [Grammar Language](language/README.md) | The syntax and meaning of `.zp` grammar files: lexical structure, types, rule expressions, Operators Rules, predicates, actions, attributes, pragmas and the checks the compiler applies |
 | [Parser and Runtime](runtime/README.md) | Parsing input with a grammar: positions, results, errors, the node model, Documents, streaming, tracing and profiling, compiled grammars, generated parsers, output schemas and the linter |
 | [Core IR](core-ir/README.md) | The intermediate representation of a checked grammar: its modules, nodes, action expressions, effects, invariants and text form |
-| [Flow IR](flow-ir/README.md) | The form of a rule that says how a parser runs it: functions of structured control over primitives on the state of a parse, their invariants and text form |
-| [Exec IR](exec-ir/README.md) | The parser VM and its programs: the state of a parse, the operations on it with their contracts, the functions over them, the compositions every runtime shares, and their lowering, passes and printing |
+| [Code IR](code-ir/README.md) | The base of the form that a grammar is compiled to: modules, functions of structured code, dialects and stages, invariants and text form |
+| [Flow Dialect](flow-ir/README.md) | The operations that say how a parser runs a rule, at the Flow stage of Code IR: functions, operations, invariants and passes |
+| [Exec Dialect](exec-ir/README.md) | The abstract machine and its programs, at the Exec stage of Code IR: the state of a parse, the operations on it with their contracts, the compositions every runtime shares, and their conversion, passes and printing |
 | [Bytecode](bytecode/README.md) | The portable bytecode that a grammar compiles to, the virtual machine that runs it and the `.zpc` file format |
 | [Proofs](proofs/README.md) | That the results the runtimes reuse are those that evaluating again would give, and the cost bounds of the mechanisms of reuse |
 

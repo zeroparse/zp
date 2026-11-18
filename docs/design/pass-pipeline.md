@@ -123,7 +123,7 @@ declarations.
 
 A lowering is a pass whose result is in another dialect or another IR. It declares its input stage and its output stage,
 preserves no analysis, and has a postcondition: the verifier of its output stage, which always runs right after the
-lowering, so that an error names the lowering. After `execlower`, for example, no Flow operation remains. A lowering is
+lowering, so that an error names the lowering. After `execlower`, for example, no Flow operation remains, which verification at the Exec stage checks because a module at a stage declares only operations of the dialects legal at it. A lowering is
 a required pass: it has a name in the registry and the dumps can name it, but no flag or profile turns it off, because
 the stages after it need its output. Making it a pass gives it the registry, the dumps and the verification that every
 other step of the compiler has, and keeps the order of the whole compilation in one pipeline.
@@ -266,7 +266,7 @@ diagnosis ask for this; it costs compile time and changes no output.
 A run can also **dump** the module as text after a stage or after a pass. The `-print-after` flag of the gen command
 takes the stage names `core`, `flow` and `exec`, the names of passes, and `all` for every stage and pass, and prints to
 standard error. The stage names are points in the one pipeline: `core` is Core IR before the first Core pass, `flow` is
-the Flow stage as `flowlower` produced it, and `exec` is the Exec stage as `execlower` produced it. A pass that did not
+the Flow stage as `flowlower` produced it, and `exec` is the Exec stage as `execlower` converted it. A dump of a stage prints each function as a listing of Code IR, with the header lines of each dump unchanged. A pass that did not
 apply prints nothing, which is itself information: the dump is the way to see why an optimization did not happen for a
 parser.
 
