@@ -66,7 +66,8 @@ const (
 	// in a table of the line starts, and, at the first error of a parse of a whole input, one unit for
 	// each code point of the input, which builds that table (spec/runtime/parsing.md#cost).
 	QError = "error"
-	// QRanges is the number of ranges of the operation's class.
+	// QRanges is the number of ranges of the operation's class: of the immediate *core.Class, or of
+	// the class of the immediate *core.First, 0 for a literal.
 	QRanges = "ranges"
 	// QCaptures is the number of the capture names of the scope whose captures the call attaches.
 	QCaptures = "captures"
@@ -521,8 +522,8 @@ what recording the expectation charges.`}),
 		"the class (*core.Class)", immOf[*core.Class]())
 	withImm(op(&code.Op{Name: OpInClass, Params: []code.Param{P("ch", runeT)}, Results: []code.Type{b}, Cost: per(QRanges),
 		Contract: "Reports whether the code point ch is in the class. With budget controls it charges at most a unit for each range of the class that it compares, a constant of the grammar for the character examined (spec/runtime/parsing.md#cost).", Laws: []string{pure}}), "the class (*core.Class)", immOf[*core.Class]())
-	withImm(op(&code.Op{Name: OpGuardFails, Params: []code.Param{P("ch", runeT), P("more", b)}, Results: []code.Type{b},
-		Contract: "Reports that the guard skips its alternative: the character that more (there is one) and ch describe cannot begin it, and the nesting limit allows the guard's depth of calls.",
+	withImm(op(&code.Op{Name: OpGuardFails, Params: []code.Param{P("ch", runeT), P("more", b)}, Results: []code.Type{b}, Cost: per(QRanges),
+		Contract: "Reports that the guard skips its alternative: the character that more (there is one) and ch describe cannot begin it, and the nesting limit allows the guard's depth of calls. Testing the character against a class charges a unit for each range it tests (spec/runtime/parsing.md#cancellation-and-compute-limits); a literal's character charges nothing.",
 		Laws:     []string{pure}}), "the guard (*core.First)", immOf[*core.First]())
 	withImm(op(&code.Op{Name: OpAtAnchor, Results: []code.Type{b}, Reads: pos, Cost: unit,
 		Contract: "Reports whether the position is at the anchor. Reading the character at the position for the end of a line charges a unit (spec/runtime/parsing.md#cost).", Laws: []string{pure}}), "the anchor (core.AnchorKind)", immOf[core.AnchorKind]())

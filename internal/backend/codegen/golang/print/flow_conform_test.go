@@ -137,6 +137,14 @@ rule main = (kw / id)* $$
 rule kw = "if" / "else"
 rule id = [a-z]+ ";"
 `, opts: common.GenOptions{Observability: true}, inputs: []string{"if;else", "abc;if"}},
+	// The run sites of codegentest.RunSiteGrammars and RunValueGrammars, on inputs long enough that
+	// their walks go back over RunHotSpan of input and the sites turn hot: a value-free site, and a
+	// site that builds values and is keyed by a variable, through both forms of the parser.
+	{name: "runsites", src: codegentest.RunSiteGrammars[0].Src,
+		inputs: []string{strings.Repeat("x", 300) + "z", strings.Repeat("xxq", 100) + "y", strings.Repeat("xyq", 40), "xq"}},
+	{name: "runvalues", src: codegentest.RunValueGrammars[6].Src, opts: common.GenOptions{Types: true},
+		inputs:  []string{strings.Repeat("xxxq?xxxq!", 30), strings.Repeat("x", 200) + "q?" + strings.Repeat("x", 100) + "w!", "xxxq!"},
+		entries: []string{flowConformParse, "_, err = ParseValue(in, opts...)"}},
 }
 
 // flowOtherTargets are the operations that the Go printer never prints, with the reason; the test
@@ -452,6 +460,9 @@ func TestProbe(t *testing.T) {
 // entries that recording one expectation compares at the farthest failure.
 const flowConformExps = 16
 
+// flowConformKeyVars is the most variables that key the records of a run site of flowConformCases.
+const flowConformKeyVars = 1
+
 // flowUnbounded is the value of a quantity that the bound does not check.
 const flowUnbounded = 1 << 30
 
@@ -472,7 +483,10 @@ const flowUnbounded = 1 << 30
 //   - error_text: the bytes of the message and one for each of its parts;
 //   - ranges: of the immediate; captures: its names, and capture_fields their square;
 //   - stream: four for each code point of the input and a constant;
-//   - text: the length of the result.
+//   - text: the length of the result;
+//   - key: hashing, comparing and binding the values of the variables of a run key
+//     (flowConformKeyVars), each at most the input and a constant;
+//   - records, walk_vals: one for each position of the input.
 func flowBound(in *ref.Input, o *code.Op, c *code.Call, e *flowEvent) int {
 	exps := 1
 	for _, i := range []int{0, 1} {
@@ -503,7 +517,14 @@ func flowBound(in *ref.Input, o *code.Op, c *code.Call, e *flowEvent) int {
 		case flow.QError:
 			q = exps*(2+2*bits.Len(uint(exps))) + in.Len() + bits.Len(uint(in.Len())) + 1
 		case flow.QRanges:
-			q = len(c.Imm.(*core.Class).Ranges)
+			switch x := c.Imm.(type) {
+			case *core.Class:
+				q = len(x.Ranges)
+			case *core.First:
+				if !x.Lit {
+					q = len(x.Class.Ranges)
+				}
+			}
 		case flow.QCaptures:
 			q = len(c.Imm.(flow.Attach).Names.List)
 		case flow.QCaptureFields:
@@ -519,6 +540,14 @@ func flowBound(in *ref.Input, o *code.Op, c *code.Call, e *flowEvent) int {
 			if msg, ok := e.Args[1].(string); ok {
 				q = len(msg) + strings.Count(msg, ", ") + 4
 			}
+		case flow.QKey:
+			// The variables of the key of a run site of flowConformCases hold values no longer than the
+			// input; hashing, comparing and binding each charges at most its bytes and a constant.
+			q = 3 * flowConformKeyVars * (in.Len() + 8)
+		case flow.QRecords:
+			q = in.Len() + 1
+		case flow.QWalkVals:
+			q = in.Len() + 1
 		default:
 			panic("flow conformance: no value of the quantity " + t.Quantity)
 		}

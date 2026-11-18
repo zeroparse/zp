@@ -61,7 +61,7 @@ the Exec stage and the backends rely on.
 | `flow.matchLit` |  | value, bool | `lit` | Matches the literal at the position and moves past it, recording its expectation on failure. Its results are its value (not used) and whether it matched; on failure the position is unchanged. |
 | `flow.matchClass` |  | bool | `class` | Matches one character of the class through its membership table and moves past it, recording the class's expectation on failure; reports whether it matched. |
 | `flow.inClass` | ch rune | bool | `class` | Reports whether the code point ch is in the class. |
-| `flow.guardFails` | ch rune, more bool | bool | `first` | Reports that the guard skips its alternative: the character that more (there is one) and ch describe cannot begin it, and the nesting limit allows the guard's depth of calls. |
+| `flow.guardFails` | ch rune, more bool | bool | `first` | Reports that the guard skips its alternative: the character that more (there is one) and ch describe cannot begin it, and the nesting limit allows the guard's depth of calls. Testing the character against a class charges a unit for each range it tests ([Cancellation and Compute Limits](../runtime/parsing.md#cancellation-and-compute-limits)); a literal's character charges nothing. |
 | `flow.atAnchor` |  | bool | `anchorkind` | Reports whether the position is at the anchor. |
 | `flow.skipTerminal` |  | bool | `terminal` | Runs the terminal region as one program from the position and reports whether it matched; on a match the position moves past it. |
 | `flow.skipClasses` |  | bool | `classrun` | Matches the classes of the run in turn and reports whether they matched; on a match the position moves past them. On failure the position is past the classes that matched, at the one that did not, whose expectation it records there; the code that fails returns to its mark. |
@@ -144,7 +144,7 @@ value charges a unit for it, as [Cost](../runtime/parsing.md#cost) requires. An 
 | `lit` | The code points of the operation's literal. |
 | `classes` | The classes of the operation's class run. |
 | `terminal` | The steps of the operation's terminal program. |
-| `ranges` | The ranges of the operation's class that a membership test compares. |
+| `ranges` | The ranges of the operation's class that a membership test compares: of the class of the immediate, or of the class that a guard tests first (none for a literal). |
 | `body` | The units that the body of a called rule, or the code of a predicate, binding or action, charges. |
 | `text` | The code points of the input that a value copies: in a [stream](../runtime/streaming.md) parse, the length of a text. |
 | `merge` | The units of the compositions over the expectation record (`expect`, `keep` and `mergeExpected`) for the expectations that the call records, keeps or merges, as the quantity `merge` of the [Exec dialect](../exec-ir/machine.md#quantities) measures them. |
