@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // Check checks g into its static program (compile.CheckCanonical) with the rule facts and the site
@@ -20,56 +21,90 @@ import (
 // (compile.Program.Flags), and the sites are numbered with them. A non-nil control polls for
 // cancellation.
 func Check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*compile.Program, error) {
+	prog, _, err := CheckStructural(g, opts, flags, names, control)
+	return prog, err
+}
+
+// Structural is the untyped Core IR module of the canonical rules of a grammar, from which Check
+// takes the rule facts, with the manager of its analyses, which holds those facts.
+type Structural struct {
+	// Canonical is the grammar as the compiler canonicalized it; Rules are its unique rules, in
+	// the order of the rules of Module.
+	Canonical *compile.Canonical
+	Rules     []*grammar.RuleDef
+	// Module is nil if the grammar has an error that keeps it from being built.
+	Module *core.Module
+	// Origin maps the nodes of Module to the expressions they were built from.
+	Origin   map[core.Node]grammar.Expr
+	Analyses *pass.AnalysisManager[*core.Module]
+	// failure is why Module is nil: an error or the value of a panic.
+	failure any
+}
+
+// Facts returns the rule facts of the module, through its analyses.
+func (s *Structural) Facts() *corepass.Facts { return corepass.FactsOf(s.Analyses, s.Module) }
+
+// CheckStructural is Check that also returns the structural module the facts were taken from, so
+// that a caller reads them without building the module and computing them again. The module is
+// returned with an error too, unless canonicalization failed.
+func CheckStructural(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*compile.Program, *Structural, error) {
+	s, err := buildStructural(g, opts, names, control)
+	if err != nil {
+		return nil, nil, err
+	}
+	var facts *compile.RuleFacts
+	if s.Module != nil {
+		facts = ruleFacts(s.Module, s.Facts(), s.Origin, s.Rules)
+	} else {
+		// The module cannot be built from a grammar with an error that the compiler reports, such
+		// as a malformed attribute. The rules then take no facts, so that the compiler still
+		// reports every error it finds.
+		facts = &compile.RuleFacts{Rules: make([]compile.RuleFact, len(s.Rules))}
+	}
+	prog, err := compile.CheckCanonical(s.Canonical, opts, flags, names, facts, control)
+	if err != nil {
+		return nil, s, err
+	}
+	if s.failure != nil {
+		// A grammar that the compiler accepts has a module: the failure is a bug, which keeps
+		// its own error or panic.
+		if f, ok := s.failure.(error); ok {
+			return nil, s, f
+		}
+		panic(s.failure)
+	}
+	prog.SetSites(sites(s.Module, prog, s.Origin, control))
+	return prog, s, nil
+}
+
+// buildStructural canonicalizes g and builds the untyped Core IR module of its unique rules. A
+// grammar the compiler rejects may fail to build: the failure, an error or the value of a panic,
+// is kept for CheckStructural to report only if the compiler accepts the grammar. A cancellation
+// is not a failure and unwinds.
+func buildStructural(g *grammar.Grammar, opts compile.Options, names desugar.InlineNames, control *cancel.Control) (*Structural, error) {
 	canon, err := compile.Canonicalize(g, opts, names, control)
 	if err != nil {
 		return nil, err
 	}
 	defs, _ := desugar.UniqueRules(canon.Grammar, control)
-	origin := map[core.Node]grammar.Expr{}
-	m, failure := structural(canon, defs, origin)
-	var facts *compile.RuleFacts
-	if failure == nil {
-		facts = ruleFacts(m, corepass.Compute(m, control), origin, defs)
-	} else {
-		// The module cannot be built from a grammar with an error that the compiler reports, such
-		// as a malformed attribute. The rules then take no facts, so that the compiler still
-		// reports every error it finds.
-		facts = &compile.RuleFacts{Rules: make([]compile.RuleFact, len(defs))}
-	}
-	prog, err := compile.CheckCanonical(canon, opts, flags, names, facts, control)
-	if err != nil {
-		return nil, err
-	}
-	if failure != nil {
-		// A grammar that the compiler accepts has a module: the failure is a bug, which keeps
-		// its own error or panic.
-		if f, ok := failure.(error); ok {
-			return nil, f
-		}
-		panic(failure)
-	}
-	prog.SetSites(sites(m, prog, origin, control))
-	return prog, nil
-}
-
-// structural builds the untyped Core IR module of defs, the unique rules of canon, recording the
-// grammar expression of each node in origin. A grammar the compiler rejects may fail to build: the
-// failure, an error or the value of a panic, is returned for Check to report only if the compiler
-// accepts the grammar. A cancellation is not a failure and unwinds.
-func structural(canon *compile.Canonical, defs []*grammar.RuleDef, origin map[core.Node]grammar.Expr) (m *core.Module, failure any) {
-	defer func() {
-		if r := recover(); r != nil {
-			if _, ok := r.(cancel.Cancellation); ok {
-				panic(r)
+	s := &Structural{Canonical: canon, Rules: defs, Origin: map[core.Node]grammar.Expr{}, Analyses: corepass.NewAnalyses(control)}
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if _, ok := r.(cancel.Cancellation); ok {
+					panic(r)
+				}
+				s.Module, s.failure = nil, r
 			}
-			m, failure = nil, r
+		}()
+		m, err := elaborate.Structural(compile.StructuralInput(canon.Grammar, defs, canon.Starts), s.Origin)
+		if err != nil {
+			s.failure = err
+			return
 		}
+		s.Module = m
 	}()
-	m, err := elaborate.Structural(compile.StructuralInput(canon.Grammar, defs, canon.Starts), origin)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return s, nil
 }
 
 // ruleFacts returns the facts that the compiler reads, of the module m of the rules defs, whose

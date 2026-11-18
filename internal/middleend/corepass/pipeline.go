@@ -11,7 +11,7 @@ import (
 // pass has the name of the flag that turns it off.
 
 // AttributesAnalysis is the analysis that core.Analyze computes: Nullable, First and Eff of every node.
-// A pass that adds or replaces nodes makes it stale.
+// A pass that adds or replaces nodes makes it stale; a pass preserves it only by saying so.
 const AttributesAnalysis pass.Analysis = "attributes"
 
 // Stage is the name of the Core IR module as the front end built it, before the first Core pass:
@@ -68,10 +68,9 @@ func (e *Env) On(name string) bool { return e.Flag == nil || e.Flag(name) }
 var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 	Passes: []pass.Pass[*core.Module, *Env]{
 		{
-			Name:        PassTerminals,
-			Invalidates: []pass.Analysis{AttributesAnalysis},
-			Obligation:  "Consumes the same input and records the same expectations as the expression it replaces.",
-			Applies:     func(e *Env) bool { return e.Mode.Lean && !e.Mode.Observe },
+			Name:       PassTerminals,
+			Obligation: "Consumes the same input and records the same expectations as the expression it replaces.",
+			Applies:    func(e *Env) bool { return e.Mode.Lean && !e.Mode.Observe },
 			Run: func(m *core.Module, e *Env) error {
 				if e.Local == nil {
 					return fmt.Errorf("no rule predicate")
@@ -85,7 +84,9 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 			// Guards read the First sets that Analyze computes. Without them the alternatives of a choice
 			// get no first-character guard and the Flow form calls the rules of the later alternatives at
 			// every position (duckdb: block_comment, 84,000 calls against none), and nothing reports it.
-			Requires:   []pass.Analysis{AttributesAnalysis},
+			Requires: []pass.Analysis{AttributesAnalysis},
+			// Guards mark the alternatives of choices and add no node: the attributes hold.
+			Preserves:  pass.Preserve(string(AttributesAnalysis)),
 			After:      []string{PassTerminals},
 			Obligation: "A guard is the first terminal of its alternative, which the alternative cannot match without.",
 			Run: func(m *core.Module, e *Env) error {
@@ -96,9 +97,8 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 		{
 			Name: PassScans,
 			// A Stream is replaced as its repetition only where it delivers no elements (Eff).
-			Requires:    []pass.Analysis{AttributesAnalysis},
-			Invalidates: []pass.Analysis{AttributesAnalysis},
-			Obligation:  "Consumes the same input and records the same expectations as the repetition it replaces.",
+			Requires:   []pass.Analysis{AttributesAnalysis},
+			Obligation: "Consumes the same input and records the same expectations as the repetition it replaces.",
 			Run: func(m *core.Module, e *Env) error {
 				var finish func()
 				if e.PrepareScans != nil {
@@ -112,11 +112,10 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 			},
 		},
 		{
-			Name:        PassClassRuns,
-			After:       []string{PassGuards},
-			Invalidates: []pass.Analysis{AttributesAnalysis},
-			Obligation:  "Consumes the same input and records the same expectations as the classes it replaces; the first class of a guarded alternative is left alone.",
-			Applies:     func(e *Env) bool { return e.Mode.Lean },
+			Name:       PassClassRuns,
+			After:      []string{PassGuards},
+			Obligation: "Consumes the same input and records the same expectations as the classes it replaces; the first class of a guarded alternative is left alone.",
+			Applies:    func(e *Env) bool { return e.Mode.Lean },
 			Run: func(m *core.Module, _ *Env) error {
 				ClassRuns(m)
 				return nil

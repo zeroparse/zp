@@ -8,9 +8,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/frontend/elaborate"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // structuralErrors returns the errors that depend on the facts of g: they read the structure of the
@@ -19,18 +16,21 @@ import (
 // order of Facts.Errors, with the names of the hidden rules that inline actions generate shown as
 // written.
 func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.InlineNames, control *cancel.Control) diagnostic.ErrorList {
-	canon, err := compile.Canonicalize(g, opts, names, control)
+	s, err := buildStructural(g, opts, names, control)
 	if err != nil {
 		return nil
 	}
-	defs, _ := desugar.UniqueRules(canon.Grammar, control)
-	in := compile.StructuralInput(canon.Grammar, defs, canon.Starts)
-	origin := map[core.Node]grammar.Expr{}
-	m, err := elaborate.Structural(in, origin)
-	if err != nil {
+	return s.errors(opts, names)
+}
+
+// errors returns the structural errors of the module (structuralErrors), with the facts that its
+// analyses hold.
+func (s *Structural) errors(opts compile.Options, names desugar.InlineNames) diagnostic.ErrorList {
+	if s == nil || s.Module == nil {
 		return nil
 	}
-	f := corepass.Compute(m, control)
+	m, origin, defs := s.Module, s.Origin, s.Rules
+	f := s.Facts()
 	var out diagnostic.ErrorList
 	for _, e := range f.Errors(m, !opts.LeftRecursionBindings) {
 		var pos grammar.Pos

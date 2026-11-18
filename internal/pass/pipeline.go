@@ -1,22 +1,25 @@
 // Package pass runs declared passes over an IR unit, and holds the registry of the optimizations that
 // turn passes and other choices of the pipeline on and off (design 063).
 //
-// A Pass names itself, states the analyses it reads and the analyses it makes stale, the passes it
+// A Pass names itself, states the analyses it reads and the analyses it leaves valid, the passes it
 // must follow, the generation modes it applies to and what it preserves. A Pipeline is an ordered list
 // of passes. Run executes the enabled, applicable passes in that order: before each pass it makes the
-// pass's required analyses valid, after it marks the invalidated ones stale, and it verifies the unit,
-// once at the end or after every pass. A pass that breaks an invariant is named in the error.
+// pass's required analyses valid, after it discards every analysis that the pass does not preserve
+// (an AnalysisManager, which the run may share with its caller), and it verifies the unit, once at
+// the end or after every pass. A pass that breaks an invariant is named in the error.
 //
 // The package knows nothing about the unit M or the context X that its callers choose: Core IR
 // (internal/middleend/corepass, Pipeline), Flow IR (internal/ir/flow, Pipeline) and Exec IR
 // (internal/middleend/codepass, Pipeline) use it. It holds no state between runs; the registry is filled once,
-// by the init functions of the parts that register flags. It imports no other package of the module.
+// by the init functions of the parts that register flags, and the analysis keys are declared once.
+// It imports no other package of the module.
 package pass
 
 import "fmt"
 
-// Analysis names data about a unit that passes read and that other passes make stale. The
-// pipeline's Analyses say how to compute each.
+// Analysis names data about a unit that the passes of a pipeline read and that other passes make
+// stale. The pipeline's Analyses say how to compute each; the run computes them through its
+// AnalysisManager under their names, which no AnalysisKey may take.
 type Analysis string
 
 // A Pass is one transformation of a unit M under the context X of the generation mode.
@@ -26,8 +29,10 @@ type Pass[M, X any] struct {
 	Name string
 	// Requires lists the analyses that must be valid when the pass starts.
 	Requires []Analysis
-	// Invalidates lists the analyses that the pass makes stale.
-	Invalidates []Analysis
+	// Preserves is the set of analyses, of the pipeline and of the AnalysisManager of the run,
+	// that the pass leaves valid. The zero value preserves none: an analysis that a pass does not
+	// declare is computed again, never read stale.
+	Preserves PreservedSet
 	// After lists the passes that must precede this one in the pipeline. It orders passes that
 	// share no data (an analysis would otherwise order them).
 	After []string
@@ -71,6 +76,10 @@ type Options[M any] struct {
 	// BuiltVerified reports that the builder of the unit has verified it, so that a run in which no
 	// pass ran does not verify it again.
 	BuiltVerified bool
+	// Analyses, if not nil, is the manager of the analyses of the unit that the run shares with
+	// its caller: the run reads and keeps its analyses there, and discards those that a pass does
+	// not preserve. Nil runs with a manager of its own.
+	Analyses *AnalysisManager[M]
 }
 
 // Validate checks the declarations: names are distinct and non-empty, every analysis a pass or
@@ -126,21 +135,29 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 	if o.Dump != nil && o.Stage == "" {
 		return nil, fmt.Errorf("a run with a dump names no stage for the unit as it reaches the first pass")
 	}
-	// Every analysis starts stale: a unit comes from the builder without them.
-	valid := map[Analysis]bool{}
-	ensure := func(as []Analysis) {
+	am := o.Analyses
+	if am == nil {
+		am = NewAnalysisManager[M](nil)
+	}
+	ensure := func(as []Analysis) error {
 		for _, a := range as {
-			if !valid[a] {
-				p.Analyses[a](m)
-				valid[a] = true
+			run := p.Analyses[a]
+			if _, err := getNamed(am, m, string(a), func(m M, _ *AnalysisManager[M]) (any, error) {
+				run(m)
+				return nil, nil
+			}); err != nil {
+				return err
 			}
 		}
+		return nil
 	}
 	verify := func(who string) error {
 		if p.Verify == nil {
 			return nil
 		}
-		ensure(p.VerifyRequires)
+		if err := ensure(p.VerifyRequires); err != nil {
+			return fmt.Errorf("%s: %w", who, err)
+		}
 		if err := p.Verify(m); err != nil {
 			return fmt.Errorf("%s: %w", who, err)
 		}
@@ -154,13 +171,13 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 		if o.Enabled != nil && !o.Enabled(ps.Name) || ps.Applies != nil && !ps.Applies(x) {
 			continue
 		}
-		ensure(ps.Requires)
+		if err := ensure(ps.Requires); err != nil {
+			return ran, fmt.Errorf("pass %s: %w", ps.Name, err)
+		}
 		if err := ps.Run(m, x); err != nil {
 			return ran, fmt.Errorf("pass %s: %w", ps.Name, err)
 		}
-		for _, a := range ps.Invalidates {
-			valid[a] = false
-		}
+		am.Invalidate(ps.Preserves)
 		ran = append(ran, ps.Name)
 		if o.Dump != nil {
 			o.Dump(ps.Name, m)

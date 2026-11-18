@@ -106,5 +106,5 @@ func costSource(g *grammar.Grammar, rules []*grammar.RuleDef, control *cancel.Co
 	if err != nil {
 		return nil, err
 	}
-	return &Source{Module: m, Origin: origin, Facts: corepass.Compute(m, control)}, nil
+	return &Source{Module: m, Origin: origin, Facts: corepass.FactsOf(corepass.NewAnalyses(control), m)}, nil
 }
