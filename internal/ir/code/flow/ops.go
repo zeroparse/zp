@@ -63,6 +63,9 @@ const (
 	OpDropKids        = "flow.dropKids"
 	OpStreamStart     = "flow.streamStart"
 	OpSkipBegin       = "flow.skipBegin"
+	OpRunBegin        = "flow.runBegin"
+	OpSkipValue       = "flow.skipValue"
+	OpRunWalked       = "flow.runWalked"
 	OpSkipVisit       = "flow.skipVisit"
 	OpSkipEnd         = "flow.skipEnd"
 	OpScanEnd         = "flow.scanEnd"
@@ -86,6 +89,8 @@ const (
 	OpKidsLen         = "flow.kidsLen"
 	OpStreamOn        = "flow.streamOn"
 	OpSkipHit         = "flow.skipHit"
+	OpRunHot          = "flow.runHot"
+	OpSkipKids        = "flow.skipKids"
 	OpScanReach       = "flow.scanReach"
 	OpScanKids        = "flow.scanKids"
 	OpHasLit          = "flow.hasLit"
@@ -113,6 +118,7 @@ const (
 	OpShapeCapture    = "flow.shapeCapture"
 	OpScopeValue      = "flow.scopeValue"
 	OpAttachCaptures  = "flow.attachCaptures"
+	OpAttachFrame     = "flow.attachFrame"
 	OpMarkState       = "flow.markState"
 	OpMarkPos         = "flow.markPos"
 	OpNewFrame        = "flow.newFrame"
@@ -142,6 +148,15 @@ type Silence struct {
 
 // Site is the immediate of the operations of skip-run and scan sites: the site's number.
 type Site int
+
+// RunWalk is the immediate of flow.runBegin: the run site, whether its iterations have values
+// (flow.skipValue), which flow.skipKids gathers in a list, and whether its records are keyed by the
+// values of the variables of the site's run key (program.RunKey), which the printed parser holds; a
+// site free of the environment (core.Repeat.RunEnvFree) is keyed by the position alone.
+type RunWalk struct {
+	Site          int
+	Build, KeyEnv bool
+}
 
 // Slot is the immediate of flow.setCapture and flow.frameVal: a capture slot of a frame.
 type Slot int
@@ -178,9 +193,8 @@ type List bool
 // Room is the immediate of flow.newVals: the room of the new list.
 type Room int
 
-// Attach is the immediate of flow.attachCaptures: the slot names of the scope, and whether the
-// captures are the values of a frame (the last argument) instead of variables (the arguments after
-// the first two).
+// Attach is the immediate of flow.attachCaptures and flow.attachFrame: the slot names of the scope,
+// and whether the captures are the values of a frame (flow.attachFrame) instead of variables.
 type Attach struct {
 	Names *Names
 	Frame bool
@@ -325,10 +339,27 @@ parse examined the input.`})
 	withImm(op(&code.Op{Name: OpSkipBegin, Writes: []string{State},
 		Contract: "Begins a walk of the skip-run site at the position: the iterations that follow are its visits, until flow.skipEnd."}),
 		"the site (Site)", immOf[Site]())
+	withImm(op(&code.Op{Name: OpRunBegin, Writes: []string{State},
+		Contract: `Begins a walk of the hot run site at the position, as flow.skipBegin does for a skip-run site: the
+iterations that follow are its visits, until flow.skipEnd or flow.skipKids. With Build its iterations have
+values, which flow.skipValue adds and flow.skipKids gathers in a list; with KeyEnv its records are kept for
+the position and the values of the variables of the site's key, otherwise for the position alone.`,
+		Requires: "flow.runHot of the site holds."}),
+		"the walk (RunWalk)", immOf[RunWalk]())
+	op(&code.Op{Name: OpSkipValue, Params: []code.Param{P("x", value)}, Writes: []string{State},
+		Contract: `Adds the value x of the iteration that matched to the walk begun with Build, and marks x, if it is a
+node, as no longer owned by its maker: the records of the walk share it.`,
+		Requires: "the walk in progress was begun with Build."})
 	op(&code.Op{Name: OpSkipVisit, Reads: pos, Writes: []string{State},
 		Contract: "Ends the iteration of the walk before, if any, and begins one at the position."})
 	op(&code.Op{Name: OpSkipEnd, Reads: pos, Writes: []string{State},
 		Contract: "Ends the iteration of the walk before, if any, ends the walk and records the rest of it from each position it visited."})
+	withImm(op(&code.Op{Name: OpRunWalked, Params: []code.Param{P("start", i)}, Reads: pos, Writes: []string{State},
+		Contract: `Ends the walk of the run site that was not hot (flow.runHot), which began at start and ends at the
+position: a walk that began below the furthest position that the walks of the site passed, and walked
+RunHotSpan or more of the input below it, turns the site hot; the furthest position then moves to the
+position. A walk shorter than RunHotSpan changes nothing.`,
+		Requires: "start is at most the position."}), "the site (Site)", immOf[Site]())
 	withImm(op(&code.Op{Name: OpScanEnd, Params: []code.Param{P("start", i), P("count", i)}, Reads: pos, Writes: []string{State},
 		Contract: `Ends a walk of the value-free scan site that began at start and matched count characters, at least
 ScanHotSpan: unless the walk took the rest from a record, it records itself at a hot site, or notes that it
@@ -375,6 +406,12 @@ walked at a site that is not hot.`}), "the site (Site)", immOf[Site]())
 		Contract: `Ends the iteration of the walk before, if any, and reports whether the walk has a record of the
 position; it then takes the rest of the walk from the record, which moves the position to its end, and the
 walk stops.`})
+	withImm(op(&code.Op{Name: OpRunHot, Results: []code.Type{b}, Laws: []string{pure},
+		Contract: `Reports whether the walks of the run site keep records, separately inside and outside lookaheads. A
+walk of a site that is not hot is an ordinary repetition, which flow.runWalked ends.`}), "the site (Site)", immOf[Site]())
+	op(&code.Op{Name: OpSkipKids, Results: []code.Type{vals}, Reads: pos, Writes: []string{State},
+		Contract: `Ends the walk begun with Build as flow.skipEnd does, and returns the child list of the values of its
+iterations, followed by those of the record it took, if any.`})
 	withImm(op(&code.Op{Name: OpScanReach, Params: []code.Param{P("start", i), P("count", i)}, Results: []code.Type{i}, Reads: pos, Writes: []string{State, Pos},
 		Contract: `For a walk of the scan site that began at start and has matched ScanHotSpan characters, count of
 them: at a hot site with a record of start it moves the position to the recorded end and returns the
@@ -399,7 +436,7 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 		Contract: "Reports whether the code point ch is in the class.", Laws: []string{pure}}), "the class (*core.Class)", immOf[*core.Class]())
 	withImm(op(&code.Op{Name: OpGuardFails, Params: []code.Param{P("ch", runeT), P("more", b)}, Results: []code.Type{b},
 		Contract: "Reports that the guard skips its alternative: the character that more (there is one) and ch describe cannot begin it, and the nesting limit allows the guard's depth of calls.",
-		Laws: []string{pure}}), "the guard (*core.First)", immOf[*core.First]())
+		Laws:     []string{pure}}), "the guard (*core.First)", immOf[*core.First]())
 	withImm(op(&code.Op{Name: OpAtAnchor, Results: []code.Type{b}, Reads: pos,
 		Contract: "Reports whether the position is at the anchor.", Laws: []string{pure}}), "the anchor (core.AnchorKind)", immOf[core.AnchorKind]())
 	withImm(op(&code.Op{Name: OpSkipTerminal, Results: []code.Type{b}, Reads: pos, Writes: []string{State, Pos}, NoReturn: true, Cost: per(QTerminal),
@@ -409,7 +446,7 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 		Contract: "Matches the classes of the run in turn and reports whether they matched; on a match the position moves past them."}),
 		"the class run (*core.ClassRun)", immOf[*core.ClassRun]())
 	withImm(op(&code.Op{Name: OpCallRule, Results: []code.Type{value, b}, Reads: all, Writes: all, NoReturn: true,
-		Cost: code.Cost{Const: 1, Terms: []code.CostTerm{{Coef: 1, Quantity: QBody}}},
+		Cost:     code.Cost{Const: 1, Terms: []code.CostTerm{{Coef: 1, Quantity: QBody}}},
 		Contract: "Calls the rule from the Operators Rule level. Its results are the rule's value and whether it matched; on a match the position is the end of the rule's match, on failure it is unchanged."}),
 		"the rule and the level (RuleCall)", immOf[RuleCall]())
 	withImm(op(&code.Op{Name: OpCallOutline, Results: []code.Type{value, b}, Reads: all, Writes: all, NoReturn: true, Cost: per(QBody),
@@ -452,9 +489,12 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 		"the shape (core.Shape)", immOf[core.Shape]())
 	withImm(op(&code.Op{Name: OpAttachCaptures, Params: []code.Param{P("x", value), P("start", i), P("caps", value)}, Variadic: true,
 		Results: []code.Type{value}, Reads: pos, Writes: []string{State},
-		Contract: `Returns x, matched from start, with the captures of the scope attached: the values caps of the
-scope's slots, or with Frame the values of the frame that is the only element of caps.`}),
+		Contract: "Returns x, matched from start, with the captures of the scope attached: the values caps of the scope's slots."}),
 		"the names and the source of the captures (Attach)", immOf[Attach]())
+	withImm(op(&code.Op{Name: OpAttachFrame, Params: []code.Param{P("x", value), P("start", i), P("f", frame)},
+		Results: []code.Type{value}, Reads: pos, Writes: []string{State},
+		Contract: "Returns x, matched from start, with the captures of the scope attached: the values of the frame f."}),
+		"the names, with Frame set (Attach)", immOf[Attach]())
 	withImm(op(&code.Op{Name: OpMarkState, Results: []code.Type{mark}, Reads: all, Writes: []string{State},
 		Contract: "Returns a mark of the parser state, which flow.reset returns to: the position, and the variable environment, the capture trail and the recovered errors as the immediate names them."}),
 		"the parts the mark restores (StateMark)", immOf[StateMark]())
@@ -491,4 +531,54 @@ scope's slots, or with Frame the values of the frame that is the only element of
 	op(&code.Op{Name: OpCtxFinish, Params: []code.Param{P("c", ctx), P("x", value)}, Results: []code.Type{value}, Writes: []string{State},
 		Contract: "Returns the value x of an action finished in the context c."})
 	return ops
+}
+
+// Attrs are the attributes of a function of grammar code at the Flow stage, which code.Func.Attrs
+// holds.
+type Attrs struct {
+	Rule *core.Rule
+	// Vars are the locals that are variables of the function, in the order they were made; the
+	// other locals are its entry variables Start, Result and Ctx (empty where it has none), which
+	// the caller declares.
+	Vars               []string
+	Start, Result, Ctx string
+	// Fail is the label of the block that the body leaves on failure.
+	Fail string
+	// Cut is the local of a framed function's cut flag, or empty.
+	Cut string
+	// Binds, Frame, Node, Budget, Document, Traced and Entered are as in Func.
+	Binds, Frame, Node, Budget, Document, Traced, Entered bool
+}
+
+// AttrsOf returns the Flow attributes of f, or nil.
+func AttrsOf(f *code.Func) *Attrs {
+	a, _ := f.Attrs.(*Attrs)
+	return a
+}
+
+// TypeOf returns the type of a variable of the Code IR type t at the Flow stage.
+func TypeOf(t code.Type) Type {
+	switch t.Kind {
+	case code.KInt:
+		return TypeInt
+	case code.KBool:
+		return TypeBool
+	}
+	for i, n := range typeNames {
+		if n == t.Handle {
+			return Type(i)
+		}
+	}
+	panic("flow: no variable type " + t.String())
+}
+
+// CodeType returns the Code IR type of a variable of the type t.
+func CodeType(t Type) code.Type {
+	switch t {
+	case TypeInt:
+		return code.TInt
+	case TypeBool:
+		return code.TBool
+	}
+	return code.THandle(t.String())
 }
