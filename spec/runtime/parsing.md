@@ -1290,7 +1290,15 @@ The conditions below use these terms.
   times, each such step starts a growth of `E` at the next position, whose
   own later step scans the rest of the `x` again, so the cost grows as n^2,
   although the path `"x"` that goes on at the start contains no scanning
-  source and shares its literal with the later alternative. A unit of another rule of the cycle is checked as an alternative that
+  source and shares its literal with the later alternative.
+  A unit of another rule of the cycle whose paths can go on at its start in
+  this way is checked as an alternative that is not growing on all its
+  paths, those through its left calls included, and not only on the paths
+  that go on at its start: in a later step of the growth its left call
+  reads the seed, the unit can fail after it, and the later alternatives of
+  its choice then run at the position where the rule grows. Moving the unit
+  of the example above into such a rule keeps the cost n^2, as in
+  `E = F; F = (E [x]* / "") "x" / "x" H; H = E ";"`. A unit of another rule of the cycle is checked as an alternative that
   is not growing also when a call that is not a left call, or one after
   something that can match nothing, evaluates its rule,
   directly or through left calls of rules of the cycle other than leaders:
