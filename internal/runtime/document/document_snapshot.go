@@ -9,10 +9,10 @@ import (
 	"strings"
 	"unsafe"
 	"weak"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	value "zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 )
@@ -351,7 +351,7 @@ func interruptsSnapshot(err error) bool {
 
 func (d *Document) snapshotWith(o state.ParseOptions, legacy **core.Node) (*Snapshot, error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
-		return nil, compile.MissingUnsupported("Document parsing")
+		return nil, program.MissingUnsupported("Document parsing")
 	}
 	var observed *snapshotContext
 	if o.Context != nil {

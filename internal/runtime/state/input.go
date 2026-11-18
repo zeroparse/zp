@@ -10,7 +10,6 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/limits"
 )
 
@@ -832,7 +831,7 @@ func (p *Parser) MatchLiteralFold(rs []rune) bool {
 	for _, want := range rs {
 		p.spendRead(1)
 		got, size, ok := p.Peek()
-		if !ok || compile.FoldASCIIRune(got) != want {
+		if !ok || FoldASCIIRune(got) != want {
 			return false
 		}
 		p.Pos += size
@@ -955,4 +954,13 @@ func (b Backend) String() string {
 		return "closure"
 	}
 	return "default"
+}
+
+// FoldASCIIRune folds an ASCII upper-case letter to lower case and returns any other rune as it is:
+// the folding of the literals that match regardless of ASCII case.
+func FoldASCIIRune(r rune) rune {
+	if 'A' <= r && r <= 'Z' {
+		return r + ('a' - 'A')
+	}
+	return r
 }

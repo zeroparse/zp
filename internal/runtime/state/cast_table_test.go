@@ -2,6 +2,7 @@ package state
 
 import (
 	"testing"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
@@ -12,8 +13,8 @@ import (
 )
 
 // engineFieldType returns the type of a cast of the table as the engine declares it.
-func engineFieldType(t *conform.CastType) *compile.FieldType {
-	f := &compile.FieldType{Kind: t.Kind, Name: t.Name}
+func engineFieldType(t *conform.CastType) *program.FieldType {
+	f := &program.FieldType{Kind: t.Kind, Name: t.Name}
 	if t.Elem != nil {
 		f.Elem = engineFieldType(t.Elem)
 	}
@@ -30,7 +31,7 @@ func TestEngineValueCastTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		src := "type S = { F int }\ntype T = { F int }\n@start\nrule main = \"a\"\n"
 		prog := &SharedProgram{}
-		InitSharedProgram(prog, compiletest.Program(t, src, compile.Options{}))
+		InitSharedProgram(prog, compiletest.Program(t, src, compile.Options{}).Runtime())
 		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
 		if controlled {
 			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})

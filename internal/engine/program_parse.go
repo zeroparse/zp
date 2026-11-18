@@ -7,11 +7,9 @@ import (
 	"math"
 	"runtime"
 	"sync"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/frontend/desugar"
-	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/runtime/vm"
 )
@@ -83,7 +81,7 @@ func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *core.Nod
 // of a compiled grammar in recognize mode recognizes. It builds nothing, so parses check it before
 // any other work.
 func (prog *Program) recognizable() error {
-	if prog.Grammar != nil || prog.loaded && prog.mode == CompiledRecognize {
+	if prog.src != nil || prog.loaded && prog.mode == CompiledRecognize {
 		return nil
 	}
 	return modeError(prog.mode, CompiledRecognize, "recognition needs")
@@ -94,16 +92,18 @@ func (prog *Program) recognizable() error {
 // belongs to that separate program, so it does not mix with that of ordinary parses.
 func (prog *Program) Recognizer() (*Program, error) {
 	prog.recOnce.Do(func() {
-		if prog.Grammar == nil {
+		if prog.src == nil {
 			if prog.recErr = prog.recognizable(); prog.recErr == nil {
 				prog.rec = prog // the module of a compiled grammar in recognize mode is the recognizer's
 			}
 			return
 		}
-		flags := prog.Static().Flags()
-		prog.rec, prog.recErr = build(prog.SourceGrammar(), prog.lazyOptions(func(o *compile.Options) {
-			o.Recognition = compile.Recognize
-		}), flags)
+		src, err := prog.src.Recognizer()
+		if err != nil {
+			prog.recErr = err
+			return
+		}
+		prog.rec = New(src)
 	})
 	return prog.rec, prog.recErr
 }
@@ -115,7 +115,12 @@ func (prog *Program) Recognizer() (*Program, error) {
 // so they neither grow those rules nor lose the memoization of their members.
 func (prog *Program) insertionProgram() (*Program, error) {
 	prog.insOnce.Do(func() {
-		prog.ins, prog.insErr = build(prog.SourceGrammar(), prog.lazyOptions(func(*compile.Options) {}), prog.InsertionFlags)
+		src, err := prog.src.Insertion()
+		if err != nil {
+			prog.insErr = err
+			return
+		}
+		prog.ins = New(src)
 	})
 	return prog.ins, prog.insErr
 }
@@ -123,7 +128,7 @@ func (prog *Program) insertionProgram() (*Program, error) {
 // backend resolves backend b, choosing one based on the grammar when b is the default.
 func (prog *Program) backend(b Backend) Backend {
 	if b == Default {
-		if prog.Grammar == nil {
+		if prog.src == nil {
 			return Bytecode
 		}
 		return Closure
@@ -162,7 +167,7 @@ func (prog *Program) familyRules(f state.Family, c *state.BudgetControl) ([]*sta
 // taken (closureCore.module), since its build calls the parse's context; fam.mu is held only while
 // the closures, which call no context method, are built.
 func (prog *Program) buildFamilyRules(fam *closureFamily, f state.Family, c *state.BudgetControl) error {
-	if prog.buildFamily == nil {
+	if prog.src == nil {
 		fam.mu.Lock()
 		defer fam.mu.Unlock()
 		fam.err = errClosureNeedsSource
@@ -174,8 +179,8 @@ func (prog *Program) buildFamilyRules(fam *closureFamily, f state.Family, c *sta
 		ctx = c.Ctx
 	}
 	m, err := prog.coreModule(fam, f, ctx)
-	if cancelled, ok := err.(buildCancelled); ok {
-		return cancelled.err
+	if cancelled, ok := err.(state.BuildCancelled); ok {
+		return cancelled.Err
 	}
 	fam.mu.Lock()
 	defer fam.mu.Unlock()
@@ -187,23 +192,23 @@ func (prog *Program) buildFamilyRules(fam *closureFamily, f state.Family, c *sta
 		if !returned {
 			fam.err = fmt.Errorf("internal error: the closure family %d was not built", f)
 			fam.built.Store(true)
-			prog.coreIR.done()
+			prog.core.done()
 		}
 	}()
 	if err == nil {
-		fam.rules, err = prog.buildFamily(m, f)
+		fam.rules, err = prog.src.Family(m, f, prog.plainDispatch)
 	}
 	returned = true
 	fam.err = err
 	fam.built.Store(true)
-	prog.coreIR.done()
+	prog.core.done()
 	return nil
 }
 
 // coreModule returns the Core IR for the build of the family f (closureCore.module). A panic of the
 // build that is not the parse context's (state.ContextPanic) is recorded on fam as an internal error,
 // as a panic of the closures' build is, and re-raised.
-func (prog *Program) coreModule(fam *closureFamily, f state.Family, ctx context.Context) (*ir.Module, error) {
+func (prog *Program) coreModule(fam *closureFamily, f state.Family, ctx context.Context) (any, error) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, ok := x.(state.ContextPanic); !ok {
@@ -211,14 +216,14 @@ func (prog *Program) coreModule(fam *closureFamily, f state.Family, ctx context.
 				if !fam.built.Load() {
 					fam.err = fmt.Errorf("internal error: the closure family %d was not built", f)
 					fam.built.Store(true)
-					prog.coreIR.done()
+					prog.core.done()
 				}
 				fam.mu.Unlock()
 			}
 			panic(x)
 		}
 	}()
-	return prog.coreIR.module(ctx)
+	return prog.core.module(ctx)
 }
 
 // closureRule returns the rule the closure backend runs for the rule name in the family f, or nil
@@ -238,11 +243,11 @@ func (prog *Program) closureRule(name string, f state.Family, c *state.BudgetCon
 // rule returns the rule name for backend b; the closure backend returns it from the family f, which
 // it builds on first use under the parse's budget control c (familyRules).
 func (prog *Program) rule(b Backend, name string, f state.Family, c *state.BudgetControl) (*state.Rule, error) {
-	if err := desugar.EntryError(name); err != nil {
+	if err := program.EntryError(name); err != nil {
 		return nil, err
 	}
 	if prog.HasMissing && prog.backend(b) != Closure {
-		return nil, compile.MissingUnsupported("bytecode backends")
+		return nil, program.MissingUnsupported("bytecode backends")
 	}
 	var r *state.Rule
 	switch prog.backend(b) {
@@ -253,7 +258,7 @@ func (prog *Program) rule(b Backend, name string, f state.Family, c *state.Budge
 		}
 		r = v.Rule(name)
 	case Closure:
-		if prog.Grammar == nil {
+		if prog.src == nil {
 			return nil, errClosureNeedsSource
 		}
 		var err error
@@ -365,7 +370,7 @@ func (prog *Program) Run(p *state.Parser, b Backend, start string) (n *core.Node
 		return v, nil
 	}
 	if ok {
-		p.Expect(p.Pos, compile.IDEndInput)
+		p.Expect(p.Pos, program.IDEndInput)
 	}
 	return nil, p.SyntaxError()
 }
@@ -373,12 +378,12 @@ func (prog *Program) Run(p *state.Parser, b Backend, start string) (n *core.Node
 // Rules returns the names of the rules that can be entry points, in declaration order. A hidden
 // rule is not one.
 func (prog *Program) Rules() []string {
-	if prog.Grammar == nil {
+	if prog.src == nil {
 		m := prog.Module()
 		var names []string
 		seen := map[string]bool{}
 		for _, r := range m.Rules {
-			if name := m.Strings[r.Name]; !seen[name] && !desugar.HiddenRule(name) { // value-free twins follow the original rules
+			if name := m.Strings[r.Name]; !seen[name] && !program.HiddenRule(name) { // value-free twins follow the original rules
 				seen[name] = true
 				names = append(names, name)
 			}
@@ -387,7 +392,7 @@ func (prog *Program) Rules() []string {
 	}
 	names := make([]string, 0, len(prog.RuleList))
 	for _, r := range prog.RuleList {
-		if !desugar.HiddenRule(r.Name) {
+		if !program.HiddenRule(r.Name) {
 			names = append(names, r.Name)
 		}
 	}
@@ -490,7 +495,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 		return nil
 	}
 	if ok {
-		p.Expect(p.Pos, compile.IDEndInput)
+		p.Expect(p.Pos, program.IDEndInput)
 	}
 	err = p.SyntaxError()
 	control.Check()
@@ -502,20 +507,10 @@ func (prog *Program) admitMissing(o ParseOptions, stream bool) error {
 		return fmt.Errorf("missing token limit must be nonnegative")
 	}
 	if stream && (prog.HasMissing || o.MissingTokens > 0) {
-		return compile.MissingUnsupported("stream parsing")
+		return program.MissingUnsupported("stream parsing")
 	}
 	if prog.backend(o.Backend) != Closure && (prog.HasMissing || o.MissingTokens > 0) {
-		return compile.MissingUnsupported("bytecode backends")
+		return program.MissingUnsupported("bytecode backends")
 	}
 	return nil
-}
-
-// lazyOptions returns the options for a program that is built later from the grammar of prog (the
-// recognizer, the program of missing-token insertion): the options prog was compiled with, changed by derive
-// for what the build is for. This is the one place that makes them, so no option of prog is
-// dropped from a lazily built program (TestLazyProgramsCarryEveryOption).
-func (prog *Program) lazyOptions(derive func(*compile.Options)) compile.Options {
-	o := prog.Opts
-	derive(&o)
-	return o
 }

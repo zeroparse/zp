@@ -229,7 +229,7 @@ func engineTarget() *print.Target {
 		exec.Operator: "*OperatorsRuleOp", exec.Line: "*OperatorsRuleLine", exec.Attempt: "OperatorsRuleAttempt",
 		exec.Seq: "[]*core.Node", exec.Datum: "any", exec.LongestState: "*LongestState", exec.NudState: "*NudState", exec.ExprState: "*ExprState", exec.EditLog: "[]DocEdit",
 		exec.Obj: "*core.Node", exec.Name: "string", exec.Str: "string", exec.Act: "*EvalCtx", exec.Fail: "error", exec.Elem: "*core.Node",
-		exec.NodeType: "*nodes.NodeTypeKinds", exec.FType: "*compile.FieldType",
+		exec.NodeType: "*nodes.NodeTypeKinds", exec.FType: "*program.FieldType",
 	}
 	names := map[string]string{"engineCall": "Call", "engineCallDoc": "callDoc", "firstCall": "FirstCall", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
 		"expect": "Expect", "keep": "Keep",
@@ -348,13 +348,13 @@ func engineTarget() *print.Target {
 		case "opr.level":
 			return a[0] + ".Level"
 		case "opr.infix":
-			return a[0] + ".Kind == ast.Infix"
+			return a[0] + ".Kind == program.OpInfix"
 		case "opr.postfix":
-			return a[0] + ".Kind == ast.Postfix"
+			return a[0] + ".Kind == program.OpPostfix"
 		case "opr.right":
-			return a[0] + ".Assoc == ast.AssocRight"
+			return a[0] + ".Assoc == program.AssocRight"
 		case "opr.nonAssoc":
-			return a[0] + ".Assoc == ast.AssocNone"
+			return a[0] + ".Assoc == program.AssocNone"
 		case "opr.scope":
 			return "len(" + a[0] + ".Scope.Names)"
 		case "opr.hasSkip":
@@ -609,7 +609,7 @@ func engineTarget() *print.Target {
 		case "opr.hasSkip":
 			return a[0] + ".OperatorsRule.Skip == nil", true
 		case "opr.infix":
-			return a[0] + ".Kind != ast.Infix", true
+			return a[0] + ".Kind != program.OpInfix", true
 		case "rec.none":
 			return "!" + a[0] + ".None()", true
 		case "memo.pinned":
@@ -702,8 +702,7 @@ p.ctxKeep(&%s, %s, %s, %s, %s, e)`, a[8], a[5], a[6], a[7], a[9], a[10], a[11], 
 
 // engineImportPaths are the packages that the printed engine code may name, by package name.
 var engineImportPaths = []struct{ name, path string }{
-	{"compile", "zeroparse.dev/zp/internal/compile"},
-	{"ast", "zeroparse.dev/zp/pkg/grammar/ast"},
+	{"program", "zeroparse.dev/zp/internal/runtime/program"},
 	{"nodes", "zeroparse.dev/zp/internal/runtime/nodes"},
 	{"coreimpl", "zeroparse.dev/zp/core/impl"},
 	{"core", "zeroparse.dev/zp/core"},

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	fcheck "zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/frontend/types"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
@@ -113,27 +115,27 @@ func TestInferenceChainFieldMismatch(t *testing.T) {
 // refers to replaced by their values at the top level and in unions and optional types. RuleType
 // refers to a rule without a declared type by name instead.
 func inferredType(p *Program, name string) (string, bool) {
-	t, ok := p.Typed.Values[name]
+	t, ok := p.Static().Typed.Values[name]
 	if !ok {
 		return "", false
 	}
-	v := &compile.ValueInference{Prog: p.Static().Checker(), Out: p.Typed.Values}
+	v := &fcheck.ValueInference{Prog: p.Static().Checker(), Out: p.Static().Typed.Values}
 	return v.Expand(t).String(), true
 }
 
 // captureType returns the type of the capture cap in the value of the rule name, after checkTypes:
 // the union of the types of all captures of that name.
 func captureType(p *Program, name, cap string) (string, bool) {
-	t, ok := p.Typed.Values[name]
+	t, ok := p.Static().Typed.Values[name]
 	if !ok {
 		return "", false
 	}
-	v := &compile.ValueInference{Prog: p.Static().Checker(), Out: p.Typed.Values}
-	n, ok := v.Expand(t).(compile.NodeTy)
+	v := &fcheck.ValueInference{Prog: p.Static().Checker(), Out: p.Static().Typed.Values}
+	n, ok := v.Expand(t).(types.NodeTy)
 	if !ok {
 		return "", false
 	}
-	ct, ok := compile.CapType(n.Caps, cap)
+	ct, ok := fcheck.CapType(n.Caps, cap)
 	if !ok {
 		return "", false
 	}

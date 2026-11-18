@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
-	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
@@ -52,12 +52,12 @@ func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 	t.Parallel()
 	fields := make(coreimpl.Fields, 300)
-	st := &ast.TypeDef{Type: &ast.StructType{}}
+	st := &program.Type{}
 	values := make([]any, len(fields))
 	for i := range fields {
 		name := fmt.Sprintf("v%d", i)
 		fields[i] = coreimpl.NodeField{Name: name, Value: i}
-		st.Struct().Fields = append(st.Struct().Fields, &ast.Field{Name: name})
+		st.Fields = append(st.Fields, name)
 		values[i] = i
 	}
 	for _, run := range []struct {

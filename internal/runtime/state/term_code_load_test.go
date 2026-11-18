@@ -25,7 +25,7 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 		},
 	}
 	const vars = 1
-	ret := bytecode.TermInstr{Op: uint8(tRet), A: 0}
+	ret := bytecode.TermInstr{Op: uint8(TRet), A: 0}
 	// term returns a term of one value register, one register of every other file, and the code
 	// in followed by a return.
 	term := func(in ...bytecode.TermInstr) bytecode.Term {
@@ -37,7 +37,7 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 		want string
 	}{
 		{"sequence register", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tMoveS)}
+			in := bytecode.TermInstr{Op: uint8(TMoveS)}
 			if bad {
 				in.Dst = 1
 			}
@@ -45,7 +45,7 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 		}, "invalid operand"},
 		{"field cover register", func(x *bytecode.Term, bad bool) {
 			// The integer register that FIELD reads and writes, the one operand no other case pins.
-			in := bytecode.TermInstr{Op: uint8(tField)}
+			in := bytecode.TermInstr{Op: uint8(TField)}
 			if bad {
 				in.Dst = 1
 			}
@@ -53,49 +53,49 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 			x.Names = []int{0}
 		}, "invalid operand"},
 		{"variable", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tVar), A: vars - 1}
+			in := bytecode.TermInstr{Op: uint8(TVar), A: vars - 1}
 			if bad {
 				in.A = vars
 			}
 			*x = term(in)
 		}, "invalid operand"},
 		{"unary operator", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tUnary), B: int32(len(exec.UnaryOps) - 1)}
+			in := bytecode.TermInstr{Op: uint8(TUnary), B: int32(len(exec.UnaryOps) - 1)}
 			if bad {
 				in.B++
 			}
 			*x = term(in)
 		}, "invalid operand"},
 		{"binary operator", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tBinary), C: int32(len(exec.BinaryOps) - 1)}
+			in := bytecode.TermInstr{Op: uint8(TBinary), C: int32(len(exec.BinaryOps) - 1)}
 			if bad {
 				in.C++
 			}
 			*x = term(in)
 		}, "invalid operand"},
 		{"logical operator", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tLogic), B: int32(len(exec.LogicalOps) - 1)}
+			in := bytecode.TermInstr{Op: uint8(TLogic), B: int32(len(exec.LogicalOps) - 1)}
 			if bad {
 				in.B++
 			}
 			*x = term(in)
 		}, "invalid operand"},
 		{"flag", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tHull), B: 1}
+			in := bytecode.TermInstr{Op: uint8(THull), B: 1}
 			if bad {
 				in.B = 2
 			}
 			*x = term(in)
 		}, "invalid operand"},
 		{"boolean constant", func(x *bytecode.Term, bad bool) {
-			*x = term(bytecode.TermInstr{Op: uint8(tConst)})
+			*x = term(bytecode.TermInstr{Op: uint8(TConst)})
 			x.Consts = []bytecode.TermConst{{Kind: bytecode.ConstBool, Int: 1}}
 			if bad {
 				x.Consts[0].Int = 2
 			}
 		}, "invalid boolean constant"},
 		{"slot", func(x *bytecode.Term, bad bool) {
-			in := bytecode.TermInstr{Op: uint8(tCap)}
+			in := bytecode.TermInstr{Op: uint8(TCap)}
 			if bad {
 				in.A = -1
 			}

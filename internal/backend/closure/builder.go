@@ -4,6 +4,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
@@ -35,7 +36,7 @@ type Builder struct {
 	// cur is the static rule whose body is being built, and scope the capture scope of the node
 	// being built.
 	cur   *compile.Rule
-	scope *check.Scope
+	scope *program.Scope
 	// err is the first internal error of the build.
 	err error
 }
@@ -638,7 +639,7 @@ func (b *Builder) skipRepeat(min int, m state.Matcher, skip int) state.Matcher {
 // record the rest of them from each position and reuse the records (state/skip_runs.go). The
 // iterations have a scope of their own where they capture; build says whether they have values,
 // which the walk gathers in a list.
-func (b *Builder) runRepeat(min int, m state.Matcher, elemValue func(*state.Parser, *core.Node, int) *core.Node, elemScope *check.Scope, ownScope, build bool, run int) state.Matcher {
+func (b *Builder) runRepeat(min int, m state.Matcher, elemValue func(*state.Parser, *core.Node, int) *core.Node, elemScope *program.Scope, ownScope, build bool, run int) state.Matcher {
 	charge := b.charges()
 	keyEnv := !b.prog.EnvFree(run)
 	return func(p *state.Parser) (*core.Node, bool) {
@@ -693,7 +694,7 @@ func (b *Builder) runRepeat(min int, m state.Matcher, elemValue func(*state.Pars
 	}
 }
 
-func (b *Builder) repeat(n *ir.Repeat, m state.Matcher, elemScope *check.Scope, ownScope, build, stream bool) state.Matcher {
+func (b *Builder) repeat(n *ir.Repeat, m state.Matcher, elemScope *program.Scope, ownScope, build, stream bool) state.Matcher {
 	min, max, site, shiftable, in, run := n.Min, n.Max, n.Resume, n.Shiftable, b.cur, n.Run
 	// A repetition that delivers stream elements is no scan site; one that builds values uses the
 	// site's second number.

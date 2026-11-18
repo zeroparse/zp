@@ -3,8 +3,8 @@ package state
 import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 )
 
 // Matcher tries to match at the current position and returns the value and whether it
@@ -34,7 +34,7 @@ func RenamedExpected(p *Parser, expected []ExpID, name ExpID) []ExpID {
 }
 
 // ShapeTuple returns the tuple node, shaped by s, of the result v of a match of [start, p.pos).
-func ShapeTuple(p *Parser, s compile.Shaper, v *core.Node, start int) *core.Node {
+func ShapeTuple(p *Parser, s program.Shaper, v *core.Node, start int) *core.Node {
 	if s.Elems {
 		if s.Shared && v != nil {
 			return p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: nodes.D(v).Start, End: nodes.D(v).End, Children: nodes.D(v).Children, Fresh: true})
@@ -51,11 +51,11 @@ func ShapeTuple(p *Parser, s compile.Shaper, v *core.Node, start int) *core.Node
 
 // ShapeSingle returns the value, shaped by s, of the result v where the expression takes one
 // element; ok is false when it has no value.
-func ShapeSingle(p *Parser, s compile.Shaper, mode compile.SingleMode, v *core.Node, start int) (*core.Node, bool) {
+func ShapeSingle(p *Parser, s program.Shaper, mode program.SingleMode, v *core.Node, start int) (*core.Node, bool) {
 	switch mode {
-	case compile.SinglePass:
+	case program.SinglePass:
 		return s.One(v), true
-	case compile.SingleTuple:
+	case program.SingleTuple:
 		return ShapeTuple(p, s, v, start), true
 	}
 	return nil, false

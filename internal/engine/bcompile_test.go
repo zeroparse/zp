@@ -40,7 +40,7 @@ func TestModuleCompilesCorpus(t *testing.T) {
 func TestModuleErrorSharedByPrograms(t *testing.T) {
 	t.Parallel()
 	a := mustCompile(t, `rule main = "a"`)
-	b := newProgram(a.Static(), nil, nil)
+	b := checkedProgram(a.Static())
 	s := a.Static()
 	want := errors.New("internal error: injected")
 	s.BytecodeOnce.Do(func() { s.BytecodeErr = want })

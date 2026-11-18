@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -38,7 +39,7 @@ func testGeneratedTypedDirectCuts(t *testing.T) {
 		if c.Name == "typed/direct_cut_callee" && !strings.Contains(string(code), "// part, called as by invokePlain (body inlined)") {
 			t.Fatal("callee containing cuts must use the direct typed route")
 		}
-		for _, r := range mustCompile(t, c.Src).RuleList {
+		for _, r := range entry.Checked(mustCompile(t, c.Src)).RuleList {
 			if !codegentest.DirectCuts(r.Def.Expr) {
 				continue
 			}

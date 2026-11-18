@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
@@ -17,7 +18,7 @@ func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 	state.MinRecorded = 1
 	for _, maximum := range negativeMaxima() {
 		g := grammarWithNegativeMaximum(t, `rule main = "é"* #stream $$`, maximum)
-		p, err := Compile(g, compile.Options{})
+		p, err := entry.Compile(g, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -52,12 +52,12 @@ func testInvalidCharacterClassEntryPoints(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			p.Grammar = g
+			p.Static().Grammar = g
 			data, err := p.MarshalBinary("main")
 			if err != nil || !bytes.Equal(data, want) {
 				t.Fatalf("compiled file depends on the AST: %v", err)
 			}
-			if loaded, _, err := LoadProgram(data); err != nil || loaded.Grammar != nil {
+			if loaded, _, err := LoadProgram(data); err != nil || loaded.Static() != nil {
 				t.Fatalf("load: %v", err)
 			}
 		})

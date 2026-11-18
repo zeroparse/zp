@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
@@ -35,7 +35,7 @@ func BenchmarkOutputSchemaExport(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			p, err := engine.Compile(g, compile.Options{})
+			p, err := entry.Compile(g, compile.Options{})
 			if err != nil {
 				b.Fatal(err)
 			}

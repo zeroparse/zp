@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
@@ -16,7 +17,7 @@ rule item = [a-z]`)
 	if err != nil {
 		b.Fatal(err)
 	}
-	prog, err := Compile(g, compile.Options{})
+	prog, err := entry.Compile(g, compile.Options{})
 	if err != nil {
 		b.Fatal(err)
 	}

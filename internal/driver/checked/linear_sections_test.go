@@ -1,4 +1,4 @@
-package engine
+package checked
 
 import (
 	"os"
@@ -10,7 +10,7 @@ import (
 // TestLinearRewriteSections checks that each section that an @linear error links to is a heading of
 // the recipe of linear rewrites, so that renaming a heading cannot leave the errors with a dead link.
 func TestLinearRewriteSections(t *testing.T) {
-	src, err := os.ReadFile("../../docs/cookbook/linear-rewrites.md")
+	src, err := os.ReadFile("../../../docs/cookbook/linear-rewrites.md")
 	if err != nil {
 		t.Fatal(err)
 	}

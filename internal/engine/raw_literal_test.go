@@ -66,7 +66,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 				}
 				for name, prog := range programs {
 					for _, backend := range []Backend{Default, Closure, Bytecode, BytecodeIterative} {
-						if prog.Grammar == nil && backend == Closure {
+						if prog.Static() == nil && backend == Closure {
 							_, err := prog.ParseWith("main", raw, servedBy(modes[name], ParseOptions{Backend: backend}))
 							wantClosureRefused(t, err)
 							continue
@@ -82,7 +82,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 								}
 								{
 									recognizing := prog
-									if prog.Grammar == nil {
+									if prog.Static() == nil {
 										recognizing = recognizer
 									}
 									opts.Recognize = true
@@ -107,8 +107,8 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 							}
 						}
 					}
-					if prog.Grammar != nil {
-						if first := codegentest.FirstLiteral(prog.Grammar.Rules()[0].Expr); first == nil || first.Value != raw {
+					if prog.Static() != nil {
+						if first := codegentest.FirstLiteral(prog.Static().Grammar.Rules()[0].Expr); first == nil || first.Value != raw {
 							t.Fatal("loaded AST changed literal bytes")
 						}
 					}

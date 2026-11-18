@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
@@ -44,7 +45,7 @@ func TestSoundness(t *testing.T) {
 		if err != nil {
 			t.Fatalf("generated grammar does not parse: %v\n%s", err, src)
 		}
-		prog, err := engine.Compile(starttest.MarkAll(g), engine.Options{})
+		prog, err := entry.Compile(starttest.MarkAll(g), entry.Options{})
 		if err != nil {
 			t.Fatalf("generated grammar does not compile: %v\n%s", err, src)
 		}
@@ -63,7 +64,7 @@ func TestSoundness(t *testing.T) {
 				} else {
 					checked[f.Check]++
 				}
-				prog2, err := engine.Compile(starttest.MarkAll(g2), engine.Options{})
+				prog2, err := entry.Compile(starttest.MarkAll(g2), entry.Options{})
 				if err != nil {
 					t.Fatalf("grammar %d: the change for %v does not compile: %v\n%s", n, f, err, src)
 				}

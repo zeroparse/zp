@@ -15,13 +15,13 @@ func TestBudgetLazyClosureSavedFlagsAndOptions(t *testing.T) {
 	t.Parallel()
 	original := mustCompile(t, `rule main = first:item rest:(-"," value:item)* $$ => concat(list($first), map($rest, (e) => e.$value))
 rule item = [a-z]+`)
-	flags := make([]compile.RuleFlags, len(original.RuleList))
-	for i, r := range original.RuleList {
+	flags := make([]compile.RuleFlags, len(original.Static().RuleList))
+	for i, r := range original.Static().RuleList {
 		flags[i] = compile.RuleFlags{Memo: r.Memo, Leader: r.Leader, Positional: r.Positional, Twin: r.TwinOK}
 	}
 	for _, savedFlags := range [][]compile.RuleFlags{nil, flags} {
 		for _, noProjections := range []bool{false, true} {
-			p, err := build(original.Grammar, compile.Options{NoProjections: noProjections}, savedFlags)
+			p, err := build(original.Static().Grammar, compile.Options{NoProjections: noProjections}, savedFlags)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -38,7 +38,7 @@ rule item = [a-z]+`)
 					t.Fatalf("recognition options: %v", err)
 				}
 			}
-			if p.budgetProgram == nil || p.budgetProgram.NoProjections != noProjections {
+			if p.budgetProgram == nil || p.budgetProgram.Static().NoProjections != noProjections {
 				t.Fatal("projection policy changed")
 			}
 		}

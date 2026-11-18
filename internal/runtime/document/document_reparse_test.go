@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/runtime/document"
 
@@ -132,7 +133,7 @@ rule line = [a-z]+ #atomic "\n" #recover(skip="\n")`,
 // BenchmarkDocumentReparse measures Edit plus Parse. The optional unchanged
 // Parse runs outside the timer; it must not destroy later repetition reuse.
 func BenchmarkDocumentReparse(b *testing.B) {
-	prog, err := Compile(mustParse(reparseGrammar), compile.Options{})
+	prog, err := entry.Compile(mustParse(reparseGrammar), compile.Options{})
 	if err != nil {
 		b.Fatal(err)
 	}

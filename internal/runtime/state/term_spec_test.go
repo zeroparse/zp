@@ -9,17 +9,17 @@ import (
 )
 
 // termOpNames names each instruction of term code as the specification's table does.
-var termOpNames = map[string]termOp{
-	"NOP": tNop, "CONST": tConst, "INT": tIntK, "MOVEA": tMoveA, "MOVEN": tMoveN, "MOVES": tMoveS,
-	"MOVET": tMoveT, "CAP": tCap, "LOCAL": tLocal, "VAR": tVar, "UNBOX": tUnbox, "FROMB": tFromB,
-	"FROMT": tFromT, "NOT": tNot, "LT": tLt, "ADD": tAdd, "EQN": tEqN, "ISNIL": tIsNil,
-	"MEMBER": tMember, "UNARY": tUnary, "BINARY": tBinary, "LOGIC": tLogic, "TEXT": tText,
-	"TEXTEQ": tTextEq, "LENGTH": tLength, "CONVERT": tConvert, "CONFORMS": tConforms,
-	"CASTERR": tCastErr, "KIDS": tKids, "PUSH": tPush, "PUSHALL": tPushAll, "ABOVE": tAbove,
-	"HULL": tHull, "ITEMS": tItems, "ITEMAT": tItemAt, "SEQLEN": tSeqLen, "STEP": tStep,
-	"KEEP": tKeep, "FILTER": tFilter, "COPY": tCopy, "STRUCT": tStruct, "SETFIELD": tSetField,
-	"COVER": tCover, "MADE": tMade, "JUMP": tJump, "JUMPF": tJumpF, "RET": tRet, "RETERR": tRetErr,
-	"FIELD": tField,
+var termOpNames = map[string]TermOp{
+	"NOP": TNop, "CONST": TConst, "INT": TIntK, "MOVEA": TMoveA, "MOVEN": TMoveN, "MOVES": TMoveS,
+	"MOVET": TMoveT, "CAP": TCap, "LOCAL": TLocal, "VAR": TVar, "UNBOX": TUnbox, "FROMB": TFromB,
+	"FROMT": TFromT, "NOT": TNot, "LT": TLt, "ADD": TAdd, "EQN": TEqN, "ISNIL": TIsNil,
+	"MEMBER": TMember, "UNARY": TUnary, "BINARY": TBinary, "LOGIC": TLogic, "TEXT": TText,
+	"TEXTEQ": TTextEq, "LENGTH": TLength, "CONVERT": TConvert, "CONFORMS": TConforms,
+	"CASTERR": TCastErr, "KIDS": TKids, "PUSH": TPush, "PUSHALL": TPushAll, "ABOVE": TAbove,
+	"HULL": THull, "ITEMS": TItems, "ITEMAT": TItemAt, "SEQLEN": TSeqLen, "STEP": TStep,
+	"KEEP": TKeep, "FILTER": TFilter, "COPY": TCopy, "STRUCT": TStruct, "SETFIELD": TSetField,
+	"COVER": TCover, "MADE": TMade, "JUMP": TJump, "JUMPF": TJumpF, "RET": TRet, "RETERR": TRetErr,
+	"FIELD": TField,
 }
 
 // TestSpecTermOpcodes checks that the opcodes of term code are those of the table in

@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -122,8 +122,8 @@ rule expr = #operators {
 			if controlled == nil || !reflect.DeepEqual(prog.DescTable, controlled.DescTable) || prog.NSeen != controlled.NSeen || len(prog.Twins) != len(controlled.Twins) {
 				t.Fatal("lazy graph metadata differs")
 			}
-			for i, r := range append(append([]*compile.Rule{}, prog.RuleList...), prog.Twins...) {
-				all := append(append([]*compile.Rule{}, controlled.RuleList...), controlled.Twins...)
+			for i, r := range append(append([]*program.Rule{}, prog.RuleList...), prog.Twins...) {
+				all := append(append([]*program.Rule{}, controlled.RuleList...), controlled.Twins...)
 				other := all[i]
 				if r.ID != other.ID || r.Memo != other.Memo || r.Leader != other.Leader || r.Seen != other.Seen || r.Positional != other.Positional || r.Plain != other.Plain || !reflect.DeepEqual(r.Scope.Names, other.Scope.Names) {
 					t.Fatalf("rule metadata differs: %s", r.Name)

@@ -82,7 +82,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 					p     *Program
 					eager bool
 				}{{optimized, false}, {eager, true}} {
-					if c.p.budgetProgram == nil || c.p.budgetProgram.Opts.EagerAttributeCopies != c.eager {
+					if c.p.budgetProgram == nil || c.p.budgetProgram.Static().Opts.EagerAttributeCopies != c.eager {
 						t.Fatalf("the controlled graph of the program with eager copies %v was not compiled with them", c.eager)
 					}
 				}

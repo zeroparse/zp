@@ -7,6 +7,7 @@ import (
 	"testing"
 	"unsafe"
 	"weak"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/runtime/document"
 
@@ -20,7 +21,7 @@ import (
 )
 
 func BenchmarkDocumentVMValuesUnchanged(b *testing.B) {
-	prog, err := Compile(mustParse(reparseGrammar), compile.Options{})
+	prog, err := entry.Compile(mustParse(reparseGrammar), compile.Options{})
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -221,7 +222,7 @@ rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 }
 
 func benchmarkDocumentVMValuesShrink(b *testing.B, edit bool) {
-	prog, err := Compile(mustParse(reparseGrammar), compile.Options{})
+	prog, err := entry.Compile(mustParse(reparseGrammar), compile.Options{})
 	if err != nil {
 		b.Fatal(err)
 	}

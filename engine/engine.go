@@ -13,6 +13,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
@@ -33,14 +34,14 @@ type Parser struct {
 }
 
 // CompileOption configures compilation.
-type CompileOption func(*engine.Options)
+type CompileOption func(*entry.Options)
 
 // WithSourceInfo records source information in parse results: the rule that produced each node
 // and where its captures are. Node.Rule, Node.Field, the rule and capture names of JSON and
 // S-expression output, and rule constraints in queries need it. It costs time and memory, so
 // parsers omit it by default.
 func WithSourceInfo() CompileOption {
-	return func(o *engine.Options) { o.SourceInfo = true }
+	return func(o *entry.Options) { o.SourceInfo = true }
 }
 
 // WithDefaultValue makes every rule produce the default value of its expression. Value actions
@@ -50,17 +51,17 @@ func WithSourceInfo() CompileOption {
 // make the values predicates read keep their actions and types. It is a property of the
 // parser: a compiled grammar written from it keeps it.
 func WithDefaultValue() CompileOption {
-	return func(o *engine.Options) { o.DefaultValue = true }
+	return func(o *entry.Options) { o.DefaultValue = true }
 }
 
 // Compile compiles the grammar g into a parser that starts parsing at the rule start, which must
 // be a start rule, a rule marked @start. An empty start selects the default start rule.
 func Compile(g *ast.Grammar, start string, opts ...CompileOption) (*Parser, error) {
-	var o engine.Options
+	var o entry.Options
 	for _, opt := range opts {
 		opt(&o)
 	}
-	prog, err := engine.Compile(g, o)
+	prog, err := entry.Compile(g, o)
 	if err != nil {
 		return nil, err
 	}
@@ -588,7 +589,7 @@ func (p *Parser) Starts() []string { return p.prog.Starts() }
 func (p *Parser) DefaultStart() string { return p.prog.DefaultStart() }
 
 // Grammar returns the parser's grammar, or nil for a parser loaded from a compiled grammar.
-func (p *Parser) Grammar() *ast.Grammar { return p.prog.SourceGrammar() }
+func (p *Parser) Grammar() *ast.Grammar { return entry.Grammar(p.prog) }
 
 // PrefixResult reports a rule's value and successful cursor. Consumption comes
 // from the runtime cursor, even when Node is nil or its span differs.
@@ -703,9 +704,9 @@ func (p *Parser) OutputSchema(opts ...SchemaOption) (*schema.Output, error) {
 // outputSchemaPrototype exports the start rule of prog, the rules it calls or whose values its
 // values contain, and the struct types they refer to; or every rule and type with allRules. It
 // has no effect on parsing or generation. A program loaded from a compiled grammar has no schema
-// (engine.Program.SchemaProgram).
+// (entry.SchemaProgram).
 func outputSchemaPrototype(prog *engine.Program, start string, allRules bool) (*schema.Output, error) {
-	sp, err := prog.SchemaProgram(start)
+	sp, err := entry.SchemaProgram(prog, start)
 	if err != nil {
 		return nil, err
 	}

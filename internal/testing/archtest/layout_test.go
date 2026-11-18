@@ -98,10 +98,17 @@ var layout = []place{
 	{pkg: "internal/backend/codegen/typescript/pass", target: "internal/backend/codegen/typescript/pass"},
 	{pkg: "internal/backend/closure", target: "internal/backend/closure"},
 	{pkg: "internal/backend/vmlower", target: "internal/backend/vmlower"},
+	// The lowering of action expressions to the term programs that the runtime runs, which closure
+	// and vmlower call.
+	{pkg: "internal/backend/actionlower", target: "internal/backend/actionlower"},
 
 	// Driver: the optimization profiles and the driving of the pipelines. The flags are registered
 	// beside each part of the pipeline, in the registry of internal/pass.
 	{pkg: "internal/driver", target: "internal/driver"},
+	// The compile entry, and the compiler side of a compiled program that the runtime reaches
+	// through state.Source.
+	{pkg: "internal/driver/entry", target: "internal/driver/entry"},
+	{pkg: "internal/driver/checked", target: "internal/driver/checked"},
 
 	// Analysis and the grammar LSP.
 	{pkg: "internal/analysis/complexity", target: "internal/analysis/complexity"},
@@ -112,8 +119,10 @@ var layout = []place{
 
 	// Runtime side.
 	{pkg: "internal/bytecode", target: "pkg/bytecode"},
-	// engine splits into internal/driver (the compile entry and complexity advice) and
-	// internal/runtime/engine (parse, document and stream entries).
+	// The run-time program: the tables a parser runs, built by the compiler or loaded.
+	{pkg: "internal/runtime/program", target: "internal/runtime/program"},
+	// engine keeps the parse, document and stream entries; the compile entry and the complexity
+	// advice moved to internal/driver/entry and internal/driver/checked.
 	{pkg: "internal/engine", target: "internal/runtime/engine"},
 	{pkg: "internal/runtime/document", target: "internal/runtime/document"},
 	{pkg: "internal/runtime/state", target: "internal/runtime/state"},

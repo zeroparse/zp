@@ -12,6 +12,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
@@ -86,7 +87,7 @@ func CompileBare(t testing.TB, src string, opts ...compile.Options) *engine.Prog
 	if len(opts) > 0 {
 		o = opts[0]
 	}
-	prog, err := engine.Compile(g, o)
+	prog, err := entry.Compile(g, o)
 	if err != nil {
 		t.Fatalf("compile error: %v\n%s", err, src)
 	}
@@ -100,7 +101,7 @@ func CompileStarts(t testing.TB, src string) (*engine.Program, error) {
 	if err != nil {
 		t.Fatalf("syntax error: %v\n%s", err, src)
 	}
-	return engine.Compile(g, compile.Options{})
+	return entry.Compile(g, compile.Options{})
 }
 
 // CompileMessage compiles src and returns the error message, or "" if it compiles.
@@ -114,7 +115,7 @@ func CompileMessage(t testing.TB, src string, opts ...compile.Options) string {
 	if len(opts) > 0 {
 		o = opts[0]
 	}
-	_, err = engine.Compile(g, o)
+	_, err = entry.Compile(g, o)
 	if err == nil {
 		return ""
 	}
@@ -138,7 +139,7 @@ func Reference(t *testing.T, src string, opts compile.Options) codegentest.Refer
 // CompileForGenerator compiles g for the generators, as the compileForGenerator of package
 // codegen does.
 func CompileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
-	prog, err := engine.Compile(g, opts)
+	prog, err := entry.Compile(g, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,14 +148,14 @@ func CompileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program
 		if err != nil {
 			return nil, err
 		}
-		return rec.Static(), nil
+		return entry.Checked(rec), nil
 	}
-	return prog.Static(), recognizer, nil
+	return entry.Checked(prog), recognizer, nil
 }
 
 // OutputSchema exports the output schema of p for start, as Parser.OutputSchema does.
 func OutputSchema(p *engine.Program, start string, allRules bool) (*schema.Output, error) {
-	sp, err := p.SchemaProgram(start)
+	sp, err := entry.SchemaProgram(p, start)
 	if err != nil {
 		return nil, err
 	}

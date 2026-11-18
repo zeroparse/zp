@@ -6,6 +6,7 @@ import (
 	"hash/crc32"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/frontend/types"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -89,7 +90,7 @@ func checkConstructedFieldType(t *testing.T, typ, src string, parseFn func(strin
 					}
 				}
 				name := fieldCheckValueName(value)
-				msg := fmt.Sprintf("cannot cast %s to %s", name, checked.Typed.Fields["S"][0].T)
+				msg := fmt.Sprintf("cannot cast %s to %s", name, checked.Static().Typed.Fields["S"][0].T)
 				switch {
 				case in[1] == '!' && accepted:
 					if !strings.Contains(want, yes) {
@@ -152,7 +153,7 @@ func TestCompiledFieldChecksValidation(t *testing.T) {
 		}
 	}
 	for _, text := range []string{"Int", "*Int", "[]*(Int | node[string])", "*(Box | bool)", "[][]Int", "int | string", "error", "node[_]", "node[string] | error"} {
-		if _, err := compile.ParseFieldType(text, map[string]bool{"Int": true, "Box": true}); err != nil {
+		if _, err := types.ParseFieldType(text, map[string]bool{"Int": true, "Box": true}); err != nil {
 			t.Errorf("type text %q: %v", text, err)
 		}
 	}

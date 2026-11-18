@@ -2,10 +2,7 @@ package state
 
 import (
 	"testing"
-
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
-	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
@@ -13,10 +10,8 @@ import (
 // registers outlive the evaluation in the parser (and in a pooled parser, the parse), so a value
 // left in one would stay reachable after its term returned.
 func TestTermEvalClearsRegisters(t *testing.T) {
-	prog, err := CompileTerm(&ir.Local{Kind: ir.LocalOp, Name: "op"}, TermEnv{Prog: compile.NewProgram(nil), Scope: &compile.Scope{}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	// The term $op: the Operators Rule local op, returned.
+	prog := &TermProgram{Code: []TermInstr{{Op: TLocal, Dst: 0, A: 0}, {Op: TRet, A: 0}}, NA: 1, Names: []string{"op"}}
 	p := &Parser{}
 	op := nodes.Ptr(nodes.Data{Kind: coreimpl.SeqKind, Start: 0, End: 1})
 	got, err := prog.Eval(&EvalCtx{P: p, Locals: &Local{Name: "op", Val: op}})

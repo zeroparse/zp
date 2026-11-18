@@ -16,7 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -280,7 +280,7 @@ func TestGeneratedTypesNamedLikeEveryLibExport(t *testing.T) {
 		}
 		// The grammar language reserves some names (Error, ...).
 		if g, err := parseTest("type " + name + " = { Value int }\nrule main = \"a\"\n"); err == nil {
-			if _, err := engine.Compile(g, compile.Options{}); err == nil {
+			if _, err := entry.Compile(g, compile.Options{}); err == nil {
 				names = append(names, name)
 			}
 		}
@@ -610,7 +610,7 @@ func TestGeneratedRichGrammarsWithTypesNamedLikeLibExports(t *testing.T) {
 				// The grammar language reserves some names (Error, ...).
 				if g, err := parseTest("type " + n + " = { Value int }\nrule main = \"a\"\n"); err != nil {
 					continue
-				} else if _, err := engine.Compile(g, compile.Options{}); err != nil {
+				} else if _, err := entry.Compile(g, compile.Options{}); err != nil {
 					continue
 				}
 				fmt.Fprintf(&src, "type %s = { Value int }\n", n)

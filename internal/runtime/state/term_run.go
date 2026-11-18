@@ -38,7 +38,7 @@ func (t *TermProgram) Eval(c *EvalCtx) (any, error) {
 	p := c.P
 	r := &p.terms
 	ab, nb, sb, tb := len(r.a), len(r.n), len(r.s), len(r.t)
-	r.a, r.n, r.s, r.t = growRegs(r.a, t.na), growRegs(r.n, t.nn), growRegs(r.s, t.ns), growRegs(r.t, t.nt)
+	r.a, r.n, r.s, r.t = growRegs(r.a, t.NA), growRegs(r.n, t.NN), growRegs(r.s, t.NS), growRegs(r.t, t.NT)
 	a, n, s, ts := r.a[ab:], r.n[nb:], r.s[sb:], r.t[tb:]
 	v, err := t.run(c, a, n, s, ts)
 	clear(a)
@@ -57,147 +57,147 @@ func b2i(b bool) int {
 
 func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*core.Node, ts []string) (any, error) {
 	p := c.P
-	code := t.code
+	code := t.Code
 	var err error
 	for pc := 0; ; pc++ {
 		in := &code[pc]
-		switch in.op {
-		case tConst:
-			a[in.dst] = t.consts[in.a]
-		case tIntK:
-			n[in.dst] = int(in.a)
-		case tMoveA:
-			a[in.dst] = a[in.a]
-		case tMoveN:
-			n[in.dst] = n[in.a]
-		case tMoveS:
-			s[in.dst] = s[in.a]
-		case tMoveT:
-			ts[in.dst] = ts[in.a]
-		case tCap:
-			a[in.dst] = nodes.UnboxNode(c.Frame.Vals[in.a])
-		case tLocal:
-			v, ok := c.local(t.names[in.a])
+		switch in.Op {
+		case TConst:
+			a[in.Dst] = t.Consts[in.A]
+		case TIntK:
+			n[in.Dst] = int(in.A)
+		case TMoveA:
+			a[in.Dst] = a[in.A]
+		case TMoveN:
+			n[in.Dst] = n[in.A]
+		case TMoveS:
+			s[in.Dst] = s[in.A]
+		case TMoveT:
+			ts[in.Dst] = ts[in.A]
+		case TCap:
+			a[in.Dst] = nodes.UnboxNode(c.Frame.Vals[in.A])
+		case TLocal:
+			v, ok := c.local(t.Names[in.A])
 			if !ok {
-				return nil, p.ActionError("undefined capture $", t.names[in.a])
+				return nil, p.ActionError("undefined capture $", t.Names[in.A])
 			}
-			a[in.dst] = v
-		case tVar:
-			a[in.dst] = p.VarValue(int(in.a))
-		case tUnbox:
-			a[in.dst] = unboxed(a[in.a])
-		case tFromB:
-			a[in.dst] = n[in.a] != 0
-		case tFromT:
-			a[in.dst] = ts[in.a]
-		case tNot:
-			n[in.dst] = 1 - n[in.a]
-		case tLt:
-			n[in.dst] = b2i(n[in.a] < n[in.b])
-		case tAdd:
-			n[in.dst] = n[in.a] + n[in.b]
-		case tEqN:
-			n[in.dst] = b2i(n[in.a] == n[in.b])
-		case tIsNil:
-			n[in.dst] = b2i(a[in.a] == nil)
-		case tMember:
-			m := &t.members[in.b]
-			if a[in.dst], err = p.termMember(c, m.kind, a[in.a], m.name, m.field); err != nil {
+			a[in.Dst] = v
+		case TVar:
+			a[in.Dst] = p.VarValue(int(in.A))
+		case TUnbox:
+			a[in.Dst] = unboxed(a[in.A])
+		case TFromB:
+			a[in.Dst] = n[in.A] != 0
+		case TFromT:
+			a[in.Dst] = ts[in.A]
+		case TNot:
+			n[in.Dst] = 1 - n[in.A]
+		case TLt:
+			n[in.Dst] = b2i(n[in.A] < n[in.B])
+		case TAdd:
+			n[in.Dst] = n[in.A] + n[in.B]
+		case TEqN:
+			n[in.Dst] = b2i(n[in.A] == n[in.B])
+		case TIsNil:
+			n[in.Dst] = b2i(a[in.A] == nil)
+		case TMember:
+			m := &t.Members[in.B]
+			if a[in.Dst], err = p.termMember(c, m.Kind, a[in.A], m.Name, m.Field); err != nil {
 				return nil, err
 			}
-		case tUnary:
-			if a[in.dst], err = p.termUnary(int(in.b), a[in.a]); err != nil {
+		case TUnary:
+			if a[in.Dst], err = p.termUnary(int(in.B), a[in.A]); err != nil {
 				return nil, err
 			}
-		case tBinary:
-			if a[in.dst], err = p.termBinary(int(in.c), a[in.a], a[in.b]); err != nil {
+		case TBinary:
+			if a[in.Dst], err = p.termBinary(int(in.C), a[in.A], a[in.B]); err != nil {
 				return nil, err
 			}
-		case tLogic:
+		case TLogic:
 			var b bool
-			if b, err = p.termLogic(int(in.b), a[in.a]); err != nil {
+			if b, err = p.termLogic(int(in.B), a[in.A]); err != nil {
 				return nil, err
 			}
-			n[in.dst] = b2i(b)
-		case tText:
-			if ts[in.dst], err = p.termText(a[in.a]); err != nil {
+			n[in.Dst] = b2i(b)
+		case TText:
+			if ts[in.Dst], err = p.termText(a[in.A]); err != nil {
 				return nil, err
 			}
-		case tTextEq:
-			n[in.dst] = b2i(p.equalText(ts[in.a], ts[in.b]))
-		case tLength:
-			if a[in.dst], err = p.termLength(a[in.a]); err != nil {
+		case TTextEq:
+			n[in.Dst] = b2i(p.equalText(ts[in.A], ts[in.B]))
+		case TLength:
+			if a[in.Dst], err = p.termLength(a[in.A]); err != nil {
 				return nil, err
 			}
-		case tConvert:
-			if a[in.dst], err = p.termConvert(t.nodeTypes[in.b], a[in.a]); err != nil {
+		case TConvert:
+			if a[in.Dst], err = p.termConvert(t.NodeTypes[in.B], a[in.A]); err != nil {
 				return nil, err
 			}
-		case tConforms:
-			n[in.dst] = b2i(p.termConforms(t.casts[in.b].t, a[in.a]))
-		case tCastErr:
-			ct := &t.casts[in.b]
-			a[in.dst] = p.CastError(a[in.a], ct.t, c.Start, ct.line, ct.col)
-		case tKids:
-			n[in.dst] = len(p.KidStack)
-		case tPush:
-			if err = p.termPush(c, t.names[in.b], a[in.a]); err != nil {
+		case TConforms:
+			n[in.Dst] = b2i(p.termConforms(t.Casts[in.B].Type, a[in.A]))
+		case TCastErr:
+			ct := &t.Casts[in.B]
+			a[in.Dst] = p.CastError(a[in.A], ct.Type, c.Start, ct.Line, ct.Col)
+		case TKids:
+			n[in.Dst] = len(p.KidStack)
+		case TPush:
+			if err = p.termPush(c, t.Names[in.B], a[in.A]); err != nil {
 				return nil, err
 			}
-		case tPushAll:
-			if err = p.termPushItems(c, t.names[in.b], a[in.a]); err != nil {
+		case TPushAll:
+			if err = p.termPushItems(c, t.Names[in.B], a[in.A]); err != nil {
 				return nil, err
 			}
-		case tAbove:
-			s[in.dst] = p.Kids(n[in.a])
-		case tHull:
-			a[in.dst] = p.termHull(c, in.b != 0, s[in.a])
-		case tItems:
-			if s[in.dst], err = p.termItems(t.names[in.b], a[in.a]); err != nil {
+		case TAbove:
+			s[in.Dst] = p.Kids(n[in.A])
+		case THull:
+			a[in.Dst] = p.termHull(c, in.B != 0, s[in.A])
+		case TItems:
+			if s[in.Dst], err = p.termItems(t.Names[in.B], a[in.A]); err != nil {
 				return nil, err
 			}
-		case tItemAt:
-			a[in.dst] = p.termItemAt(s[in.a], n[in.b], in.c != 0)
-		case tSeqLen:
-			n[in.dst] = len(s[in.a])
-		case tStep:
+		case TItemAt:
+			a[in.Dst] = p.termItemAt(s[in.A], n[in.B], in.C != 0)
+		case TSeqLen:
+			n[in.Dst] = len(s[in.A])
+		case TStep:
 			p.Spend()
-		case tKeep:
-			p.KidStack = append(p.KidStack, s[in.a][n[in.b]])
-		case tFilter:
+		case TKeep:
+			p.KidStack = append(p.KidStack, s[in.A][n[in.B]])
+		case TFilter:
 			var b bool
-			if b, err = p.termFilterKeep(a[in.a]); err != nil {
+			if b, err = p.termFilterKeep(a[in.A]); err != nil {
 				return nil, err
 			}
-			n[in.dst] = b2i(b)
-		case tCopy:
-			a[in.dst] = c.NewList(s[in.a])
-		case tStruct:
-			st := &t.structs[in.a]
-			a[in.dst] = p.NewNode(nodes.Data{Kind: st.kind, Fields: p.fields(st.fields)})
-		case tSetField:
-			p.SetValueField(&nodes.D(a[in.a].(*core.Node)).Fields, t.names[in.c], a[in.b])
-		case tField:
+			n[in.Dst] = b2i(b)
+		case TCopy:
+			a[in.Dst] = c.NewList(s[in.A])
+		case TStruct:
+			st := &t.Structs[in.A]
+			a[in.Dst] = p.NewNode(nodes.Data{Kind: st.Kind, Fields: p.fields(st.Fields)})
+		case TSetField:
+			p.SetValueField(&nodes.D(a[in.A].(*core.Node)).Fields, t.Names[in.C], a[in.B])
+		case TField:
 			p.Spend()
-			x := a[in.a].(*core.Node)
-			p.SetValueField(&nodes.D(x).Fields, t.names[in.c], a[in.b])
-			n[in.dst] = b2i(p.termCover(x, a[in.b], n[in.dst] != 0))
-		case tCover:
-			n[in.dst] = b2i(p.termCover(a[in.a].(*core.Node), a[in.b], n[in.c] != 0))
-		case tMade:
-			p.termMade(c, a[in.a].(*core.Node), n[in.b] != 0)
-		case tJump:
-			pc = int(in.dst) - 1
-		case tJumpF:
-			if n[in.a] == 0 {
-				pc = int(in.dst) - 1
+			x := a[in.A].(*core.Node)
+			p.SetValueField(&nodes.D(x).Fields, t.Names[in.C], a[in.B])
+			n[in.Dst] = b2i(p.termCover(x, a[in.B], n[in.Dst] != 0))
+		case TCover:
+			n[in.Dst] = b2i(p.termCover(a[in.A].(*core.Node), a[in.B], n[in.C] != 0))
+		case TMade:
+			p.termMade(c, a[in.A].(*core.Node), n[in.B] != 0)
+		case TJump:
+			pc = int(in.Dst) - 1
+		case TJumpF:
+			if n[in.A] == 0 {
+				pc = int(in.Dst) - 1
 			}
-		case tRet:
-			return a[in.a], nil
-		case tRetErr:
-			return nil, a[in.a].(error)
+		case TRet:
+			return a[in.A], nil
+		case TRetErr:
+			return nil, a[in.A].(error)
 		default:
-			panic("core: term instruction " + string(rune('0'+in.op)))
+			panic("core: term instruction " + string(rune('0'+in.Op)))
 		}
 	}
 }

@@ -6,28 +6,6 @@ package archtest
 // added only for a dependence that already exists, when a move renames or splits it, and it names
 // the stage that removes it.
 var allowlist = []string{
-	// The runtime entry points, the parser state, the Document and the VM still compile grammars
-	// and lower action expressions at run time: they read the checked program, the Core IR and
-	// the grammar AST. They go when the runtime gets a run-time program of its own and the
-	// compiler entry moves to the driver (the runtime separation stage, S5).
-	"rule 1: internal/engine -> pkg/grammar/ast",
-	"rule 1: internal/engine -> internal/cancel",
-	"rule 1: internal/engine -> internal/compile",
-	"rule 1: internal/engine -> internal/analysis/complexity",
-	"rule 1: internal/engine -> internal/frontend/desugar",
-	"rule 1: internal/engine -> internal/diagnostic",
-	"rule 1: internal/engine -> internal/backend/closure",
-	"rule 1: internal/engine -> internal/backend/vmlower",
-	"rule 1: internal/engine -> internal/ir/core",
-	"rule 1: internal/runtime/document -> internal/compile",
-	"rule 1: internal/runtime/state -> pkg/grammar/ast",
-	"rule 1: internal/runtime/state -> internal/compile",
-	"rule 1: internal/runtime/state -> internal/ir/core",
-	"rule 1: internal/runtime/state -> internal/ir/code",
-	"rule 1: internal/runtime/state -> internal/ir/exec/lower",
-	"rule 1: internal/runtime/state -> internal/ir/code/exec",
-	"rule 1: internal/runtime/vm -> internal/compile",
-
 	// The front end computes the rule facts of the Core IR, which now live in corepass, and
 	// reports the structural errors from them. The edge goes when the facts are corepass analyses
 	// that the driver asks for, and the front end no longer computes them.
@@ -45,6 +23,12 @@ var allowlist = []string{
 	// flowlower and the printers print the Exec stage only.
 	"rule 2: internal/backend/codegen/golang/print -> dialects exec, flow",
 	"rule 2: internal/backend/codegen/typescript/print -> dialects exec, flow",
+	// The language server compiles the grammars it serves and reads their checked programs. It
+	// did so through engine, which held the compile entry on the runtime side; the runtime
+	// separation (S5, #280) moved the entry to the driver, which the layer graph does not place
+	// below the LSP. The edge goes when the LSP compiles through the compiler API of the runtime
+	// and compiler API stage (S6b), or the layer graph places the LSP above the driver.
+	"rule 2: internal/lsp/zpls -> internal/driver/entry",
 	// The flag names use the backend choice and the parse options of engine. The runtime and
 	// compiler API stage (S6b) removes engine: the options move to pkg/runtime, and the backend
 	// choice goes away (the constructor chooses the backend).
