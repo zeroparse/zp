@@ -5,10 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime/query"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func TestStructuralQueryRuleNeedsSourceInfo(t *testing.T) {
@@ -16,9 +17,9 @@ func TestStructuralQueryRuleNeedsSourceInfo(t *testing.T) {
 rule item = [a-z]`
 	pattern := query.Pattern{Rule: "item", Capture: "item"}
 	for _, sourceInfo := range []bool{false, true} {
-		var opts []engine.CompileOption
+		var opts []enginetest.CompileOption
 		if sourceInfo {
-			opts = append(opts, engine.WithSourceInfo())
+			opts = append(opts, enginetest.WithSourceInfo())
 		}
 		p := mustCompile(t, src, opts...)
 		s := mustSchema(t, p)

@@ -38,7 +38,7 @@ needed_levels() {
     case $f in
       docs/* | spec/* | site/* | .agents/* | AGENTS.md | README.md | SECURITY.md) docs=1 ;;
       internal/runtime/engine/* | internal/backend/codegen/common/* | internal/compile/* | internal/ir/* | pkg/bytecode/* | \
-        engine/* | codegen/* | core/*) code=1; full=1 ;;
+        pkg/compiler/* | pkg/runtime/*) code=1; full=1 ;;
       *) code=1 ;;
     esac
   done <<< "$paths"

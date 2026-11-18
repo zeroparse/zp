@@ -11,15 +11,17 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed calc.zp
-var grammar string
+var source string
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("calc.zp", source), compiler.WithStart("main"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -32,7 +34,7 @@ func main() {
 	fmt.Println(v)
 }
 
-func eval(p *engine.Parser, src string) (float64, error) {
+func eval(p runtime.Parser, src string) (float64, error) {
 	n, err := p.Parse(src)
 	if err != nil {
 		return 0, err

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/sample"
 )
 
@@ -90,7 +91,7 @@ func sampleCmd(args []string, stdout io.Writer) error {
 	if *coverage {
 		opts = append(opts, sample.WithCoverage())
 	}
-	g, err := sample.New(p, opts...)
+	g, err := sample.New(engine.Reference(p), opts...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", *grammarPath, err)
 	}

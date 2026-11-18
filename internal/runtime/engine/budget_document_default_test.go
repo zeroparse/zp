@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"zeroparse.dev/zp/internal/runtime/document"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/runtime"
@@ -39,11 +40,11 @@ func usedBy(t *testing.T, o ParseOptions, run func(ParseOptions) error) uint64 {
 type editScenario struct {
 	name  string
 	lines int
-	edit  func(t *testing.T, d *Document)
+	edit  func(t *testing.T, d *document.Document)
 }
 
-func insertEvery(count, stride int) func(*testing.T, *Document) {
-	return func(t *testing.T, d *Document) {
+func insertEvery(count, stride int) func(*testing.T, *document.Document) {
+	return func(t *testing.T, d *document.Document) {
 		for i := 0; i < count; i++ {
 			if err := d.Edit(i*stride+1, i*stride+1, "x"); err != nil {
 				t.Fatal(err)
@@ -61,7 +62,7 @@ func TestBudgetDocumentDefaultSucceedsWhereFreshDoes(t *testing.T) {
 		{"20000 lines and 6000 edits", 20000, insertEvery(6000, 18)},
 		{"one edit", 20000, insertEvery(1, 18)},
 		{"many small edits", 3000, insertEvery(2999, 6)},
-		{"one huge edit", 20000, func(t *testing.T, d *Document) {
+		{"one huge edit", 20000, func(t *testing.T, d *document.Document) {
 			if err := d.Edit(6, len(d.Text())/2, strings.Repeat("zz yy\n", 7000)); err != nil {
 				t.Fatal(err)
 			}
@@ -176,7 +177,7 @@ rule rest = . #repeat(0, 1000000)`
 
 // sameLengthEdits replaces each of the first count characters of a text of "a" with "b": edits that
 // leave the length of the text and the cost of a parse from scratch unchanged.
-func sameLengthEdits(t *testing.T, d *Document, count int) {
+func sameLengthEdits(t *testing.T, d *document.Document, count int) {
 	t.Helper()
 	for i := 0; i < count; i++ {
 		if err := d.Edit(i, i+1, "b"); err != nil {
@@ -369,7 +370,7 @@ const documentWorkFactor = 6
 // letterEdits replaces count letters of the text of a Document, spread over it, by another letter:
 // edits that leave the text a valid input and its length unchanged. count is at most the capacity of
 // the edit log.
-func letterEdits(t *testing.T, d *Document, count int) {
+func letterEdits(t *testing.T, d *document.Document, count int) {
 	t.Helper()
 	text := []byte(d.Text())
 	var at []int

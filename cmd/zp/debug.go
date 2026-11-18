@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 

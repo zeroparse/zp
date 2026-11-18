@@ -6,7 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/query"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
@@ -27,7 +28,7 @@ rule name Name = t:([a-z]) #atomic => Name{Text: text($t)}
 
 func queryShapeSchema(t *testing.T) *schema.Output {
 	t.Helper()
-	return mustSchema(t, mustCompile(t, queryShapeGrammar, engine.WithSourceInfo()))
+	return mustSchema(t, mustCompile(t, queryShapeGrammar, enginetest.WithSourceInfo()))
 }
 
 // TestStructuralQueryNestedShapes checks that a pattern compiles if, and only if, some value of the
@@ -127,7 +128,7 @@ func TestStructuralQueryErrorSize(t *testing.T) {
 		src += "type " + n + " = { X E }\n"
 	}
 	src += "rule main E = e\nrule e E = n:[0-9] => Num{Text: text($n)}\n"
-	s := mustSchema(t, mustCompile(t, src, engine.WithSourceInfo()), engine.WithAllSchemaRules())
+	s := mustSchema(t, mustCompile(t, src, enginetest.WithSourceInfo()), zpruntime.WithAllSchemaRules())
 	p := query.Pattern{Category: "string"}
 	for range 16 {
 		p = query.Pattern{Fields: []query.FieldPattern{field("X", p)}}

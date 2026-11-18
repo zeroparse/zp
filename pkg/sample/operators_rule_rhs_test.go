@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/sample"
 )
@@ -113,11 +113,11 @@ func TestSampleOperatorsRuleIncompleteRHS(t *testing.T) {
 					if coverage {
 						opts = append(opts, sample.WithCoverage())
 					}
-					a, err := sample.New(p, opts...)
+					a, err := sample.New(engine.Reference(p), opts...)
 					if err != nil {
 						t.Fatal(err)
 					}
-					b, err := sample.New(p, opts...)
+					b, err := sample.New(engine.Reference(p), opts...)
 					if err != nil {
 						t.Fatal(err)
 					}

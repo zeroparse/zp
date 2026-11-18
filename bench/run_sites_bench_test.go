@@ -4,7 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // runSitesGrammar restarts a scan at each position: without run records the cost of a parse grows
@@ -18,7 +19,7 @@ rule a = "a"* "c"
 
 // BenchmarkRunSites parses the restarted scan: a hot run site on every backend.
 func BenchmarkRunSites(b *testing.B) {
-	p, err := engine.CompileSource(runSitesGrammar, "main")
+	p, err := enginetest.CompileSource(runSitesGrammar, "main")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -28,7 +29,7 @@ func BenchmarkRunSites(b *testing.B) {
 			b.SetBytes(int64(len(input)))
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := p.Parse(input, engine.WithBackend(be.b), engine.RecognizeOnly()); err != nil {
+				if _, err := p.Parse(input, engine.WithBackend(be.b), engine.WithRecognize()); err != nil {
 					b.Fatal(err)
 				}
 			}

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/pkg/editfuzz"
 	"zeroparse.dev/zp/pkg/runtime"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
@@ -175,7 +174,7 @@ func TestEditFuzzReplayAppliesLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 	seq := &editfuzz.Sequence{GrammarSHA256: editfuzz.GrammarHash([]byte(limitsGrammar)), Start: "main",
-		Backend: engine.Closure, Unit: zpinput.CodePoints, Initial: []byte("abc"), Operations: []editfuzz.Operation{{Kind: editfuzz.Checkpoint}}}
+		Backend: editfuzz.Closure, Unit: zpinput.CodePoints, Initial: []byte("abc"), Operations: []editfuzz.Operation{{Kind: editfuzz.Checkpoint}}}
 	path, err := editfuzz.Save(dir, seq)
 	if err != nil {
 		t.Fatal(err)

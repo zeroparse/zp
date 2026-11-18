@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
@@ -28,7 +27,7 @@ func generated(t *testing.T, src string, opts Options) (seqs []string, err error
 }
 
 func TestFuzzIsDeterministic(t *testing.T) {
-	opts := Options{Start: "main", Backend: engine.Bytecode, Unit: input.Bytes, Seed: 7, Sequences: 5, Operations: 40}
+	opts := Options{Start: "main", Backend: Bytecode, Unit: input.Bytes, Seed: 7, Sequences: 5, Operations: 40}
 	a, err := generated(t, testGrammars[1], opts)
 	if err != nil {
 		t.Fatal(err)
@@ -126,7 +125,7 @@ func TestFuzzSavesFailures(t *testing.T) {
 	for _, u := range units {
 		dir := filepath.Join(t.TempDir(), "failures")
 		src := []byte(testGrammars[2])
-		err := Fuzz(src, Options{Start: "main", Backend: engine.BytecodeIterative, Unit: u, Seed: 1, SaveFailures: dir})
+		err := Fuzz(src, Options{Start: "main", Backend: BytecodeIterative, Unit: u, Seed: 1, SaveFailures: dir})
 		var f *Failure
 		var m *Mismatch
 		if !errors.As(err, &f) || !errors.As(err, &m) || f.Path == "" || !strings.Contains(err.Error(), f.Path) {
@@ -162,7 +161,7 @@ func TestFuzzErrors(t *testing.T) {
 		{testGrammars[0], Options{Start: "item"}, "rule item is not a start rule"},
 		{testGrammars[0], Options{Start: "nope"}, "nope"},
 		{"rule main =", Options{Start: "main"}, ""},
-		{testGrammars[0], Options{Start: "main", Backend: engine.Backend(9)}, "unknown backend"},
+		{testGrammars[0], Options{Start: "main", Backend: Backend("nosuch")}, "unknown backend"},
 		{testGrammars[0], Options{Start: "main", Unit: input.PositionUnit(7)}, "unknown unit"},
 	} {
 		if err := Fuzz([]byte(tc.src), tc.opts); err == nil || !strings.Contains(err.Error(), tc.want) {
@@ -185,7 +184,7 @@ func TestFuzzErrors(t *testing.T) {
 	corruptDocumentResult = nil
 	file := filepath.Join(t.TempDir(), "file")
 	os.WriteFile(file, nil, 0o644)
-	if _, err := Save(filepath.Join(file, "dir"), sequence("g", engine.Closure, input.Bytes, "")); err == nil {
+	if _, err := Save(filepath.Join(file, "dir"), sequence("g", Closure, input.Bytes, "")); err == nil {
 		t.Error("saved under a file")
 	}
 }
@@ -194,7 +193,7 @@ func TestFuzzErrors(t *testing.T) {
 // files.
 func TestSaveNeverReplaces(t *testing.T) {
 	dir := t.TempDir()
-	seq := sequence("g", engine.Closure, input.Bytes, "a", checkpoint)
+	seq := sequence("g", Closure, input.Bytes, "a", checkpoint)
 	path, err := Save(dir, seq)
 	if err != nil {
 		t.Fatal(err)

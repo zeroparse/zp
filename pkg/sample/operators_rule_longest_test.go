@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/sample"
 )
@@ -94,11 +94,11 @@ func TestSampleOperatorsRuleLongestCallerStops(t *testing.T) {
 				if coverage {
 					options = append(options, sample.WithCoverage())
 				}
-				a, err := sample.New(p, options...)
+				a, err := sample.New(engine.Reference(p), options...)
 				if err != nil {
 					t.Fatal(err)
 				}
-				b, err := sample.New(p, options...)
+				b, err := sample.New(engine.Reference(p), options...)
 				if err != nil {
 					t.Fatal(err)
 				}

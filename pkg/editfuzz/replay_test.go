@@ -6,13 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
-var backends = []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative}
+var backends = []Backend{Closure, Bytecode, BytecodeIterative}
 var units = []input.PositionUnit{input.CodePoints, input.Bytes}
 
 // Grammars exercising success and failure, recovered errors, left recursion, lookahead and long
@@ -40,12 +41,12 @@ var (
 	checkpoint = Operation{Kind: Checkpoint}
 )
 
-func sequence(src string, b engine.Backend, u input.PositionUnit, initial string, ops ...Operation) *Sequence {
+func sequence(src string, b Backend, u input.PositionUnit, initial string, ops ...Operation) *Sequence {
 	return &Sequence{GrammarSHA256: GrammarHash([]byte(src)), Start: "main", Backend: b, Unit: u, Initial: []byte(initial), Operations: ops}
 }
 
 func TestSequenceJSON(t *testing.T) {
-	seq := sequence("g", engine.BytecodeIterative, input.Bytes, "a\xc3\xa9\xff",
+	seq := sequence("g", BytecodeIterative, input.Bytes, "a\xc3\xa9\xff",
 		edit(1, 3, "x\x80"), edit(0, 0, ""), undo, redo, checkpoint)
 	seq.Seed = 41
 	data, err := json.Marshal(seq)
@@ -112,26 +113,26 @@ func TestSequenceJSONErrors(t *testing.T) {
 			t.Errorf("%s: got %v, want an error containing %q", tc.new, err, tc.want)
 		}
 	}
-	if _, err := json.Marshal(sequence("g", engine.DefaultBackend, input.Bytes, "")); err == nil {
+	if _, err := json.Marshal(sequence("g", Closure, input.Bytes, "")); err == nil {
 		t.Error("a sequence with the default backend was written")
 	}
 	for _, bad := range []*Sequence{
-		{GrammarSHA256: "nothex", Start: "main", Backend: engine.Closure},
-		{GrammarSHA256: GrammarHash(nil), Backend: engine.Closure},
-		sequence("g", engine.Closure, input.Bytes, "", edit(2, 1, "")),
+		{GrammarSHA256: "nothex", Start: "main", Backend: Closure},
+		{GrammarSHA256: GrammarHash(nil), Backend: Closure},
+		sequence("g", Closure, input.Bytes, "", edit(2, 1, "")),
 	} {
 		if data, err := json.Marshal(bad); err == nil {
 			t.Errorf("wrote %s", data)
 		}
 	}
-	if _, err := json.Marshal(sequence("g", engine.Closure, input.PositionUnit(7), "")); err == nil {
+	if _, err := json.Marshal(sequence("g", Closure, input.PositionUnit(7), "")); err == nil {
 		t.Error("a sequence with an unknown unit was written")
 	}
-	if _, err := json.Marshal(sequence("g", engine.Closure, input.Bytes, "", Operation{Kind: "bogus"})); err == nil {
+	if _, err := json.Marshal(sequence("g", Closure, input.Bytes, "", Operation{Kind: "bogus"})); err == nil {
 		t.Error("an unknown operation was written")
 	}
 	// A Sequence value is written in the same format as a pointer.
-	ptr := sequence("g", engine.Closure, input.Bytes, "x", checkpoint)
+	ptr := sequence("g", Closure, input.Bytes, "x", checkpoint)
 	a, err := json.Marshal(ptr)
 	b, err2 := json.Marshal(*ptr)
 	if err != nil || err2 != nil || string(a) != string(b) {
@@ -174,7 +175,7 @@ func TestReplay(t *testing.T) {
 // replace each invalid byte with U+FFFD, so their bytes are never joined.
 func TestUndoRestoresText(t *testing.T) {
 	src := testGrammars[0]
-	p, err := engine.CompileSource(src, "main")
+	p, err := enginetest.CompileSource(src, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +190,7 @@ func TestUndoRestoresText(t *testing.T) {
 		{input.CodePoints, []Operation{edit(2, 3, "\xa9"), edit(0, 0, "\xff"), undo, undo, redo, redo, undo, edit(1, 2, "b"), undo, undo},
 			[]string{"a" + r + r, r + "a" + r + r, "a" + r + r, "a" + r + "x", "a" + r + r, r + "a" + r + r, "a" + r + r, "ab" + r, "a" + r + r, "a" + r + "x"}},
 	} {
-		seq := sequence(src, engine.Closure, tc.unit, "a\xc3x")
+		seq := sequence(src, Closure, tc.unit, "a\xc3x")
 		rp, err := start(p, seq)
 		if err != nil {
 			t.Fatal(err)
@@ -248,14 +249,14 @@ func TestReplayInvalid(t *testing.T) {
 		event int
 		want  string
 	}{
-		{sequence(src, engine.Closure, input.CodePoints, "a"), "rule main = .", -1, "hash"},
-		{sequence("rule main = ", engine.Closure, input.CodePoints, "a"), "rule main = ", -1, ""},
-		{&Sequence{GrammarSHA256: GrammarHash([]byte(src)), Start: "other", Backend: engine.Closure}, src, -1, "rule other is not defined"},
-		{&Sequence{GrammarSHA256: GrammarHash([]byte(src)), Start: "item", Backend: engine.Closure}, src, -1, "rule item is not a start rule"},
-		{sequence(src, engine.Closure, input.CodePoints, "a", checkpoint, undo), src, 1, "nothing to undo"},
-		{sequence(src, engine.Closure, input.CodePoints, "a", edit(0, 1, "b"), redo), src, 1, "nothing to redo"},
-		{sequence(src, engine.Closure, input.CodePoints, "a", edit(0, 2, "b")), src, 0, "invalid range"},
-		{sequence(src, engine.Bytecode, input.Bytes, "é", edit(1, 1, "b")), src, 0, "boundary"},
+		{sequence(src, Closure, input.CodePoints, "a"), "rule main = .", -1, "hash"},
+		{sequence("rule main = ", Closure, input.CodePoints, "a"), "rule main = ", -1, ""},
+		{&Sequence{GrammarSHA256: GrammarHash([]byte(src)), Start: "other", Backend: Closure}, src, -1, "rule other is not defined"},
+		{&Sequence{GrammarSHA256: GrammarHash([]byte(src)), Start: "item", Backend: Closure}, src, -1, "rule item is not a start rule"},
+		{sequence(src, Closure, input.CodePoints, "a", checkpoint, undo), src, 1, "nothing to undo"},
+		{sequence(src, Closure, input.CodePoints, "a", edit(0, 1, "b"), redo), src, 1, "nothing to redo"},
+		{sequence(src, Closure, input.CodePoints, "a", edit(0, 2, "b")), src, 0, "invalid range"},
+		{sequence(src, Bytecode, input.Bytes, "é", edit(1, 1, "b")), src, 0, "boundary"},
 	} {
 		err := Replay([]byte(tc.src), tc.seq)
 		var invalid *InvalidError
@@ -286,7 +287,7 @@ func TestMismatch(t *testing.T) {
 				tc.corrupt(tree)
 			}
 		}
-		seq := sequence(src, engine.Bytecode, input.Bytes, "ab", checkpoint, edit(2, 2, "c"), checkpoint, checkpoint)
+		seq := sequence(src, Bytecode, input.Bytes, "ab", checkpoint, edit(2, 2, "c"), checkpoint, checkpoint)
 		err := Replay([]byte(src), seq)
 		var m *Mismatch
 		if !errors.As(err, &m) || m.Event != 2 || m.Text != "abc" || m.Path != tc.path || m.Fingerprint() != tc.print {
@@ -314,7 +315,7 @@ func TestPanicIsAResult(t *testing.T) {
 			panic("edit boom")
 		}
 	}
-	err := Replay([]byte(src), sequence(src, engine.Closure, input.Bytes, "ab", edit(0, 0, "x"), checkpoint, edit(1, 1, "!"), checkpoint))
+	err := Replay([]byte(src), sequence(src, Closure, input.Bytes, "ab", edit(0, 0, "x"), checkpoint, edit(1, 1, "!"), checkpoint))
 	var m *Mismatch
 	if !errors.As(err, &m) || m.Event != 2 || m.Path != "panic.edit" || m.Category() != "panic" || m.Text != "xab" ||
 		m.Document != "edit boom" || !strings.Contains(err.Error(), "panicked at operation 2") {
@@ -325,7 +326,7 @@ func TestPanicIsAResult(t *testing.T) {
 // TestInvalidUTF8Compares checks that results differing only in invalid bytes, which JSON replaces with
 // U+FFFD, differ.
 func TestInvalidUTF8Compares(t *testing.T) {
-	p, err := engine.CompileSource(testGrammars[0], "main")
+	p, err := enginetest.CompileSource(testGrammars[0], "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,7 +350,7 @@ func TestInvalidUTF8Compares(t *testing.T) {
 // TestErrorsCompareByFields checks that results with recovered and unrecovered syntax errors are
 // compared field by field.
 func TestErrorsCompareByFields(t *testing.T) {
-	p, err := engine.CompileSource(testGrammars[1], "main")
+	p, err := enginetest.CompileSource(testGrammars[1], "main")
 	if err != nil {
 		t.Fatal(err)
 	}

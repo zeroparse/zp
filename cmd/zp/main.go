@@ -37,13 +37,15 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/frontend/parser"
+
 	igen "zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/pass"
-	iengine "zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/pkg/compiler"
 	"zeroparse.dev/zp/pkg/grammar"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
@@ -416,7 +418,7 @@ func formatSourceMode(name string, src []byte, write, list, syntaxOnly bool, std
 	if t := bytes.TrimSpace(src); len(t) > 0 && t[0] == '{' {
 		return fmt.Errorf("%s: JSON is not ZeroParse source; use zp convert to convert it", name)
 	}
-	g, err := engine.ParseGrammar(string(src))
+	g, err := parser.Parse(string(src))
 	if err != nil {
 		return fileError(name, err)
 	}
@@ -597,7 +599,7 @@ func loadSourceParser(path, start, command string) (*engine.Parser, error) {
 	if err != nil {
 		return nil, err
 	}
-	p, err := engine.Compile(g, start)
+	p, err := entry.CompileParser(g, start, entry.Options{})
 	if err != nil {
 		return nil, fileError(path, err)
 	}
@@ -678,7 +680,7 @@ func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 		src = string(b)
 	}
 	if *check {
-		if _, err := p.Parse(src, unit, backend, lim.option(), engine.WithExpectations(), engine.RecognizeOnly()); err != nil {
+		if _, err := p.Parse(src, unit, backend, lim.option(), engine.WithExpectations(), engine.WithRecognize()); err != nil {
 			return err
 		}
 		fmt.Fprintln(stdout, "ok")
@@ -712,15 +714,8 @@ type compileFlags struct {
 }
 
 // options returns the compile options of the flags.
-func (f compileFlags) options() []engine.CompileOption {
-	var opts []engine.CompileOption
-	if f.sourceInfo {
-		opts = append(opts, engine.WithSourceInfo())
-	}
-	if f.defaultValue {
-		opts = append(opts, engine.WithDefaultValue())
-	}
-	return opts
+func (f compileFlags) options() entry.Options {
+	return entry.Options{SourceInfo: f.sourceInfo, DefaultValue: f.defaultValue}
 }
 
 func isFlagSet(fs *flag.FlagSet, name string) bool {
@@ -855,34 +850,50 @@ func genCmd(args []string, stdout io.Writer) error {
 	if *printAfter != "" {
 		printTo = genDiagnostics
 	}
-	var generator codegen.Generator
+	if mode == libOnly {
+		var files []compiler.File
+		if *lang == "ts" {
+			files, err = compiler.GenerateTypeScriptLib()
+		} else {
+			files, err = compiler.GenerateGoLib(*module)
+		}
+		if err != nil {
+			return err
+		}
+		return writeGenerated(*output, files, mode, *lang == "ts")
+	}
+	opts := []compiler.Option{
+		compiler.WithStart(*start),
+		compiler.WithOptimize(compiler.Optimize{Profile: *optimize, Values: optValues, Off: noOptNames}),
+	}
+	if *defaultValue {
+		opts = append(opts, compiler.WithDefaultValue())
+	}
+	if *sourceInfo {
+		opts = append(opts, compiler.WithSourceInfo())
+	}
+	src := fileSource(*grammarPath)
+	var files []compiler.File
 	if *lang == "ts" {
-		generator = codegen.TypeScript{
+		files, err = compiler.GenerateTypeScript(src, compiler.TSConfig{
 			Lib:           mode.generated(),
 			LibModule:     *libModule,
 			Types:         *types,
-			DefaultValue:  *defaultValue,
-			SourceInfo:    *sourceInfo,
 			Observability: *observability,
 			LimitControls: *limitControls,
 			Expectations:  *expectations,
 			Recognize:     *recognize,
 			Document:      *document,
 			MaxDepth:      *maxDepth,
-			Optimize:      *optimize,
-			Opt:           optValues,
-			NoOpt:         noOptNames,
 			PrintAfter:    *printAfter,
 			PrintTo:       printTo,
-		}
+		}, opts...)
 	} else {
-		generator = codegen.Go{
+		files, err = compiler.GenerateGo(src, compiler.GoConfig{
 			Module:         *module,
 			PackageName:    *pkg,
 			Lib:            mode.generated(),
 			Types:          *types,
-			DefaultValue:   *defaultValue,
-			SourceInfo:     *sourceInfo,
 			Observability:  *observability,
 			LimitControls:  *limitControls,
 			Expectations:   *expectations,
@@ -893,27 +904,12 @@ func genCmd(args []string, stdout io.Writer) error {
 			TypedOnly:      *typedOnly,
 			RecognizeOnly:  *recognizeOnly,
 			OmitPackageDoc: *nodoc,
-			Optimize:       *optimize,
-			Opt:            optValues,
-			NoOpt:          noOptNames,
 			PrintAfter:     *printAfter,
 			PrintTo:        printTo,
-		}
+		}, opts...)
 	}
-	if mode == libOnly {
-		files, err := generator.GenerateLib()
-		if err != nil {
-			return err
-		}
-		return writeGenerated(*output, files, mode, *lang == "ts")
-	}
-	g, err := loadGrammar(*grammarPath, "gen")
 	if err != nil {
-		return err
-	}
-	files, err := generator.Generate(g, *start)
-	if err != nil {
-		return fileError(*grammarPath, err)
+		return sourceError(*grammarPath, "gen", err)
 	}
 	return writeGenerated(*output, files, mode, *lang == "ts")
 }
@@ -940,13 +936,13 @@ func parseGenLib(s string) (genLib, error) {
 	return 0, fmt.Errorf("unknown library mode %q: want embed, import or only", s)
 }
 
-// generated returns the library mode of the generator for m. libOnly calls GenerateLib instead of
-// Generate, so its mode is not used.
-func (m genLib) generated() codegen.LibMode {
+// generated returns the library mode of the generator for m. libOnly generates only the library,
+// so its mode is not used.
+func (m genLib) generated() compiler.LibMode {
 	if m == libImport {
-		return codegen.LibImport
+		return compiler.LibImport
 	}
-	return codegen.LibEmbed
+	return compiler.LibEmbed
 }
 
 // ownedFiles returns the files below dir that a generation in mode owns: it writes them, and
@@ -979,7 +975,7 @@ func ownedFiles(dir string, mode genLib, ts bool) []string {
 // write: it refuses, leaving dir untouched, to replace or remove a file that was not generated by
 // zp, to write through a symbolic link at an owned path or directory, and to continue after a
 // file it cannot read.
-func writeGenerated(dir string, files []codegen.File, mode genLib, ts bool) error {
+func writeGenerated(dir string, files []compiler.File, mode genLib, ts bool) error {
 	generated := func(name string) (exists, ours bool, err error) {
 		data, err := os.ReadFile(name)
 		if errors.Is(err, os.ErrNotExist) {
@@ -1102,7 +1098,7 @@ func loadParser(path, start string, flags compileFlags) (*engine.Parser, error) 
 	if err != nil {
 		return nil, err
 	}
-	p, err := engine.Compile(g, start, flags.options()...)
+	p, err := entry.CompileParser(g, start, flags.options())
 	if err != nil {
 		return nil, fileError(path, err)
 	}
@@ -1123,7 +1119,7 @@ func compileCmd(args []string) error {
 	if *grammarPath == "" || *output == "" {
 		return fmt.Errorf("-g and -o are required")
 	}
-	m, err := iengine.ParseCompiledMode(*modeName)
+	m, err := engine.ParseCompiledMode(*modeName)
 	if err != nil {
 		return fmt.Errorf("compile: %w", err)
 	}

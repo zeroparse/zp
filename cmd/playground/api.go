@@ -28,8 +28,12 @@ import (
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
+	gensrc "zeroparse.dev/zp/internal/driver/generate"
+	"zeroparse.dev/zp/internal/frontend/parser"
+
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	zpruntime "zeroparse.dev/zp/pkg/runtime"
@@ -255,14 +259,14 @@ func (c *compiled) variantParser(v compileVariant) (*engine.Parser, error) {
 	if p := c.variants[v]; p != nil {
 		return p, nil
 	}
-	var opts []engine.CompileOption
+	var opts entry.Options
 	if v.sourceInfo {
-		opts = append(opts, engine.WithSourceInfo())
+		opts.SourceInfo = true
 	}
 	if v.defaultValue {
-		opts = append(opts, engine.WithDefaultValue())
+		opts.DefaultValue = true
 	}
-	p, err := engine.Compile(c.g, c.info.Start, opts...)
+	p, err := entry.CompileParser(c.g, c.info.Start, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +285,7 @@ func compileSource(src string) *compiled {
 	}
 	c := &compiled{src: src}
 	c.info.Rules, c.info.Types, c.info.Diagnostics = []ruleInfo{}, []typeInfo{}, []diagnostic{}
-	g, err := engine.ParseGrammar(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		c.info.Diagnostics = diagnostics(err)
 		last = c
@@ -300,7 +304,7 @@ func compileSource(src string) *compiled {
 	for _, t := range g.Types() {
 		c.info.Types = append(c.info.Types, describeType(t))
 	}
-	p, err := engine.Compile(g, "")
+	p, err := entry.CompileParser(g, "", entry.Options{})
 	if err != nil {
 		c.info.Diagnostics = diagnostics(err)
 	} else {
@@ -397,7 +401,7 @@ func runParse(req parseRequest) parseResult {
 		return res
 	}
 	if req.Recognize {
-		opts = append(opts, engine.RecognizeOnly())
+		opts = append(opts, engine.WithRecognize())
 	}
 	// The iterative backend keeps rule calls on its own stack, so only the others need maxDepth.
 	if d := req.MaxDepth; d > 0 {
@@ -530,7 +534,7 @@ func measureTree(n *value.Node) (count, depth int) {
 
 func format(src string) formatResult {
 	res := formatResult{Diagnostics: []diagnostic{}}
-	g, err := engine.ParseGrammar(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		res.Diagnostics = diagnostics(err)
 		return res
@@ -551,14 +555,14 @@ func generate(req generateRequest) generateResult {
 		pkg = "parser"
 	}
 	start := req.Start // empty selects the default start rule
-	var files []codegen.File
+	var files []common.GeneratedFile
 	var err error
 	switch req.Language {
 	case "", "go":
 		// The runtime is imported, so the files shown are the generated package without a copy of it.
-		files, err = codegen.Go{Module: "example.com/" + pkg, PackageName: pkg, Lib: codegen.LibImport, Types: req.Types, Recognize: req.Recognize}.Generate(c.g, start)
+		files, err = gensrc.Go(c.g, common.GenOptions{Module: "example.com/" + pkg, Package: pkg, Start: start, Lib: common.LibImport, Types: req.Types, Recognize: req.Recognize})
 	case "typescript":
-		files, err = codegen.TypeScript{Types: req.Types, Recognize: req.Recognize}.Generate(c.g, start)
+		files, err = gensrc.TypeScript(c.g, common.GenOptions{Start: start, Types: req.Types, Recognize: req.Recognize})
 	default:
 		res.Diagnostics = []diagnostic{{Message: fmt.Sprintf("unknown generation language %q", req.Language)}}
 		return res
@@ -573,7 +577,7 @@ func generate(req generateRequest) generateResult {
 	}
 	// The runtime is long and the same for every grammar: display it after the files of the grammar.
 	shown := slices.Clone(files)
-	slices.SortStableFunc(shown, func(a, b codegen.File) int {
+	slices.SortStableFunc(shown, func(a, b common.GeneratedFile) int {
 		return cmp.Compare(btoi(a.Path == "lib.ts"), btoi(b.Path == "lib.ts"))
 	})
 	for i, f := range shown {

@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/runtime/value"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func TestDocumentChangesDirectoryEqualityHasBoundedScratch(t *testing.T) {

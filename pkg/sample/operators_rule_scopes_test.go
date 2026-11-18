@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/sample"
 )
@@ -117,11 +117,11 @@ rule inner = e`, "a<a=(a=a=a)", false},
 				if coverage {
 					opts = append(opts, sample.WithCoverage())
 				}
-				a, err := sample.New(p, opts...)
+				a, err := sample.New(engine.Reference(p), opts...)
 				if err != nil {
 					t.Fatal(err)
 				}
-				b, err := sample.New(p, opts...)
+				b, err := sample.New(engine.Reference(p), opts...)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -153,7 +153,7 @@ func TestSampleOperatorsRuleScopesLimits(t *testing.T) {
 		{sample.WithBudget(1)}, {sample.WithMaxRepeat(2)},
 	} {
 		opts = append(opts, sample.WithAttempts(2))
-		g, err := sample.New(p, opts...)
+		g, err := sample.New(engine.Reference(p), opts...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -161,7 +161,7 @@ func TestSampleOperatorsRuleScopesLimits(t *testing.T) {
 			t.Fatalf("bounded scope search: %v %+v", err, g.Stats())
 		}
 	}
-	g, err := sample.New(p, sample.WithSeed(1), sample.WithMaxRepeat(4), sample.WithMaxDepth(0), sample.WithMaxLen(0), sample.WithBudget(4000), sample.WithAttempts(8))
+	g, err := sample.New(engine.Reference(p), sample.WithSeed(1), sample.WithMaxRepeat(4), sample.WithMaxDepth(0), sample.WithMaxLen(0), sample.WithBudget(4000), sample.WithAttempts(8))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,6 +3,7 @@ package sample_test
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/sample"
 )
 
@@ -70,7 +71,7 @@ func TestPredicateSemantics(t *testing.T) {
 	for _, c := range predicateSemantics {
 		t.Run(c.name, func(t *testing.T) {
 			p := compile(t, c.src)
-			g, err := sample.New(p, sample.WithSeed(1))
+			g, err := sample.New(engine.Reference(p), sample.WithSeed(1))
 			if err != nil {
 				t.Fatal(err)
 			}

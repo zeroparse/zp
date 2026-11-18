@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestFingerprintTerminalFlag(t *testing.T) {
-	p, err := engine.CompileSource("@start\nrule main = v1:\"x\" => $v1\n", "main")
+	p, err := enginetest.CompileSource("@start\nrule main = v1:\"x\" => $v1\n", "main")
 	if err != nil {
 		t.Fatal(err)
 	}

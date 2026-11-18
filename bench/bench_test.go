@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
 	"zeroparse.dev/zp/internal/bench/inputs"
 
-	"zeroparse.dev/zp/engine"
 	gcalc "zeroparse.dev/zp/internal/bench/parsers/calc"
 	gcalclr "zeroparse.dev/zp/internal/bench/parsers/calclr"
 	gcsv "zeroparse.dev/zp/internal/bench/parsers/csv"
@@ -26,6 +26,8 @@ import (
 	gminilangtdoc "zeroparse.dev/zp/internal/bench/parsers/minilangtdoc"
 	goutline "zeroparse.dev/zp/internal/bench/parsers/outline"
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	rt "zeroparse.dev/zp/pkg/runtime/golib"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/value"
@@ -197,7 +199,7 @@ func load(tb testing.TB, path string) *engine.Parser {
 	if err != nil {
 		tb.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "main")
+	p, err := enginetest.CompileSource(string(src), "main")
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -407,7 +409,7 @@ func BenchmarkRecognize(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
 					for b.Loop() {
-						if _, err := p.Parse(input, engine.WithBackend(be.b), engine.RecognizeOnly()); err != nil && !w.partial {
+						if _, err := p.Parse(input, engine.WithBackend(be.b), engine.WithRecognize()); err != nil && !w.partial {
 							b.Fatal(err)
 						}
 					}
@@ -633,7 +635,7 @@ func BenchmarkPrepare(b *testing.B) {
 		b.Run(name+"/source", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := engine.CompileSource(string(src), "main"); err != nil {
+				if _, err := enginetest.CompileSource(string(src), "main"); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -650,7 +652,7 @@ func BenchmarkPrepare(b *testing.B) {
 			b.Run(name+"/first/"+c.name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					cp, err := engine.CompileSource(string(src), "main")
+					cp, err := enginetest.CompileSource(string(src), "main")
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -663,7 +665,7 @@ func BenchmarkPrepare(b *testing.B) {
 			opts []engine.ParseOption // a parse the mode serves
 		}{
 			{engine.CompiledParse, nil},
-			{engine.CompiledRecognize, []engine.ParseOption{engine.RecognizeOnly()}},
+			{engine.CompiledRecognize, []engine.ParseOption{engine.WithRecognize()}},
 			{engine.CompiledDocument, []engine.ParseOption{engine.WithTrace(func(engine.TraceEvent) {})}},
 		} {
 			data, err := p.Marshal(c.mode)

@@ -12,7 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/sample"
 )
@@ -32,7 +33,7 @@ func exampleParsers(t *testing.T) map[string]*engine.Parser {
 		if err != nil {
 			t.Fatal(err)
 		}
-		p, err := engine.CompileSource(string(src), "main")
+		p, err := enginetest.CompileSource(string(src), "main")
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
@@ -44,11 +45,11 @@ func exampleParsers(t *testing.T) map[string]*engine.Parser {
 // compileMarked compiles src with every rule a start rule, for tests whose grammars do not
 // annotate their start rules.
 func compileMarked(src string) (*engine.Parser, error) {
-	g, err := engine.ParseGrammar(src)
+	g, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		return nil, err
 	}
-	return engine.Compile(starttest.MarkAll(g), "main")
+	return enginetest.Compile(starttest.MarkAll(g), "main")
 }
 
 func compile(t *testing.T, src string) *engine.Parser {
@@ -77,7 +78,7 @@ func TestExamplesParse(t *testing.T) {
 	for path, p := range exampleParsers(t) {
 		t.Run(path, func(t *testing.T) {
 			const n = 20
-			inputs, err := sample.Generate(p, n, sample.WithSeed(1))
+			inputs, err := sample.Generate(engine.Reference(p), n, sample.WithSeed(1))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -99,7 +100,7 @@ func TestExamplesCoverage(t *testing.T) {
 			continue
 		}
 		t.Run(path, func(t *testing.T) {
-			g, err := sample.New(p, sample.WithSeed(1), sample.WithCoverage())
+			g, err := sample.New(engine.Reference(p), sample.WithSeed(1), sample.WithCoverage())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -121,7 +122,7 @@ func TestExamplesCoverage(t *testing.T) {
 // encoding/json must accept the same inputs.
 func TestJSONAgreesWithEncodingJSON(t *testing.T) {
 	p := exampleParsers(t)[filepath.Join("..", "..", "testdata", "grammars", "json", "json.zp")]
-	g, err := sample.New(p, sample.WithSeed(1), sample.WithCoverage())
+	g, err := sample.New(engine.Reference(p), sample.WithSeed(1), sample.WithCoverage())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +150,7 @@ func TestDeterminism(t *testing.T) {
 	ps := exampleParsers(t)
 	p := ps[filepath.Join("..", "..", "testdata", "grammars", "json", "json.zp")]
 	gen := func(seed uint64) ([]string, []sample.Invalid) {
-		g, err := sample.New(p, sample.WithSeed(seed), sample.WithCoverage())
+		g, err := sample.New(engine.Reference(p), sample.WithSeed(seed), sample.WithCoverage())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -184,7 +185,7 @@ func TestDeterminism(t *testing.T) {
 func TestInvalid(t *testing.T) {
 	for path, p := range exampleParsers(t) {
 		t.Run(path, func(t *testing.T) {
-			g, err := sample.New(p, sample.WithSeed(3))
+			g, err := sample.New(engine.Reference(p), sample.WithSeed(3))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -222,7 +223,7 @@ func TestRareClasses(t *testing.T) {
 		{`[^ -\u{10ffff}\u{0}-\u{1d}]`, []string{"\x1e", "\x1f"}},
 	} {
 		p := compile(t, "rule main = "+c.class+" $$")
-		inputs, err := sample.Generate(p, 5, sample.WithSeed(1))
+		inputs, err := sample.Generate(engine.Reference(p), 5, sample.WithSeed(1))
 		if err != nil {
 			t.Errorf("%s: %v", c.class, err)
 			continue
@@ -241,7 +242,7 @@ func TestRareClasses(t *testing.T) {
 
 func TestNoInvalid(t *testing.T) {
 	// Every input is valid: no mutation is rejected, and the error says so.
-	g, err := sample.New(compile(t, `rule main = .*`), sample.WithAttempts(5))
+	g, err := sample.New(engine.Reference(compile(t, `rule main = .*`)), sample.WithAttempts(5))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +250,7 @@ func TestNoInvalid(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 	// No valid input to mutate.
-	g, err = sample.New(compile(t, `rule main = "a"* "a"`), sample.WithAttempts(5))
+	g, err = sample.New(engine.Reference(compile(t, `rule main = "a"* "a"`)), sample.WithAttempts(5))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +330,7 @@ rule stmt = ("x" #atomic / "y" "z") @error(message="expected a statement") #reco
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			p := compile(t, c.src)
-			inputs, err := sample.Generate(p, 10, sample.WithSeed(1))
+			inputs, err := sample.Generate(engine.Reference(p), 10, sample.WithSeed(1))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -361,7 +362,7 @@ rule e = #operators {
     level { infix left "," }
 }`, "[a,]"},
 	} {
-		inputs, err := sample.Generate(compile(t, c.src), 20, sample.WithSeed(1))
+		inputs, err := sample.Generate(engine.Reference(compile(t, c.src)), 20, sample.WithSeed(1))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -373,7 +374,7 @@ rule e = #operators {
 
 func TestNullableMinimumHasNoSample(t *testing.T) {
 	p := compile(t, `rule main = _ #repeat(3) "q"`)
-	if _, err := sample.Generate(p, 1, sample.WithSeed(1), sample.WithAttempts(5)); !errors.Is(err, sample.ErrNoInput) {
+	if _, err := sample.Generate(engine.Reference(p), 1, sample.WithSeed(1), sample.WithAttempts(5)); !errors.Is(err, sample.ErrNoInput) {
 		t.Errorf("got %v, want ErrNoInput", err)
 	}
 }
@@ -390,7 +391,7 @@ func BenchmarkSampleRepetitionControl(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				inputs, err := sample.Generate(p, 5, sample.WithSeed(1))
+				inputs, err := sample.Generate(engine.Reference(p), 5, sample.WithSeed(1))
 				if err != nil || len(inputs) != 5 {
 					b.Fatalf("generated %d inputs: %v", len(inputs), err)
 				}
@@ -406,7 +407,7 @@ func TestBudgetBoundsTime(t *testing.T) {
 	// counted).
 	p := compile(t, `rule main = ("c" r ";")* ";"
 rule r = "a" (";" r / ";" "b")*`)
-	g, err := sample.New(p, sample.WithSeed(2), sample.WithAttempts(1))
+	g, err := sample.New(engine.Reference(p), sample.WithSeed(2), sample.WithAttempts(1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,7 +425,7 @@ rule r = "a" (";" r / ";" "b")*`)
 	// A lookahead per character over the whole text: cubic work in the length.
 	p = compile(t, `rule main = (!(x* "b") "a") #repeat(200) "c" $$
 rule x = "a" / "c"`)
-	if _, err := sample.Generate(p, 1); err != nil {
+	if _, err := sample.Generate(engine.Reference(p), 1); err != nil {
 		t.Error(err)
 	}
 }
@@ -435,11 +436,11 @@ rule x = "a" / "c"`)
 func TestCoverageDeadAlternative(t *testing.T) {
 	p := compile(t, `rule main = s $$
 rule s = "(" s ")" / "x" / "y" / "(" s ")" "!"`)
-	plain, err := sample.Generate(p, 20, sample.WithSeed(1))
+	plain, err := sample.Generate(engine.Reference(p), 20, sample.WithSeed(1))
 	if err != nil {
 		t.Fatal(err)
 	}
-	covered, err := sample.Generate(p, 20, sample.WithSeed(1), sample.WithCoverage())
+	covered, err := sample.Generate(engine.Reference(p), 20, sample.WithSeed(1), sample.WithCoverage())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,7 +452,7 @@ rule s = "(" s ")" / "x" / "y" / "(" s ")" "!"`)
 func TestNoInput(t *testing.T) {
 	// No input parses: the repetition takes every "a", and the second "a" never matches.
 	p := compile(t, `rule main = "a"* "a"`)
-	g, err := sample.New(p, sample.WithAttempts(5))
+	g, err := sample.New(engine.Reference(p), sample.WithAttempts(5))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -462,7 +463,7 @@ func TestNoInput(t *testing.T) {
 		t.Errorf("stats %+v", s)
 	}
 	// A start rule that can never match.
-	if _, err := sample.New(compile(t, `rule main = "a" _|_`)); err == nil {
+	if _, err := sample.New(engine.Reference(compile(t, `rule main = "a" _|_`))); err == nil {
 		t.Error("expected an error for a start rule that can never match")
 	}
 	// A parser loaded from a compiled grammar, which holds no grammar AST, in each mode.
@@ -475,7 +476,7 @@ func TestNoInput(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := sample.New(q); err == nil {
+		if _, err := sample.New(engine.Reference(q)); err == nil {
 			t.Errorf("expected an error for a parser loaded in %s mode", mode)
 		}
 	}
@@ -484,7 +485,7 @@ func TestNoInput(t *testing.T) {
 func TestFewInputs(t *testing.T) {
 	// A grammar that accepts three inputs.
 	p := compile(t, `rule main = "a" / "b" / "c"`)
-	inputs, err := sample.Generate(p, 10, sample.WithAttempts(20))
+	inputs, err := sample.Generate(engine.Reference(p), 10, sample.WithAttempts(20))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -510,11 +511,11 @@ rule n = "(" n ")" / "[" n* "]" / "x"`)
 		}
 		return m
 	}
-	shallow, err := sample.Generate(p, 30, sample.WithSeed(1), sample.WithMaxDepth(2))
+	shallow, err := sample.Generate(engine.Reference(p), 30, sample.WithSeed(1), sample.WithMaxDepth(2))
 	if err != nil {
 		t.Fatal(err)
 	}
-	deep, err := sample.Generate(p, 30, sample.WithSeed(1), sample.WithMaxDepth(8))
+	deep, err := sample.Generate(engine.Reference(p), 30, sample.WithSeed(1), sample.WithMaxDepth(8))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +535,7 @@ rule n = "(" n ")" / "[" n* "]" / "x"`)
 	if m := maxDepth(deep); m <= 3 {
 		t.Errorf("max depth 8: nesting only %d", m)
 	}
-	short, err := sample.Generate(p, 30, sample.WithSeed(1), sample.WithMaxDepth(100), sample.WithMaxLen(10))
+	short, err := sample.Generate(engine.Reference(p), 30, sample.WithSeed(1), sample.WithMaxDepth(100), sample.WithMaxLen(10))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -552,29 +553,29 @@ func TestHardLimits(t *testing.T) {
 	p := compile(t, `var d int
 rule main = {d := 0} e $$
 rule e = {d >= 12} "x" / "(" {d := d + 1} e ")"`)
-	if inputs, err := sample.Generate(p, 1); err != nil || len(inputs[0]) != 25 {
+	if inputs, err := sample.Generate(engine.Reference(p), 1); err != nil || len(inputs[0]) != 25 {
 		t.Errorf("depth 12: got %q, %v", inputs, err)
 	}
 	p = compile(t, `var d int
 rule main = {d := 0} e $$
 rule e = {d >= 15} "x" / "(" {d := d + 1} e ")"`)
-	if _, err := sample.Generate(p, 1); !errors.Is(err, sample.ErrNoInput) {
+	if _, err := sample.Generate(engine.Reference(p), 1); !errors.Is(err, sample.ErrNoInput) {
 		t.Errorf("depth 15, default: got %v", err)
 	}
-	if inputs, err := sample.Generate(p, 1, sample.WithMaxDepth(7)); err != nil || len(inputs[0]) != 31 {
+	if inputs, err := sample.Generate(engine.Reference(p), 1, sample.WithMaxDepth(7)); err != nil || len(inputs[0]) != 31 {
 		t.Errorf("depth 15, max depth 7: got %q, %v", inputs, err)
 	}
 	// More iterations than the default limit (28) with a larger WithMaxRepeat.
 	p = compile(t, `rule main = x:"a"* {len($x) == 29} $$`)
-	if inputs, err := sample.Generate(p, 1, sample.WithMaxRepeat(4)); err != nil || len(inputs[0]) != 29 {
+	if inputs, err := sample.Generate(engine.Reference(p), 1, sample.WithMaxRepeat(4)); err != nil || len(inputs[0]) != 29 {
 		t.Errorf("29 iterations: got %q, %v", inputs, err)
 	}
 	// More steps than the default budget with WithBudget.
 	p = compile(t, `rule main = "a" #repeat(25000) $$`)
-	if _, err := sample.Generate(p, 1, sample.WithAttempts(1)); !errors.Is(err, sample.ErrNoInput) {
+	if _, err := sample.Generate(engine.Reference(p), 1, sample.WithAttempts(1)); !errors.Is(err, sample.ErrNoInput) {
 		t.Errorf("default budget: got %v", err)
 	}
-	if inputs, err := sample.Generate(p, 1, sample.WithAttempts(1), sample.WithBudget(100000)); err != nil || len(inputs[0]) != 25000 {
+	if inputs, err := sample.Generate(engine.Reference(p), 1, sample.WithAttempts(1), sample.WithBudget(100000)); err != nil || len(inputs[0]) != 25000 {
 		t.Errorf("larger budget: got %d inputs, %v", len(inputs), err)
 	}
 }
@@ -585,7 +586,7 @@ func TestShortestWay(t *testing.T) {
 	p := compile(t, `rule main = "(" e ")" $$
 rule e = "`+strings.Repeat("x", 96)+`" / y
 rule y = "y"`)
-	inputs, err := sample.Generate(p, 3, sample.WithMaxLen(0), sample.WithMaxDepth(0))
+	inputs, err := sample.Generate(engine.Reference(p), 3, sample.WithMaxLen(0), sample.WithMaxDepth(0))
 	if err != nil || !slices.Equal(inputs, []string{"(y)"}) {
 		t.Errorf("got %q, %v", inputs, err)
 	}
@@ -599,7 +600,7 @@ rule kw = "k"
 rule skipped = [^;]+
 rule unused = "u"
 rule never = "n" _|_`)
-	g, err := sample.New(p, sample.WithCoverage(), sample.WithSeed(1))
+	g, err := sample.New(engine.Reference(p), sample.WithCoverage(), sample.WithSeed(1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -625,7 +626,7 @@ rule never = "n" _|_`)
 	// unreachable.
 	p = compile(t, `rule main = "(" ("a" / "b") _|_ / r _|_ / "c"
 rule r = "x" / "y"`)
-	g, err = sample.New(p, sample.WithSeed(1))
+	g, err = sample.New(engine.Reference(p), sample.WithSeed(1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -644,7 +645,7 @@ rule e = #operators {
     level { infix left "+" }
     level mul { infix left "*" }
 }`)
-	g, err = sample.New(p, sample.WithSeed(1), sample.WithCoverage())
+	g, err = sample.New(engine.Reference(p), sample.WithSeed(1), sample.WithCoverage())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -658,7 +659,7 @@ rule e = #operators {
 	// A rule that is called but can never match is reported as such, not as unreachable.
 	p = compile(t, `rule main = "a" / err
 rule err = "b" _|_`)
-	g, err = sample.New(p)
+	g, err = sample.New(engine.Reference(p))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -672,7 +673,7 @@ rule err = "b" _|_`)
 rule x = "x" z?
 rule y = "y"
 rule z = "z" _|_ / "zz"`)
-	g, err = sample.New(p)
+	g, err = sample.New(engine.Reference(p))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -700,13 +701,13 @@ func (f *fakeF) Fatalf(format string, args ...any) { f.failed = format }
 func TestSeed(t *testing.T) {
 	p := compile(t, `rule main = [a-z]+ ("," [a-z]+)*`)
 	f := &fakeF{}
-	got := sample.Seed(f, p, 8, sample.WithSeed(2))
+	got := sample.Seed(f, engine.Reference(p), 8, sample.WithSeed(2))
 	if f.failed != "" || len(got) != 8 || !slices.Equal(got, f.added) {
 		t.Errorf("got %q, added %q, failed %q", got, f.added, f.failed)
 	}
 	checkParse(t, p, got)
 	f = &fakeF{}
-	sample.Seed(f, compile(t, `rule main = "a"* "a"`), 3, sample.WithAttempts(2))
+	sample.Seed(f, engine.Reference(compile(t, `rule main = "a"* "a"`)), 3, sample.WithAttempts(2))
 	if f.failed == "" || len(f.added) != 0 {
 		t.Errorf("expected a failure, got %+v", f)
 	}
@@ -729,7 +730,7 @@ rule y = {d := 0} {d > 0} "c"`, // Equal counts are listed in rule name order.
 			[]sample.RuleCuts{{Rule: "x", Checks: 2}, {Rule: "y", Predicates: 2}}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			g, err := sample.New(compile(t, c.src), sample.WithAttempts(2))
+			g, err := sample.New(engine.Reference(compile(t, c.src)), sample.WithAttempts(2))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -781,7 +782,7 @@ rule e = {d >= 15} "x" / "(" {d := d + 1} e ")"`, []sample.Option{sample.WithAtt
 			"in 1 attempt: 0 candidates rejected by the parser, 0 searches out of budget, 1 search without a way to finish"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			g, err := sample.New(compile(t, c.src), c.opts...)
+			g, err := sample.New(engine.Reference(compile(t, c.src)), c.opts...)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -795,7 +796,7 @@ rule e = {d >= 15} "x" / "(" {d := d + 1} e ")"`, []sample.Option{sample.WithAtt
 		})
 	}
 	// Duplicates: the grammar accepts one input.
-	g, err := sample.New(compile(t, `rule main = "a" $$`), sample.WithAttempts(4))
+	g, err := sample.New(engine.Reference(compile(t, `rule main = "a" $$`)), sample.WithAttempts(4))
 	if err != nil {
 		t.Fatal(err)
 	}

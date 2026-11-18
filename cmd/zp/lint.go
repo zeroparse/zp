@@ -10,7 +10,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
+
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/pkg/lint"
 )
@@ -163,7 +164,7 @@ func lintCmd(args []string, stdout io.Writer) error {
 		return err
 	}
 	if *start == "" {
-		p, err := engine.Compile(g, "")
+		p, err := entry.CompileParser(g, "", entry.Options{})
 		if err != nil {
 			return fileError(*grammarPath, err)
 		}

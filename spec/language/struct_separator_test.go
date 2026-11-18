@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -34,7 +34,7 @@ func TestStructFieldSeparators(t *testing.T) {
 	p, _ := sourceGrammar(t)
 	for name, src := range structSeparatorSources {
 		t.Run(name, func(t *testing.T) {
-			g, err := engine.ParseGrammar(src)
+			g, err := enginetest.ParseGrammar(src)
 			if err != nil {
 				t.Fatalf("hand-written frontend: %v", err)
 			}
@@ -42,7 +42,7 @@ func TestStructFieldSeparators(t *testing.T) {
 				t.Fatalf("hand-written frontend read %d fields, want 2", got)
 			}
 			formatted := fmt.Format(g)
-			again, err := engine.ParseGrammar(formatted)
+			again, err := enginetest.ParseGrammar(formatted)
 			if err != nil || fmt.Format(again) != formatted {
 				t.Fatalf("formatting is not idempotent (%v):\n%s", err, formatted)
 			}
@@ -64,7 +64,7 @@ func TestStructFieldSeparators(t *testing.T) {
 func TestStructFieldSeparatorsFormatCanonically(t *testing.T) {
 	var want string
 	for _, name := range []string{"newline", "mixed"} {
-		g, err := engine.ParseGrammar(structSeparatorSources[name])
+		g, err := enginetest.ParseGrammar(structSeparatorSources[name])
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
@@ -76,7 +76,7 @@ func TestStructFieldSeparatorsFormatCanonically(t *testing.T) {
 		}
 	}
 	for _, name := range []string{"semicolon", "trailing"} {
-		g, err := engine.ParseGrammar(structSeparatorSources[name])
+		g, err := enginetest.ParseGrammar(structSeparatorSources[name])
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
@@ -95,7 +95,7 @@ func TestStructFieldSeparatorsRejected(t *testing.T) {
 		"semicolon in call":        "package t\nrule r int = \"x\" => max(1; 2)\n",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := engine.ParseGrammar(src); err == nil {
+			if _, err := enginetest.ParseGrammar(src); err == nil {
 				t.Fatal("hand-written frontend accepted the source")
 			}
 			if _, err := p.Parse(src); err == nil {
@@ -103,7 +103,7 @@ func TestStructFieldSeparatorsRejected(t *testing.T) {
 			}
 		})
 	}
-	_, err := engine.ParseGrammar("package t\ntype T = { A string, B int }\n")
+	_, err := enginetest.ParseGrammar("package t\ntype T = { A string, B int }\n")
 	if err == nil || !strings.HasPrefix(err.Error(), "2:20: expected semicolon") {
 		t.Fatalf("error should name the struct field separator: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestStructFieldSeparatorsRejected(t *testing.T) {
 
 func TestConstructorAndCallStayCommaSeparated(t *testing.T) {
 	src := "package t\ntype T = { A string; B int }\nrule r T = \"x\" => T{A: \"x\", B: 1}\nrule s int = \"y\" => max(1, 2)\n"
-	if _, err := engine.ParseGrammar(src); err != nil {
+	if _, err := enginetest.ParseGrammar(src); err != nil {
 		t.Fatalf("hand-written frontend: %v", err)
 	}
 	p, _ := sourceGrammar(t)

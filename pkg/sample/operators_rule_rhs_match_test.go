@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 func rhsCheck(t *testing.T, rules string) (*info, *operatorsRuleCheck) {
 	t.Helper()
-	ast, err := engine.ParseGrammar("rule main = e $$\n" + rules)
+	ast, err := enginetest.ParseGrammar("rule main = e $$\n" + rules)
 	if err != nil {
 		t.Fatal(err)
 	}

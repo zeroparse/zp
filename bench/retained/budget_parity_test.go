@@ -5,7 +5,8 @@ package main
 import (
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
@@ -17,7 +18,7 @@ func TestCompiledCorpusBudgetParity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			p, err := engine.CompileSource(source, "main")
+			p, err := enginetest.CompileSource(source, "main")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -45,7 +46,7 @@ func TestCompiledCorpusBudgetParity(t *testing.T) {
 						} else if got != want {
 							t.Fatalf("backend=%v unit=%v active=%v: result differs", backend, unit, active)
 						}
-						n, err = p.Parse(input, append(opts, engine.RecognizeOnly())...)
+						n, err = p.Parse(input, append(opts, engine.WithRecognize())...)
 						if n != nil || err != nil {
 							t.Fatalf("backend=%v unit=%v active=%v: recognition node=%v error=%v", backend, unit, active, n, err)
 						}

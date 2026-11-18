@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/runtime/document"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/instrument"
@@ -119,7 +120,7 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 						// The unchanged first sixteen lines precede the edit. Replacing
 						// one character of line 17 changes just that element; the other
 						// fifteen lines are a resumed tail, shifted when length changes.
-						for _, d := range []*Document{doc, plain} {
+						for _, d := range []*document.Document{doc, plain} {
 							if err := d.Edit(48, 49, replacement); err != nil {
 								t.Fatal(err)
 							}

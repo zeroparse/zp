@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
@@ -19,7 +19,7 @@ func TestTextOfErrorValues(t *testing.T) {
 		{"@start\nrule main = x:(\"a\" #recover(skip=\"bb\")) => len($x)\n", "bb", "0"},
 		{"@start\nrule main = x:(\"a\" #recover(skip=\"bb\")) => $x.Value == nil\n", "bb", "true"},
 	} {
-		p, err := engine.CompileSource(c.src, "main")
+		p, err := enginetest.CompileSource(c.src, "main")
 		if err != nil {
 			t.Errorf("%q: %v", c.src, err)
 			continue

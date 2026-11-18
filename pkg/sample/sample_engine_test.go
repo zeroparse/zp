@@ -4,8 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/sample"
 )
@@ -17,15 +18,15 @@ func TestSampleCorpus(t *testing.T) {
 	t.Parallel()
 	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
-			ast, err := engine.ParseGrammar(c.Src)
+			ast, err := enginetest.ParseGrammar(c.Src)
 			if err != nil {
 				t.Fatal(err)
 			}
-			p, err := engine.Compile(starttest.MarkAll(ast), "main")
+			p, err := enginetest.Compile(starttest.MarkAll(ast), "main")
 			if err != nil {
 				t.Fatal(err)
 			}
-			g, err := sample.New(p, sample.WithSeed(1), sample.WithCoverage())
+			g, err := sample.New(engine.Reference(p), sample.WithSeed(1), sample.WithCoverage())
 			if err != nil {
 				t.Fatal(err)
 			}

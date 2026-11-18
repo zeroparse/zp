@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // The replacement fields of Python f-strings take the text of a capture that holds the nested
@@ -19,7 +19,7 @@ func TestPythonFieldTextIsLinear(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "")
+	p, err := enginetest.CompileSource(string(src), "")
 	if err != nil {
 		t.Fatal(err)
 	}

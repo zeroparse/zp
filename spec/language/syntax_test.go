@@ -10,7 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 var zpBlock = regexp.MustCompile("(?ms)^([ \t]*)```zp[ \t]*\r?\n(.*?)^[ \t]*```[ \t]*$")
@@ -32,7 +33,7 @@ func zpCodeBlocks(src string) []string {
 var notExpressed = []string{"invalid range", "invalid repetition", "invalid number"}
 
 // TestSyntaxSummary runs the grammar of syntax.md on every .zp file of the repository and on every zp
-// code block of the documentation, and requires it to accept exactly what engine.ParseGrammar accepts.
+// code block of the documentation, and requires it to accept exactly what enginetest.ParseGrammar accepts.
 func TestSyntaxSummary(t *testing.T) {
 	doc, err := os.ReadFile("syntax.md")
 	if err != nil {
@@ -49,7 +50,7 @@ func TestSyntaxSummary(t *testing.T) {
 	blocks = append(blocks, string(full))
 	var parsers []*engine.Parser
 	for i, block := range blocks {
-		p, err := engine.CompileSource(block, "file")
+		p, err := enginetest.CompileSource(block, "file")
 		if err != nil {
 			t.Fatalf("grammar view %d does not compile: %v", i, err)
 		}
@@ -58,7 +59,7 @@ func TestSyntaxSummary(t *testing.T) {
 
 	check := func(name, src string) {
 		t.Helper()
-		_, readErr := engine.ParseGrammar(src)
+		_, readErr := enginetest.ParseGrammar(src)
 		if readErr != nil {
 			for _, s := range notExpressed {
 				if strings.Contains(readErr.Error(), s) {
@@ -67,7 +68,7 @@ func TestSyntaxSummary(t *testing.T) {
 			}
 		}
 		for i, p := range parsers {
-			_, err := p.Parse(src, engine.RecognizeOnly())
+			_, err := p.Parse(src, engine.WithRecognize())
 			if (readErr == nil) != (err == nil) {
 				t.Errorf("%s view %d: reference says %v, syntax view says %v", name, i, readErr, err)
 			}
@@ -120,7 +121,7 @@ func TestSyntaxSummaryRejects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := engine.CompileSource(zpCodeBlocks(string(doc))[0], "file")
+	p, err := enginetest.CompileSource(zpCodeBlocks(string(doc))[0], "file")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,13 +144,13 @@ func TestSyntaxSummaryRejects(t *testing.T) {
 		"node type of two arguments":  `type N = node[a, b]`,
 		"mixed constructor":           `rule a = x:"a" => N{$x, A: 1}`,
 	} {
-		if _, err := p.Parse(src, engine.RecognizeOnly()); err == nil {
+		if _, err := p.Parse(src, engine.WithRecognize()); err == nil {
 			t.Errorf("%s: %q is accepted", name, src)
 		}
 	}
 	// The grammar accepts any character after a backslash; the decoding of the literal rejects an
 	// unknown escape, as the reference parser does.
-	if _, err := engine.ParseGrammar(`rule a = "\x"`); err == nil {
+	if _, err := enginetest.ParseGrammar(`rule a = "\x"`); err == nil {
 		t.Error("unknown escape: the reference parser accepts it")
 	}
 	for name, src := range map[string]string{
@@ -167,10 +168,10 @@ func TestSyntaxSummaryRejects(t *testing.T) {
 		"carriage return":            "rule a = \"a\" // c\rrule b = a",
 		"node type definition":       "type N = node[(string, []N)]\nrule a N = x:\"a\" => N{$x}",
 	} {
-		if _, err := engine.ParseGrammar(src); err != nil {
+		if _, err := enginetest.ParseGrammar(src); err != nil {
 			t.Errorf("%s: reference parser rejects %q: %v", name, src, err)
 		}
-		if _, err := p.Parse(src, engine.RecognizeOnly()); err != nil {
+		if _, err := p.Parse(src, engine.WithRecognize()); err != nil {
 			t.Errorf("%s: %q is rejected: %v", name, src, err)
 		}
 	}

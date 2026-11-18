@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"zeroparse.dev/zp/internal/runtime/document"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
@@ -21,7 +22,7 @@ func documentVersionForCollection(t *testing.T, finalized chan<- struct{}) Docum
 	if err != nil {
 		t.Fatal(err)
 	}
-	runtime.SetFinalizer(d, func(*Document) { finalized <- struct{}{} })
+	runtime.SetFinalizer(d, func(*document.Document) { finalized <- struct{}{} })
 	return d.Version()
 }
 

@@ -3,13 +3,14 @@ package query_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/runtime/query"
 	"zeroparse.dev/zp/pkg/runtime/value"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // queryShapeCase nests unions, optional values and lists of declared types.
@@ -56,12 +57,12 @@ func TestStructuralQueryNestedShapesAreSound(t *testing.T) {
 	}
 	schemas, patterns, recovered := 0, 0, 0
 	for _, c := range cases {
-		g, err := engine.ParseGrammar(c.Src)
+		g, err := enginetest.ParseGrammar(c.Src)
 		if err != nil {
 			continue
 		}
 		start := g.Rules()[0].Name
-		p, err := engine.Compile(starttest.MarkAll(g), start, engine.WithSourceInfo())
+		p, err := enginetest.Compile(starttest.MarkAll(g), start, enginetest.WithSourceInfo())
 		if err != nil {
 			continue
 		}

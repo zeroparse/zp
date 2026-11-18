@@ -37,9 +37,11 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // Defaults of the options.
@@ -114,7 +116,7 @@ var ErrNoInvalid = errors.New("sample: no mutation found that the parser rejects
 
 // Generator generates inputs for a parser. It is not safe for concurrent use.
 type Generator struct {
-	p     *engine.Parser
+	p     runtime.Parser
 	cfg   config
 	in    *info
 	g     *gen
@@ -152,12 +154,18 @@ type RuleCuts struct {
 }
 
 // New returns a generator of inputs for p, starting at p's start rule. The parser must be compiled from
-// the grammar source: a parser loaded from a compiled grammar has no grammar AST and cannot be sampled.
-func New(p *engine.Parser, opts ...Option) (*Generator, error) {
-	g := p.Grammar()
+// the grammar source by package compiler: a parser loaded from a compiled grammar has no grammar AST and
+// cannot be sampled.
+func New(p runtime.Parser, opts ...Option) (*Generator, error) {
+	ep := engine.Of(p)
+	if ep == nil {
+		return nil, errors.New("sample: the parser is not a parser of package compiler or vm")
+	}
+	g := entry.Grammar(ep.Program())
 	if g == nil {
 		return nil, errors.New("sample: the parser has no grammar AST")
 	}
+	start := ep.Start()
 	// The sampler works on the rules the parser runs, where an inline action is an anonymous rule.
 	g, names, err := desugar.LowerInlineActions(g)
 	if err != nil {
@@ -174,12 +182,12 @@ func New(p *engine.Parser, opts ...Option) (*Generator, error) {
 	for _, o := range opts {
 		o(&cfg)
 	}
-	in := analyze(g, p.Start())
+	in := analyze(g, start)
 	if in.start == nil {
-		return nil, fmt.Errorf("sample: start rule %s is not defined", p.Start())
+		return nil, fmt.Errorf("sample: start rule %s is not defined", start)
 	}
 	if in.start.height >= inf {
-		return nil, fmt.Errorf("sample: start rule %s can never match", p.Start())
+		return nil, fmt.Errorf("sample: start rule %s can never match", start)
 	}
 	gen := &Generator{p: p, cfg: cfg, in: in, names: names}
 	gen.g = newGen(in, &gen.cfg)
@@ -295,7 +303,7 @@ func (g *Generator) Stats() Stats {
 }
 
 // Generate returns up to n distinct inputs that p accepts (see Generator.Generate).
-func Generate(p *engine.Parser, n int, opts ...Option) ([]string, error) {
+func Generate(p runtime.Parser, n int, opts ...Option) ([]string, error) {
 	g, err := New(p, opts...)
 	if err != nil {
 		return nil, err

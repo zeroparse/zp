@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/sample"
@@ -27,7 +27,7 @@ type Options struct {
 	// Start is the start rule. Empty selects the grammar's default start rule.
 	Start string
 	// Backend is the backend of the Documents and the fresh parses. The default backend is Closure.
-	Backend engine.Backend
+	Backend Backend
 	// Unit is the position unit of the Documents, the fresh parses and the edits. The zero value is
 	// CodePoints.
 	Unit input.PositionUnit
@@ -95,8 +95,8 @@ func (f *Failure) Unwrap() error { return f.Err }
 // checkpoint matched a fresh parse and a *Failure for the first sequence that did not, after saving it to
 // opts.SaveFailures if set. Other errors report an unusable grammar, options or failure directory.
 func Fuzz(src []byte, opts Options) error {
-	if opts.Backend == engine.DefaultBackend {
-		opts.Backend = engine.Closure
+	if opts.Backend == "" {
+		opts.Backend = Closure
 	}
 	if opts.Sequences <= 0 {
 		opts.Sequences = DefaultSequences
@@ -110,7 +110,7 @@ func Fuzz(src []byte, opts Options) error {
 	if _, err := unitName(opts.Unit); err != nil {
 		return err
 	}
-	p, err := engine.CompileSource(string(src), opts.Start)
+	p, err := compile(src, opts.Start)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func Fuzz(src []byte, opts Options) error {
 	if len(texts) == 0 {
 		texts = [][]byte{{}}
 		// A grammar without generable inputs is fuzzed from the empty text.
-		generated, _ := sample.Generate(p, 16, sample.WithSeed(opts.Seed))
+		generated, _ := sample.Generate(engine.Reference(p), 16, sample.WithSeed(opts.Seed))
 		for _, s := range generated {
 			texts = append(texts, []byte(s))
 		}

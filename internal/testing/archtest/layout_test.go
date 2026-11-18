@@ -25,18 +25,15 @@ type place struct {
 // row.
 var layout = []place{
 	// Public packages.
-	{pkg: "codegen", target: "pkg/compiler"},
+	{pkg: "pkg/compiler", target: "pkg/compiler"},
 	{pkg: "pkg/runtime/golib", target: "pkg/runtime/golib"},
 	{pkg: "pkg/runtime", target: "pkg/runtime"},
 	{pkg: "pkg/runtime/input", target: "pkg/runtime/input"},
 	{pkg: "pkg/runtime/instrument", target: "pkg/runtime/instrument"},
 	{pkg: "pkg/runtime/value", target: "pkg/runtime/value"},
 	{pkg: "pkg/runtime/value/impl", target: "pkg/runtime/value/impl"},
+	{pkg: "pkg/runtime/vm", target: "pkg/runtime/vm"},
 	{pkg: "pkg/editfuzz", target: "pkg/editfuzz"},
-	// engine splits into pkg/compiler (compilation), pkg/runtime (the Parser interface),
-	// pkg/runtime/vm and pkg/runtime/instrument. Its compile entry keeps the compiler imports,
-	// and the package goes away when its runtime parts move to their packages.
-	{pkg: "engine", target: "pkg/compiler"},
 	{pkg: "pkg/grammar", target: "pkg/grammar"},
 	{pkg: "pkg/grammar/ast", target: "pkg/grammar/ast"},
 	{pkg: "pkg/lint", target: "pkg/lint"},
@@ -114,6 +111,7 @@ var layout = []place{
 	// through state.Source.
 	{pkg: "internal/driver/entry", target: "internal/driver/entry"},
 	{pkg: "internal/driver/checked", target: "internal/driver/checked"},
+	{pkg: "internal/driver/generate", target: "internal/driver/generate"},
 
 	// Analysis and the grammar LSP.
 	{pkg: "internal/analysis/complexity", target: "internal/analysis/complexity"},
@@ -363,7 +361,7 @@ func layerOf(t string) layer {
 var layerArrows = map[layer][]layer{
 	layerCmd:      {layerPublic, layerLSP},
 	layerPublic:   {layerDriver},
-	layerLSP:      {layerAnalysis},
+	layerLSP:      {layerDriver},
 	layerDriver:   {layerAnalysis},
 	layerAnalysis: {layerBackend},
 	layerBackend:  {layerMiddle, layerIR},

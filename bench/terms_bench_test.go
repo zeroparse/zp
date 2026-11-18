@@ -3,10 +3,10 @@ package bench
 import (
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/bench/inputs"
 	gtermsheavy "zeroparse.dev/zp/internal/bench/parsers/termsheavy"
 	gtermspred "zeroparse.dev/zp/internal/bench/parsers/termspred"
+	"zeroparse.dev/zp/internal/runtime/engine"
 )
 
 // termWorkloads measure the cost of evaluating terms. pred runs four predicate terms per line and builds

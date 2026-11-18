@@ -12,9 +12,10 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	zpruntime "zeroparse.dev/zp/pkg/runtime"
 )
@@ -232,7 +233,7 @@ func slopeHit(p *engine.Parser, build func(int) string, b engine.Backend, limit 
 // slopeLimit returns the slope above which the class of the grammar is false, or 0 when the class
 // makes no statement to hold it to.
 func slopeLimit(src string) (limit float64, class *complexity.Complexity) {
-	g, err := engine.ParseGrammar(src)
+	g, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		return 0, class
 	}

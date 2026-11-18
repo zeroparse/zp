@@ -9,9 +9,10 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/engine"
+
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )

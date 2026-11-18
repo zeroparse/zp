@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/complexitytest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -61,12 +61,12 @@ func checkGrowScale(t *testing.T, set func(bool) func(), cases []growScaleCase) 
 	t.Helper()
 	defer set(true)()
 	for _, c := range cases {
-		g, err := engine.ParseGrammar(c.src)
+		g, err := enginetest.ParseGrammar(c.src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
 		g = starttest.MarkAll(g)
-		p, err := engine.Compile(g, "main")
+		p, err := enginetest.Compile(g, "main")
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}

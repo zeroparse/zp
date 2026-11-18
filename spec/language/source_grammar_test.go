@@ -11,11 +11,14 @@ import (
 	"strings"
 	"testing"
 	"text/template"
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
+
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	gensrc "zeroparse.dev/zp/internal/driver/generate"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
@@ -26,7 +29,7 @@ func sourceGrammar(t *testing.T) (*engine.Parser, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "main")
+	p, err := enginetest.CompileSource(string(src), "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +86,7 @@ func TestSourceGrammarMatchesDocumentation(t *testing.T) {
 	if len(blocks) != 1 || !strings.Contains(string(doc), "`zp.zp`") || strings.Contains(string(doc), "](http") || strings.Contains(string(doc), "## Full Grammar") {
 		t.Fatal("expected one simple grammar and a reference to the full source and no external link")
 	}
-	g, err := engine.ParseGrammar(src)
+	g, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,12 +124,12 @@ type Num = node[string]
 rule num = x:"1" => Num{$x,}
 rule tuples = "x" => ((), (Foo{},), ( 1 , "a" , ), (2), (1, (2,)))
 `
-	if _, err := engine.ParseGrammar(src); err != nil {
+	if _, err := enginetest.ParseGrammar(src); err != nil {
 		t.Fatal(err)
 	}
 	// A constructor takes named fields or positional values, not both.
 	const mixed = "type Num = node[string]\nrule num = x:\"x\" => Num{$x, Text: \"0\"}"
-	if _, err := engine.ParseGrammar(mixed); err == nil {
+	if _, err := enginetest.ParseGrammar(mixed); err == nil {
 		t.Fatal("the reader accepts a mixed constructor")
 	}
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
@@ -388,11 +391,11 @@ func TestSourceGrammarGeneratedGo(t *testing.T) {
 		t.Skip("builds the generated source-parser consumer")
 	}
 	p, src := sourceGrammar(t)
-	g, err := engine.ParseGrammar(src)
+	g, err := enginetest.ParseGrammar(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := codegen.Go{Module: "sourceparser", Types: true}.Generate(g, "main")
+	code, err := gensrc.Go(g, common.GenOptions{Module: "sourceparser", Types: true, Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -576,7 +579,7 @@ func TestSourceGrammarOperatorsPlacement(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, refErr := parser.ParseReference(tc.src)
-			_, err := p.Parse(tc.src, engine.RecognizeOnly())
+			_, err := p.Parse(tc.src, engine.WithRecognize())
 			if (refErr == nil) != tc.valid {
 				t.Errorf("reference parser: valid %v, want %v (%v)", refErr == nil, tc.valid, refErr)
 			}

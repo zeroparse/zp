@@ -8,7 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // traceCmd prints the rule calls of a parse as an indented call tree, or as JSON lines.
@@ -126,7 +127,7 @@ func callName(e engine.TraceEvent) string {
 
 func position(e engine.TraceEvent, pos int) string {
 	line, col := e.LineCol(pos)
-	return engine.Location{Pos: pos, Line: line, Col: col}.String()
+	return zpinput.Location{Pos: pos, Line: line, Col: col}.String()
 }
 
 // result describes the outcome of the call that e ends.

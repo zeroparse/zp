@@ -2,10 +2,11 @@ package complexity_test
 
 import (
 	"testing"
+
 	"zeroparse.dev/zp/internal/analysis/complexity"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/testing/complexitytest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -28,7 +29,7 @@ func TestExclusionControls(t *testing.T) {
 		{name: "decided units, memoized trivia", h: complexity.ExclusionHooks{Decided: true, Trivia: true, Memo: true}},
 	}
 	for _, c := range complexitytest.Controls() {
-		g, err := engine.ParseGrammar(c.Source)
+		g, err := enginetest.ParseGrammar(c.Source)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}

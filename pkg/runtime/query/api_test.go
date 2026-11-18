@@ -9,9 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/runtime"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/query"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 	"zeroparse.dev/zp/pkg/runtime/value"
@@ -49,7 +50,7 @@ rule unused = "z"`, "main")
 			t.Fatalf("unstable schema: %s, %v", encoded, err)
 		}
 	}
-	all, err := p.OutputSchema(engine.WithAllSchemaRules())
+	all, err := p.OutputSchema(zpruntime.WithAllSchemaRules())
 	if err != nil || len(all.Rules) != 3 {
 		t.Fatalf("all rules: %+v, %v", all, err)
 	}
@@ -72,7 +73,7 @@ rule unused = "z"`, "main")
 		t.Fatal(err)
 	}
 	// A compiled grammar holds no schema in any mode: the schema comes from the grammar source.
-	if _, err := loaded.OutputSchema(); !errors.Is(err, engine.ErrSchemaUnavailable) || !strings.Contains(err.Error(), "grammar source") {
+	if _, err := loaded.OutputSchema(); !errors.Is(err, zpruntime.ErrSchemaUnavailable) || !strings.Contains(err.Error(), "grammar source") {
 		t.Fatalf("loaded parser schema: %v", err)
 	}
 	for _, mode := range []engine.CompiledMode{engine.CompiledParse, engine.CompiledRecognize, engine.CompiledDocument} {
@@ -84,7 +85,7 @@ rule unused = "z"`, "main")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := loaded.OutputSchema(); !errors.Is(err, engine.ErrSchemaUnavailable) || !strings.Contains(err.Error(), "grammar source") {
+		if _, err := loaded.OutputSchema(); !errors.Is(err, zpruntime.ErrSchemaUnavailable) || !strings.Contains(err.Error(), "grammar source") {
 			t.Fatalf("%s mode: loaded parser schema: %v", mode, err)
 		}
 	}
