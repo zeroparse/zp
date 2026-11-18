@@ -134,12 +134,25 @@ var fixtureModes = []struct{ name, value string }{{"controls", "0"}, {"ordinary"
 // as a whole still cover both forms; the long tier runs both forms of every test.
 func EachMode(t *testing.T, body func(t *testing.T)) {
 	t.Helper()
+	eachMode(t, body, allCases)
+}
+
+// OneMode is EachMode that runs one form per test in the long tier too: the form that the hash of the test name
+// picks, as in the default tier. It is for the negative controls, whose mutants are the same in either form and
+// whose cost is the builds of the mutated consumers; the tests that check the unmutated behavior use EachMode.
+func OneMode(t *testing.T, body func(t *testing.T)) {
+	t.Helper()
+	eachMode(t, body, false)
+}
+
+func eachMode(t *testing.T, body func(t *testing.T), both bool) {
+	t.Helper()
 	if EnvForm != "" {
 		body(t)
 		return
 	}
 	for _, m := range fixtureModes {
-		if !allCases && fixtureModes[hashOf(t.Name())%uint32(len(fixtureModes))] != m {
+		if !both && fixtureModes[hashOf(t.Name())%uint32(len(fixtureModes))] != m {
 			continue
 		}
 		t.Run(m.name, func(t *testing.T) {
