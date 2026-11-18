@@ -1259,7 +1259,11 @@ The conditions below use these terms.
   later alternative can begin with a character with which one of the paths
   can begin, unless the words of the paths exclude it. Here no shared call or
   literal is removed first, and a path counts whether or not it contains a
-  scanning source. In a later step, the unit can fail after it read the seed,
+  scanning source. A path that can match without consuming input matches at
+  any character, so it begins with every character, whatever its lookaheads
+  examine: in `E = ((E [x]* / "") !";" / "x" F) "x"; F = E ","` the path
+  `"" !";"` matches at an `x`, which `"x" F` can then consume, though the
+  lookahead examines only `;`. In a later step, the unit can fail after it read the seed,
   and the step goes on to the later alternatives at the position where the
   rule grows; when one of the paths matched there in the first step, the
   first step did not evaluate them. A later alternative that consumed the

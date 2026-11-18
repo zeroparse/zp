@@ -21,11 +21,7 @@ import (
 // is classified linear, and the test fails. The reference build has no compute limit, so it checks
 // the classes alone.
 func TestGrowStartScale(t *testing.T) {
-	defer complexity.SetGrowStart(true)()
-	for _, c := range []struct {
-		name, src string
-		input     func(n int) string
-	}{
+	checkGrowScale(t, complexity.SetGrowStart, []growScaleCase{
 		{"later alternative after a shared literal",
 			"@start\nrule main = E $$\nrule E = (E [x]* / \"\") \"x\" / \"x\" F\nrule F = E \";\"\n",
 			func(n int) string { return strings.Repeat("x", n+1) + strings.Repeat(";", n) }},
@@ -34,7 +30,37 @@ func TestGrowStartScale(t *testing.T) {
 			func(n int) string {
 				return strings.Repeat("(", n) + "b" + strings.Repeat("x", n) + strings.Repeat("y", n) + "!"
 			}},
-	} {
+	})
+}
+
+// TestGrowNullableScale measures the grammars whose growing unit goes on at its start in the
+// first step through a path that matches without consuming input, before a negative lookahead
+// that examines a character with which the later alternative cannot begin, as TestGrowStartScale
+// does. On x^n ; the path matches at each x, and the later alternative consumes it in a later step
+// and starts a growth at the next position, which scans the x again, so the cost grows as n^2.
+// Without the rule (the mutant) each grammar is classified linear, and the test fails.
+func TestGrowNullableScale(t *testing.T) {
+	input := func(n int) string { return strings.Repeat("x", n) + ";" }
+	checkGrowScale(t, complexity.SetGrowNullable, []growScaleCase{
+		{"path that ends with a negative lookahead",
+			"@start\nrule main = E $$\nrule E = ((E [x]* / \"\") !\";\" / \"x\" F) \"x\"\nrule F = E \",\"\n", input},
+		{"path with a negative lookahead and an empty literal",
+			"@start\nrule main = E $$\nrule E = ((E [x]* / \"\") !\";\" \"\" / \"x\" F) \"x\"\nrule F = E \",\"\n", input},
+	})
+}
+
+type growScaleCase struct {
+	name, src string
+	input     func(n int) string
+}
+
+// checkGrowScale measures each case at three sizes on every backend and requires a cost that grows
+// as n^2, and classifies it with the check that set turns on and off: on, it must not be linear;
+// off (the mutant), it must be linear, or the grammar would not witness the check.
+func checkGrowScale(t *testing.T, set func(bool) func(), cases []growScaleCase) {
+	t.Helper()
+	defer set(true)()
+	for _, c := range cases {
 		g, err := engine.ParseGrammar(c.src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
@@ -63,7 +89,7 @@ func TestGrowStartScale(t *testing.T) {
 			}
 		}
 		for _, on := range []bool{true, false} {
-			restore := complexity.SetGrowStart(on)
+			restore := set(on)
 			got, err := complexity.ClassifyComplexityControlled(g, "main", nil)
 			restore()
 			if err != nil {

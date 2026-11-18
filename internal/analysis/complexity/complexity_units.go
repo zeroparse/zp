@@ -1391,14 +1391,47 @@ func (k *classifier) committing(owner *unit, self []*cont, conts []contSpec) (bo
 // committingAtStart reports whether the first characters of the paths and of each continuation
 // are disjoint, or the words with which the paths begin exclude the continuation, at the start of
 // the paths themselves: unlike committing, it removes no shared call or literal and checks paths
-// that contain no scanning source too. It returns the first continuation that is neither.
+// that contain no scanning source too. A path that can match without consuming input begins with
+// any character (growNullableOn). It returns the first continuation that is neither.
 func (k *classifier) committingAtStart(self []*cont, conts []contSpec) (bool, string) {
 	for _, cs := range conts {
+		if growNullableOn && k.pathsMatchEmpty(self) {
+			// A path that can match without consuming input matches at any character, which a
+			// later alternative can then consume; the characters that its lookaheads examine are
+			// not characters with which it begins.
+			if !k.firstPaths(cs.paths, func(r string) charset { return k.follow[r] }).intersects(allChars) {
+				continue
+			}
+			return false, cs.what
+		}
 		if !k.disjointStart(self, cs.paths) {
 			return false, cs.what
 		}
 	}
 	return true, ""
+}
+
+// growNullableOn makes committingAtStart treat a path that can match without consuming input as
+// one that begins with any character. It is on by default; the variable is a test hook, whose off
+// setting is the check that took the characters that the lookaheads of such a path examine for the
+// characters with which it begins, which classified quadratic grammars such as
+// E = ((E [x]* / "") !";" / "x" F) "x"; F = E "," linear.
+var growNullableOn = true
+
+// pathsMatchEmpty reports whether one of the paths can reach its end without consuming input.
+func (k *classifier) pathsMatchEmpty(paths []*cont) bool {
+	for _, p := range paths {
+		empty := true
+		for c := p; c != nil && empty; c = c.next {
+			if _, null := k.firstItems(c.items); !null {
+				empty = false
+			}
+		}
+		if empty {
+			return true
+		}
+	}
+	return false
 }
 
 // disjointStart reports whether the first characters of the unit paths u and of the continuation
