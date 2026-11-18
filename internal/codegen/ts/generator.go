@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
@@ -19,7 +20,6 @@ import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/code"
-	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 )
@@ -50,9 +50,9 @@ func Generate(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOptions) (
 type Hooks struct {
 	// Generator, if not nil, is called with the generator once it has generated.
 	Generator func(*Generator)
-	// FlowRun runs the Flow passes in place of flow.Run (driver.Driver.FlowRun), so that a test
+	// FlowRun runs the Flow passes in place of flowpass.Run (driver.Driver.FlowRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks a function added.
-	FlowRun func(table string, m *code.Module, env *flow.Env, o flow.RunOptions) ([]string, error)
+	FlowRun func(table string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error)
 	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as FlowRun does
 	// for the Flow passes.
 	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)

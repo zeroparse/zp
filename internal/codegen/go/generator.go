@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
@@ -19,7 +20,6 @@ import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/code"
-	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
@@ -94,9 +94,9 @@ type Hooks struct {
 	// CoreRun runs the Core passes in place of corepass.Run (driver.Driver.CoreRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks the module added.
 	CoreRun func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error)
-	// FlowRun runs the Flow passes in place of flow.Run (driver.Driver.FlowRun), as CoreRun does for the
+	// FlowRun runs the Flow passes in place of flowpass.Run (driver.Driver.FlowRun), as CoreRun does for the
 	// Core passes.
-	FlowRun func(table string, m *code.Module, env *flow.Env, o flow.RunOptions) ([]string, error)
+	FlowRun func(table string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error)
 	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as CoreRun does
 	// for the Core passes.
 	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)

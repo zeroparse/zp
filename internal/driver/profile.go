@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/middleend/codepass"
@@ -195,7 +196,7 @@ func PrintNames() []string {
 	out := []string{PrintCore}
 	out = append(out, corepass.Pipeline.Names()...)
 	out = append(out, PrintFlow)
-	out = append(out, flow.Pipeline.Names()...)
+	out = append(out, flowpass.Pipeline.Names()...)
 	out = append(out, PrintExec)
 	out = append(out, codepass.Pipeline.Names()...)
 	return append(out, PrintAll)
