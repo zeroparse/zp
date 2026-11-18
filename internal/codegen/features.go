@@ -43,7 +43,7 @@ const (
 	FeatureOperators
 	// FeatureVars is the variable environment: the grammar declares variables.
 	FeatureVars
-	// FeatureSkipRuns is the skip-run records: the program has skip-run sites.
+	// FeatureSkipRuns is the run-site records: the program has skip-run sites or run sites.
 	FeatureSkipRuns
 	// FeatureScanSites is the scan records: the program has scan sites.
 	FeatureScanSites
@@ -112,7 +112,7 @@ func Analyze(prog, rec *compile.Program, opts GenOptions) (FeatureSet, error) {
 		if p.Vars != nil {
 			f |= FeatureVars
 		}
-		if p.NumSkipSites > 0 {
+		if p.NumSkipSites+p.NumRunSites > 0 {
 			f |= FeatureSkipRuns
 		}
 		if p.NumScanSites > 0 {

@@ -35,6 +35,9 @@ var featureCases = []featureCase{
 	{name: "operators", f: codegen.FeatureOperators, src: codegentest.Arith, parse: `Parse("1+2*3")`},
 	{name: "vars", f: codegen.FeatureVars, src: codegentest.ActionVariableCases[0].Src, parse: `Parse("ab")`},
 	{name: "skip_runs", f: codegen.FeatureSkipRuns, src: codegentest.SkipRunGrammars[0].Src, parse: `Parse("abxbcxac")`},
+	// A run site calls RunBegin, not SkipBegin, once its walks go back over input (the site turns hot
+	// after RunHotSpan characters of it): the entry that marks the feature must be on this path too.
+	{name: "run_sites", f: codegen.FeatureSkipRuns, src: codegentest.RunSiteGrammars[0].Src, parse: `Parse(strings.Repeat("x", 300) + "z")`},
 	{name: "scan_sites", f: codegen.FeatureScanSites, src: codegentest.ScanSiteGrammars[0].Src, parse: `Parse(strings.Repeat("ab", 200) + "w" + strings.Repeat("ab", 200) + "!")`},
 	{name: "stream", f: codegen.FeatureStream, src: codegentest.Records, opts: codegen.GenOptions{Stream: true},
 		parse: `ParseStream(strings.NewReader("#records\na=1\n"), func(*Node) error { return nil })`},
@@ -138,7 +141,8 @@ func TestAnalyzeFeatures(t *testing.T) {
 		{src: `rule main = "a" $$`, opts: codegen.GenOptions{Document: true, Stream: false, Observability: true, LimitControls: true},
 			want: codegen.FeatureSet(codegen.FeatureDocument | codegen.FeatureObserve | codegen.FeatureBudget)},
 		{src: "rule main = e $$\nrule e = e \"+\" n / n\nrule n = [0-9]+", want: codegen.FeatureSet(codegen.FeatureMemo | codegen.FeatureLeftRecursion | codegen.FeatureScanSites)},
-		{src: codegentest.Arith, want: codegen.FeatureSet(codegen.FeatureOperators)},
+		// The repetitions in the skip of the Operators Rule are run sites.
+		{src: codegentest.Arith, want: codegen.FeatureSet(codegen.FeatureOperators | codegen.FeatureSkipRuns)},
 		// A rule that no entry point reaches adds nothing.
 		{src: "@start\nrule main = \"a\" $$\nrule unused = (\"q\" #recover(skip=\"z\")) e\nrule e = e \"+\" / \"n\""},
 	} {
