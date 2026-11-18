@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
 

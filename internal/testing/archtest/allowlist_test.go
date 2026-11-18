@@ -23,7 +23,7 @@ var allowlist = []string{
 	"rule 1: internal/engine/state -> internal/compile",
 	"rule 1: internal/engine/state -> internal/ir/core",
 	"rule 1: internal/engine/state -> internal/ir/code",
-	"rule 1: internal/engine/state -> internal/ir/exec/lower",
+	"rule 1: internal/engine/state -> internal/middleend/execlower",
 	"rule 1: internal/engine/state -> internal/ir/code/exec",
 	"rule 1: internal/engine/vm -> grammar",
 	"rule 1: internal/engine/vm -> internal/compile",

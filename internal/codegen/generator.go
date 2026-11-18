@@ -12,11 +12,11 @@ import (
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
-	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/pass"
 )
@@ -251,7 +251,7 @@ func (g *Generator) FlowPasses(f *flow.Func, err error) (*flow.Func, error) {
 // the first internal error of the generation (FlowErr), which fails it. The printers print l.Func with
 // the locals l.Vars, so a pass keeps that function in the module and those locals in it (the
 // pipeline contract of Exec IR); a run that breaks this is an internal error too.
-func (g *Generator) ExecPasses(l *lower.Lowered) {
+func (g *Generator) ExecPasses(l *execlower.Lowered) {
 	err := g.RunExec(g.IRTable(), l.Module, g.Observability)
 	if err == nil {
 		err = keepsLowered(l)
@@ -263,7 +263,7 @@ func (g *Generator) ExecPasses(l *lower.Lowered) {
 
 // keepsLowered reports an error if the module of l no longer holds l.Func, or l.Func no longer
 // declares a local of l.Vars.
-func keepsLowered(l *lower.Lowered) error {
+func keepsLowered(l *execlower.Lowered) error {
 	if !slices.Contains(l.Module.Funcs, l.Func) {
 		return fmt.Errorf("internal error: an Exec pass replaced or removed the function %s", l.Func.Name)
 	}

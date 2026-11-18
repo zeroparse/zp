@@ -18,7 +18,7 @@ import (
 // them; the site's tests run only when documentation changes.
 
 // specDir is the directory of the Flow IR specification, relative to this package.
-const specDir = "../../../spec/flow-ir"
+const specDir = "../../../../spec/flow-ir"
 
 // specColumn returns the first cells of the rows of the tables of the chapter file whose first header
 // cell is head, with a cell that is one code span replaced by its content.

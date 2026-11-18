@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 )
 
 // markInIfFunc returns a framed function whose mark of the parser state is set in the body of an If

@@ -9,12 +9,12 @@ import (
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	irc "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
+	"zeroparse.dev/zp/internal/middleend/execlower"
 )
 
 // Terms printed from Exec IR.
 //
-// Every term is lowered by lower.Term and printed from Exec IR as the statements of a function: the
+// Every term is lowered by execlower.Term and printed from Exec IR as the statements of a function: the
 // calls of the compositions of the library's Parser (termBinary, ...) with the failure of each checked
 // after it, a step charged for each subterm under budget controls, and the leaves, which read the
 // captures and variables of the action.
@@ -27,7 +27,7 @@ func (g *Generator) termStmts(ct irc.ActionExpr, s *check.Scope, locals map[stri
 	if ct == nil {
 		panic(fmt.Errorf("rule %s: a term without Core IR", g.Cur.Name))
 	}
-	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget, Unbounded: g.NoBudget, Proj: g.Proj, TextDispatch: dispatch})
+	l, err := execlower.Term(ct, execlower.TermOptions{Steps: !g.NoBudget, Unbounded: g.NoBudget, Proj: g.Proj, TextDispatch: dispatch})
 	if err != nil {
 		panic(fmt.Errorf("rule %s: %w", g.Cur.Name, err))
 	}
@@ -70,7 +70,7 @@ func (g *Generator) leaf(name string, variable bool, s *check.Scope, locals map[
 func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target {
 	return &Target{
 		Stmt: func(c *code.Call, a []string, dst []string, decl string) (string, bool) {
-			if c.Callee != lower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
+			if c.Callee != execlower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
 				return "", false
 			}
 			// One switch over the literals instead of a comparison with each literal in turn.
@@ -89,8 +89,8 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 		Reg:      func(name string) string { panic("tsgen: a lowered term reads the register " + name) },
 		Op: func(c *code.Call, a []string) string {
 			switch c.Callee {
-			case lower.OpTermConst:
-				switch v := c.Imm.(lower.TermConst).Value.(type) {
+			case execlower.OpTermConst:
+				switch v := c.Imm.(execlower.TermConst).Value.(type) {
 				case nil:
 					return "null"
 				case string:
@@ -100,8 +100,8 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 				default:
 					return fmt.Sprint(v)
 				}
-			case lower.OpTermRead:
-				switch x := c.Imm.(lower.TermRead).Term.(type) {
+			case execlower.OpTermRead:
+				switch x := c.Imm.(execlower.TermRead).Term.(type) {
 				case *irc.SlotRef:
 					return g.leaf(x.Name, false, s, locals)
 				case *irc.Local:
@@ -109,29 +109,29 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 				case *irc.VarRef:
 					return g.leaf(x.Name, true, s, locals)
 				}
-			case lower.OpTermName, lower.OpTermNodeType:
+			case execlower.OpTermName, execlower.OpTermNodeType:
 				return TsString(c.Imm.(string))
-			case lower.OpTermField:
-				return TsString(c.Imm.(lower.TermField).Field)
-			case lower.OpTermCastType:
-				return g.castTypeVar(c.Imm.(lower.TermCast).Cast)
-			case lower.OpTermUncontrolled:
+			case execlower.OpTermField:
+				return TsString(c.Imm.(execlower.TermField).Field)
+			case execlower.OpTermCastType:
+				return g.castTypeVar(c.Imm.(execlower.TermCast).Cast)
+			case execlower.OpTermUncontrolled:
 				return "c.p.control === null"
-			case lower.OpTermTextIn:
+			case execlower.OpTermTextIn:
 				var eqs []string
 				for _, lit := range c.Imm.([]string) {
 					eqs = append(eqs, a[0]+" === "+TsString(lit))
 				}
 				return "(" + strings.Join(eqs, " || ") + ")"
-			case lower.OpTermCastError:
-				x := c.Imm.(lower.TermCast).Cast
+			case execlower.OpTermCastError:
+				x := c.Imm.(execlower.TermCast).Cast
 				return fmt.Sprintf("castFailure(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)
-			case lower.OpTermTextEqual:
+			case execlower.OpTermTextEqual:
 				// == of two strings, which charges as binary does.
 				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", tsTermMethod("binary"), exec.BinaryCode("=="), a[0], a[1])
-			case lower.OpTermFromStr, lower.OpTermFromObj, "val.fromBool":
+			case execlower.OpTermFromStr, execlower.OpTermFromObj, "val.fromBool":
 				return a[0]
-			case lower.OpTermSpend, "seq.step":
+			case execlower.OpTermSpend, "seq.step":
 				return "c.spend()"
 			case "term.kids":
 				return "c.p.kidStack.length"
@@ -140,15 +140,15 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 			case "val.unbox":
 				// A parameter may hold a box, which stands for its value.
 				return "unboxValue(" + a[0] + ")"
-			case lower.OpTermKeep:
+			case execlower.OpTermKeep:
 				return fmt.Sprintf("c.p.kidStack.push(%s[%s]!)", a[0], a[1])
-			case lower.OpTermCopyList:
+			case execlower.OpTermCopyList:
 				return "c.newList(" + a[0] + ")"
-			case lower.OpTermElemsAbove:
+			case execlower.OpTermElemsAbove:
 				return "c.p.kids(" + a[0] + ")"
-			case lower.OpTermStruct:
-				return "c.termStruct(" + TsString(c.Imm.(lower.TermNew).New.Type) + ")"
-			case lower.OpTermSetField:
+			case execlower.OpTermStruct:
+				return "c.termStruct(" + TsString(c.Imm.(execlower.TermNew).New.Type) + ")"
+			case execlower.OpTermSetField:
 				return fmt.Sprintf("c.termSetField(%s, %s, %s)", a[0], TsString(c.Imm.(string)), a[1])
 			}
 			panic("tsgen: term operation " + c.Callee)
