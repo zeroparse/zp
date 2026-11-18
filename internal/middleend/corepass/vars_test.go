@@ -257,6 +257,7 @@ rule prefixRule = {preVar == 1} "-"
 rule infixRule = {inVar == 1} "+"
 rule postfixRule = {postVar == 1} "!"
 rule missingCaller = missing
+rule missing = "j"
 rule self = {selfVar == 1} self / "h"
 rule binding = {local := 9} "i"`
 	g, err := parseTest(src)
