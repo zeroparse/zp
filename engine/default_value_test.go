@@ -36,7 +36,11 @@ func stripActions(t *testing.T, g *ast.Grammar) *ast.Grammar {
 			if hasExpr && hasName {
 				delete(v, "type")
 			}
-			delete(v, "action")
+			// The "action" of a predicate or of a parenthesized action group is its expression,
+			// which the node requires; every other "action" is a value action.
+			if kind, _ := v["@type"].(string); kind != "Predicate" && kind != "ActionGroup" {
+				delete(v, "action")
+			}
 			delete(v, "defaultAction")
 			for _, c := range v {
 				strip(c)
