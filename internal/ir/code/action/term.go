@@ -1,4 +1,4 @@
-package exec
+package action
 
 import "zeroparse.dev/zp/internal/ir/code"
 

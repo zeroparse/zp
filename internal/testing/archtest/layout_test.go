@@ -72,6 +72,7 @@ var layout = []place{
 	{pkg: "internal/ir/core", target: "internal/ir/core"},
 	{pkg: "internal/ir/code", target: "internal/ir/code"},
 	// flow folds its structure types into internal/ir/code; its operations stay in the dialect.
+	{pkg: "internal/ir/code/action", target: "internal/ir/code/action"},
 	{pkg: "internal/ir/code/flow", target: "internal/ir/code/flow"},
 	// exec splits into the machine operations (internal/ir/code/exec) and the action-expression
 	// operations (internal/ir/code/action).

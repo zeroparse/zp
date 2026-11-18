@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/program"
@@ -31,8 +32,8 @@ func TestRuntimeTablesMatchTheCompiler(t *testing.T) {
 	if state.PendingEditLimit != exec.PendingEditLimit {
 		t.Errorf("pending edit limit: runtime %d, Exec IR %d", state.PendingEditLimit, exec.PendingEditLimit)
 	}
-	if state.MemberCapture+1 != len(exec.MemberKinds) {
-		t.Errorf("member kinds: runtime %d, Exec IR %d", state.MemberCapture+1, len(exec.MemberKinds))
+	if state.MemberCapture+1 != len(action.MemberKinds) {
+		t.Errorf("member kinds: runtime %d, Action dialect %d", state.MemberCapture+1, len(action.MemberKinds))
 	}
 	for r := rune(0); r < 0x300; r++ {
 		if state.FoldASCIIRune(r) != compile.FoldASCIIRune(r) {

@@ -1,4 +1,4 @@
-package execlower
+package flowlower
 
 import (
 	"slices"
@@ -17,11 +17,11 @@ func TestTermLeavesWriteOwnComponent(t *testing.T) {
 	}
 	var got []string
 	for _, o := range m.Ops {
-		if o.Component != Component {
+		if o.Component != termComponent {
 			continue
 		}
 		for _, s := range slices.Concat(o.Reads, o.Writes) {
-			if s != Component {
+			if s != termComponent {
 				got = append(got, o.Name+" uses "+s)
 			}
 		}

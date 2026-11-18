@@ -1,4 +1,4 @@
-package exec
+package exec_test
 
 import (
 	"flag"
@@ -8,14 +8,16 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
+	"zeroparse.dev/zp/internal/ir/code/exec"
 )
 
 var update = flag.Bool("update", false, "update golden files")
 
-// TestParserGolden checks that the declarations of the whole parser VM verify and that their listing
+// TestParserGolden checks that the declarations of the whole abstract machine verify and that their listing
 // is testdata/parser.golden: a change of a contract, a precondition or a cost bound shows in review.
 func TestParserGolden(t *testing.T) {
-	m := Parser()
+	m := machine()
 	if err := code.Verify(m); err != nil {
 		t.Fatal(err)
 	}
@@ -35,12 +37,12 @@ func TestParserGolden(t *testing.T) {
 	}
 }
 
-// TestCrossComponentWriters pins the transitional operations of the whole module (Parser) that write
+// TestCrossComponentWriters pins the transitional operations of the whole abstract machine (machine) that write
 // a component other than their own, which Verify allows only for transitional operations: the growth
 // operations that record recovered errors again. Another writer needs a reason recorded here. The
 // leaves of terms, which the lowering declares, are pinned there (TestTermLeavesWriteOwnComponent).
 func TestCrossComponentWriters(t *testing.T) {
-	m := Parser()
+	m := machine()
 	var got []string
 	for _, o := range m.Ops {
 		for _, s := range o.Writes {
@@ -49,7 +51,7 @@ func TestCrossComponentWriters(t *testing.T) {
 			}
 		}
 	}
-	want := []string{"grow.step writes " + Rec, "grow.end writes " + Rec}
+	want := []string{"grow.step writes " + exec.Rec, "grow.end writes " + exec.Rec}
 	if !slices.Equal(got, want) {
 		t.Errorf("cross-component writers:\n got %q\nwant %q", got, want)
 	}
@@ -67,13 +69,13 @@ func isComponent(m *code.Module, name string) bool {
 // TestTermCodeGolden checks that the declarations of applying a term verify in the whole module, and
 // what the listing says of them.
 func TestTermCodeGolden(t *testing.T) {
-	m := Parser()
+	m := machine()
 	if err := code.Verify(m); err != nil {
 		t.Fatal(err)
 	}
-	h := m.HandleType(Term)
-	if h == nil || h.Callable == nil || len(h.Callable.Params) != 1 || h.Callable.Params[0] != code.THandle(Act) ||
-		len(h.Callable.Results) != 2 || h.Callable.Results[0] != code.THandle(Datum) || h.Callable.Results[1] != code.THandle(Fail) {
+	h := m.HandleType(action.Term)
+	if h == nil || h.Callable == nil || len(h.Callable.Params) != 1 || h.Callable.Params[0] != code.THandle(action.Act) ||
+		len(h.Callable.Results) != 2 || h.Callable.Results[0] != code.THandle(exec.Datum) || h.Callable.Results[1] != code.THandle(action.Fail) {
 		t.Fatalf("handle Term = %+v, want code of an Act with a Datum and a Fail", h)
 	}
 	for _, o := range m.Ops {
@@ -89,5 +91,21 @@ func TestTermCodeGolden(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("listing lacks\n%s", want)
 		}
+	}
+}
+
+// machine returns the declarations of the whole abstract machine: the Exec dialect (exec.Parser) and
+// the Action dialect, whose operations refer to the state the Exec dialect declares.
+func machine() *code.Module {
+	m := exec.Parser()
+	action.Declare(m)
+	return m
+}
+
+// TestActionHostNames checks that the names of the state that the Action dialect refers to are those
+// that the Exec dialect declares.
+func TestActionHostNames(t *testing.T) {
+	if action.Host != exec.Host || action.Pos != exec.Pos || action.Datum != exec.Datum {
+		t.Errorf("action names %q, %q, %q; exec declares %q, %q, %q", action.Host, action.Pos, action.Datum, exec.Host, exec.Pos, exec.Datum)
 	}
 }

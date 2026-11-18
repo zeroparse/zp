@@ -21,8 +21,13 @@ var allowlist = []string{
 	// The Go and TypeScript generators drive the lowering to Flow and print Exec. With Flow
 	// and Action as dialects and the control decisions in Flow passes (S7a, S7b), the driver runs
 	// flowlower and the printers print the Exec stage only.
-	"rule 2: internal/backend/codegen/golang/print -> dialects exec, flow",
-	"rule 2: internal/backend/codegen/typescript/print -> dialects exec, flow",
+	"rule 2: internal/backend/codegen/golang/print -> dialects action, exec, flow",
+	"rule 2: internal/backend/codegen/typescript/print -> dialects action, exec, flow",
+	// The value operations of the abstract machine moved from the Exec dialect to the Action dialect,
+	// so the Go library printer and the term lowering of the engine, which name them, import both
+	// dialects of the Exec stage.
+	"rule 2: internal/backend/codegen/golang/libprint -> dialects action, exec",
+	"rule 2: internal/backend/actionlower -> dialects action, exec",
 	// The language server compiles the grammars it serves and reads their checked programs. It
 	// did so through engine, which held the compile entry on the runtime side; the runtime
 	// separation (S5, #280) moved the entry to the driver, which the layer graph does not place

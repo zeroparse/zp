@@ -4,10 +4,10 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/ir/code"
-	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/action"
 )
 
-// What terms make (exec.Gathered and exec.Made): the stack of the elements gathered for the lists and
+// What terms make (action.Gathered and action.Made): the stack of the elements gathered for the lists and
 // tuples being made, and the list of the structs made. Each is a sequence of identifiers with marks: its
 // length, which a drop cuts it back to.
 
@@ -15,14 +15,14 @@ import (
 // element is the null handle, which the model lists as 0.
 type Elem struct{ ID int64 }
 
-// Items is the model's handle of the elements of a list or a tuple (exec.Seq) that a case pushes at once:
+// Items is the model's handle of the elements of a list or a tuple (action.Seq) that a case pushes at once:
 // the identifiers of its elements.
 type Items struct{ IDs []int64 }
 
 // Struct is the model's handle of a struct that a case records as made: a conformance identifier.
 type Struct struct{ ID int64 }
 
-// Act is the model's handle of the context of a term (exec.Act). Pushing and recording do not read it,
+// Act is the model's handle of the context of a term (action.Act). Pushing and recording do not read it,
 // so a case has one.
 type Act struct{}
 
@@ -73,18 +73,18 @@ func (m *Model) allowsTermState(o *code.Op, args []any) (allowed, ok bool) {
 	return false, false
 }
 
-// termStateQuantity returns exec.QDropped and exec.QSeqLen for a call of an operation of the elements
+// termStateQuantity returns action.QDropped and action.QSeqLen for a call of an operation of the elements
 // gathered or the values made.
 func (m *Model) termStateQuantity(name string, o *code.Op, args []any) (int64, bool) {
 	if o == nil || !isTermStateOp(o.Name) {
 		return 0, false
 	}
 	switch {
-	case name == exec.QDropped && (o.Name == "term.dropKids" || o.Name == "term.elemsAbove"):
+	case name == action.QDropped && (o.Name == "term.dropKids" || o.Name == "term.elemsAbove"):
 		return int64(len(m.terms.gathered)) - args[0].(int64), true
-	case name == exec.QDropped && o.Name == "term.dropCreated":
+	case name == action.QDropped && o.Name == "term.dropCreated":
 		return int64(len(m.terms.made)) - args[0].(int64), true
-	case name == exec.QSeqLen && o.Name == "act.pushAll":
+	case name == action.QSeqLen && o.Name == "act.pushAll":
 		return int64(len(args[1].(*Items).IDs)), true
 	}
 	return 0, false

@@ -2,6 +2,7 @@ package compose
 
 import (
 	. "zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 )
 
@@ -16,7 +17,7 @@ import (
 // that is not evaluated yet, and Exec IR has no such value. The caller checks each operand it
 // evaluates with logic.
 func addValue(m *Module) {
-	datum, failT := THandle(exec.Datum), THandle(exec.Fail)
+	datum, failT := THandle(exec.Datum), THandle(action.Fail)
 	val := []Type{datum, failT}
 	l, r, x, op := L("l"), L("r"), L("x"), L("op")
 	kind := func(e Expr) Expr { return C("val.kind", e) }
@@ -30,20 +31,20 @@ func addValue(m *Module) {
 	fail := func(b *Builder, code int, a, bb, o, n Expr) { b.Return(none, failure(code, a, bb, o, n)) }
 	opIs := func(c int) Expr { return Eq(op, k(c)) }
 	// isError reports whether the node n is a recovered value: an error value of recovery or a missing token.
-	isError := func(n Expr) Expr { return Eq(C("node.shape", n), k(exec.ShapeError)) }
-	notError := func(n Expr) Expr { return Bin("!=", C("node.shape", n), k(exec.ShapeError)) }
+	isError := func(n Expr) Expr { return Eq(C("node.shape", n), k(action.ShapeError)) }
+	notError := func(n Expr) Expr { return Bin("!=", C("node.shape", n), k(action.ShapeError)) }
 
 	equal := m.AddFunc("equal", []Param{P("l", datum), P("r", datum)}, []Type{TBool, TBool}, nil, func(b *Builder) {
 		b.Let("a", C("val.unbox", l))
 		b.Let("b", C("val.unbox", r))
 		ka, kb := b.Let("ka", kind(L("a"))), b.Let("kb", kind(L("b")))
 		// Any value equals nil only if it is nil.
-		b.If(Bin("||", Eq(ka, k(exec.KindNil)), Eq(kb, k(exec.KindNil))), func(b *Builder) { b.Return(Eq(ka, kb), BoolC(true)) })
+		b.If(Bin("||", Eq(ka, k(action.KindNil)), Eq(kb, k(action.KindNil))), func(b *Builder) { b.Return(Eq(ka, kb), BoolC(true)) })
 		// Two values of one scalar kind compare; every other pair, two structured values among them, has no equality.
 		b.If(Bin("!=", ka, kb), func(b *Builder) { b.Return(BoolC(false), BoolC(false)) })
-		b.If(Eq(ka, k(exec.KindInt)), func(b *Builder) { b.Return(Eq(C("int.cmp", L("a"), L("b")), Int(0)), BoolC(true)) })
-		b.If(Eq(ka, k(exec.KindString)), func(b *Builder) { b.Return(C("str.eq", L("a"), L("b")), BoolC(true)) })
-		b.If(Eq(ka, k(exec.KindBool)), func(b *Builder) {
+		b.If(Eq(ka, k(action.KindInt)), func(b *Builder) { b.Return(Eq(C("int.cmp", L("a"), L("b")), Int(0)), BoolC(true)) })
+		b.If(Eq(ka, k(action.KindString)), func(b *Builder) { b.Return(C("str.eq", L("a"), L("b")), BoolC(true)) })
+		b.If(Eq(ka, k(action.KindBool)), func(b *Builder) {
 			b.Return(Eq(C("val.toBool", L("a")), C("val.toBool", L("b"))), BoolC(true))
 		})
 		b.Return(BoolC(false), BoolC(false))
@@ -54,63 +55,63 @@ equality, which is every other pair.`
 
 	index := m.AddFunc("index", []Param{P("l", datum), P("r", datum)}, val, nil, func(b *Builder) {
 		it := b.LetN([]string{"items", "ok"}, C("seq.items", l))
-		b.If(Not(it[1]), func(b *Builder) { fail(b, exec.ErrNotList, l, none, k(exec.OpIndex), Int(0)) })
-		b.If(Bin("!=", kind(r), k(exec.KindInt)), func(b *Builder) { fail(b, exec.ErrIndexType, r, none, Int(0), Int(0)) })
+		b.If(Not(it[1]), func(b *Builder) { fail(b, action.ErrNotList, l, none, k(action.OpIndex), Int(0)) })
+		b.If(Bin("!=", kind(r), k(action.KindInt)), func(b *Builder) { fail(b, action.ErrIndexType, r, none, Int(0), Int(0)) })
 		b.Let("n", C("seq.len", it[0]))
 		at := b.LetN([]string{"i", "inside"}, C("int.index", r, L("n")))
-		b.If(Not(at[1]), func(b *Builder) { fail(b, exec.ErrIndexRange, r, none, Int(0), L("n")) })
+		b.If(Not(at[1]), func(b *Builder) { fail(b, action.ErrIndexRange, r, none, Int(0), L("n")) })
 		b.Return(C("seq.at", it[0], at[0]), ok)
 	})
 	index.Doc = `index returns element r of l, a list or a tuple (nil has no elements), with a box opened. It fails if l is
 another value, if r is not an int, and if r is not an index of l.`
 
 	binary := m.AddFunc("binary", []Param{P("op", TInt), P("l", datum), P("r", datum)}, val, nil, func(b *Builder) {
-		b.If(opIs(exec.OpIndex), func(b *Builder) {
+		b.If(opIs(action.OpIndex), func(b *Builder) {
 			b.LetN([]string{"v", "e"}, C("index", l, r))
 			b.Return(L("v"), L("e"))
 		})
-		b.If(Bin("||", opIs(exec.OpEq), opIs(exec.OpNe)), func(b *Builder) {
+		b.If(Bin("||", opIs(action.OpEq), opIs(action.OpNe)), func(b *Builder) {
 			eq := b.LetN([]string{"eq", "ok"}, C("equal", l, r))
 			b.If(Not(eq[1]), func(b *Builder) {
 				// A comparison of a value that is not a scalar says why it fails.
-				b.Let("code", k(exec.ErrOperands))
-				b.If(Bin("||", isKind(C("val.unbox", l), exec.KindOther), isKind(C("val.unbox", r), exec.KindOther)), func(b *Builder) {
-					b.Set("code", k(exec.ErrCompare))
+				b.Let("code", k(action.ErrOperands))
+				b.If(Bin("||", isKind(C("val.unbox", l), action.KindOther), isKind(C("val.unbox", r), action.KindOther)), func(b *Builder) {
+					b.Set("code", k(action.ErrCompare))
 				})
 				b.Return(none, C("val.fail", L("code"), l, r, op, Int(0)))
 			})
-			b.Return(C("val.fromBool", Eq(eq[0], opIs(exec.OpEq))), ok)
+			b.Return(C("val.fromBool", Eq(eq[0], opIs(action.OpEq))), ok)
 		})
 		// ordered returns the result of the comparison op of two values whose order is c.
 		ordered := func(b *Builder, c Expr) {
 			for _, o := range []struct {
 				code int
 				cmp  string
-			}{{exec.OpLt, "<"}, {exec.OpLe, "<="}, {exec.OpGt, ">"}} {
+			}{{action.OpLt, "<"}, {action.OpLe, "<="}, {action.OpGt, ">"}} {
 				b.If(opIs(o.code), func(b *Builder) { b.Return(C("val.fromBool", Bin(o.cmp, c, Int(0))), ok) })
 			}
 			b.Return(C("val.fromBool", Bin(">=", c, Int(0))), ok)
 		}
 		kl, kr := b.Let("kl", kind(l)), b.Let("kr", kind(r))
-		b.If(And(Eq(kl, k(exec.KindInt)), Eq(kr, k(exec.KindInt))), func(b *Builder) {
+		b.If(And(Eq(kl, k(action.KindInt)), Eq(kr, k(action.KindInt))), func(b *Builder) {
 			for _, o := range []struct {
 				code int
 				fn   string
-			}{{exec.OpAdd, "int.add"}, {exec.OpSub, "int.sub"}, {exec.OpMul, "int.mul"}} {
+			}{{action.OpAdd, "int.add"}, {action.OpSub, "int.sub"}, {action.OpMul, "int.mul"}} {
 				b.If(opIs(o.code), func(b *Builder) { b.Return(C(o.fn, l, r), ok) })
 			}
-			b.If(Bin("||", opIs(exec.OpQuo), opIs(exec.OpRem)), func(b *Builder) {
-				b.If(C("int.zero", r), func(b *Builder) { fail(b, exec.ErrDivZero, none, none, Int(0), Int(0)) })
-				b.If(opIs(exec.OpQuo), func(b *Builder) { b.Return(C("int.quo", l, r), ok) })
+			b.If(Bin("||", opIs(action.OpQuo), opIs(action.OpRem)), func(b *Builder) {
+				b.If(C("int.zero", r), func(b *Builder) { fail(b, action.ErrDivZero, none, none, Int(0), Int(0)) })
+				b.If(opIs(action.OpQuo), func(b *Builder) { b.Return(C("int.quo", l, r), ok) })
 				b.Return(C("int.rem", l, r), ok)
 			})
 			ordered(b, C("int.cmp", l, r))
 		})
-		b.If(And(Eq(kl, k(exec.KindString)), Eq(kr, k(exec.KindString))), func(b *Builder) {
-			b.If(opIs(exec.OpAdd), func(b *Builder) { b.Return(C("str.add", l, r), ok) })
-			b.If(Bin(">=", op, k(exec.OpLt)), func(b *Builder) { ordered(b, C("str.cmp", l, r)) })
+		b.If(And(Eq(kl, k(action.KindString)), Eq(kr, k(action.KindString))), func(b *Builder) {
+			b.If(opIs(action.OpAdd), func(b *Builder) { b.Return(C("str.add", l, r), ok) })
+			b.If(Bin(">=", op, k(action.OpLt)), func(b *Builder) { ordered(b, C("str.cmp", l, r)) })
 		})
-		fail(b, exec.ErrOperands, l, r, op, Int(0))
+		fail(b, action.ErrOperands, l, r, op, Int(0))
 	})
 	binary.Doc = `binary applies the binary operator that op indexes in exec.BinaryOps to l and r. Ints combine with + - *
 / % and compare with < <= > >=, with 64-bit wraparound; / and % truncate toward zero, and a division by zero fails.
@@ -118,41 +119,41 @@ Strings concatenate with + and compare with < <= > >= by code point. == and != a
 no equality. [] is index. Any other operands fail.`
 
 	unary := m.AddFunc("unary", []Param{P("op", TInt), P("x", datum)}, val, nil, func(b *Builder) {
-		b.If(And(opIs(exec.OpNeg), isKind(x, exec.KindInt)), func(b *Builder) { b.Return(C("int.neg", x), ok) })
-		b.If(And(opIs(exec.OpNot), isKind(x, exec.KindBool)), func(b *Builder) {
+		b.If(And(opIs(action.OpNeg), isKind(x, action.KindInt)), func(b *Builder) { b.Return(C("int.neg", x), ok) })
+		b.If(And(opIs(action.OpNot), isKind(x, action.KindBool)), func(b *Builder) {
 			b.Return(C("val.fromBool", Not(C("val.toBool", x))), ok)
 		})
-		fail(b, exec.ErrUnary, x, none, op, Int(0))
+		fail(b, action.ErrUnary, x, none, op, Int(0))
 	})
 	unary.Doc = `unary applies the unary operator that op indexes in exec.UnaryOps to x: - negates an int, with
 wraparound, and ! negates a bool. Any other operand fails.`
 
 	logic := m.AddFunc("logic", []Param{P("op", TInt), P("x", datum)}, []Type{TBool, failT}, nil, func(b *Builder) {
-		b.If(Bin("!=", kind(x), k(exec.KindBool)), func(b *Builder) {
-			b.Return(BoolC(false), failure(exec.ErrLogical, x, none, op, Int(0)))
+		b.If(Bin("!=", kind(x), k(action.KindBool)), func(b *Builder) {
+			b.Return(BoolC(false), failure(action.ErrLogical, x, none, op, Int(0)))
 		})
 		b.Return(C("val.toBool", x), ok)
 	})
-	member := m.AddFunc("member", []Param{P("c", THandle(exec.Act)), P("kind", TInt), P("x", datum), P("name", THandle(exec.Name)),
-		P("field", THandle(exec.Name))}, val, nil, func(b *Builder) {
+	member := m.AddFunc("member", []Param{P("c", THandle(action.Act)), P("kind", TInt), P("x", datum), P("name", THandle(action.Name)),
+		P("field", THandle(action.Name))}, val, nil, func(b *Builder) {
 		kindIs := func(c int) Expr { return Eq(L("kind"), k(c)) }
 		o := b.LetN([]string{"n", "ok"}, C("node.of", x))
-		b.If(Not(o[1]), func(b *Builder) { fail(b, exec.ErrMemberOf, x, C("val.name", L("name")), Int(0), Int(0)) })
+		b.If(Not(o[1]), func(b *Builder) { fail(b, action.ErrMemberOf, x, C("val.name", L("name")), Int(0), Int(0)) })
 		n := o[0]
 		// Start, End and Value are members of a node; of any other value they are fields.
-		b.If(And(Bin(">=", L("kind"), k(exec.MemberStart)), Bin("<=", L("kind"), k(exec.MemberValue))), func(b *Builder) {
+		b.If(And(Bin(">=", L("kind"), k(action.MemberStart)), Bin("<=", L("kind"), k(action.MemberValue))), func(b *Builder) {
 			b.If(C("node.isNode", n), func(b *Builder) {
-				b.If(kindIs(exec.MemberStart), func(b *Builder) { b.Return(C("node.start", n), ok) })
-				b.If(kindIs(exec.MemberEnd), func(b *Builder) { b.Return(C("node.end", n), ok) })
+				b.If(kindIs(action.MemberStart), func(b *Builder) { b.Return(C("node.start", n), ok) })
+				b.If(kindIs(action.MemberEnd), func(b *Builder) { b.Return(C("node.end", n), ok) })
 				// A recovered value has a range and no value: its Value is nil.
 				b.If(isError(n), func(b *Builder) { b.Return(none, ok) })
 				b.Return(C("node.value", n), ok)
 			})
 		})
 		st := b.Let("st", C("node.isStruct", n))
-		b.If(kindIs(exec.MemberCapture), func(b *Builder) {
+		b.If(kindIs(action.MemberCapture), func(b *Builder) {
 			// A struct has no captures; an unmatched capture is nil.
-			b.If(st, func(b *Builder) { fail(b, exec.ErrNoCapture, x, C("val.name", L("field")), Int(0), Int(0)) })
+			b.If(st, func(b *Builder) { fail(b, action.ErrNoCapture, x, C("val.name", L("field")), Int(0), Int(0)) })
 			b.LetN([]string{"v", "held"}, C("node.field", n, L("field")))
 			b.Return(C("val.unbox", L("v")), ok)
 		})
@@ -163,7 +164,7 @@ wraparound, and ! negates a bool. Any other operand fails.`
 		// A field the constructor left unset reads as the zero value of its declared type.
 		z := b.LetN([]string{"z", "declared"}, C("node.zero", L("c"), n, L("field")))
 		b.If(z[1], func(b *Builder) { b.Return(z[0], ok) })
-		fail(b, exec.ErrNoField, x, C("val.name", L("field")), Int(0), Int(0))
+		fail(b, action.ErrNoField, x, C("val.name", L("field")), Int(0), Int(0))
 	})
 	member.Doc = `member reads the member name of x, whose kind is kind (exec.MemberKinds) and which reads the field or
 capture field. Start, End and Value of a node read its range and value; a recovered value has a range and a nil
@@ -171,14 +172,14 @@ value. A capture of a node reads it with a box opened, nil if it did not match; 
 and of a struct the zero value of the declared type of a field that is not set. A value that has no members, a
 capture of a struct and a field that a struct does not declare fail.`
 
-	fn, act := P("fn", THandle(exec.Name)), P("c", THandle(exec.Act))
+	fn, act := P("fn", THandle(action.Name)), P("c", THandle(action.Act))
 	isScalar := func(e Expr) Expr {
-		return Bin("||", Bin("||", Eq(e, k(exec.KindInt)), Eq(e, k(exec.KindString))), Eq(e, k(exec.KindBool)))
+		return Bin("||", Bin("||", Eq(e, k(action.KindInt)), Eq(e, k(action.KindString))), Eq(e, k(action.KindBool)))
 	}
-	elem := THandle(exec.Elem)
+	elem := THandle(action.Elem)
 	push := m.AddFunc("push", []Param{act, fn, P("v", datum)}, []Type{failT}, nil, func(b *Builder) {
 		kv := b.Let("k", kind(L("v")))
-		b.If(Eq(kv, k(exec.KindNil)), func(b *Builder) {
+		b.If(Eq(kv, k(action.KindNil)), func(b *Builder) {
 			b.Do("act.push", L("c"), Null(elem))
 			b.Return(ok)
 		})
@@ -191,7 +192,7 @@ capture of a struct and a field that a struct does not declare fail.`
 			b.Do("act.push", L("c"), C("node.elem", o[0]))
 			b.Return(ok)
 		})
-		b.Return(failure(exec.ErrElement, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
+		b.Return(failure(action.ErrElement, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
 	})
 	push.Doc = `push pushes v as the next element of the list or the tuple that the built-in function or literal fn makes in c:
 nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other
@@ -203,21 +204,21 @@ value, such as a function, fails and pushes nothing.`
 			b.Do("act.pushAll", L("c"), it[0])
 			b.Return(ok)
 		})
-		b.Return(failure(exec.ErrArgList, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
+		b.Return(failure(action.ErrArgList, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
 	})
 	pushItems.Doc = `pushItems pushes the elements of v, an argument of the built-in function fn that concatenates lists, as the
 next elements of the list that fn makes in c: none for nil, and those of a list or a tuple as they are. Any other value
 fails and pushes nothing.`
 
-	items := m.AddFunc("items", []Param{fn, P("v", datum)}, []Type{THandle(exec.Seq), failT}, nil, func(b *Builder) {
+	items := m.AddFunc("items", []Param{fn, P("v", datum)}, []Type{THandle(action.Seq), failT}, nil, func(b *Builder) {
 		it := b.LetN([]string{"items", "ok"}, C("seq.items", L("v")))
 		b.If(it[1], func(b *Builder) { b.Return(it[0], ok) })
-		b.Return(it[0], failure(exec.ErrArgList, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
+		b.Return(it[0], failure(action.ErrArgList, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
 	})
 	items.Doc = `items returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
 and those of a list or a tuple. Any other value fails.`
 
-	seqT := THandle(exec.Seq)
+	seqT := THandle(action.Seq)
 	itemAt := m.AddFunc("itemAt", []Param{P("items", seqT), P("i", TInt), P("right", TBool)}, []Type{datum}, nil, func(b *Builder) {
 		b.If(L("right"), func(b *Builder) {
 			b.Return(C("seq.at", L("items"), Bin("-", Bin("-", C("seq.len", L("items")), Int(1)), L("i"))))
@@ -229,8 +230,8 @@ its function at step i, with a box opened: element i, or element i from the end 
 nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.`
 
 	filterKeep := m.AddFunc("filterKeep", []Param{P("v", datum)}, []Type{TBool, failT}, nil, func(b *Builder) {
-		b.If(Bin("!=", kind(L("v")), k(exec.KindBool)), func(b *Builder) {
-			b.Return(BoolC(false), failure(exec.ErrFilter, L("v"), none, Int(0), Int(0)))
+		b.If(Bin("!=", kind(L("v")), k(action.KindBool)), func(b *Builder) {
+			b.Return(BoolC(false), failure(action.ErrFilter, L("v"), none, Int(0), Int(0)))
 		})
 		b.Return(C("val.toBool", L("v")), ok)
 	})
@@ -238,8 +239,8 @@ nothing; the loop charges the step (seq.step) before it, so that itemAt stays sm
 
 	length := m.AddFunc("length", []Param{P("x", datum)}, val, nil, func(b *Builder) {
 		kx := b.Let("k", kind(x))
-		b.If(Eq(kx, k(exec.KindString)), func(b *Builder) { b.Return(C("str.len", x), ok) })
-		b.If(Eq(kx, k(exec.KindNil)), func(b *Builder) { b.Return(C("val.fromInt", Int(0)), ok) })
+		b.If(Eq(kx, k(action.KindString)), func(b *Builder) { b.Return(C("str.len", x), ok) })
+		b.If(Eq(kx, k(action.KindNil)), func(b *Builder) { b.Return(C("val.fromInt", Int(0)), ok) })
 		o := b.LetN([]string{"n", "ok"}, C("node.of", x))
 		b.If(o[1], func(b *Builder) {
 			// The text of a string node is the input of its range, whose length the range holds in the
@@ -250,16 +251,16 @@ nothing; the loop charges the step (seq.step) before it, so that itemAt stays sm
 			})
 			b.Return(C("node.count", o[0]), ok)
 		})
-		fail(b, exec.ErrLenArg, x, none, Int(0), Int(0))
+		fail(b, action.ErrLenArg, x, none, Int(0), Int(0))
 	})
 	length.Doc = `length is the built-in function len: the length of a string in the position unit, of the range of a string
 node, and the number of elements of a list, a tuple or another node; nil and a recovered value have length 0. Any
 other value fails.`
 
-	text := m.AddFunc("text", []Param{P("x", datum)}, []Type{THandle(exec.Str), failT}, nil, func(b *Builder) {
+	text := m.AddFunc("text", []Param{P("x", datum)}, []Type{THandle(action.Str), failT}, nil, func(b *Builder) {
 		kx := b.Let("k", kind(x))
-		b.If(Eq(kx, k(exec.KindNil)), func(b *Builder) { b.Return(C("str.empty"), ok) })
-		b.If(Eq(kx, k(exec.KindString)), func(b *Builder) { b.Return(C("str.of", x), ok) })
+		b.If(Eq(kx, k(action.KindNil)), func(b *Builder) { b.Return(C("str.empty"), ok) })
+		b.If(Eq(kx, k(action.KindString)), func(b *Builder) { b.Return(C("str.of", x), ok) })
 		o := b.LetN([]string{"n", "ok"}, C("node.of", x))
 		b.If(o[1], func(b *Builder) {
 			// A string node holds its text; the text of any other node, a recovered value among them, is the
@@ -268,24 +269,24 @@ other value fails.`
 			b.If(And(h[1], notError(o[0])), func(b *Builder) { b.Return(h[0], ok) })
 			b.Return(C("node.rangeText", o[0]), ok)
 		})
-		b.Return(C("str.empty"), failure(exec.ErrTextArg, x, none, Int(0), Int(0)))
+		b.Return(C("str.empty"), failure(action.ErrTextArg, x, none, Int(0), Int(0)))
 	})
 	text.Doc = `text is the built-in function text: a string itself, the text that a string node holds, the input of the range
 of any other node, a recovered value among them, and the empty string for nil. Any other value fails.`
 
-	convert := m.AddFunc("convert", []Param{P("t", THandle(exec.NodeType)), P("x", datum)}, val, nil, func(b *Builder) {
+	convert := m.AddFunc("convert", []Param{P("t", THandle(action.NodeType)), P("x", datum)}, val, nil, func(b *Builder) {
 		o := b.LetN([]string{"n", "ok"}, C("node.of", x))
 		b.If(o[1], func(b *Builder) {
 			b.If(C("node.hasBase", o[0]), func(b *Builder) { b.Return(C("node.convert", o[0], L("t")), ok) })
 		})
 		// A box holds an int, a string or a bool, which has no base, and the failure names the type of
 		// the value it holds.
-		fail(b, exec.ErrConvert, x, C("val.name", C("node.typeName", L("t"))), Int(0), Int(0))
+		fail(b, action.ErrConvert, x, C("val.name", C("node.typeName", L("t"))), Int(0), Int(0))
 	})
 	convert.Doc = `convert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
 type or not, becomes a node of t. Any other value fails.`
 
-	cover := m.AddFunc("cover", []Param{P("n", THandle(exec.Obj)), P("v", datum), P("first", TBool)}, []Type{TBool}, nil, func(b *Builder) {
+	cover := m.AddFunc("cover", []Param{P("n", THandle(action.Obj)), P("v", datum), P("first", TBool)}, []Type{TBool}, nil, func(b *Builder) {
 		o := b.LetN([]string{"k", "ok"}, C("node.of", L("v")))
 		// A field value that is not a node, nil among them, adds nothing to the range.
 		b.If(Not(o[1]), func(b *Builder) { b.Return(L("first")) })
@@ -302,7 +303,7 @@ type or not, becomes a node of t. Any other value fails.`
 v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is
 whether it had none before, and the first node gives n its range.`
 
-	made := m.AddFunc("made", []Param{P("c", THandle(exec.Act)), P("n", THandle(exec.Obj)), P("first", TBool)}, nil, nil, func(b *Builder) {
+	made := m.AddFunc("made", []Param{P("c", THandle(action.Act)), P("n", THandle(action.Obj)), P("first", TBool)}, nil, nil, func(b *Builder) {
 		// A struct with no field value that is a node takes the range of the rule.
 		b.If(L("first"), func(b *Builder) {
 			r := b.LetN([]string{"rs", "re"}, C("act.span", L("c")))
@@ -313,7 +314,7 @@ whether it had none before, and the first node gives n its range.`
 	made.Doc = `made finishes the struct n that c made of field values that cover has gone over: n takes the range of the
 rule if no field value is a node, and c records n.`
 
-	hull := m.AddFunc("hull", []Param{P("c", THandle(exec.Act)), P("tuple", TBool), P("kids", THandle(exec.Seq))}, []Type{THandle(exec.Obj)}, nil, func(b *Builder) {
+	hull := m.AddFunc("hull", []Param{P("c", THandle(action.Act)), P("tuple", TBool), P("kids", THandle(action.Seq))}, []Type{THandle(action.Obj)}, nil, func(b *Builder) {
 		b.Let("n", C("val.seq", L("c"), L("tuple"), L("kids")))
 		// The range starts empty at the start of the rule, and the first element that adds a range gives
 		// it that range.
@@ -342,7 +343,7 @@ struct that holds one covers it.`
 
 	// The cast: the check of a value against a type, over the accessors of the type (ftype.*) and the
 	// primitives of the values it checks.
-	ftype := THandle(exec.FType)
+	ftype := THandle(action.FType)
 	t, v, n := L("t"), L("v"), L("n")
 	shape := L("shape")
 	shapeIs := func(c int) Expr { return Eq(shape, k(c)) }
@@ -356,7 +357,7 @@ struct that holds one covers it.`
 		b.Return(BoolC(false))
 	}
 	elems := m.AddFunc("elemsConform", []Param{P("t", ftype), P("items", seqT)}, []Type{TBool}, nil, func(b *Builder) {
-		b.If(Eq(C("ftype.kind", t), k(exec.FtTop)), func(b *Builder) { b.Return(BoolC(true)) })
+		b.If(Eq(C("ftype.kind", t), k(action.FtTop)), func(b *Builder) { b.Return(BoolC(true)) })
 		b.Let("count", C("seq.len", L("items")))
 		b.Var("j", TInt)
 		b.For("elems", Assign("j", Int(0)), Lt(L("j"), L("count")), Assign("j", Add(L("j"), Int(1))), func(b *Builder) {
@@ -379,25 +380,25 @@ of the list, charging a step for each element it examines; the type _ takes ever
 	})
 	tuple.Doc = `tupleConform returns whether the elements items of a tuple are of the element types of the tuple type t:
 as many, and each of its own type, charging a step for each element it examines.`
-	valueConforms := m.AddFunc("valueConforms", []Param{P("t", ftype), P("n", THandle(exec.Obj)), P("shape", TInt)}, []Type{TBool}, nil, func(b *Builder) {
+	valueConforms := m.AddFunc("valueConforms", []Param{P("t", ftype), P("n", THandle(action.Obj)), P("shape", TInt)}, []Type{TBool}, nil, func(b *Builder) {
 		kt := b.Let("kt", C("ftype.kind", t))
 		isKind := func(c int) Expr { return Eq(kt, k(c)) }
 		b.Comment("A node of a type whose value is a string, a tuple or a list.")
-		b.If(isKind(exec.FtTop), func(b *Builder) {
-			b.Return(Bin("||", Bin("||", shapeIs(exec.ShapeString), shapeIs(exec.ShapeTuple)), shapeIs(exec.ShapeList)))
+		b.If(isKind(action.FtTop), func(b *Builder) {
+			b.Return(Bin("||", Bin("||", shapeIs(action.ShapeString), shapeIs(action.ShapeTuple)), shapeIs(action.ShapeList)))
 		})
-		b.If(isKind(exec.FtString), func(b *Builder) { b.Return(shapeIs(exec.ShapeString)) })
-		b.If(isKind(exec.FtList), func(b *Builder) {
-			b.If(Not(shapeIs(exec.ShapeList)), func(b *Builder) { b.Return(BoolC(false)) })
+		b.If(isKind(action.FtString), func(b *Builder) { b.Return(shapeIs(action.ShapeString)) })
+		b.If(isKind(action.FtList), func(b *Builder) {
+			b.If(Not(shapeIs(action.ShapeList)), func(b *Builder) { b.Return(BoolC(false)) })
 			b.Return(C("elemsConform", C("ftype.elem", t), C("node.children", n)))
 		})
-		b.If(isKind(exec.FtTuple), func(b *Builder) {
-			b.If(Not(shapeIs(exec.ShapeTuple)), func(b *Builder) { b.Return(BoolC(false)) })
+		b.If(isKind(action.FtTuple), func(b *Builder) {
+			b.If(Not(shapeIs(action.ShapeTuple)), func(b *Builder) { b.Return(BoolC(false)) })
 			b.Return(C("tupleConform", t, C("node.children", n)))
 		})
 		// A node always has a value.
-		b.If(isKind(exec.FtOptional), func(b *Builder) { b.Return(C("valueConforms", C("ftype.elem", t), n, shape)) })
-		b.If(isKind(exec.FtJoin), func(b *Builder) {
+		b.If(isKind(action.FtOptional), func(b *Builder) { b.Return(C("valueConforms", C("ftype.elem", t), n, shape)) })
+		b.If(isKind(action.FtJoin), func(b *Builder) {
 			forAlts(b, func(alt Expr) Expr { return C("valueConforms", alt, n, shape) })
 		})
 		// No node has a value of another type yet.
@@ -412,16 +413,16 @@ node has a string, and a tuple node or a list node its elements as value.`
 		b.Let("x", C("val.unbox", v))
 		kx := b.Let("kx", kind(L("x")))
 		b.Comment("The type _ takes every value.")
-		b.If(isKind(exec.FtTop), func(b *Builder) { b.Return(BoolC(true)) })
+		b.If(isKind(action.FtTop), func(b *Builder) { b.Return(BoolC(true)) })
 		b.Comment("The scalar types and nil take the value of their kind.")
-		for _, s := range []struct{ ft, kind int }{{exec.FtInt, exec.KindInt}, {exec.FtString, exec.KindString}, {exec.FtBool, exec.KindBool}, {exec.FtNil, exec.KindNil}} {
+		for _, s := range []struct{ ft, kind int }{{action.FtInt, action.KindInt}, {action.FtString, action.KindString}, {action.FtBool, action.KindBool}, {action.FtNil, action.KindNil}} {
 			b.If(isKind(s.ft), func(b *Builder) { b.Return(Eq(kx, k(s.kind))) })
 		}
 		b.Comment("An optional type takes nil and the values of its type; a join the values of an alternative.")
-		b.If(isKind(exec.FtOptional), func(b *Builder) {
-			b.Return(Bin("||", Eq(kx, k(exec.KindNil)), C("conforms", C("ftype.elem", t), L("x"))))
+		b.If(isKind(action.FtOptional), func(b *Builder) {
+			b.Return(Bin("||", Eq(kx, k(action.KindNil)), C("conforms", C("ftype.elem", t), L("x"))))
 		})
-		b.If(isKind(exec.FtJoin), func(b *Builder) {
+		b.If(isKind(action.FtJoin), func(b *Builder) {
 			forAlts(b, func(alt Expr) Expr { return C("conforms", alt, L("x")) })
 		})
 		b.Comment("Every other type takes a node, a list value, a tuple value or a struct.")
@@ -429,26 +430,26 @@ node has a string, and a tuple node or a list node its elements as value.`
 		b.If(Not(o[1]), func(b *Builder) { b.Return(BoolC(false)) })
 		b.Let("shape", C("node.shape", n))
 		b.Comment("node[_] takes a node whose value is a string, a tuple or a list; node[string] one whose value is a string.")
-		b.If(isKind(exec.FtNode), func(b *Builder) {
-			b.Return(Bin("||", Bin("||", shapeIs(exec.ShapeString), shapeIs(exec.ShapeTuple)), shapeIs(exec.ShapeList)))
+		b.If(isKind(action.FtNode), func(b *Builder) {
+			b.Return(Bin("||", Bin("||", shapeIs(action.ShapeString), shapeIs(action.ShapeTuple)), shapeIs(action.ShapeList)))
 		})
-		b.If(isKind(exec.FtStringNode), func(b *Builder) { b.Return(shapeIs(exec.ShapeString)) })
+		b.If(isKind(action.FtStringNode), func(b *Builder) { b.Return(shapeIs(action.ShapeString)) })
 		b.Comment("error takes an error value, and missing the error value of a missing token.")
-		b.If(isKind(exec.FtError), func(b *Builder) { b.Return(shapeIs(exec.ShapeError)) })
-		b.If(isKind(exec.FtMissing), func(b *Builder) { b.Return(And(shapeIs(exec.ShapeError), C("node.isMissing", n))) })
+		b.If(isKind(action.FtError), func(b *Builder) { b.Return(shapeIs(action.ShapeError)) })
+		b.If(isKind(action.FtMissing), func(b *Builder) { b.Return(And(shapeIs(action.ShapeError), C("node.isMissing", n))) })
 		b.Comment("A struct type or a named node type takes the values that have its name.")
-		b.If(isKind(exec.FtNamed), func(b *Builder) { b.Return(C("node.isType", n, t)) })
+		b.If(isKind(action.FtNamed), func(b *Builder) { b.Return(C("node.isType", n, t)) })
 		b.Comment("A list type takes a list value, and a tuple type a tuple value, whose elements are of its types.")
-		b.If(isKind(exec.FtList), func(b *Builder) {
-			b.If(Not(shapeIs(exec.ShapeListValue)), func(b *Builder) { b.Return(BoolC(false)) })
+		b.If(isKind(action.FtList), func(b *Builder) {
+			b.If(Not(shapeIs(action.ShapeListValue)), func(b *Builder) { b.Return(BoolC(false)) })
 			b.Return(C("elemsConform", C("ftype.elem", t), C("node.children", n)))
 		})
-		b.If(isKind(exec.FtTuple), func(b *Builder) {
-			b.If(Not(shapeIs(exec.ShapeTupleValue)), func(b *Builder) { b.Return(BoolC(false)) })
+		b.If(isKind(action.FtTuple), func(b *Builder) {
+			b.If(Not(shapeIs(action.ShapeTupleValue)), func(b *Builder) { b.Return(BoolC(false)) })
 			b.Return(C("tupleConform", t, C("node.children", n)))
 		})
 		b.Comment("node[T] takes a node whose value is of type T.")
-		b.If(isKind(exec.FtNodeOf), func(b *Builder) { b.Return(C("valueConforms", C("ftype.elem", t), n, shape)) })
+		b.If(isKind(action.FtNodeOf), func(b *Builder) { b.Return(C("valueConforms", C("ftype.elem", t), n, shape)) })
 		b.Return(BoolC(false))
 	})
 	conforms.Doc = `conforms returns whether v is a value of the type t of a cast in the value model, charging a step for each

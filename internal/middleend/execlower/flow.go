@@ -1,7 +1,6 @@
 // Package execlower converts grammar code from the Flow stage of Code IR to the Exec stage (design
 // 065), so that the backends of the Exec stage print the rules of a grammar as they print the
-// compositions of the abstract machine. It also lowers the action expressions of the engine's term
-// programs (Term).
+// compositions of the abstract machine.
 //
 // The conversion keeps the structure of each function (blocks, loops, branches, exits, assignments
 // and the arithmetic and logic of conditions), its locals and its registers. Each call of a Flow

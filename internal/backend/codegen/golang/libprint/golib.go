@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/compose"
 	"zeroparse.dev/zp/internal/middleend/codepass"
@@ -186,9 +187,9 @@ func goTarget(s goSpec) *print.Target {
 		exec.Ctx: "ctxCallState", exec.Res: "*ctxResult", exec.Grow: "growState",
 		exec.Frame: "*CaptureFrame", exec.Backtrack: "Mark", exec.Scope: "*Env", exec.Operators: "[]*OperatorsRuleOp",
 		exec.Operator: "*OperatorsRuleOp", exec.Line: "*OperatorsRuleLine", exec.Attempt: "operatorsRuleAttempt",
-		exec.Term: "func(*ActCtx) (any, any)", exec.Datum: "any", exec.Seq: "[]*core.Node",
-		exec.Obj: "*core.Node", exec.Name: "string", exec.Str: "string", exec.Act: "*ActCtx", exec.Fail: "any", exec.Elem: "*core.Node",
-		exec.NodeType: "*nodeTypeKinds", exec.FType: "*FieldType",
+		action.Term: "func(*ActCtx) (any, any)", exec.Datum: "any", action.Seq: "[]*core.Node",
+		action.Obj: "*core.Node", action.Name: "string", action.Str: "string", action.Act: "*ActCtx", action.Fail: "any", action.Elem: "*core.Node",
+		action.NodeType: "*nodeTypeKinds", action.FType: "*FieldType",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "firstCall": "FirstCall", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
 		"document": "callDocument", "body": "callBody", "observed": "callObserved", "tracked": "callTracked", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
@@ -212,9 +213,9 @@ func goTarget(s goSpec) *print.Target {
 		handles[exec.Body] = "func(*TParser) (any, bool)"
 		handles[exec.Frame], handles[exec.Operators], handles[exec.Operator] = "*TCaptureFrame", "[]*TOperatorsRuleOp", "*TOperatorsRuleOp"
 		handles[exec.Line], handles[exec.Attempt] = "*TOperatorsRuleLine", "toperatorsRuleAttempt"
-		handles[exec.Term] = "func(*TActCtx) (any, any)"
-		handles[exec.Seq], handles[exec.Obj], handles[exec.Act], handles[exec.Elem] = "[]any", "TVal", "*TActCtx", "any"
-		handles[exec.NodeType] = "uint16"
+		handles[action.Term] = "func(*TActCtx) (any, any)"
+		handles[action.Seq], handles[action.Obj], handles[action.Act], handles[action.Elem] = "[]any", "TVal", "*TActCtx", "any"
+		handles[action.NodeType] = "uint16"
 		names = map[string]string{"call": "callBody", "firstCall": "firstCall", "typedDocument": "DocumentCall", "observed": "callObserved", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
 			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
 		for _, s := range goOperatorSpecs {

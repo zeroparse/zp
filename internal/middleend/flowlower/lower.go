@@ -1,5 +1,6 @@
 // Package flowlower lowers a rule of Core IR (internal/ir/core) to a function of Code IR at the Flow
-// stage (internal/ir/code/flow), in a module of its own that the Flow verifier accepts.
+// stage (internal/ir/code/flow), in a module of its own that the Flow verifier accepts. It also lowers
+// the action expressions of a grammar to functions of the Action dialect (Term).
 //
 // Lower threads a failure label through each node: a node's statements leave the block of that
 // label when the node fails, and run to their end when it succeeds, leaving the node's value in a
