@@ -70,7 +70,7 @@ func Emit(f *flow.Func) (*code.Module, *code.Func, error) {
 		return nil, nil, fmt.Errorf("emit %s: %w", f.Name, e.err)
 	}
 	e.m.Funcs = append(e.m.Funcs, fn)
-	if err := code.Verify(e.m); err != nil {
+	if err := flow.VerifyModule(e.m); err != nil {
 		return nil, nil, fmt.Errorf("emit %s: %w", f.Name, err)
 	}
 	return e.m, fn, nil
