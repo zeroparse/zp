@@ -88,7 +88,7 @@ type parseRequest struct {
 	// DefaultValue drops value actions and declared rule types, so the tree is the default node
 	// tree, as zp parse -default-value does. Predicates still run.
 	DefaultValue bool `json:"defaultValue,omitempty"`
-	// MaxDepth limits the nesting of recursive rule calls (core.Limits.Depth); 0 selects the
+	// MaxDepth limits the nesting of recursive rule calls (runtime.Limits.Depth); 0 selects the
 	// playground's limit, maxDepth, for the backends that nest rule calls on the stack.
 	MaxDepth int `json:"maxDepth,omitempty"`
 	// Runs is the number of times the parse is timed (Micros is then the median); 0 or 1 parses once.
@@ -96,7 +96,7 @@ type parseRequest struct {
 	Runs int `json:"runs,omitempty"`
 }
 
-// syntaxError mirrors core.SyntaxError. Pos is in the unit of the parse; Message is the description
+// syntaxError mirrors value.SyntaxError. Pos is in the unit of the parse; Message is the description
 // without the position, as printed by the zp command.
 type syntaxError struct {
 	Pos      int      `json:"pos"`
@@ -232,7 +232,7 @@ func errorResponse(err error) []byte {
 // of the engine apply, and trees are limited by encoding/json, which refuses to nest more than 10,000
 // levels (two per node level). main_js.go lowers both for WebAssembly.
 var (
-	maxDepth     uint64 = 0    // nesting of recursive rule calls (core.Limits.Depth); 0 is the engine's default
+	maxDepth     uint64 = 0    // nesting of recursive rule calls (runtime.Limits.Depth); 0 is the engine's default
 	maxTreeDepth        = 4000 // nesting of nodes in a tree that is encoded and displayed
 )
 

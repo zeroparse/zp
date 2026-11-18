@@ -37,7 +37,10 @@ import (
 	zprt "zeroparse.dev/zp/pkg/runtime/golib"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 IMPORTS)
+
+var _ *zpvalue.Node
 
 type entry struct {
 	name string
@@ -187,7 +190,7 @@ func runExaminedProbes(t *testing.T, cases []codegentest.Case, lib string, mutat
 `, i)
 		if o.Stream {
 			fmt.Fprintf(&entries, `		{"stream", func(in string, o ...zprt.ParseOption) error {
-			return f%d.ParseStream(&oneByte{in}, func(*core.Node) error { return nil }, o...)
+			return f%d.ParseStream(&oneByte{in}, func(*zpvalue.Node) error { return nil }, o...)
 		}},
 `, i)
 		}

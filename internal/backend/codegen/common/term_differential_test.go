@@ -103,7 +103,7 @@ func termCaseList(cs []codegentest.TermCase) []codegentest.Case {
 // TestTermEngineBackends checks that the engine's closure backend, its bytecode VM and its iterative
 // VM give one value or one error for every generated term, in both position units, and that the VMs
 // running the program saved to a file and loaded again give it too. Their charges differ
-// by design today (core.Limits: counts depend on backend); the test only requires that every backend
+// by design today (runtime.Limits: counts depend on backend); the test only requires that every backend
 // reports one and logs how far apart the backends are.
 func TestTermEngineBackends(t *testing.T) {
 	t.Parallel()

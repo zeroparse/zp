@@ -38,7 +38,7 @@ type ParseOptions struct {
 	// Trace, if not nil, receives an event at the start and at the end of every rule call (see
 	// TraceEvent). Tracing does not change the result of the parse.
 	Trace func(TraceEvent)
-	// Profiles record the rule calls of the parse (see core.ProfileRecorder): each records an event
+	// Profiles record the rule calls of the parse (see instrument.ProfileRecorder): each records an event
 	// before Trace handles it. A profiled parse is traced (Traced).
 	Profiles []*instrument.Profile
 	// TraceSelection, if not nil, limits the events that Trace receives. It is nil for a parse that

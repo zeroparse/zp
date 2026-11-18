@@ -33,8 +33,8 @@ const (
 	TypeListValue  = "(list)"  // a list value: the Value of a list node, or a list made by an action
 )
 
-// Data is the representation of a node. N is core.Node, which holds a Data as its only field, so
-// that a *core.Node converts to a *Data[core.Node] and back; the parameter breaks the import
+// Data is the representation of a node. N is value.Node, which holds a Data as its only field, so
+// that a *value.Node converts to a *Data[value.Node] and back; the parameter breaks the import
 // cycle between the two packages.
 type Data[N any] struct {
 	// Kind holds the type and rule names (Type, Rule). Nodes share it: names are interned.

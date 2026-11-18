@@ -250,7 +250,10 @@ import (
 	zprt "zeroparse.dev/zp/pkg/runtime/golib"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 IMPORTS)
+
+var _ *zpvalue.Node
 
 type entry struct {
 	name string
@@ -451,12 +454,12 @@ func runAgreeProbes(t *testing.T, cases []codegentest.Case) []agreeReport {
 		codegentest.GeneratePackageIn(t, dir, "agreeprobe", pkg, g, o)
 		fmt.Fprintf(&imports, "\tf%d \"agreeprobe/f%d\"\n", i, i)
 		fmt.Fprintf(&entries, `	{
-		{"parse", func(in string, u core.PositionUnit, o ...zprt.ParseOption) error {
+		{"parse", func(in string, u zpinput.PositionUnit, o ...zprt.ParseOption) error {
 			_, err := f%[1]d.Parse(in, append(o, zprt.WithUnit(u))...)
 			return err
 		}},
-		{"recognize", func(in string, u core.PositionUnit, o ...zprt.ParseOption) error { return f%[1]d.Recognize(in, append(o, zprt.WithUnit(u))...) }},
-		{"document", func(in string, u core.PositionUnit, o ...zprt.ParseOption) error {
+		{"recognize", func(in string, u zpinput.PositionUnit, o ...zprt.ParseOption) error { return f%[1]d.Recognize(in, append(o, zprt.WithUnit(u))...) }},
+		{"document", func(in string, u zpinput.PositionUnit, o ...zprt.ParseOption) error {
 			d, err := f%[1]d.NewDocument(in, zprt.WithUnit(u))
 			if err != nil {
 				return err
@@ -464,7 +467,7 @@ func runAgreeProbes(t *testing.T, cases []codegentest.Case) []agreeReport {
 			_, err = d.Parse(o...)
 			return err
 		}},
-		{"edit", func(in string, u core.PositionUnit, o ...zprt.ParseOption) error {
+		{"edit", func(in string, u zpinput.PositionUnit, o ...zprt.ParseOption) error {
 			d, err := f%[1]d.NewDocument(in, zprt.WithUnit(u))
 			if err != nil {
 				return err
@@ -479,8 +482,8 @@ func runAgreeProbes(t *testing.T, cases []codegentest.Case) []agreeReport {
 		}},
 `, i)
 		if o.Stream {
-			fmt.Fprintf(&entries, `		{"stream", func(in string, u core.PositionUnit, o ...zprt.ParseOption) error {
-			return f%d.ParseStream(&oneByte{in}, func(*core.Node) error { return nil }, append(o, zprt.WithUnit(u))...)
+			fmt.Fprintf(&entries, `		{"stream", func(in string, u zpinput.PositionUnit, o ...zprt.ParseOption) error {
+			return f%d.ParseStream(&oneByte{in}, func(*zpvalue.Node) error { return nil }, append(o, zprt.WithUnit(u))...)
 		}},
 `, i)
 		}

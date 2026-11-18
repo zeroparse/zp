@@ -532,12 +532,12 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 	})
 	// The checkpoints before the first diagnostic stand in for each other, so only both go together.
 	reportFile, reportSrc := mutanttest.Source(t, "internal/runtime/state/stream_ops.go")
-	const before = "func (p *Parser) reportRecovered(original *core.SyntaxError) error {\n\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
+	const before = "func (p *Parser) reportRecovered(original *value.SyntaxError) error {\n\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
 	if strings.Count(string(reportSrc), before) != 1 {
 		t.Fatalf("internal/runtime/state/stream_ops.go has no single checkpoint before a diagnostic")
 	}
 	reportMutant := filepath.Join(t.TempDir(), "stream_ops.go")
-	unchecked := strings.Replace(string(reportSrc), before, "func (p *Parser) reportRecovered(original *core.SyntaxError) error {\n", 1)
+	unchecked := strings.Replace(string(reportSrc), before, "func (p *Parser) reportRecovered(original *value.SyntaxError) error {\n", 1)
 	if err := os.WriteFile(reportMutant, []byte(unchecked), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -654,7 +654,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 		{"entry gen kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.shift, e.shifted = 0, false"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"entry shift kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.Gen, e.shifted = p.Gen, false"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"entry shifted kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.Gen, e.shift = p.Gen, 0"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
-		{"nil moved not made", []printedEdit{{"\tif n == nil {\n\t\treturn\n\t}\n\tif p.Moved == nil {\n\t\tp.Moved = map[*core.Node]*core.Node{}\n\t}\n\tif nodes.D(n).Start == nodes.D(n).End {\n\t\te.Node", "\tif n == nil {\n\t\treturn\n\t}\n\tif nodes.D(n).Start == nodes.D(n).End {\n\t\te.Node"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"nil moved not made", []printedEdit{{"\tif n == nil {\n\t\treturn\n\t}\n\tif p.Moved == nil {\n\t\tp.Moved = map[*value.Node]*value.Node{}\n\t}\n\tif nodes.D(n).Start == nodes.D(n).End {\n\t\te.Node", "\tif n == nil {\n\t\treturn\n\t}\n\tif nodes.D(n).Start == nodes.D(n).End {\n\t\te.Node"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"empty root not copied", []printedEdit{{"\t\te.Node = p.MoveEmpty(n, p.baseShift)\n\t} else if", "\t\tp.MoveEmpty(n, p.baseShift)\n\t} else if"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
 		{"root moved twice", []printedEdit{{"} else if nodes.D(n).Mark < p.Gen {\n\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf", "} else {\n\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"no clear after entry", []printedEdit{{"\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf", "\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n}\n\n// ShiftOf"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
@@ -665,7 +665,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 		{"shiftof no charge", []printedEdit{{"\t\tp.Spend()\n\t\tif s >= ed.End {", "\t\tif s >= ed.End {"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"shiftof gt", []printedEdit{{"if s >= ed.End {", "if s > ed.End {"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
 		{"shiftof no store", []printedEdit{{"\tp.Shifts[nodes.D(n).Mark] = s - int(nodes.D(n).Start)\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
-		{"tree no charge", []printedEdit{{"func (p *Parser) MoveTree(n *core.Node, shift int) {\n\tp.Spend()\n", "func (p *Parser) MoveTree(n *core.Node, shift int) {\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree no charge", []printedEdit{{"func (p *Parser) MoveTree(n *value.Node, shift int) {\n\tp.Spend()\n", "func (p *Parser) MoveTree(n *value.Node, shift int) {\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"tree start", []printedEdit{{"\tnodes.D(n).Start += int32(shift)\n\tnodes.D(n).End += int32(shift)\n\tnodes.D(n).Mark = p.Gen", "\tnodes.D(n).End += int32(shift)\n\tnodes.D(n).Mark = p.Gen"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"tree end", []printedEdit{{"\tnodes.D(n).End += int32(shift)\n\tnodes.D(n).Mark = p.Gen", "\tnodes.D(n).Mark = p.Gen"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
 		{"tree gen", []printedEdit{{"\tnodes.D(n).Mark = p.Gen\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
@@ -679,7 +679,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 		{"child always generation", []printedEdit{{"if nodes.D(c).Mark != gen {", "if true {"}}, "^TestBudgetDocumentMovementChargesEdges$", []string{"."}},
 		{"child empty unmoved", []printedEdit{{"\tif shift == 0 {\n\t\treturn c\n\t}\n\treturn p.MoveEmpty(c, shift)", "\treturn c"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"child empty zero copies", []printedEdit{{"\tif shift == 0 {\n\t\treturn c\n\t}\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
-		{"empty no charge", []printedEdit{{"func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {\n\tp.Spend()\n", "func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"empty no charge", []printedEdit{{"func (p *Parser) MoveEmpty(n *value.Node, shift int) *value.Node {\n\tp.Spend()\n", "func (p *Parser) MoveEmpty(n *value.Node, shift int) *value.Node {\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"empty no sharing", []printedEdit{{"\tif c, ok := p.Moved[n]; ok {\n\t\treturn c\n\t}\n", ""}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
 		{"empty start", []printedEdit{{"\tnodes.D(c).Start += int32(shift)\n\tnodes.D(c).End += int32(shift)\n\tp.Moved", "\tnodes.D(c).End += int32(shift)\n\tp.Moved"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"empty end", []printedEdit{{"\tnodes.D(c).End += int32(shift)\n\tp.Moved", "\tp.Moved"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
