@@ -1,6 +1,7 @@
 package mutanttest
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,17 +94,34 @@ func TestSkipUnlessChanged(t *testing.T) {
 	})
 }
 
+// runnerPackages are the package patterns whose tests run the mutants that use Pipeline.
+var runnerPackages = []string{"./internal/backend/...", "./codegen/go/lib/...", "./pkg/sample", "./internal/engine/..."}
+
+// testImports returns the import paths of the packages that the tests of the packages pkgs depend on, from the
+// module root. A pattern that matches no package is an error that names it: a runner list that names a moved or
+// deleted package must not leave the check with nothing to check.
+func testImports(pkgs ...string) ([]string, error) {
+	cmd := exec.Command("go", append([]string{"list", "-deps", "-test", "-f", "{{.ImportPath}}"}, pkgs...)...)
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("go list %s: %v: %s", strings.Join(pkgs, " "), err, strings.TrimSpace(stderr.String()))
+	}
+	return strings.Fields(string(out)), nil
+}
+
 // TestPipelineCoversImports checks that every module package that the tests of the packages whose mutants use
-// Pipeline import lies under it, so that a new import cannot leave a runner unaware of a dependency.
+// Pipeline import lies under it, so that a new import cannot leave a runner unaware of a dependency. It fails,
+// rather than skips, when the packages cannot be listed.
 func TestPipelineCoversImports(t *testing.T) {
 	t.Chdir("../../..")
-	out, err := exec.Command("go", "list", "-deps", "-test", "-f", "{{.ImportPath}}",
-		"./internal/backend/...", "./codegen/go/lib/...", "./pkg/sample", "./internal/engine/...").Output()
+	imports, err := testImports(runnerPackages...)
 	if err != nil {
-		t.Skipf("go list: %v", err)
+		t.Fatal(err)
 	}
 	const mod = "zeroparse.dev/zp/"
-	for _, p := range strings.Fields(string(out)) {
+	for _, p := range imports {
 		rel, ok := strings.CutPrefix(p, mod)
 		if !ok {
 			continue
@@ -117,5 +135,16 @@ func TestPipelineCoversImports(t *testing.T) {
 		if !covered {
 			t.Errorf("%s is imported by the tests of the mutant runners but is not under Pipeline", rel)
 		}
+	}
+}
+
+// TestPipelineImportsNameMissingPackages is the negative control of TestPipelineCoversImports: a runner
+// package that does not exist makes the listing fail with an error that names it.
+func TestPipelineImportsNameMissingPackages(t *testing.T) {
+	t.Chdir("../../..")
+	const missing = "./no/such/runner"
+	_, err := testImports(append(slices.Clone(runnerPackages), missing)...)
+	if err == nil || !strings.Contains(err.Error(), "no/such/runner") {
+		t.Fatalf("listing with %s: error %v, want one that names it", missing, err)
 	}
 }
