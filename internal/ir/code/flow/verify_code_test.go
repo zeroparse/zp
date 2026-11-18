@@ -59,6 +59,11 @@ func TestVerifyModule(t *testing.T) {
 	loop := func(label string, cond code.Expr, body ...code.Stmt) *code.Loop {
 		return &code.Loop{Label: label, Cond: cond, Body: &code.Block{Stmts: body}}
 	}
+	// guarded is a read of a literal in place, with the recording primitive as its alternative.
+	guarded := func() []code.Stmt {
+		return []code.Stmt{&code.If{Cond: call(OpHasLit, lit), Then: &code.Block{Stmts: []code.Stmt{do(OpAdvance, nil, code.Int(1))}},
+			Else: &code.Block{Stmts: []code.Stmt{matchLit()}}}}
+	}
 	setNode := func(a *Attrs) { a.Node = true }
 	budget := func(a *Attrs) { a.Budget = true }
 	document := func(a *Attrs) { a.Document = true }
@@ -113,6 +118,37 @@ func TestVerifyModule(t *testing.T) {
 		{"continue without a charge", fn{attrs: budget, vars: []code.Param{ok}, body: []code.Stmt{
 			loop("L1", nil, &code.If{Cond: code.L("ok"), Then: &code.Block{Stmts: []code.Stmt{&code.Continue{Label: "L1"}}}}, do(OpStep, nil), &code.Break{Label: "L1"})}},
 			"spend: loop L1 continues without charging"},
+		// The cases of the verifier of the Flow structs that preceded the Flow dialect: those of the
+		// structure are the base's checks now (code.Verify), which VerifyModule runs first.
+		{"exit to a block that does not enclose it", fn{body: []code.Stmt{&code.Block{Label: "L1"}, &code.Exit{Label: "L1"}}}, "names no enclosing block"},
+		{"continue outside its loop", fn{body: []code.Stmt{&code.Block{Label: "L2", Stmts: []code.Stmt{&code.Continue{Label: "L2"}}}}}, "names no enclosing loop"},
+		{"break and continue of an outer loop", fn{body: []code.Stmt{loop("L2", nil, loop("L1", nil,
+			&code.Break{Label: "L2"}, &code.Continue{Label: "L2"}, &code.Break{Label: "L1"}))}}, "not the innermost"},
+		{"undeclared variable", fn{body: []code.Stmt{&code.Set{Dst: []code.Place{{Name: Pos, Reg: true}}, Values: []code.Expr{code.L("x9")}}}}, "undeclared local x9"},
+		{"assignment arity", fn{body: []code.Stmt{&code.Set{Dst: []code.Place{{Name: Pos, Reg: true}, {}}, Values: []code.Expr{code.Int(1)}}}}, "set of 2 places from one value"},
+		{"label used twice", fn{body: []code.Stmt{&code.Block{Label: "L1"}, &code.Block{Label: "L1"}}}, "label L1 of more than one block or loop"},
+		// A local function has no value of its own: its value is the Result variable.
+		{"local function with a value", fn{body: []code.Stmt{&code.Return{Values: []code.Expr{code.Null(h(TValue)), code.BoolC(true)}}}}, "return of 2 values, want 0"},
+		{"typed node nested in a Node function", fn{attrs: setNode, vars: []code.Param{code.P("ks", h(TVals))}, body: []code.Stmt{
+			do(OpPushKid, nil, call(OpNewNode, List(false), code.L("start"), code.L("ks")))}}, "typed node in a Node function"},
+		{"Node branch nested in a typed function", fn{vars: []code.Param{code.P("ks", h(TVals))}, body: []code.Stmt{
+			code.Assign("v", call(OpScopeValue, core.Shape{}, call(OpNewBranchNode, List(false), code.L("start"), code.L("ks")), code.L("start")))}},
+			"Node branch in a typed function"},
+		{"local capture values in a Node function", fn{attrs: setNode, body: []code.Stmt{
+			code.Assign("v", call(OpAttachCaptures, Attach{Names: &Names{}}, code.L("v"), code.L("start")))}},
+			"typed capture values of local variables in a Node function"},
+		{"frame trail drop in a Node function", fn{attrs: setNode, vars: []code.Param{code.P("x1", h(TMark))},
+			body: []code.Stmt{do(OpDropTrail, nil, code.L("x1"))}}, "flow.dropTrail in a Node function"},
+		{"stream element in a local Node function", fn{attrs: setNode, body: []code.Stmt{do(OpEmitStream, nil, code.L("v"))}},
+			"flow.emitStream outside a framed Node function"},
+		// A traced function records every read, so even a guarded read in place, which a Document function
+		// may have, is an error in it.
+		{"guarded in-place literal read in a traced function", fn{attrs: func(a *Attrs) { a.Document, a.Traced = true, true }, vars: []code.Param{ok},
+			body: guarded()}, "an in-place literal read in a traced function"},
+		{"terminal program in a traced function", fn{attrs: func(a *Attrs) { a.Traced = true }, vars: []code.Param{ok},
+			body: []code.Stmt{code.Assign("ok", &code.Unary{Op: "!", X: call(OpSkipTerminal, (*core.Terminal)(nil))})}}, "a terminal program in a traced function"},
+		{"class run in a traced function", fn{attrs: func(a *Attrs) { a.Traced = true }, vars: []code.Param{ok},
+			body: []code.Stmt{code.Assign("ok", call(OpSkipClasses, (*core.ClassRun)(nil)))}}, "a class run in a traced function"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			err := VerifyModule(build(c.f))
@@ -129,6 +165,23 @@ func TestVerifyModule(t *testing.T) {
 	m = build(fn{attrs: func(a *Attrs) { a.Frame, a.Start, a.Result, a.Ctx, a.Cut = true, "", "", "", "c" }})
 	if err := VerifyModule(m); err == nil || !strings.Contains(err.Error(), "cut flag c is not a variable") {
 		t.Fatalf("cut flag that is no variable: got %v", err)
+	}
+	// An exit may leave a loop for a block that encloses it, which the printers write as a goto.
+	if err := VerifyModule(build(fn{vars: []code.Param{code.P("n", i)}, body: []code.Stmt{
+		&code.Block{Label: "L1", Stmts: []code.Stmt{&code.Set{Dst: []code.Place{{Name: Pos, Reg: true}}, Values: []code.Expr{code.Int(1)}}, &code.Exit{Label: "L1"}}},
+		&code.Block{Label: "L3", Stmts: []code.Stmt{loop("L4", code.Lt(code.L("n"), code.Int(1)), &code.Exit{Label: "L3"})}},
+		&code.Exit{Label: "fail"},
+	}})); err != nil {
+		t.Errorf("a valid function with an exit from a loop to an enclosing block: %v", err)
+	}
+	// The guarded read in place that a traced function may not have is valid in a Document function, and a
+	// traced function that reads through the recording primitive only verifies.
+	if err := VerifyModule(build(fn{attrs: document, vars: []code.Param{ok}, body: guarded()})); err != nil {
+		t.Errorf("a guarded read in place in a Document function: %v", err)
+	}
+	if err := VerifyModule(build(fn{attrs: func(a *Attrs) { a.Document, a.Traced = true, true }, vars: []code.Param{ok},
+		body: []code.Stmt{matchLit()}})); err != nil {
+		t.Errorf("a traced function that reads through the recording primitive: %v", err)
 	}
 	m = build(valid)
 	m.Funcs[0].Attrs = nil
