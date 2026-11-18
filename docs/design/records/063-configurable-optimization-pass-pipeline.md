@@ -84,7 +84,7 @@ public API.
 | `Requires` | Analyses that must be valid when the pass starts |
 | `Invalidates` | Analyses that the pass makes stale |
 | `After` | Passes that must precede it when both are enabled (an ordering constraint with no data dependence) |
-| `Applies` | A predicate over the generation mode (`corepass.Mode`: lean, ordinary, observe) |
+| `Applies` | A predicate over the generation mode (`Mode`: lean, ordinary, observe) |
 | `Obligation` | One sentence stating what the pass preserves |
 | `Run` | The function over the unit |
 
@@ -121,9 +121,9 @@ On the typed table with every optimization enabled, `attributes` is stale at the
 it is stale again after `scans` and `class-runs` and is recomputed once before the final verification. The pipeline
 of the recognizer table and of the Node table is the same list in a mode that is not lean, so `terminals` and
 `class-runs` do not apply there. Where a route needs to follow what a pass does, it hooks the pass: the route of the Node
-and recognizer tables keeps the origin of each repetition that `scans` replaces (`corepass.Env.PrepareScans`).
+and recognizer tables keeps the origin of each repetition that `scans` replaces (`Env.PrepareScans`).
 
-The mode is a value the generator passes in (`corepass.Mode`), so `corepass` keeps no knowledge of budget controls or
+The mode is a value the generator passes in (`Mode`), so `corepass` keeps no knowledge of budget controls or
 Documents.
 
 ### Flags
@@ -141,8 +141,8 @@ registry has the name of every pass.
 | `guarded-classes` | pass | on | The guarded-class marks that `guards` sets, and their lowering: a leading class consumes the character its guard read | None measured |
 | `scans` | pass | on | A value-free repetition of a class or of any character runs as a loop | None measured |
 | `class-runs` | pass | on | Consecutive classes of a value-free sequence run as one (lean typed Go) | None measured |
-| `class-tables` | lowering | off | `flowlower.Options.ClassTableRanges`: the least number of ranges of a class that is matched through a table; 0 turns it off, and 5 is the value that was measured | Table data against code: 3% smaller source, about 1% slower; an opt-in |
-| `inline-literals` | lowering | 4 | `flowlower.Options.InlineLiterals`: the longest literal, in code points, that is compared in place first; 0 turns it off | Code against calls: 7.5% more source |
+| `class-tables` | lowering | off | `Options.ClassTableRanges`: the least number of ranges of a class that is matched through a table; 0 turns it off, and 5 is the value that was measured | Table data against code: 3% smaller source, about 1% slower; an opt-in |
+| `inline-literals` | lowering | 4 | `Options.InlineLiterals`: the longest literal, in code points, that is compared in place first; 0 turns it off | Code against calls: 7.5% more source |
 | `method-sharing` | printer | on | Equal generated bodies share one helper | A call where a body was |
 | `literal-sharing` | printer | on | Equal literals share one table (TypeScript also needs `ts-literal-sharing`) | An indirection to the table |
 | `ts-literal-sharing` | printer | off | TypeScript literal tables are shared | A small cold parse about 1.5 times slower; an opt-in |
@@ -171,7 +171,7 @@ not apply to it, and it must name a contract test of its own that checks the cha
 turn an optimization on where the pass allows it: turning it on never overrides `Applies`, so `class-runs` stays off in
 a build with budget controls whatever the flag says, because the pass is unsound there. The soundness gate is the
 pass's `Applies`, never a flag. A known name that does not apply to the parser being generated is accepted and does
-nothing; an unknown name is an error that lists the valid ones. The mode facts of `flowlower.Options` (`Spend`, `Recovers`,
+nothing; an unknown name is an error that lists the valid ones. The mode facts of `Options` (`Spend`, `Recovers`,
 `Observe`) are not optimizations and have no flag, and neither does `DeadStores`, which the emitted code needs.
 
 The prologue and rollback helpers of the generated Go (`Parser.Enter`, `Parser.Restore`) are not a flag: the generated
