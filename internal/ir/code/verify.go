@@ -154,6 +154,9 @@ func (v *verifier) op(o *Op) {
 		v.errorf("%s: undeclared component %s", where, o.Component)
 	}
 	v.unique(where+": parameter", names(o.Params, func(p Param) string { return p.Name }))
+	if o.Variadic && len(o.Params) == 0 {
+		v.errorf("%s: variadic without parameters", where)
+	}
 	for _, p := range o.Params {
 		v.typ(p.Type, where+" parameter "+p.Name)
 	}
@@ -535,6 +538,13 @@ func (v *verifier) call(c *Call, s *scope) []Type {
 			}
 		}
 		params, results = o.Params, o.Results
+		if o.Variadic && len(params) > 0 && len(c.Args) >= len(params)-1 {
+			last := params[len(params)-1]
+			params = params[:len(params)-1]
+			for len(params) < len(c.Args) {
+				params = append(params, last)
+			}
+		}
 		if (o.Imm != "") != (c.Imm != nil) {
 			v.errorf("call of %s: immediate operand %v, want %q", o.Name, c.Imm, o.Imm)
 		} else if t := o.ImmType; t != nil && !immHas(c.Imm, t) {
