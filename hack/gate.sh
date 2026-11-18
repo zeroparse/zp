@@ -38,6 +38,7 @@
 # was left out, in plan order; with a fail-fast stop the failed step is the last line that ran.
 #
 # The gate exports ZP_MUTANTS_BASE (the base revision) for the tests that run mutants; see docs/development.md.
+# GATE_SHARDS (default 2; 1 disables) is the number of concurrent shards of the tests of internal/codegen/go.
 # Environment: GATE_NICE (default 0) is the nice(1) increment of every step, and GOMAXPROCS, GOFLAGS and the other Go
 # variables pass through. GATE_SELFTEST_FAIL=1 adds a step that fails first, to show that the gate stops.
 # GATE_AFFECTED_CMD replaces hack/affected-tests.sh (GATE_AFFECTED_CMD=false shows that a failed computation runs everything).
@@ -90,15 +91,63 @@ step() {
 export GATE_HEAVY='zeroparse.dev/zp/internal/codegen/go zeroparse.dev/zp/internal/codegen zeroparse.dev/zp/internal/engine zeroparse.dev/zp/internal/codegen/ts zeroparse.dev/zp/spec/language zeroparse.dev/zp/codegen/go/lib zeroparse.dev/zp/internal/testing/complexitytest'
 
 # affected_cmd GO-TEST-ARGS: go test over the packages of the changes since $GATE_BASE and their reverse dependencies,
-# those of $GATE_HEAVY first.
+# those of $GATE_HEAVY first. internal/codegen/go, the longest package, runs as GATE_SHARDS (default 2) concurrent
+# invocations, each with the top-level tests (Test, Fuzz and Example functions, from go test -list) of one shard, beside a
+# third invocation for the other packages; only when it is affected. The sharding fails closed: when the list fails, is
+# empty or the shards do not add up to it, the package runs unsharded with the others. A failed shard fails the step.
 affected_cmd() {
-	echo 'raw=$("${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$GATE_BASE" HEAD) || { echo "gate: the affected packages could not be computed; testing every package" >&2; exec go test -count=1 '"$1"' $GATE_HEAVY ./...; }
+	local tpl
+	IFS= read -r -d '' tpl <<'EOS' || true
+args='@ARGS@'
+raw=$("${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$GATE_BASE" HEAD) || { echo "gate: the affected packages could not be computed; testing every package" >&2; exec go test -count=1 $args $GATE_HEAVY ./...; }
 pkgs=$(printf "%s\n" "$raw" | grep -v "^#" || true)
 [ -n "$pkgs" ] || { echo "gate: no package affected since $GATE_BASE"; exit 0; }
 echo "$pkgs" | sed "s/^/gate: affected /"
 first=$(for h in $GATE_HEAVY; do printf "%s\n" "$pkgs" | grep -Fx "$h" || true; done)
 rest=$(printf "%s\n" "$pkgs" | grep -Fvx -f <(printf "%s\n" $GATE_HEAVY) || true)
-go test -count=1 '"$1"' $first $rest'
+shardpkg=zeroparse.dev/zp/internal/codegen/go
+shards=${GATE_SHARDS:-2}
+if [ "$shards" -gt 1 ] && printf "%s\n" "$pkgs" | grep -Fxq "$shardpkg"; then
+	list=$(go test $args -list . "$shardpkg" 2>/dev/null | grep -E "^(Test|Fuzz|Example)" | sort || true)
+	n=$(printf "%s\n" "$list" | grep -c . || true)
+	if [ "$n" -ge "$shards" ]; then
+		d=$(mktemp -d "${TMPDIR:-/tmp}/gate-shards.XXXXXX")
+		k=0; joined=
+		while [ "$k" -lt "$shards" ]; do
+			part=$(printf "%s\n" "$list" | awk -v k="$k" -v s="$shards" "NR % s == k")
+			printf "%s\n" "$part" > "$d/part.$k"
+			joined="$joined$part"$'\n'
+			k=$((k + 1))
+		done
+		if [ "$(printf "%s" "$joined" | sort)" = "$list" ]; then
+			echo "gate: $shardpkg: $n tests in $shards shards"
+			others=$(printf "%s\n" $first $rest | grep -Fvx "$shardpkg" || true)
+			k=0
+			while [ "$k" -lt "$shards" ]; do
+				re="^($(paste -sd"|" "$d/part.$k"))\$"
+				( go test -count=1 $args -run "$re" "$shardpkg" >"$d/out.$k" 2>&1; echo $? >"$d/rc.$k" ) &
+				k=$((k + 1))
+			done
+			if [ -n "$others" ]; then ( go test -count=1 $args $others >"$d/out.o" 2>&1; echo $? >"$d/rc.o" ) & else echo 0 >"$d/rc.o"; : >"$d/out.o"; fi
+			wait
+			bad=0
+			for t in $(seq 0 $((shards - 1))) o; do
+				echo "gate: == shard $t (exit $(cat "$d/rc.$t" 2>/dev/null || echo 1))"
+				cat "$d/out.$t" 2>/dev/null
+				[ "$(cat "$d/rc.$t" 2>/dev/null || echo 1)" = 0 ] || bad=1
+			done
+			rm -rf "$d"
+			exit $bad
+		fi
+		echo "gate: the shards of $shardpkg do not add up to its test list; running it unsharded" >&2
+		rm -rf "$d"
+	else
+		echo "gate: no test list for $shardpkg; running it unsharded" >&2
+	fi
+fi
+go test -count=1 $args $first $rest
+EOS
+	printf '%s' "${tpl//@ARGS@/$1}"
 }
 # snap hashes the tracked changes and the untracked files, to see that a step left the tree as it found it.
 snap_def='snap() { { git diff HEAD --binary; git ls-files -o --exclude-standard -z | xargs -0 shasum 2>/dev/null || true; } | shasum; }'
@@ -145,14 +194,14 @@ if want code || want engine; then
 	step build 'go build ./...' 'go build ./...'
 	step vet 'go vet ./...' 'go vet ./...'
 	if ! want engine && ! want full && ! want all; then
-		step test 'go test of the affected packages' "$(affected_cmd '-timeout 45m')"
+		step test 'go test of the affected packages (internal/codegen/go in shards when affected)' "$(affected_cmd '-timeout 45m')"
 	fi
 fi
 if want engine || want full || want all; then
 	if want all; then
 		step test-all 'go test -tags zp_long ./... (the whole tree, the longest packages first)' 'go test -count=1 -tags zp_long -timeout 90m $GATE_HEAVY ./...'
 	else
-		step test-long 'go test -tags zp_long of the affected packages' "$(affected_cmd '-tags zp_long -timeout 90m')"
+		step test-long 'go test -tags zp_long of the affected packages (internal/codegen/go in shards when affected)' "$(affected_cmd '-tags zp_long -timeout 90m')"
 	fi
 fi
 if want engine || want all; then
@@ -181,6 +230,9 @@ if [ "$dry" = 1 ]; then
 	i=0
 	for n in "${names[@]}"; do printf '  %-15s %s\n' "$n" "${descs[$i]}"; i=$((i + 1)); done
 	case " ${names[*]} " in *" test"* | *" test-long "* | *" test-all "*) echo "gate: affected packages since $base:"; "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD | sed 's/^/  /' ;; esac
+	if [ "${GATE_SHARDS:-2}" -gt 1 ] && case " ${names[*]} " in *" test"* | *" test-long "*) true ;; *) false ;; esac && "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD 2>/dev/null | grep -qx zeroparse.dev/zp/internal/codegen/go; then
+		echo "gate: internal/codegen/go is affected: its tests run in ${GATE_SHARDS:-2} concurrent shards (go test -list), beside the other packages"
+	fi
 	exit 0
 fi
 
