@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core/impl"
+	coreimpl "zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 )
@@ -86,9 +86,9 @@ const (
 	oStruct        // an index of Structs
 	oSlot          // a capture slot: not negative
 	oVar           // a variable of the module
-	oUnary         // a unary operator (exec.UnaryOps)
-	oBinary        // a binary operator (exec.BinaryOps)
-	oLogic         // a logical operator (exec.LogicalOps)
+	oUnary         // a unary operator (action.UnaryOps)
+	oBinary        // a binary operator (action.BinaryOps)
+	oLogic         // a logical operator (action.LogicalOps)
 	oFlag          // 0 or 1
 	oImm           // any integer
 )

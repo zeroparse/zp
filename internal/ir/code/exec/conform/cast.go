@@ -10,7 +10,7 @@ import (
 // and a value are written in a small notation that each target builds its own from; the tests that do are
 // the ones the mutants of the printed code name.
 //
-// A type is a kind letter of exec.FtInt and the like with the text that follows it: i, s, b, z, n, S, E, M and
+// A type is a kind letter of action.FtInt and the like with the text that follows it: i, s, b, z, n, S, E, M and
 // _; N:name for a struct type or a named node type; l<T> for a list, t<T,T...> for a tuple, o<T> for an optional
 // type, u<T,T...> for a join and v<T> for a node whose value is of type T.
 //
@@ -19,7 +19,7 @@ import (
 // token (missing), a struct of type S or T (S, T), a box of the int 1 (box), a list value [v,v...] or a tuple
 // value (v,v...) of values, or a nil node (nilnode) that a list may hold where it holds nil.
 
-// CastType is a type of a cast: its Kind is a letter of exec.FtInt and the like, Name the name of the struct type or
+// CastType is a type of a cast: its Kind is a letter of action.FtInt and the like, Name the name of the struct type or
 // the named node type of the kind N, Elem the element type, and Alts the element types or the alternatives.
 type CastType struct {
 	Kind byte

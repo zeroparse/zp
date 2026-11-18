@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
+	coreimpl "zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/code"
-	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
@@ -139,7 +139,7 @@ func TestValueConformanceDetectsBrokenLib(t *testing.T) {
 		}
 		l, lok := args[1].(int)
 		r, rok := args[2].(int)
-		return exec.BinaryOps[args[0].(int64)], l, r, lok && rok
+		return action.BinaryOps[args[0].(int64)], l, r, lok && rok
 	}
 	mutants := map[string]func(o *code.Op, args []any, res []any) []any{
 		"an addition saturates": func(o *code.Op, args []any, res []any) []any {
@@ -155,7 +155,7 @@ func TestValueConformanceDetectsBrokenLib(t *testing.T) {
 			return res
 		},
 		"an int equals a string": func(o *code.Op, args []any, res []any) []any {
-			if o.Name == "binary" && exec.BinaryOps[args[0].(int64)] == "==" {
+			if o.Name == "binary" && action.BinaryOps[args[0].(int64)] == "==" {
 				if _, ok := args[1].(int); ok {
 					if _, ok := args[2].(string); ok {
 						return []any{false, nil}
@@ -165,7 +165,7 @@ func TestValueConformanceDetectsBrokenLib(t *testing.T) {
 			return res
 		},
 		"a string comparison compares bytes of the UTF-16 form": func(o *code.Op, args []any, res []any) []any {
-			if o.Name == "binary" && exec.BinaryOps[args[0].(int64)] == "<" {
+			if o.Name == "binary" && action.BinaryOps[args[0].(int64)] == "<" {
 				if l, ok := args[1].(string); ok {
 					if r, ok := args[2].(string); ok && len(l) > 0 && len(r) > 0 && (l[0] >= 0xF0) != (r[0] >= 0xF0) {
 						return []any{!res[0].(bool), nil}

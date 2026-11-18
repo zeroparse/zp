@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/ir/code"
-	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/action"
 )
 
 // Kind is the kind of a value of the model.
@@ -334,13 +334,13 @@ func (Values) Call(o *code.Op, args []any) []any {
 	code := func(i int, names []string) string { return names[args[i].(int64)] }
 	switch o.Name {
 	case "binary":
-		v, e := Binary(code(0, exec.BinaryOps), args[1].(V), args[2].(V))
+		v, e := Binary(code(0, action.BinaryOps), args[1].(V), args[2].(V))
 		return []any{v, errValue(e)}
 	case "unary":
-		v, e := Unary(code(0, exec.UnaryOps), args[1].(V))
+		v, e := Unary(code(0, action.UnaryOps), args[1].(V))
 		return []any{v, errValue(e)}
 	case "logic":
-		b, e := Truth(code(0, exec.LogicalOps), args[1].(V))
+		b, e := Truth(code(0, action.LogicalOps), args[1].(V))
 		return []any{b, errValue(e)}
 	}
 	panic("ref: unknown value operation " + o.Name)

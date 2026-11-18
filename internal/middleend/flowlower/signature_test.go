@@ -1,4 +1,4 @@
-package execlower
+package flowlower
 
 import (
 	"slices"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/core"
 )
@@ -24,7 +25,7 @@ func TestLoweredTermHasTheSignatureOfTerm(t *testing.T) {
 	if len(l.Func.Params) != 1 || l.Func.Params[0].Name != CtxParam {
 		t.Fatalf("params = %v, want the context %s", l.Func.Params, CtxParam)
 	}
-	act, datum, fail := code.THandle(exec.Act), code.THandle(exec.Datum), code.THandle(exec.Fail)
+	act, datum, fail := code.THandle(action.Act), code.THandle(exec.Datum), code.THandle(action.Fail)
 	for _, c := range []struct {
 		name    string
 		params  []code.Param
@@ -53,7 +54,7 @@ func TestTermChecksItsSignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := m.HandleType(exec.Term)
+	h := m.HandleType(action.Term)
 	saved := h.Callable
 	defer func() { h.Callable = saved }()
 	for _, c := range []struct {

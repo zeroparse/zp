@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/code"
-	"zeroparse.dev/zp/internal/ir/code/exec"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 )
 
@@ -65,7 +65,7 @@ func scalarEqual(a, b ref.V) bool {
 // ValueCall is one call of a value operation: the code of the operator and the arguments after it.
 type ValueCall struct {
 	Op   string // the operation, such as binary
-	Code int64  // the index into exec.BinaryOps, exec.UnaryOps or exec.LogicalOps
+	Code int64  // the index into action.BinaryOps, action.UnaryOps or action.LogicalOps
 	Args []ref.V
 }
 
@@ -73,11 +73,11 @@ type ValueCall struct {
 func (c ValueCall) Operator() string {
 	switch c.Op {
 	case "binary":
-		return exec.BinaryOps[c.Code]
+		return action.BinaryOps[c.Code]
 	case "unary":
-		return exec.UnaryOps[c.Code]
+		return action.UnaryOps[c.Code]
 	}
-	return exec.LogicalOps[c.Code]
+	return action.LogicalOps[c.Code]
 }
 
 // Key identifies the call, so that an implementation that was run on all calls beforehand can be
@@ -103,7 +103,7 @@ func ValueCalls(provided []string) []ValueCall {
 	pool := ValuePool()
 	var calls []ValueCall
 	if slices.Contains(provided, "binary") {
-		for op := range exec.BinaryOps[:exec.OpIndex] {
+		for op := range action.BinaryOps[:action.OpIndex] {
 			for _, l := range pool {
 				for _, r := range pool {
 					calls = append(calls, ValueCall{"binary", int64(op), []ref.V{l, r}})
@@ -112,11 +112,11 @@ func ValueCalls(provided []string) []ValueCall {
 		}
 		for _, l := range append(ValueSequences(), pool...) {
 			for _, r := range pool {
-				calls = append(calls, ValueCall{"binary", int64(exec.OpIndex), []ref.V{l, r}})
+				calls = append(calls, ValueCall{"binary", int64(action.OpIndex), []ref.V{l, r}})
 			}
 		}
 		// A sequence has no equality, with a value of any kind but nil.
-		for _, op := range []int{exec.OpEq, exec.OpNe} {
+		for _, op := range []int{action.OpEq, action.OpNe} {
 			for _, l := range ValueSequences() {
 				for _, r := range append(ValueSequences(), pool...) {
 					calls = append(calls, ValueCall{"binary", int64(op), []ref.V{l, r}}, ValueCall{"binary", int64(op), []ref.V{r, l}})
@@ -128,9 +128,9 @@ func ValueCalls(provided []string) []ValueCall {
 		if !slices.Contains(provided, name) {
 			continue
 		}
-		codes := exec.UnaryOps
+		codes := action.UnaryOps
 		if name == "logic" {
-			codes = exec.LogicalOps
+			codes = action.LogicalOps
 		}
 		for op := range codes {
 			for _, x := range pool {

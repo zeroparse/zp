@@ -1,4 +1,4 @@
-package execlower_test
+package flowlower_test
 
 import (
 	"flag"
@@ -12,7 +12,7 @@ import (
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/middleend/execlower"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
@@ -77,7 +77,7 @@ func dumpTerms(t *testing.T, m *core.Module) string {
 			return
 		}
 		fmt.Fprintf(&b, "## %s %s\n", rule, what)
-		l, err := execlower.Term(x, execlower.TermOptions{})
+		l, err := flowlower.Term(x, flowlower.TermOptions{})
 		if err != nil {
 			t.Fatalf("%s %s: %v", rule, what, err)
 		}
@@ -124,14 +124,14 @@ func TestTermRejectsMalformedTerms(t *testing.T) {
 		&core.Lambda{Body: one},
 		&core.Binary{Op: "+", L: one, R: &core.Lambda{Params: []string{"e"}, Body: one}},
 	} {
-		if l, err := execlower.Term(x, execlower.TermOptions{}); err == nil || l != nil {
+		if l, err := flowlower.Term(x, flowlower.TermOptions{}); err == nil || l != nil {
 			t.Errorf("Term(%s) = %v, %v; want an error", core.ActionExprString(x), l, err)
 		}
 	}
-	if _, err := execlower.Term(&core.Builtin{Func: "len", Args: []core.ActionExpr{one}}, execlower.TermOptions{}); err != nil {
+	if _, err := flowlower.Term(&core.Builtin{Func: "len", Args: []core.ActionExpr{one}}, flowlower.TermOptions{}); err != nil {
 		t.Errorf("Term(len(1)): %v", err)
 	}
-	if _, err := execlower.Term(mapped, execlower.TermOptions{}); err != nil {
+	if _, err := flowlower.Term(mapped, flowlower.TermOptions{}); err != nil {
 		t.Errorf("Term(%s): %v", core.ActionExprString(mapped), err)
 	}
 }
@@ -172,7 +172,7 @@ func TestTermLowersNoFunctionValue(t *testing.T) {
 		{"a built-in that is not one", b("apply", list, lambda("e")), false},
 		{"a lambda alone", lambda("e"), false},
 	} {
-		l, err := execlower.Term(c.term, execlower.TermOptions{})
+		l, err := flowlower.Term(c.term, flowlower.TermOptions{})
 		if (err == nil) != c.ok || (err == nil) != (l != nil) {
 			t.Errorf("%s: Term(%s) = %v, %v; want ok %v", c.name, core.ActionExprString(c.term), l, err, c.ok)
 		}

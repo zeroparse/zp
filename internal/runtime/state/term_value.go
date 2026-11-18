@@ -11,7 +11,7 @@ import (
 // The value primitives of terms (the component values of exec.Parser) of the engine. The compositions of the operators in
 // term_exec.go decide which of them applies; each acts on one kind of value.
 
-// binaryCode returns the code of the binary operator op, or false if op is not one of exec.BinaryOps.
+// binaryCode returns the code of the binary operator op, or false if op is not one of action.BinaryOps.
 // The codes are looked up for every term that is evaluated, so the lookup is a switch and not a search
 // of the table; TestOperatorCodes holds it to the table.
 func binaryCode(op string) (int, bool) {
@@ -44,7 +44,7 @@ func binaryCode(op string) (int, bool) {
 	return 0, false
 }
 
-// unaryCode returns the code of the unary operator op, or false if op is not one of exec.UnaryOps.
+// unaryCode returns the code of the unary operator op, or false if op is not one of action.UnaryOps.
 func unaryCode(op string) (int, bool) {
 	switch op {
 	case "-":
@@ -56,7 +56,7 @@ func unaryCode(op string) (int, bool) {
 }
 
 // logicalCode returns the code of the logical operator op, or false if op is not one of
-// exec.LogicalOps.
+// action.LogicalOps.
 func logicalCode(op string) (int, bool) {
 	switch op {
 	case "&&":

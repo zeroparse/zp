@@ -12,6 +12,7 @@ package compose
 
 import (
 	. "zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/action"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 )
 
@@ -44,6 +45,7 @@ const streamPruneWindow = 1024
 // Build returns the module of the operations and the compositions, verified.
 func Build() *Module {
 	m := exec.Parser()
+	action.Declare(m)
 	rule, value := THandle(exec.Rule), THandle(exec.Value)
 	result := []Type{value, TBool}
 	r := L("r")
@@ -794,7 +796,7 @@ code and not a stable API.`
 // lowered term (a Term handle), whose value is never a function: the lowering accepts a lambda only as
 // the function argument of a built-in that it turns into a loop.
 func addTerms(m *Module) {
-	t := P("t", THandle(exec.Term))
+	t := P("t", THandle(action.Term))
 	// evaluate applies t and leaves what it made behind: the gathered values of a term that failed,
 	// and the nodes it created in either outcome. An interruption unwinds past this cleanup, because
 	// it ends the parse and the next parse starts without them. A term that failed returns false; evaluate
@@ -805,7 +807,7 @@ func addTerms(m *Module) {
 		b.Let("kids", C("term.kids"))
 		ctx := b.Let("ctx", C("term.ctx"))
 		r := b.LetN([]string{"v", "f"}, Ap(L("t"), ctx))
-		b.If(Bin("!=", r[1], Null(THandle(exec.Fail))), func(b *Builder) {
+		b.If(Bin("!=", r[1], Null(THandle(action.Fail))), func(b *Builder) {
 			b.Do("term.dropKids", L("kids"))
 			b.Do("term.dropCreated", L("created"))
 			b.Return(BoolC(false))
@@ -816,7 +818,7 @@ func addTerms(m *Module) {
 	predicate := m.AddFunc("predicate", []Param{t}, []Type{TBool}, nil, func(b *Builder) {
 		v := evaluate(b)
 		// Only the boolean false fails: a box of false is a value of another kind.
-		b.Return(Bin("||", Bin("!=", C("val.kind", v), Int(exec.KindBool)), C("val.toBool", v)))
+		b.Return(Bin("||", Bin("!=", C("val.kind", v), Int(action.KindBool)), C("val.toBool", v)))
 	})
 	predicate.Doc = `predicate applies the term of a predicate to the context that term.ctx makes. It fails on the boolean
 false and on a term that fails, and holds on every other value. The value of a term is never a function.`
