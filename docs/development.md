@@ -194,7 +194,7 @@ library of another protocol and that an embedded copy fails to build against a `
 |---|---|
 | `docs` | `go vet ./...`, `cd site && go test ./...`, and a site build into a temporary directory with its link check (without the WebAssembly binary; see [website maintenance](site.md)) |
 | `code` | `go build ./...`, `go vet ./...`, and `go test` of the packages that changed since `REV` (default `origin/main`) and of every package that depends on them, which `hack/affected-tests.sh` finds with `go list`; the packages whose tests take longest go first |
-| `engine` | `code`, with the tests of the affected packages run in the long tier (`-tags zp_long`, which includes the default tier), then `go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language` with a check that it left the tree unchanged, `hack/test-alpha-parsers.sh` and `hack/test-reference-tags.sh` |
+| `engine` | `code`, with the tests of the affected packages run in the long tier (`-tags zp_long`, which includes the default tier), then `go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language` with a check that it left the tree unchanged, `hack/test-alpha-parsers.sh` and, only when the affected packages include `internal/engine`, `internal/engine/state` or `internal/engine/document`, `hack/test-reference-tags.sh` (the gate prints why it left the step out; it plans the step when the affected packages cannot be computed) |
 | `full` | `go test -tags zp_long -timeout 90m ./...`, with the packages whose tests take longest named first |
 
 `go test` starts the test runs of its packages in the order of its arguments, at most `-p` (by default `GOMAXPROCS`) at a time, so a long package named late would start after the short ones and end the run alone; the gate names the longest packages (`GATE_HEAVY` in `hack/gate.sh`) first and changes nothing else. The changed packages are those of `REV..HEAD`, so commit before running; the gate warns when the tree has uncommitted changes. `GATE_NICE` (default 0) is the `nice` increment of every step, and `GOMAXPROCS` and the other Go variables pass through. `GATE_SELFTEST_FAIL=1` adds a first step that fails, to see the gate stop, and `GATE_AFFECTED_CMD=false` replaces the computation of the affected packages by a failing command, to see that the test step then fails.
@@ -281,7 +281,7 @@ former form of an optimized mechanism. The candidate tag `zp_snapshot_position_o
 representation that the default build has not adopted. `hack/test-reference-tags.sh [tag...]` vets and tests
 with `-short` the engine packages, `engine` and every package with a file constrained by a tag, under
 every tag of the tree or the tags it is given; it rejects a tag that no build constraint names. A test whose
-feature a tag removes skips under that tag. The run takes tens of minutes: run it after changing budget-control
+feature a tag removes skips under that tag. Its tags run four at a time (`TAG_JOBS`), each with its output under its own heading, and any failed tag fails the run. The run takes tens of minutes: run it after changing budget-control
 code, a reference variant or the tests of the engine packages; a landing batch runs it when it touches such code.
 
 GitHub Actions runs the root module, site tests, and

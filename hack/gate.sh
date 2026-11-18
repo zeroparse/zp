@@ -11,7 +11,9 @@
 #   engine  code, with the default-tier tests replaced by the same packages in the long tier (-tags zp_long, which
 #           includes the default tier), then go generate ./internal/codegen/... ./bench ./internal/frontend/parser
 #           ./spec/language with a check that it changed nothing, hack/test-alpha-parsers.sh and
-#           hack/test-reference-tags.sh.
+#           hack/test-reference-tags.sh, the last only when the affected packages include internal/engine,
+#           internal/engine/state or internal/engine/document (the reference tags build the engine; it also fails
+#           closed: it is planned when the affected packages cannot be computed).
 #   full    go test -tags zp_long ./... (the whole tree, in the long tier), with the longest packages named first. It
 #           subsumes the long run of the affected packages that engine plans, so engine with full omits that step.
 #
@@ -93,6 +95,15 @@ snap_def='snap() { { git diff HEAD --binary; git ls-files -o --exclude-standard 
 
 [ "${GATE_SELFTEST_FAIL:-0}" != 1 ] || step selftest 'a step that fails (GATE_SELFTEST_FAIL)' false
 
+# engine_affected succeeds when the packages affected since $base include one that the reference tags build (the
+# engine and the packages whose reverse dependency it is). It fails closed: when the affected packages cannot be
+# computed, the reference build is planned.
+engine_affected() {
+	local raw
+	raw=$("${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD 2>/dev/null) || return 0
+	printf '%s\n' "$raw" | grep -qx -e 'zeroparse.dev/zp/internal/engine' -e 'zeroparse.dev/zp/internal/engine/state' -e 'zeroparse.dev/zp/internal/engine/document'
+}
+
 want() { local l; for l in "${levels[@]}"; do [ "$l" = "$1" ] && return 0; done; return 1; }
 
 if want docs; then
@@ -116,7 +127,11 @@ before=$(snap)
 go generate ./internal/codegen/... ./bench ./internal/frontend/parser ./spec/language
 [ "$(snap)" = "$before" ] || { echo "gate: go generate changed the tree; commit the regenerated files" >&2; git status --short >&2; exit 1; }'
 	step alpha-parsers 'hack/test-alpha-parsers.sh' hack/test-alpha-parsers.sh
-	step reference-tags 'hack/test-reference-tags.sh' hack/test-reference-tags.sh
+	if engine_affected; then
+		step reference-tags 'hack/test-reference-tags.sh (tags 4 at a time)' hack/test-reference-tags.sh
+	else
+		echo "gate: reference-tags not planned: no package of the reference build (internal/engine, internal/engine/state, internal/engine/document) is affected since $base" >&2
+	fi
 fi
 if want full; then
 	step test-full 'go test -tags zp_long ./... (the longest packages first)' 'go test -count=1 -tags zp_long -timeout 90m $GATE_HEAVY ./...'
