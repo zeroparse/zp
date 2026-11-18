@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // TestLoadTermRejectsEachCheck checks the operand and pool checks of LoadTerm one by one: each case
@@ -17,9 +17,9 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 	strs := []string{"S"}
 	types := TermTypes{
 		NodeType: func(string) *nodes.NodeTypeKinds { return nil },
-		Struct: func(name string) *coreimpl.Kind {
+		Struct: func(name string) *valueimpl.Kind {
 			if name == "S" {
-				return coreimpl.SeqKind
+				return valueimpl.SeqKind
 			}
 			return nil
 		},

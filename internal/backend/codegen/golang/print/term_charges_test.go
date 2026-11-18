@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // termChargesGoldenFile returns the golden of the charges of the terms of the generator; what names it in
@@ -157,7 +157,7 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []co
 				be   engine.Backend
 			}{{"engine-closure", engine.Closure}, {"engine-vm", engine.Bytecode}, {"engine-iterative", engine.BytecodeIterative}} {
 				var used uint64
-				_, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b.be, Limits: core.Limits{Compute: 1 << 50},
+				_, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b.be, Limits: runtime.Limits{Compute: 1 << 50},
 					Trace: func(e engine.TraceEvent) { used = state.TraceParser(e).Control.Used }})
 				got[key(i, in, b.name)] = fmt.Sprintf("%d %s", used, termOutcome(fmt.Sprint(err)))
 			}

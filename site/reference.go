@@ -32,7 +32,7 @@ var refPackages = []refPackage{
 	{dir: "pkg/grammar/ast", importPath: modulePath + "/pkg/grammar/ast", url: "reference/grammarast/", title: "Package zp/pkg/grammar/ast", label: "zp/pkg/grammar/ast"},
 	{dir: "core/impl", importPath: modulePath + "/core/impl", url: "reference/coreimpl/", title: "Package zp/core/impl", label: "zp/core/impl"},
 	{dir: "codegen", importPath: modulePath + "/codegen", url: "reference/codegen/", title: "Package zp/codegen", label: "zp/codegen"},
-	{dir: "codegen/go/lib", importPath: modulePath + "/codegen/go/lib", url: "reference/libgo/", title: "Package zp/codegen/go/lib", label: "zp/codegen/go/lib"},
+	{dir: "pkg/runtime/golib", importPath: modulePath + "/pkg/runtime/golib", url: "reference/libgo/", title: "Package zp/pkg/runtime/golib", label: "zp/pkg/runtime/golib"},
 	{dir: "pkg/lint", importPath: modulePath + "/pkg/lint", url: "reference/lint/", title: "Package zp/pkg/lint", label: "zp/pkg/lint"},
 	{dir: "pkg/runtime/schema", importPath: modulePath + "/pkg/runtime/schema", url: "reference/schema/", title: "Package zp/pkg/runtime/schema", label: "zp/pkg/runtime/schema"},
 	{dir: "pkg/runtime/query", importPath: modulePath + "/pkg/runtime/query", url: "reference/query/", title: "Package zp/pkg/runtime/query", label: "zp/pkg/runtime/query"},

@@ -6,25 +6,26 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/vm"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/bytecode"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestFilterNodeIdentityAndEmptyInput(t *testing.T) {
 	t.Parallel()
 	program := mustCompile(t, codegentest.FilterIdentitySource)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			node, err := program.ParseWith("main", "ab", ParseOptions{Backend: backend, Unit: unit})
 			if err != nil {
 				t.Fatalf("%s/%s: %v", backend, unit, err)
 			}
-			first := node.Field("First").(*core.Node)
-			kept := node.Field("Kept").(*core.Node)
-			empty := node.Field("Empty").(*core.Node)
+			first := node.Field("First").(*value.Node)
+			kept := node.Field("Kept").(*value.Node)
+			empty := node.Field("Empty").(*value.Node)
 			if len(nodes.D(kept).Children) != 2 || nodes.D(kept).Children[0] != first || nodes.D(kept).Children[1] != first {
 				t.Fatalf("%s/%s: filter changed order or identity", backend, unit)
 			}
@@ -40,7 +41,7 @@ func TestFilterAcrossBackends(t *testing.T) {
 	for _, fixture := range codegentest.FilterCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					for _, input := range fixture.Inputs {
 						baseline := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))
@@ -70,7 +71,7 @@ func TestFilterCompiledInstructionSet(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				options := ParseOptions{Backend: backend, Unit: unit}
 				if got, want := codegentest.ResultJSON(loaded.ParseWith("main", "ab", servedBy(mode, options))), codegentest.ResultJSON(program.ParseWith("main", "ab", options)); got != want {
 					t.Fatalf("loaded filter: %s / %s", got, want)

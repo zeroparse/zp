@@ -1,8 +1,8 @@
 package state
 
 import (
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The engine's implementations of the Document operations (document_exec.go, printed from
@@ -43,7 +43,7 @@ func (p *Parser) moveResult(e *MemoEntry) {
 		return
 	}
 	if p.Moved == nil {
-		p.Moved = map[*core.Node]*core.Node{}
+		p.Moved = map[*value.Node]*value.Node{}
 	}
 	if nodes.D(n).Start == nodes.D(n).End {
 		e.Node = p.MoveEmpty(n, p.baseShift)
@@ -57,7 +57,7 @@ func (p *Parser) moveResult(e *MemoEntry) {
 // since the generation of n (Data.Mark). The nodes of a result move together. Those that were current when the entry's
 // result was last current (gen at most moveBase) move by the entry's shift; others were moved through
 // another result since, and the edits after that are replayed once per generation (shifts).
-func (p *Parser) ShiftOf(n *core.Node) int {
+func (p *Parser) ShiftOf(n *value.Node) int {
 	if nodes.D(n).Mark <= p.moveBase {
 		return p.baseShift
 	}
@@ -79,7 +79,7 @@ func (p *Parser) ShiftOf(n *core.Node) int {
 }
 
 // MoveTree moves the non-empty node n by shift (ShiftOf(n)), and its descendants, in place.
-func (p *Parser) MoveTree(n *core.Node, shift int) {
+func (p *Parser) MoveTree(n *value.Node, shift int) {
 	p.Spend()
 	gen := nodes.D(n).Mark
 	nodes.D(n).Start += int32(shift)
@@ -93,7 +93,7 @@ func (p *Parser) MoveTree(n *core.Node, shift int) {
 	}
 	for i := range nodes.D(n).Fields {
 		p.Spend()
-		if c, ok := nodes.D(n).Fields[i].Value.(*core.Node); ok && c != nil && nodes.D(c).Mark < p.Gen {
+		if c, ok := nodes.D(n).Fields[i].Value.(*value.Node); ok && c != nil && nodes.D(c).Mark < p.Gen {
 			nodes.D(n).Fields[i].Value = p.moveChild(c, gen, shift)
 		}
 	}
@@ -101,7 +101,7 @@ func (p *Parser) MoveTree(n *core.Node, shift int) {
 
 // moveChild moves the descendant c of a node of generation gen that moved by shift, and returns
 // it or its copy.
-func (p *Parser) moveChild(c *core.Node, gen uint32, shift int) *core.Node {
+func (p *Parser) moveChild(c *value.Node, gen uint32, shift int) *value.Node {
 	if nodes.D(c).Start != nodes.D(c).End {
 		if nodes.D(c).Mark != gen {
 			shift = p.ShiftOf(c)
@@ -120,7 +120,7 @@ func (p *Parser) moveChild(c *core.Node, gen uint32, shift int) *core.Node {
 // MoveEmpty returns a copy of the empty node n moved by shift. Its descendants move with it: empty
 // ones are copied the same way, and non-empty ones (captured in a lookahead) are moved in place.
 // Copies made in the same moveResult are shared.
-func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {
+func (p *Parser) MoveEmpty(n *value.Node, shift int) *value.Node {
 	p.Spend()
 	if c, ok := p.Moved[n]; ok {
 		return c
@@ -140,7 +140,7 @@ func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {
 		nodes.D(c).Fields = p.fields(len(nodes.D(n).Fields))[:len(nodes.D(n).Fields)]
 		for i, f := range nodes.D(n).Fields {
 			p.Spend()
-			if vn, ok := f.Value.(*core.Node); ok {
+			if vn, ok := f.Value.(*value.Node); ok {
 				f.Value = p.moveDescendant(vn, nodes.D(n).Mark, shift)
 			}
 			nodes.D(c).Fields[i] = f
@@ -150,7 +150,7 @@ func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {
 }
 
 // moveDescendant moves the descendant c of an empty node of generation gen that moved by shift.
-func (p *Parser) moveDescendant(c *core.Node, gen uint32, shift int) *core.Node {
+func (p *Parser) moveDescendant(c *value.Node, gen uint32, shift int) *value.Node {
 	switch {
 	case c == nil:
 		return nil
@@ -164,13 +164,13 @@ func (p *Parser) moveDescendant(c *core.Node, gen uint32, shift int) *core.Node 
 
 // moveValue moves the nodes of the value v of an element recorded in the generation base by
 // shift, as moveResult moves the result of a memo entry, and returns it or its copy.
-func (p *Parser) moveValue(v *core.Node, shift int, base uint32) *core.Node {
+func (p *Parser) moveValue(v *value.Node, shift int, base uint32) *value.Node {
 	defer p.FreeEnd(p.FreeBegin(true))
 	if v == nil {
 		return nil
 	}
 	if p.Moved == nil {
-		p.Moved = map[*core.Node]*core.Node{}
+		p.Moved = map[*value.Node]*value.Node{}
 	}
 	p.moveBase, p.baseShift = base, shift
 	if nodes.D(v).Start == nodes.D(v).End {

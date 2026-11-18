@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
@@ -13,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Core builds the Core IR of the program prog and optimizes it with the closure pipeline (guards
@@ -228,10 +228,10 @@ func (b *Builder) node(n ir.Node) state.Matcher {
 		return b.anchor(n.Kind, compile.IDEndLine)
 	case *ir.Pred:
 		t := b.termSite(n.Term)
-		return func(p *state.Parser) (*core.Node, bool) { return nil, predicate(p, t) }
+		return func(p *state.Parser) (*value.Node, bool) { return nil, predicate(p, t) }
 	case *ir.BindNode:
 		slot, t := b.prog.Vars.Index(n.Var), b.termSite(n.Term)
-		return func(p *state.Parser) (*core.Node, bool) { return nil, bind(p, slot, t) }
+		return func(p *state.Parser) (*value.Node, bool) { return nil, bind(p, slot, t) }
 	case *ir.Label:
 		m := b.node(n.Body)
 		if n.Diagnostic {

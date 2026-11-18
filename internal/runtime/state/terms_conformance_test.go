@@ -7,10 +7,10 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The engine's elements gathered and values made under conformance: every operation runs through its
@@ -22,7 +22,7 @@ type termStateMachine struct {
 	*engineMachine
 	binder conform.Binder
 	ctx    *EvalCtx
-	ids    map[*core.Node]int64
+	ids    map[*value.Node]int64
 }
 
 type meteredTermState struct{ *termStateMachine }
@@ -37,7 +37,7 @@ func newTermStateMachine(cfg ref.Config, controlled bool) conform.Impl {
 	case meteredEngine:
 		em = x.engineMachine
 	}
-	m := &termStateMachine{engineMachine: em, ctx: &EvalCtx{P: em.p}, ids: map[*core.Node]int64{}}
+	m := &termStateMachine{engineMachine: em, ctx: &EvalCtx{P: em.p}, ids: map[*value.Node]int64{}}
 	m.binder = conform.Binder{Methods: confTermStateBindings(m.p), Conv: termStateConv{}}
 	if controlled {
 		return meteredTermState{m}
@@ -47,8 +47,8 @@ func newTermStateMachine(cfg ref.Config, controlled bool) conform.Impl {
 
 func (m *termStateMachine) Act() any { return m.ctx }
 
-func (m *termStateMachine) node(id int64) *core.Node {
-	n := new(core.Node)
+func (m *termStateMachine) node(id int64) *value.Node {
+	n := new(value.Node)
 	m.ids[n] = id
 	return n
 }
@@ -58,7 +58,7 @@ func (m *termStateMachine) Elem(id int64) any { return m.node(id) }
 func (m *termStateMachine) Struct(id int64) any { return m.node(id) }
 
 // itemsBox holds the elements of a list, which the harness compares by identity.
-type itemsBox struct{ items []*core.Node }
+type itemsBox struct{ items []*value.Node }
 
 func (m *termStateMachine) Items(ids []int64) any {
 	b := &itemsBox{}
@@ -68,7 +68,7 @@ func (m *termStateMachine) Items(ids []int64) any {
 	return b
 }
 
-func (m *termStateMachine) list(ns []*core.Node) []int64 {
+func (m *termStateMachine) list(ns []*value.Node) []int64 {
 	ids := []int64{}
 	for _, n := range ns {
 		ids = append(ids, m.ids[n])
@@ -102,7 +102,7 @@ func (termStateConv) ToImpl(arg any, t reflect.Type) (reflect.Value, bool) {
 }
 
 func (termStateConv) FromImpl(v reflect.Value) (any, bool) {
-	if ns, ok := v.Interface().([]*core.Node); ok {
+	if ns, ok := v.Interface().([]*value.Node); ok {
 		return &itemsBox{items: ns}, true
 	}
 	return nil, false

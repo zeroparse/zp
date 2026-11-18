@@ -7,15 +7,16 @@ import (
 	"time"
 	"zeroparse.dev/zp/internal/bench/inputs"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 const streamAdoptionElements = 50001 // inputs.CSVInput(50000) includes the header.
 
 var (
-	cacheAdoptionStats core.CacheStats
-	cacheAdoptionNode  *core.Node
+	cacheAdoptionStats zpruntime.CacheStats
+	cacheAdoptionNode  *value.Node
 )
 
 // BenchmarkStreamDeliveryAdoption compares the two public delivery interfaces
@@ -35,7 +36,7 @@ func BenchmarkStreamDeliveryAdoption(b *testing.B) {
 						count := 0
 						reader := strings.NewReader(input)
 						if mode == "callback" {
-							err := p.ParseStream(reader, func(*core.Node) error {
+							err := p.ParseStream(reader, func(*value.Node) error {
 								count++
 								return nil
 							}, opts...)
@@ -87,7 +88,7 @@ func BenchmarkStreamFirstElementAdoption(b *testing.B) {
 						reader := strings.NewReader(input)
 						start := time.Now()
 						if mode == "callback" {
-							err := p.ParseStream(reader, func(*core.Node) error {
+							err := p.ParseStream(reader, func(*value.Node) error {
 								count++
 								if count == 1 {
 									firstTotal += time.Since(start)
@@ -186,7 +187,7 @@ func BenchmarkDocumentCacheAdoption(b *testing.B) {
 					}
 					if mode == "ResetAndParse" {
 						d.ResetHistory()
-						if after := d.CacheStats(); after != (core.CacheStats{}) {
+						if after := d.CacheStats(); after != (zpruntime.CacheStats{}) {
 							b.Fatalf("reset retained cache state: %+v", after)
 						}
 					}

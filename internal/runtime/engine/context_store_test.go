@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // contextStoreGrowth parses the shape at the two codegentest.ContextStoreSizes on the backend and
@@ -19,9 +20,9 @@ import (
 func contextStoreGrowth(t *testing.T, prog *Program, s codegentest.DependencyMemoShape, o ParseOptions) (b, all [2]int) {
 	t.Helper()
 	for i, m := range codegentest.ContextStoreSizes {
-		var pr core.Profile
-		o.Profiles = []*core.Profile{&pr}
-		o.Limits = core.Limits{Compute: core.Unlimited}
+		var pr instrument.Profile
+		o.Profiles = []*instrument.Profile{&pr}
+		o.Limits = runtime.Limits{Compute: runtime.Unlimited}
 		// With missing-token insertion, the parse reports the insertion as an error.
 		if r, err := prog.ParseWith("", s.Input(m), o); err != nil && (r == nil || o.MissingTokens == 0) {
 			t.Fatalf("%s %s m=%d: %v", s.Name, o.Backend, m, err)

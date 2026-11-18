@@ -16,11 +16,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // streamRun is one stream parse of a differential test. The reader returns
@@ -541,9 +543,9 @@ func main() {
 func engineStream(prog *engine.Program, v streamRun) string {
 	r := &chunkReader{s: string(v.Input), chunk: v.Chunk, eofWithData: v.EOFWithData, fail: v.Fail}
 	var res streamResult
-	var emit func(*core.Node) error
+	var emit func(*value.Node) error
 	if !v.NilEmit {
-		emit = func(n *core.Node) error {
+		emit = func(n *value.Node) error {
 			b, err := json.Marshal(n)
 			if err != nil {
 				panic(err)
@@ -556,12 +558,12 @@ func engineStream(prog *engine.Program, v streamRun) string {
 			return nil
 		}
 	}
-	o := engine.ParseOptions{Expectations: true, Unit: core.CodePoints, DiagnosticLimit: v.Limit, DiagnosticLimitSet: v.LimitSet}
+	o := engine.ParseOptions{Expectations: true, Unit: input.CodePoints, DiagnosticLimit: v.Limit, DiagnosticLimitSet: v.LimitSet}
 	if v.Bytes {
-		o.Unit = core.Bytes
+		o.Unit = input.Bytes
 	}
 	if v.Diag {
-		o.DiagnosticCallback = func(e *core.SyntaxError) error {
+		o.DiagnosticCallback = func(e *value.SyntaxError) error {
 			res.Diags = append(res.Diags, fmt.Sprint(len(res.Emits), " ", e.Error()))
 			e.Expected, e.Messages, e.Pos = append(e.Expected, "mutated"), nil, -1
 			if len(res.Diags) == v.DiagStopAt {
@@ -572,9 +574,9 @@ func engineStream(prog *engine.Program, v streamRun) string {
 	}
 	var err error
 	if v.Iterate {
-		var it *core.StreamIterator
+		var it *zpruntime.StreamIterator
 		if it, err = prog.Iterate("main", r, o); err == nil {
-			err = drain(it.Next, it.Close, emit, func(err error) bool { return err == core.ErrStreamClosed })
+			err = drain(it.Next, it.Close, emit, func(err error) bool { return err == zpruntime.ErrStreamClosed })
 		}
 	} else {
 		err = prog.ParseStreamWith("main", r, emit, o)
@@ -1061,8 +1063,9 @@ rule stmt S = n:[a-z]+ #atomic ";" => S{N: $n}`)
 const generatedRecoveringStreamConsumer = `package recovering
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 	"errors"
 	"io"
 	"runtime"
@@ -1105,7 +1108,7 @@ func TestDiagnosticLimitBoundsMemory(t *testing.T) {
 			}
 			return nil
 		}, WithUnit(unit), zprt.WithDiagnosticLimit(3), zprt.WithDiagnosticCallback(func(*SyntaxError) error { diags++; return nil }))
-		var truncated *core.TruncatedSyntaxErrors
+		var truncated *zpvalue.TruncatedSyntaxErrors
 		if !errors.As(err, &truncated) || truncated.Total != n || truncated.Dropped != n-3 || truncated.CountsSaturated || count != 2*n || diags != n {
 			t.Fatal(err, count, diags)
 		}
@@ -1202,7 +1205,7 @@ func TestIterateValue(t *testing.T) {
 		t.Fatal(ok, err)
 	}
 	it.Close()
-	if _, ok, err := it.Next(); ok || err != core.ErrStreamClosed {
+	if _, ok, err := it.Next(); ok || err != zpruntime.ErrStreamClosed {
 		t.Fatal(ok, err)
 	}
 	// A callback panic reaches the caller of Next unchanged.
@@ -1293,7 +1296,7 @@ func TestParseStreamValueBudgetControls(t *testing.T) {
 const generatedStreamConsumer = `package fixture
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"; zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	"context"
 	"errors"
 	"io"
@@ -1305,29 +1308,29 @@ import (
 const input = "a=1\nbc=22\nd=3\n"
 
 func TestTraceAndProfile(t *testing.T) {
-	var events []zpcore.TraceEvent
-	profile := &zpcore.Profile{}
+	var events []zpinstrument.TraceEvent
+	profile := &zpinstrument.Profile{}
 	n := 0
 	err := ParseStream(strings.NewReader(input), func(*Node) error { n++; return nil },
-		zprt.WithTrace(func(e zpcore.TraceEvent) { events = append(events, e) }), zprt.WithProfile(profile))
+		zprt.WithTrace(func(e zpinstrument.TraceEvent) { events = append(events, e) }), zprt.WithProfile(profile))
 	if err != nil || n != 3 {
 		t.Fatal(err, n)
 	}
-	if len(events) == 0 || events[0].Rule != "main" || events[0].Kind != zpcore.TraceEnter {
+	if len(events) == 0 || events[0].Rule != "main" || events[0].Kind != zpinstrument.TraceEnter {
 		t.Fatal(events)
 	}
 	depth, items := 0, 0
 	for _, e := range events {
 		switch e.Kind {
-		case zpcore.TraceEnter:
+		case zpinstrument.TraceEnter:
 			depth++
 			if e.Rule == "item" {
 				items++
 			}
-		case zpcore.TraceExit:
+		case zpinstrument.TraceExit:
 			depth--
 		}
-		if e.Kind == zpcore.TraceExit && (e.Examined < e.Pos || e.Matched && e.Examined < e.End) {
+		if e.Kind == zpinstrument.TraceExit && (e.Examined < e.Pos || e.Matched && e.Examined < e.End) {
 			t.Fatal("examined end", e)
 		}
 	}
@@ -1427,7 +1430,7 @@ func TestMemoryIsBounded(t *testing.T) {
 const generatedStreamListsConsumer = `package lists
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"; zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	"io"
 	"runtime"
 	"testing"
@@ -1467,7 +1470,7 @@ func TestMemoryIsBounded(t *testing.T) {
 			count := 0
 			opts := []ParseOption{WithUnit(unit)}
 			if profiled {
-				opts = append(opts, zprt.WithProfile(&zpcore.Profile{}))
+				opts = append(opts, zprt.WithProfile(&zpinstrument.Profile{}))
 			}
 			err := ParseStream(&listReader{n: n, seed: 1}, func(*Node) error {
 				count++
@@ -1493,7 +1496,7 @@ func TestMemoryIsBounded(t *testing.T) {
 const generatedStreamMemoConsumer = `package memo
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"; zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	"io"
 	"runtime"
 	"testing"
@@ -1528,7 +1531,7 @@ func TestMemoryIsBounded(t *testing.T) {
 			count := 0
 			opts := []ParseOption{WithUnit(unit)}
 			if profiled {
-				opts = append(opts, zprt.WithProfile(&zpcore.Profile{}))
+				opts = append(opts, zprt.WithProfile(&zpinstrument.Profile{}))
 			}
 			err := ParseStream(&lineReader{line: "key=42\n", n: n}, func(*Node) error {
 				count++

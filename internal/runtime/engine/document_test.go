@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
-func dump(t *testing.T, n *core.Node, err error) string {
+func dump(t *testing.T, n *value.Node, err error) string {
 	t.Helper()
 	data, jerr := json.Marshal(n)
 	if jerr != nil {
@@ -480,7 +481,7 @@ rule line = x:[a-z]+ #atomic "\n"`)
 	doc.Edit(0, 0, "zz\n")
 	t2, _ := doc.Parse()
 	old, cur := nodes.D(nodes.D(t1).Children[0]).Children[3], nodes.D(nodes.D(t2).Children[0]).Children[4]
-	if old != cur || nodes.D(cur).Start != 12 || nodes.D(cur.Field("x").(*core.Node)).Start != 12 {
+	if old != cur || nodes.D(cur).Start != 12 || nodes.D(cur.Field("x").(*value.Node)).Start != 12 {
 		t.Errorf("line 3 of the earlier tree: shared %v, at %d", old == cur, nodes.D(cur).Start)
 	}
 	if dump(t, snap, nil) != before {
@@ -529,7 +530,7 @@ rule mid = [a-z] #atomic / "\n"`, "ab!cd", 0, ParseOptions{}, []step{{1, 3, "", 
 		// An entry found invalid by an edit, then an aborted parse: the next lookup must not apply
 		// the edits again.
 		{"aborted parse", `rule main = (item / .)* $$
-rule item = "(" item* ")" / "x"`, "xxxx(x)", 0, ParseOptions{Limits: core.Limits{Depth: 30}},
+rule item = "(" item* ")" / "x"`, "xxxx(x)", 0, ParseOptions{Limits: runtime.Limits{Depth: 30}},
 			[]step{{0, 0, "zz", "", true}, {7, 8, strings.Repeat("(", 50), "nesting too deep", false}, {7, 57, "x", "", false}}},
 	}
 	for _, c := range cases {

@@ -3,18 +3,18 @@ package document
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func TestDocumentChangesDirectoryEqualityHasBoundedScratch(t *testing.T) {
-	root := nodes.Ptr(nodes.Data{Kind: coreimpl.KindOf("Root", "main"), Children: make([]*core.Node, 4096)})
+	root := nodes.Ptr(nodes.Data{Kind: valueimpl.KindOf("Root", "main"), Children: make([]*value.Node, 4096)})
 	for i := range nodes.D(root).Children {
-		nodes.D(root).Children[i] = nodes.Ptr(nodes.Data{Kind: coreimpl.KindOf("Leaf", "item"), Start: int32(i), End: int32(i + 1), Text: "a", Terminal: true})
+		nodes.D(root).Children[i] = nodes.Ptr(nodes.Data{Kind: valueimpl.KindOf("Leaf", "item"), Start: int32(i), End: int32(i + 1), Text: "a", Terminal: true})
 	}
 	// Keep aliases and a cycle in the wide graph, not only a flat tree.
-	nodes.D(root).Fields = coreimpl.Fields{{Name: "self", Value: root}, {Name: "alias", Value: nodes.D(root).Children[0]}}
+	nodes.D(root).Fields = valueimpl.Fields{{Name: "self", Value: root}, {Name: "alias", Value: nodes.D(root).Children[0]}}
 	a, b := changeGraphSnapshot(t, root), changeGraphSnapshot(t, root.Clone())
 	equal := true
 	allocations := testing.AllocsPerRun(10, func() { equal = equal && equalChangeSnapshots(a, b) })
@@ -29,11 +29,11 @@ func TestDocumentChangesDirectoryEqualityHasBoundedScratch(t *testing.T) {
 }
 
 func TestDocumentChangesDirectoryEqualityChecksIDEdges(t *testing.T) {
-	leaf := func() *core.Node {
-		return nodes.Ptr(nodes.Data{Kind: coreimpl.KindOf("Leaf", "item"), Text: "x", Terminal: true})
+	leaf := func() *value.Node {
+		return nodes.Ptr(nodes.Data{Kind: valueimpl.KindOf("Leaf", "item"), Text: "x", Terminal: true})
 	}
 	first, second := leaf(), leaf()
-	root := nodes.Ptr(nodes.Data{Children: []*core.Node{first, second, first}, Fields: coreimpl.Fields{{Name: "link", Value: first}, {Name: "cycle", Value: nil}}})
+	root := nodes.Ptr(nodes.Data{Children: []*value.Node{first, second, first}, Fields: valueimpl.Fields{{Name: "link", Value: first}, {Name: "cycle", Value: nil}}})
 	nodes.D(root).Fields[1].Value = root
 	a := changeGraphSnapshot(t, root)
 	changed := root.Clone()
@@ -57,7 +57,7 @@ func TestDocumentChangesDirectoryEqualityChecksIDEdges(t *testing.T) {
 }
 
 func TestDocumentChangesDirectoryEqualitySupportsChunkedChildStorage(t *testing.T) {
-	root := nodes.Ptr(nodes.Data{Children: make([]*core.Node, snapshotChildChunkSize+1)})
+	root := nodes.Ptr(nodes.Data{Children: make([]*value.Node, snapshotChildChunkSize+1)})
 	for i := range nodes.D(root).Children {
 		nodes.D(root).Children[i] = nodes.Ptr(nodes.Data{Text: "x", Terminal: true})
 	}

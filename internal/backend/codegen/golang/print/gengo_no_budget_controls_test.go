@@ -80,15 +80,15 @@ rule num = [0-9]+ ("." [0-9]+)?
 		t.Errorf("Document parser without limit controls is %d bytes, with %d", len(documentWithout), len(documentWith))
 	}
 	tests := `package wc
-import("errors";"strings";"testing";"context";zprt "zeroparse.dev/zp/codegen/go/lib";"zeroparse.dev/zp/core")
+import("errors";"strings";"testing";"context";zprt "zeroparse.dev/zp/pkg/runtime/golib";zpruntime "zeroparse.dev/zp/pkg/runtime")
 func TestOptions(t *testing.T) {
  if _,err:=Parse("abc 12.5 x"); err!=nil {t.Fatal(err)}
  if err:=Recognize("abc 12.5 x"); err!=nil {t.Fatal(err)}
  if _,err:=Parse("abc ("); err==nil {t.Fatal("no error for bad input")}
  if _,err:=ParseValue("abc 12.5 x"); err!=nil {t.Fatal(err)}
  // A zero Limits and a nil context set no control, so they are accepted.
- if _,err:=Parse("abc",zprt.WithLimits(core.Limits{}),zprt.WithContext(nil)); err!=nil {t.Fatal(err)}
- for name,opt:=range map[string]zprt.ParseOption{"limits":zprt.WithLimits(core.Limits{Compute:1}),"memory":zprt.WithLimits(core.Limits{Memory:1}),"context":zprt.WithContext(context.Background())} {
+ if _,err:=Parse("abc",zprt.WithLimits(zpruntime.Limits{}),zprt.WithContext(nil)); err!=nil {t.Fatal(err)}
+ for name,opt:=range map[string]zprt.ParseOption{"limits":zprt.WithLimits(zpruntime.Limits{Compute:1}),"memory":zprt.WithLimits(zpruntime.Limits{Memory:1}),"context":zprt.WithContext(context.Background())} {
   for entry,call:=range map[string]func() error{
    "Parse":func() error {_,err:=Parse("abc",opt);return err},
    "Recognize":func() error {return Recognize("abc",opt)},

@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // TestDocumentLeftRecursionAbortedGrowth interrupts a Document parse while a
@@ -69,7 +70,7 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 							panic("interrupt growth")
 						}
 					}
-					var n *core.Node
+					var n *value.Node
 					func() {
 						defer func() {
 							if x := recover(); x != nil && (cause != "panic" || x != "interrupt growth") {
@@ -87,7 +88,7 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 							t.Fatalf("node=%v err=%v", n, err)
 						}
 					case "steps":
-						if n != nil || !errors.Is(err, core.ErrLimit) {
+						if n != nil || !errors.Is(err, runtime.ErrLimit) {
 							t.Fatalf("node=%v err=%v", n, err)
 						}
 					}

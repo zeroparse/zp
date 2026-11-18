@@ -11,7 +11,6 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/driver/entry"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	. "zeroparse.dev/zp/internal/runtime/engine"
@@ -19,6 +18,8 @@ import (
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The tests in this file's package parse with the engine's programs. These helpers are the
@@ -116,7 +117,7 @@ rule expr = #operators {
     level { prefix "-" }
 }`
 
-func dump(t *testing.T, n *core.Node, err error) string {
+func dump(t *testing.T, n *value.Node, err error) string {
 	t.Helper()
 	data, jerr := json.Marshal(n)
 	if jerr != nil {
@@ -129,7 +130,7 @@ func dump(t *testing.T, n *core.Node, err error) string {
 	return s
 }
 
-func resultJSON(n *core.Node, err error) string {
+func resultJSON(n *value.Node, err error) string {
 	out := map[string]any{"node": n}
 	if err != nil {
 		out["err"] = err.Error()
@@ -258,7 +259,7 @@ func newPollingContext(at int) *pollingContext {
 func budgetDocumentVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
 	t.Helper()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", b, u), func(t *testing.T) { run(t, ParseOptions{Backend: b, Unit: u}) })
 		}
 	}
@@ -267,7 +268,7 @@ func budgetDocumentVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
 func snapshotVariants(t *testing.T, run func(*testing.T, state.ParseOptions)) {
 	t.Helper()
 	for _, backend := range []state.Backend{state.Closure, state.Bytecode, state.BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) { run(t, state.ParseOptions{Backend: backend, Unit: unit}) })
 		}
 	}

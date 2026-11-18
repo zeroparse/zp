@@ -8,14 +8,15 @@
 package codegen
 
 import (
-	"embed"
 	"fmt"
 	"io"
 	"io/fs"
 	"zeroparse.dev/zp/internal/frontend"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/backend/codegen/golang/libsrc"
 	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
+	tslib "zeroparse.dev/zp/internal/backend/codegen/typescript/lib"
 	tsprint "zeroparse.dev/zp/internal/backend/codegen/typescript/print"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
@@ -65,7 +66,7 @@ const (
 	// Go, which depends only on zeroparse.dev/zp/core, and lib.ts in TypeScript, which depends on
 	// nothing. It is the default. GenerateLib refreshes the copy without regenerating the parser.
 	LibEmbed LibMode = iota
-	// LibImport imports the library: zeroparse.dev/zp/codegen/go/lib in Go, the module of
+	// LibImport imports the library: zeroparse.dev/zp/pkg/runtime/golib in Go, the module of
 	// TypeScript.LibModule in TypeScript.
 	LibImport
 )
@@ -360,37 +361,12 @@ func check(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags) (*co
 	return prog, nil
 }
 
-// goLibFiles and tsLibFiles hold the Go library of generated Go parsers (the package
-// zeroparse.dev/zp/codegen/go/lib, in go/lib) and the TypeScript library of generated TypeScript
-// parsers (ts/lib). Go generation copies the Go library into packages generated with LibEmbed and
-// reads it to qualify the names generated code uses from it; TypeScript generation assembles lib.ts
-// from the TypeScript library. They live in this package rather than in package engine so that only
-// programs that generate code carry them. The Go library is listed file by file, without its tests,
-// which a pattern cannot leave out; TestGoLibEmbedsItsSources keeps the list complete.
-//
-//go:embed go/lib/budget.go go/lib/budget_memory.go go/lib/call_exec.go go/lib/chunk.go
-//go:embed go/lib/class.go go/lib/context_memo.go go/lib/document.go go/lib/expected.go
-//go:embed go/lib/features.go go/lib/features_nowitness.go go/lib/features_witness.go
-//go:embed go/lib/fieldcheck.go go/lib/lib.go go/lib/memo_index.go go/lib/node_build.go
-//go:embed go/lib/node_rep.go go/lib/operators_exec.go go/lib/protocol.go
-//go:embed go/lib/recovered.go go/lib/scan_sites.go go/lib/skip_runs.go go/lib/stream.go
-//go:embed go/lib/stream_exec.go go/lib/term_exec.go go/lib/term_value.go go/lib/terminal.go
-//go:embed go/lib/trace.go go/lib/typed.go go/lib/typed_document.go
-var goLibFiles embed.FS
-
-//go:embed ts/lib/*.ts
-var tsLibFiles embed.FS
-
-// goLib and tsLib are the embedded libraries, which generation gives to the generators.
+// goLib and tsLib are the libraries of generated parsers, which generation gives to the
+// generators: Go generation copies the Go library (pkg/runtime/golib) into packages generated with
+// LibEmbed and reads it to qualify the names generated code uses from it; TypeScript generation
+// assembles lib.ts from the TypeScript library. The copies live in the back end rather than in the
+// runtime so that only programs that generate code carry them.
 var (
-	goLib = subFS(goLibFiles, "go/lib")
-	tsLib = subFS(tsLibFiles, "ts/lib")
+	goLib fs.FS = libsrc.FS
+	tsLib fs.FS = tslib.FS
 )
-
-func subFS(fsys embed.FS, dir string) fs.FS {
-	sub, err := fs.Sub(fsys, dir)
-	if err != nil {
-		panic(err)
-	}
-	return sub
-}

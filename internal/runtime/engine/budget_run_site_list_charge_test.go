@@ -7,8 +7,8 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // computeSweep returns, for a parse of input at each compute limit from 1 up, the distinct sizes of the
@@ -17,8 +17,8 @@ import (
 func computeSweep(t *testing.T, prog *Program, input string, b Backend) (sizes []uint64, total uint64) {
 	t.Helper()
 	for l := uint64(1); l < 20000; l++ {
-		_, err := prog.ParseWith("main", input, ParseOptions{Backend: b, Limits: core.Limits{Compute: l}})
-		var le *core.LimitError
+		_, err := prog.ParseWith("main", input, ParseOptions{Backend: b, Limits: runtime.Limits{Compute: l}})
+		var le *runtime.LimitError
 		if err == nil || !errors.As(err, &le) {
 			if err != nil {
 				t.Fatalf("limit %d: %v", l, err)
@@ -71,8 +71,8 @@ func TestFailedRepetitionDropsItsElements(t *testing.T) {
 	prog := mustCompile(t, "@start\nrule main = [a-z]#repeat(5,) / [a-z]*")
 	reservations := func(b Backend) (used []uint64) {
 		for l := uint64(1); l < 200; l++ {
-			_, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Limits: core.Limits{Compute: l}})
-			var le *core.LimitError
+			_, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Limits: runtime.Limits{Compute: l}})
+			var le *runtime.LimitError
 			if errors.As(err, &le) && le.Requested == 6 && !slices.Contains(used, le.Used) {
 				used = append(used, le.Used)
 			}
@@ -91,8 +91,8 @@ func TestFailedRepetitionDropsItsElements(t *testing.T) {
 	// open one of the drop charge of a failed alternative (#7).
 	var dropped bool
 	for l := uint64(1); l < 200 && !dropped; l++ {
-		_, err := prog.ParseWith("main", "abc", ParseOptions{Backend: Closure, Limits: core.Limits{Compute: l}})
-		var le *core.LimitError
+		_, err := prog.ParseWith("main", "abc", ParseOptions{Backend: Closure, Limits: runtime.Limits{Compute: l}})
+		var le *runtime.LimitError
 		dropped = errors.As(err, &le) && le.Used == 16 && le.Requested == 3
 	}
 	if !dropped {

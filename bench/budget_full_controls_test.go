@@ -8,8 +8,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/engine"
 	gcalc "zeroparse.dev/zp/internal/bench/parsers/calc"
 	gcalclr "zeroparse.dev/zp/internal/bench/parsers/calclr"
@@ -19,6 +17,9 @@ import (
 	goutline "zeroparse.dev/zp/internal/bench/parsers/outline"
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 type fullGeneratedProbe struct {
@@ -197,13 +198,13 @@ func TestControlledFullWorkloads(t *testing.T) {
 					t.Run(be.name+"/"+u.name, func(t *testing.T) {
 						t.Parallel()
 						// Unlimited keeps the plain parse uncontrolled: a zero budget selects the default counter.
-						opts := []engine.ParseOption{engine.WithBackend(be.b), engine.WithUnit(u.u), engine.WithLimits(core.Limits{Compute: core.Unlimited})}
+						opts := []engine.ParseOption{engine.WithBackend(be.b), engine.WithUnit(u.u), engine.WithLimits(runtime.Limits{Compute: runtime.Unlimited})}
 						plain, plainErr := p.Parse(input, opts...)
 						want := check(plain, plainErr)
 						for _, mode := range []string{"budget", "context", "combined"} {
 							active := append([]engine.ParseOption{}, opts...)
 							if mode != "context" {
-								active = append(active, engine.WithLimits(core.Limits{Compute: ^uint64(0) - 1}))
+								active = append(active, engine.WithLimits(runtime.Limits{Compute: ^uint64(0) - 1}))
 							}
 							if mode != "budget" {
 								ctx, cancel := context.WithCancel(context.Background())
@@ -225,8 +226,8 @@ func TestControlledFullWorkloads(t *testing.T) {
 								t.Fatalf("%s recognition diagnostics differ", mode)
 							}
 						}
-						n, err := p.Parse(input, append(opts, engine.WithLimits(core.Limits{Compute: 1}))...)
-						if n != nil || !errors.Is(err, core.ErrLimit) {
+						n, err := p.Parse(input, append(opts, engine.WithLimits(runtime.Limits{Compute: 1}))...)
+						if n != nil || !errors.Is(err, runtime.ErrLimit) {
 							t.Fatalf("full-input interruption: %v", err)
 						}
 						retry, retryErr := p.Parse(input, opts...)
@@ -279,7 +280,7 @@ func TestControlledFullWorkloads(t *testing.T) {
 }
 
 func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
-	hash := func(n *core.Node) string {
+	hash := func(n *value.Node) string {
 		t.Helper()
 		s, e := fullFingerprint(n)
 		if e != nil {
@@ -287,19 +288,19 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 		}
 		return s
 	}
-	str := func(start, end int, text string) *core.Node {
-		return nodes.NewNode(core.KindString, start, end, text, nil, "", nil, nil)
+	str := func(start, end int, text string) *value.Node {
+		return nodes.NewNode(value.KindString, start, end, text, nil, "", nil, nil)
 	}
-	tuple := func(elems ...*core.Node) *core.Node {
-		return nodes.NewNode(core.KindTuple, 0, 0, "", elems, "", nil, nil)
+	tuple := func(elems ...*value.Node) *value.Node {
+		return nodes.NewNode(value.KindTuple, 0, 0, "", elems, "", nil, nil)
 	}
-	object := func(fields ...coreimpl.NodeField) *core.Node {
-		return nodes.NewNode(core.KindStruct, 0, 0, "", nil, "T", coreimpl.Fields(fields), nil)
+	object := func(fields ...valueimpl.NodeField) *value.Node {
+		return nodes.NewNode(value.KindStruct, 0, 0, "", nil, "T", valueimpl.Fields(fields), nil)
 	}
 	if hash(str(0, 0, "\xff")) == hash(str(0, 0, "\xfe")) {
 		t.Fatal("raw invalid terminal bytes were replaced")
 	}
-	if hash(object(coreimpl.NodeField{Name: "x", Value: "\xff"})) == hash(object(coreimpl.NodeField{Name: "x", Value: "\xfe"})) {
+	if hash(object(valueimpl.NodeField{Name: "x", Value: "\xff"})) == hash(object(valueimpl.NodeField{Name: "x", Value: "\xfe"})) {
 		t.Fatal("raw invalid scalar bytes were replaced")
 	}
 	leaf := str(0, 0, "x")
@@ -308,29 +309,29 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	if hash(shared) == hash(copied) {
 		t.Fatal("sharing was discarded")
 	}
-	fields := object(coreimpl.NodeField{Name: "a", Value: "one"}, coreimpl.NodeField{Name: "b", Value: "two"})
-	reordered := object(coreimpl.NodeField{Name: "b", Value: "two"}, coreimpl.NodeField{Name: "a", Value: "one"})
+	fields := object(valueimpl.NodeField{Name: "a", Value: "one"}, valueimpl.NodeField{Name: "b", Value: "two"})
+	reordered := object(valueimpl.NodeField{Name: "b", Value: "two"}, valueimpl.NodeField{Name: "a", Value: "one"})
 	if hash(fields) == hash(reordered) {
 		t.Fatal("field order was discarded")
 	}
-	if hash(tuple()) == hash(nodes.NewNode(core.KindList, 0, 0, "", nil, "", nil, nil)) {
+	if hash(tuple()) == hash(nodes.NewNode(value.KindList, 0, 0, "", nil, "", nil, nil)) {
 		t.Fatal("the kind of an empty node was discarded")
 	}
 	shifted := str(1, 2, "x")
 	if hash(leaf) == hash(shifted) {
 		t.Fatal("positions were discarded")
 	}
-	changed := object(coreimpl.NodeField{Name: "a", Value: "changed"}, coreimpl.NodeField{Name: "b", Value: "two"})
+	changed := object(valueimpl.NodeField{Name: "a", Value: "changed"}, valueimpl.NodeField{Name: "b", Value: "two"})
 	if hash(fields) == hash(changed) {
 		t.Fatal("field values were discarded")
 	}
-	if hash(nodes.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 1)) == hash(nodes.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 2)) {
+	if hash(nodes.NewNode(value.KindValue, 0, 0, "", nil, "", nil, 1)) == hash(nodes.NewNode(value.KindValue, 0, 0, "", nil, "", nil, 2)) {
 		t.Fatal("carried values were discarded")
 	}
 	cycle := tuple()
-	nodes.SetNodeElems(cycle, []*core.Node{cycle})
+	nodes.SetNodeElems(cycle, []*value.Node{cycle})
 	other := tuple()
-	nodes.SetNodeElems(other, []*core.Node{other})
+	nodes.SetNodeElems(other, []*value.Node{other})
 	if hash(cycle) != hash(other) {
 		t.Fatal("equivalent cycles differ")
 	}

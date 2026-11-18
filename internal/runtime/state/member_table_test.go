@@ -4,12 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // engineMemberCanon returns the canonical form of a value of the engine (conform.MemberCanon).
@@ -23,7 +24,7 @@ func engineMemberCanon(x any) string {
 		return conform.MemberCanon("string", x, nil)
 	case bool:
 		return conform.MemberCanon("bool", x, nil)
-	case *core.Node:
+	case *value.Node:
 		if x == nil {
 			return conform.MemberCanon("nil", nil, nil)
 		}
@@ -32,11 +33,11 @@ func engineMemberCanon(x any) string {
 			elems = append(elems, engineMemberCanon(nodes.UnboxNode(k)))
 		}
 		switch nodes.D(x).Kind {
-		case coreimpl.BoxKind:
+		case valueimpl.BoxKind:
 			return "box " + engineMemberCanon(nodes.D(x).Box)
-		case coreimpl.ListValueKind:
+		case valueimpl.ListValueKind:
 			return conform.MemberCanon("list", nil, elems)
-		case coreimpl.TupleValueKind:
+		case valueimpl.TupleValueKind:
 			return conform.MemberCanon("tuple", nil, elems)
 		}
 		return x.Type()
@@ -64,11 +65,11 @@ func engineMemberFixture(t *testing.T, controlled bool) (*EvalCtx, map[string]an
 	}
 	p := &Parser{Prog: prog}
 	if controlled {
-		p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
+		p.Control = NewBudgetControl(nil, runtime.Limits{Compute: 1 << 62})
 	}
 	c := &EvalCtx{P: p}
-	node := p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5})
-	coreimpl.SetField(&nodes.D(node).Fields, "y", p.NewNode(nodes.Data{Kind: coreimpl.BoxKind, Box: 7}))
+	node := p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: 2, End: 5})
+	valueimpl.SetField(&nodes.D(node).Fields, "y", p.NewNode(nodes.Data{Kind: valueimpl.BoxKind, Box: 7}))
 	empty, err := c.NewStruct("S", nil, nil)
 	if err != nil {
 		t.Fatal(err)

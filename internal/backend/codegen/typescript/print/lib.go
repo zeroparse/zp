@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 )
 
-// The TypeScript library of generated parsers is the directory codegen/ts/lib of this module, which
+// The TypeScript library of generated parsers is the directory internal/backend/codegen/typescript/lib of this module, which
 // TypeScript generation reads from GenOptions.TSLib: lib.ts, the library proper, and the modules
 // that the generator places after it (libModules). Generation assembles them into one module, the
 // lib.ts that parsers import.

@@ -1,10 +1,10 @@
 package closure
 
 import (
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/program"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
@@ -59,13 +59,13 @@ func (b *Builder) charges() bool { return state.BudgetControlsEnabled && !b.plai
 // ruleBody completes the rule sr, whose Core IR is cr, with its body m.
 func (b *Builder) ruleBody(sr *compile.Rule, cr *ir.Rule, m state.Matcher) error {
 	r := b.rule(sr.ID)
-	r.Kinds = coreimpl.NewRuleKinds(sr.Name)
+	r.Kinds = valueimpl.NewRuleKinds(sr.Name)
 	if sr.Splice {
-		r.Value = func(_ *state.Parser, v *core.Node, _ int) *core.Node { return v }
+		r.Value = func(_ *state.Parser, v *value.Node, _ int) *value.Node { return v }
 	} else {
 		r.Value = scopeValueOf(cr.Finish.Shape)
 	}
-	r.Body = func(p *state.Parser, _ int) (*core.Node, bool) { return m(p) }
+	r.Body = func(p *state.Parser, _ int) (*value.Node, bool) { return m(p) }
 	if cr.Finish.Kind == ir.FinishAction {
 		t, err := b.term(cr.Finish.Action, projections(cr.Body))
 		if err != nil {
@@ -94,9 +94,9 @@ func projections(body ir.Node) map[string]string {
 // operatorsRule completes the Operators Rule sr, whose Core IR is cr, with its lines.
 func (b *Builder) operatorsRule(sr *compile.Rule, cr *ir.Rule, o *ir.OperatorsRule) error {
 	r := b.rule(sr.ID)
-	r.Kinds = coreimpl.NewRuleKinds(sr.Name)
+	r.Kinds = valueimpl.NewRuleKinds(sr.Name)
 	// The lines build the rule's value.
-	r.Value = func(_ *state.Parser, v *core.Node, _ int) *core.Node { return v }
+	r.Value = func(_ *state.Parser, v *value.Node, _ int) *value.Node { return v }
 	pr := &state.OperatorsRule{}
 	r.OperatorsRule = pr
 	if o.Skip != nil {
@@ -122,7 +122,7 @@ func (b *Builder) operatorsRule(sr *compile.Rule, cr *ir.Rule, o *ir.OperatorsRu
 			pr.Led = append(pr.Led, op)
 		}
 	}
-	r.Body = func(p *state.Parser, min int) (*core.Node, bool) { return p.OperatorsRuleParse(r, min) }
+	r.Body = func(p *state.Parser, min int) (*value.Node, bool) { return p.OperatorsRuleParse(r, min) }
 	if cr.Finish.Kind == ir.FinishAction {
 		// The whole-rule action runs once per call, after the fold (state.Parser.Finish).
 		b.scope = scopeOf(nil)
@@ -153,7 +153,7 @@ func (b *Builder) line(l *ir.OpLine) (*state.OperatorsRuleLine, error) {
 func (b *Builder) literal(val string, fold bool, desc state.ExpID, build bool) state.Matcher {
 	if fold {
 		rs := compile.FoldedRunes([]rune(val))
-		return func(p *state.Parser) (*core.Node, bool) {
+		return func(p *state.Parser) (*value.Node, bool) {
 			start := p.Pos
 			if !p.MatchLiteralFold(rs) {
 				p.Expect(start, desc)
@@ -163,11 +163,11 @@ func (b *Builder) literal(val string, fold bool, desc state.ExpID, build bool) s
 				return nil, true
 			}
 			// The node holds the input as matched: its letters may differ in case from the literal.
-			return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+			return p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 		}
 	}
 	rs, bs := []rune(val), []byte(val)
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start := p.Pos
 		if !p.MatchLiteral(rs, bs) {
 			p.Expect(start, desc)
@@ -176,7 +176,7 @@ func (b *Builder) literal(val string, fold bool, desc state.ExpID, build bool) s
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, val), Terminal: true, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, val), Terminal: true, Fresh: true}), true
 	}
 }
 
@@ -188,16 +188,16 @@ func (b *Builder) literal(val string, fold bool, desc state.ExpID, build bool) s
 func (b *Builder) call(id, min int) state.Matcher {
 	r := b.rule(id)
 	if b.family == state.Inlined && id < len(b.static) && b.static[id].Plain {
-		return func(p *state.Parser) (*core.Node, bool) { return p.InvokePlain(r, min) }
+		return func(p *state.Parser) (*value.Node, bool) { return p.InvokePlain(r, min) }
 	}
-	return func(p *state.Parser) (*core.Node, bool) { return p.Call(r, min) }
+	return func(p *state.Parser) (*value.Node, bool) { return p.Call(r, min) }
 }
 
 func (b *Builder) seq(ms []state.Matcher, flat, valued []bool, n int, build bool) state.Matcher {
 	// The value is the tuple node of the elements, flattened through nested sequences.
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start := p.Pos
-		var kids []*core.Node
+		var kids []*value.Node
 		if build {
 			kids = p.Nodes(n)[:0]
 		}
@@ -219,7 +219,7 @@ func (b *Builder) seq(ms []state.Matcher, flat, valued []bool, n int, build bool
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}), true
 	}
 }
 
@@ -234,7 +234,7 @@ func (b *Builder) choice(alts []*ir.Alt, ms []state.Matcher, build bool) state.M
 		guarded = guarded || guards[i].accept != nil
 	}
 	if guarded {
-		return func(p *state.Parser) (*core.Node, bool) {
+		return func(p *state.Parser) (*value.Node, bool) {
 			m0 := p.Mark()
 			var ch rune
 			more, peeked := false, false
@@ -265,7 +265,7 @@ func (b *Builder) choice(alts []*ir.Alt, ms []state.Matcher, build bool) state.M
 			return nil, false
 		}
 	}
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		m0 := p.Mark()
 		for _, m := range ms {
 			prevCut := p.Cut
@@ -312,7 +312,7 @@ func (b *Builder) optional(body ir.Node, m state.Matcher, build bool) state.Matc
 	if build {
 		m = singleMatcher(body.Attrs().Shape, m)
 	}
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		m0 := p.Mark()
 		prevCut := p.Cut
 		p.Cut = false
@@ -335,7 +335,7 @@ func (b *Builder) and(m state.Matcher, site int) state.Matcher {
 		// A lookahead that leaves captures or bindings is no observation (Parser.LookBegin).
 		site = -1
 	}
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start, prevCut := p.Pos, p.Cut
 		p.Silent++
 		p.LookBegin(site)
@@ -349,7 +349,7 @@ func (b *Builder) and(m state.Matcher, site int) state.Matcher {
 }
 
 func (b *Builder) not(m state.Matcher, site int) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		m0 := p.Mark()
 		prevCut := p.Cut
 		p.Silent++
@@ -364,7 +364,7 @@ func (b *Builder) not(m state.Matcher, site int) state.Matcher {
 }
 
 func (b *Builder) atomic(m state.Matcher, build bool) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start := p.Pos
 		if _, ok := m(p); !ok {
 			return nil, false
@@ -372,12 +372,12 @@ func (b *Builder) atomic(m state.Matcher, build bool) state.Matcher {
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 	}
 }
 
 func (b *Builder) discard(m state.Matcher) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		_, ok := m(p)
 		return nil, ok
 	}
@@ -388,7 +388,7 @@ func (b *Builder) capture(n *ir.Capture, m state.Matcher, build bool) state.Matc
 	if n.Project == "" {
 		m = captureMatcher(n.Body.Attrs().Shape, m)
 	}
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		v, ok := m(p)
 		if ok {
 			p.SetCapture(slot, v)
@@ -401,7 +401,7 @@ func (b *Builder) capture(n *ir.Capture, m state.Matcher, build bool) state.Matc
 }
 
 func (b *Builder) cut() state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		p.Cut = true
 		return nil, true
 	}
@@ -409,11 +409,11 @@ func (b *Builder) cut() state.Matcher {
 
 func (b *Builder) empty() state.Matcher {
 	// _ matches the empty input and has no value.
-	return func(p *state.Parser) (*core.Node, bool) { return nil, true }
+	return func(p *state.Parser) (*value.Node, bool) { return nil, true }
 }
 
 func (b *Builder) fail() state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) { return nil, false }
+	return func(p *state.Parser) (*value.Node, bool) { return nil, false }
 }
 
 func (b *Builder) anchor(kind ir.AnchorKind, desc state.ExpID) state.Matcher {
@@ -432,7 +432,7 @@ func (b *Builder) anchor(kind ir.AnchorKind, desc state.ExpID) state.Matcher {
 }
 
 func anchor(cond func(p *state.Parser) bool, desc state.ExpID) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		if cond(p) {
 			return nil, true
 		}
@@ -443,7 +443,7 @@ func anchor(cond func(p *state.Parser) bool, desc state.ExpID) state.Matcher {
 
 // single returns a matcher of one character that accept accepts.
 func single(build bool, desc state.ExpID, accept func(*state.Parser, rune) bool) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		ch, size, ok := p.Peek()
 		if !ok || !accept(p, ch) {
 			p.Expect(p.Pos, desc)
@@ -454,7 +454,7 @@ func single(build bool, desc state.ExpID, accept func(*state.Parser, rune) bool)
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 	}
 }
 
@@ -471,7 +471,7 @@ func (b *Builder) scanRepeat(n *ir.Scan) state.Matcher {
 	if scan != 0 && max < 0 {
 		return b.scanSite(accept, desc, min, charge, scan)
 	}
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		count := 0
 		for max < 0 || count < max {
 			if charge {
@@ -493,7 +493,7 @@ func (b *Builder) scanRepeat(n *ir.Scan) state.Matcher {
 // ScanHotSpan-th character looks for the record of its start, if the site is hot, and otherwise
 // reports itself to the cold state of the site.
 func (b *Builder) scanSite(accept func(*state.Parser, rune) bool, desc state.ExpID, min int, charge bool, site int) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start, span := p.Pos, state.ScanHotSpan
 		count := 0
 		for count < span {
@@ -537,8 +537,8 @@ func (b *Builder) scanSite(accept func(*state.Parser, rune) bool, desc state.Exp
 
 // scanSiteList is Repeat for the scan site scan whose walks build a list of the elements (see
 // scanSite). The element is a single character, matched by m, so it captures nothing and cuts nothing.
-func (b *Builder) scanSiteList(m state.Matcher, elemValue func(*state.Parser, *core.Node, int) *core.Node, rs *state.RunSite, min int, charge, build bool, site int) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+func (b *Builder) scanSiteList(m state.Matcher, elemValue func(*state.Parser, *value.Node, int) *value.Node, rs *state.RunSite, min int, charge, build bool, site int) state.Matcher {
+	return func(p *state.Parser) (*value.Node, bool) {
 		if rs != nil && p.Runs != nil && p.Silent == 0 {
 			return p.ResumeRepeat(rs)
 		}
@@ -595,7 +595,7 @@ func (b *Builder) scanSiteList(m state.Matcher, elemValue func(*state.Parser, *c
 		if count >= span {
 			return p.FinishScanList(site, start, base, count, hot, hit, rec, hw0), true
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 	}
 }
 
@@ -604,7 +604,7 @@ func (b *Builder) scanSiteList(m state.Matcher, elemValue func(*state.Parser, *c
 func (b *Builder) skipRepeat(min int, m state.Matcher, skip int) state.Matcher {
 	charge := b.charges()
 	keyEnv := !b.prog.EnvFree(skip)
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		p.SkipBegin(skip, keyEnv)
 		count := 0
 		for {
@@ -639,10 +639,10 @@ func (b *Builder) skipRepeat(min int, m state.Matcher, skip int) state.Matcher {
 // record the rest of them from each position and reuse the records (state/skip_runs.go). The
 // iterations have a scope of their own where they capture; build says whether they have values,
 // which the walk gathers in a list.
-func (b *Builder) runRepeat(min int, m state.Matcher, elemValue func(*state.Parser, *core.Node, int) *core.Node, elemScope *program.Scope, ownScope, build bool, run int) state.Matcher {
+func (b *Builder) runRepeat(min int, m state.Matcher, elemValue func(*state.Parser, *value.Node, int) *value.Node, elemScope *program.Scope, ownScope, build bool, run int) state.Matcher {
 	charge := b.charges()
 	keyEnv := !b.prog.EnvFree(run)
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start := p.Pos
 		if build {
 			p.SkipBeginList(run, keyEnv)
@@ -720,7 +720,7 @@ func (b *Builder) repeat(n *ir.Repeat, m state.Matcher, elemScope *program.Scope
 	if scan != 0 && !stream && !ownScope && max < 0 && run == 0 {
 		return b.scanSiteList(m, elemValue, rs, min, charge, build, scan)
 	}
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		if rs != nil && p.Runs != nil && p.Silent == 0 {
 			return p.ResumeRepeat(rs)
 		}
@@ -789,7 +789,7 @@ func (b *Builder) repeat(n *ir.Repeat, m state.Matcher, elemScope *program.Scope
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 	}
 }
 
@@ -797,7 +797,7 @@ func (b *Builder) repeat(n *ir.Repeat, m state.Matcher, elemScope *program.Scope
 // nothing refers to an element's frame once its value is taken.
 func (b *Builder) projectRepeat(min, max int, m state.Matcher, slot, n int) state.Matcher {
 	charge := b.charges()
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start := p.Pos
 		base := len(p.KidStack)
 		f := p.NewFrame(n)
@@ -831,7 +831,7 @@ func (b *Builder) projectRepeat(min, max int, m state.Matcher, slot, n int) stat
 			p.DropKids(base)
 			return nil, false
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 	}
 }
 
@@ -843,7 +843,7 @@ func (b *Builder) recover(body ir.Node, m, skip state.Matcher, build bool) state
 }
 
 func errorAttr(m state.Matcher, msg state.ExpID) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		v, ok, far, expected := state.Tracked(p, m)
 		if ok {
 			p.MergeExpected(far, expected)
@@ -857,7 +857,7 @@ func errorAttr(m state.Matcher, msg state.ExpID) state.Matcher {
 // diagnosticAttr names ordinary expectations of a failure at the expression boundary.
 // Explicit messages and the tracked failure position remain unchanged.
 func diagnosticAttr(m state.Matcher, name state.ExpID) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		v, ok, far, expected := state.Tracked(p, m)
 		if ok {
 			p.MergeExpected(far, expected)
@@ -871,7 +871,7 @@ func diagnosticAttr(m state.Matcher, name state.ExpID) state.Matcher {
 // recoverAttr records an error when the expression fails, skips the input matched by skip, and
 // returns an Error node. If skip fails or skips no characters, it fails without recovering.
 func recoverAttr(m, skip state.Matcher, build bool) state.Matcher {
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		m0 := p.Mark()
 		v, ok, far, expected := state.Tracked(p, m)
 		if ok {
@@ -890,7 +890,7 @@ func recoverAttr(m, skip state.Matcher, build bool) state.Matcher {
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.ErrorKind, Start: int32(m0.Pos), End: int32(p.Pos), Fields: coreimpl.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true}), true
+		return p.NewNode(nodes.Data{Kind: valueimpl.ErrorKind, Start: int32(m0.Pos), End: int32(p.Pos), Fields: valueimpl.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true}), true
 	}
 }
 
@@ -906,7 +906,7 @@ func singleMatcher(s ir.Shape, m state.Matcher) state.Matcher {
 	if mode == check.SinglePass && !sh.Elems {
 		return m
 	}
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start := p.Pos
 		v, ok := m(p)
 		if !ok {
@@ -922,23 +922,23 @@ func captureMatcher(s ir.Shape, m state.Matcher) state.Matcher {
 	if mode == check.SinglePass && !sh.Elems {
 		return m
 	}
-	return func(p *state.Parser) (*core.Node, bool) {
+	return func(p *state.Parser) (*value.Node, bool) {
 		start := p.Pos
 		v, ok := m(p)
 		if !ok {
 			return nil, false
 		}
 		if v, ok = state.ShapeSingle(p, sh, mode, v, start); !ok {
-			v = p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
+			v = p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
 		}
 		return v, true
 	}
 }
 
-func scopeValueOf(s ir.Shape) func(p *state.Parser, v *core.Node, start int) *core.Node {
+func scopeValueOf(s ir.Shape) func(p *state.Parser, v *value.Node, start int) *value.Node {
 	sh := shaper(s)
 	if s.Tuple {
-		return func(p *state.Parser, v *core.Node, start int) *core.Node { return state.ShapeTuple(p, sh, v, start) }
+		return func(p *state.Parser, v *value.Node, start int) *value.Node { return state.ShapeTuple(p, sh, v, start) }
 	}
-	return func(_ *state.Parser, v *core.Node, _ int) *core.Node { return sh.One(v) }
+	return func(_ *state.Parser, v *value.Node, _ int) *value.Node { return sh.One(v) }
 }

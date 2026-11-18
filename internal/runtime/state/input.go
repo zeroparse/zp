@@ -9,8 +9,11 @@ import (
 	"slices"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/limits"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // ParseOptions holds per-parse settings.
@@ -22,9 +25,9 @@ type ParseOptions struct {
 	Context context.Context
 	// Limits bound the cost of the parse, the length of its input and the nesting of its recursive
 	// rule calls (DepthLimit).
-	Limits core.Limits
+	Limits runtime.Limits
 	// Unit is the position unit. Matching is done per code point regardless of the unit.
-	Unit core.PositionUnit
+	Unit input.PositionUnit
 	// Backend is the backend that runs the parse.
 	Backend Backend
 	// Recognize checks only whether the input conforms to the grammar and reports syntax errors,
@@ -37,13 +40,13 @@ type ParseOptions struct {
 	Trace func(TraceEvent)
 	// Profiles record the rule calls of the parse (see core.ProfileRecorder): each records an event
 	// before Trace handles it. A profiled parse is traced (Traced).
-	Profiles []*core.Profile
+	Profiles []*instrument.Profile
 	// TraceSelection, if not nil, limits the events that Trace receives. It is nil for a parse that
 	// selects no events, so that the selection costs an unobserved parse one pointer of options.
 	TraceSelection *TraceSelection
 	// DiagnosticCallback receives committed recoveries during stream parsing, immediately before
 	// the corresponding element. It is invalid for batch parses and Documents.
-	DiagnosticCallback func(*core.SyntaxError) error
+	DiagnosticCallback func(*value.SyntaxError) error
 	// DiagnosticLimit retains only the latest committed stream recoveries when positive.
 	// DiagnosticLimitSet records an explicit zero limit, which is stream-only too.
 	DiagnosticLimit    int
@@ -91,9 +94,9 @@ const (
 // overflow first.
 func DepthLimit(o ParseOptions, b Backend) (int, error) {
 	switch d := o.Limits.Depth; {
-	case d == core.Unlimited && b != BytecodeIterative:
+	case d == runtime.Unlimited && b != BytecodeIterative:
 		return 0, fmt.Errorf("an unlimited depth needs the bytecode-iterative backend: %s nests rule calls on the goroutine stack", b)
-	case d == core.Unlimited || d > math.MaxInt:
+	case d == runtime.Unlimited || d > math.MaxInt:
 		return math.MaxInt, nil
 	case d > 0:
 		return int(d), nil
@@ -111,7 +114,7 @@ type Input struct {
 	// MaxInput, when positive, is the longest stream the parse accepts, in units: Fill fails the parse
 	// when the parser needs a unit beyond it and the stream has one.
 	MaxInput int
-	Unit     core.PositionUnit
+	Unit     input.PositionUnit
 	In       []rune // for CodePoints
 	Bs       []byte // for Bytes
 	Base     int
@@ -166,7 +169,7 @@ var offsLimit = 1<<31 - 1
 func (in *Input) setSource(s string) {
 	in.Src, in.Offs = s, nil
 	in.dec, in.decOffs, in.decWide, in.decoded = "", nil, nil, false
-	valid := in.Unit == core.Bytes || utf8.ValidString(s)
+	valid := in.Unit == input.Bytes || utf8.ValidString(s)
 	in.SrcOK = valid && len(s) <= offsLimit
 	in.setWideSource(s, valid)
 }
@@ -174,7 +177,7 @@ func (in *Input) setSource(s string) {
 // setWideSource makes a valid code-point source too large for int32 offsets its own decoded
 // text, so that the first text builds the wide table without copying it.
 func (in *Input) setWideSource(s string, valid bool) {
-	if valid && in.Unit != core.Bytes && len(s) > offsLimit {
+	if valid && in.Unit != input.Bytes && len(s) > offsLimit {
 		in.dec = s
 	}
 }
@@ -200,7 +203,7 @@ func (in *Input) Replace(start, end int, text string) (delta int) {
 	if DocumentPieceInput && in.Pieces != nil {
 		return in.Pieces.Replace(start, end, text)
 	}
-	if in.Unit == core.Bytes {
+	if in.Unit == input.Bytes {
 		in.Bs = slices.Replace(in.Bs, start, end, []byte(text)...)
 		in.Src = in.Src[:start] + text + in.Src[end:]
 		return len(text) - (end - start)
@@ -233,18 +236,18 @@ func (in *Input) Replace(start, end int, text string) (delta int) {
 	return delta
 }
 
-func NewInput(s string, unit core.PositionUnit) Input { return NewTextInput(s, unit, false) }
+func NewInput(s string, unit input.PositionUnit) Input { return NewTextInput(s, unit, false) }
 
 // NewTextInput returns the input s. If offsets is set (the parse will need token text), the
 // offset table is built in the same pass as the decoding; otherwise it is built on demand.
-func NewTextInput(s string, unit core.PositionUnit, offsets bool) Input {
+func NewTextInput(s string, unit input.PositionUnit, offsets bool) Input {
 	return newTextInputIn(s, unit, offsets, nil)
 }
 
 // newTextInputIn is NewTextInput with the buffers of sc, if not nil.
-func newTextInputIn(s string, unit core.PositionUnit, offsets bool, sc *scratch) Input {
+func newTextInputIn(s string, unit input.PositionUnit, offsets bool, sc *scratch) Input {
 	in := Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1}
-	if unit == core.Bytes {
+	if unit == input.Bytes {
 		if sc != nil {
 			in.Bs = append(sc.bytes[:0], s...)
 		} else {
@@ -294,7 +297,7 @@ func newTextInputIn(s string, unit core.PositionUnit, offsets bool, sc *scratch)
 }
 
 // NewParser returns a parser of the input s; offsets is as for NewTextInput.
-func NewParser(prog *SharedProgram, s string, unit core.PositionUnit, offsets bool) *Parser {
+func NewParser(prog *SharedProgram, s string, unit input.PositionUnit, offsets bool) *Parser {
 	return &Parser{Prog: prog, Input: NewTextInput(s, unit, offsets), Memo: NewMemoTable(), MaxDepth: DefaultMaxDepth}
 }
 
@@ -306,7 +309,7 @@ type scratch struct {
 	offs  []int32
 	bytes []byte
 	memo  MemoTable
-	kids  []*core.Node
+	kids  []*value.Node
 	cold  []runCold
 }
 
@@ -386,11 +389,11 @@ func grow[T any](buf []T, n int) []T {
 	return make([]T, n)
 }
 
-func NewStreamParser(prog *SharedProgram, r io.Reader, unit core.PositionUnit) *Parser {
+func NewStreamParser(prog *SharedProgram, r io.Reader, unit input.PositionUnit) *Parser {
 	return NewControlledStreamParser(prog, r, unit, nil)
 }
 
-func NewControlledStreamParser(prog *SharedProgram, r io.Reader, unit core.PositionUnit, control *BudgetControl) *Parser {
+func NewControlledStreamParser(prog *SharedProgram, r io.Reader, unit input.PositionUnit, control *BudgetControl) *Parser {
 	p := &Parser{Prog: prog, Input: Input{Unit: unit, Control: control, BaseLine: 1, BaseCol: 1}, Memo: NewMemoTable(), MaxDepth: DefaultMaxDepth}
 	if BudgetControlsEnabled && control != nil {
 		r = &StreamReaderObserver{Reader: r, Result: &p.readerResult, Control: control}
@@ -407,7 +410,7 @@ func (in *Input) Loaded() int {
 	if DocumentPieceInput && in.Pieces != nil {
 		return in.Pieces.N
 	}
-	if in.Unit == core.Bytes {
+	if in.Unit == input.Bytes {
 		return in.Base + len(in.Bs)
 	}
 	return in.Base + len(in.In)
@@ -424,7 +427,7 @@ func (in *Input) Fill(n int) bool {
 	if in.MaxInput > 0 && n > in.MaxInput && in.Loaded() > in.MaxInput {
 		// The outcome does not depend on how the reader chunks the stream: the parser needed
 		// the unit at MaxInput and the stream holds it. Loaded is at least n unless the stream ended.
-		panic(Fatal{Err: &core.LimitError{Kind: core.LimitInput, Limit: uint64(in.MaxInput), Requested: uint64(min(n, in.Loaded()))}})
+		panic(Fatal{Err: &runtime.LimitError{Kind: runtime.LimitInput, Limit: uint64(in.MaxInput), Requested: uint64(min(n, in.Loaded()))}})
 	}
 	return ok
 }
@@ -433,7 +436,7 @@ func (in *Input) fill(n int) bool {
 	for in.Loaded() < n && !in.Eof {
 		in.read()
 		for in.Reader.Buffered() > 0 {
-			if in.Unit == core.CodePoints {
+			if in.Unit == input.CodePoints {
 				if b, _ := in.Reader.Peek(in.Reader.Buffered()); !utf8.FullRune(b) {
 					break
 				}
@@ -453,7 +456,7 @@ func (in *Input) read() {
 	var b byte
 	var r rune
 	in.ReaderCall = true
-	if in.Unit == core.Bytes {
+	if in.Unit == input.Bytes {
 		b, err = in.Reader.ReadByte()
 	} else {
 		r, _, err = in.Reader.ReadRune()
@@ -469,7 +472,7 @@ func (in *Input) read() {
 	}
 	if err == io.EOF {
 		in.Eof = true
-	} else if in.Unit == core.Bytes {
+	} else if in.Unit == input.Bytes {
 		in.Bs = append(in.Bs, b)
 	} else {
 		in.In = append(in.In, r)
@@ -486,7 +489,7 @@ func (in *Input) Decode(i int) (r rune, size, examined int, ok bool) {
 	if DocumentPieceInput && in.Pieces != nil {
 		return in.decodePieces(i)
 	}
-	if in.Unit == core.CodePoints {
+	if in.Unit == input.CodePoints {
 		if !in.Fill(i + 1) {
 			return 0, 0, i + 1, false
 		}
@@ -548,7 +551,7 @@ func (in *Input) Text(start, end int) string {
 		}
 		return in.Pieces.Text(start, end)
 	}
-	if !in.SrcOK && in.Unit != core.Bytes && in.Eof && in.Reader == nil && in.Base == 0 {
+	if !in.SrcOK && in.Unit != input.Bytes && in.Eof && in.Reader == nil && in.Base == 0 {
 		if !in.decoded {
 			in.decodeSource()
 		}
@@ -560,7 +563,7 @@ func (in *Input) Text(start, end int) string {
 		}
 	}
 	if in.SrcOK {
-		if in.Unit == core.Bytes {
+		if in.Unit == input.Bytes {
 			return in.Src[start:end]
 		}
 		if in.Offs == nil {
@@ -574,7 +577,7 @@ func (in *Input) Text(start, end int) string {
 	if BudgetControlsEnabled && in.Control != nil {
 		return in.detachedText(start-in.Base, end-in.Base)
 	}
-	if in.Unit == core.Bytes {
+	if in.Unit == input.Bytes {
 		return string(in.Bs[start-in.Base : end-in.Base])
 	}
 	return string(in.In[start-in.Base : end-in.Base])
@@ -620,7 +623,7 @@ func (in *Input) isNewline(i int) bool {
 		b, ok := in.Pieces.At(i)
 		return ok && b == '\n'
 	}
-	if in.Unit == core.Bytes {
+	if in.Unit == input.Bytes {
 		b, ok := in.byteAt(i)
 		return ok && b == '\n'
 	}
@@ -653,7 +656,7 @@ func (in *Input) lineCol(pos int) (int, int) {
 	for ; sl.scanned < pos; sl.scanned++ {
 		in.spendRead(1)
 		var nl bool
-		if in.Unit == core.Bytes {
+		if in.Unit == input.Bytes {
 			nl = in.Bs[sl.scanned-in.Base] == '\n'
 		} else {
 			nl = in.In[sl.scanned-in.Base] == '\n'
@@ -683,7 +686,7 @@ func (in *Input) buildLines() {
 	in.Lines = append(in.Lines[:0], 0)
 	if DocumentPieceInput && in.Pieces != nil {
 		for _, p := range in.Pieces.Parts {
-			if in.Unit == core.Bytes {
+			if in.Unit == input.Bytes {
 				for i := 0; i < len(p.Text); i++ {
 					in.spendRead(1)
 					if p.Text[i] == '\n' {
@@ -702,7 +705,7 @@ func (in *Input) buildLines() {
 		complete = true
 		return
 	}
-	if in.Unit == core.Bytes {
+	if in.Unit == input.Bytes {
 		for i := range in.Bs {
 			in.spendRead(1)
 			b := in.Bs[i]
@@ -737,7 +740,7 @@ func (in *Input) Discard(keep int) {
 		k, _ := slices.BinarySearch(sl.starts, keep+1)
 		sl.starts = sl.starts[:copy(sl.starts, sl.starts[k:])]
 	}
-	if in.Unit == core.Bytes {
+	if in.Unit == input.Bytes {
 		in.Bs = in.Bs[:CopyStreamPrefix(in.Control, in.Bs, in.Bs[n:])]
 	} else {
 		in.In = in.In[:CopyStreamPrefix(in.Control, in.In, in.In[n:])]
@@ -764,7 +767,7 @@ func (p *Parser) MatchLiteral(rs []rune, bs []byte) bool {
 		// The whole input is loaded: compare in one go. As below, a mismatch leaves pos after the
 		// matching prefix and the examined range includes the first character that differs.
 		var k, n int
-		if p.Unit == core.Bytes {
+		if p.Unit == input.Bytes {
 			in := p.Bs[p.Pos-p.Base:]
 			n = len(bs)
 			for k < n {
@@ -790,14 +793,14 @@ func (p *Parser) MatchLiteral(rs []rune, bs []byte) bool {
 			p.Pos += n
 			return true
 		}
-		if p.Unit == core.Bytes && p.LiteralHasReplacement(rs) {
+		if p.Unit == input.Bytes && p.LiteralHasReplacement(rs) {
 			return p.matchLiteralRunes(rs)
 		}
 		p.touch(p.Pos + k + 1)
 		p.Pos += k
 		return false
 	}
-	if p.Unit == core.Bytes {
+	if p.Unit == input.Bytes {
 		start := p.Pos
 		for _, b := range bs {
 			p.touch(p.Pos + 1)
@@ -857,7 +860,7 @@ func (p *Parser) LiteralHasReplacement(rs []rune) bool {
 // LiteralText preserves matched input bytes when replacement decoding accepts
 // a shorter spelling than the literal's valid UTF-8 encoding.
 func (p *Parser) LiteralText(start int, text string) string {
-	if p.Unit == core.Bytes && p.Pos-start != len(text) {
+	if p.Unit == input.Bytes && p.Pos-start != len(text) {
 		return p.Text(start, p.Pos)
 	}
 	return text
@@ -902,16 +905,16 @@ func (p *Parser) AtInputStart() bool {
 }
 
 // TextLen returns the length of the string in unit u.
-func TextLen(u core.PositionUnit, s string) int {
-	if u == core.Bytes {
+func TextLen(u input.PositionUnit, s string) int {
+	if u == input.Bytes {
 		return len(s)
 	}
 	return utf8.RuneCountInString(s)
 }
 
 // ValidBoundary checks, when the unit is Bytes, that the position lies on a character boundary.
-func ValidBoundary(text string, unit core.PositionUnit, pos int) error {
-	if unit == core.Bytes && pos < len(text) && !utf8.RuneStart(text[pos]) {
+func ValidBoundary(text string, unit input.PositionUnit, pos int) error {
+	if unit == input.Bytes && pos < len(text) && !utf8.RuneStart(text[pos]) {
 		// A continuation byte is interior only when a valid rune covers
 		// it. Invalid bytes are separate one-byte replacement characters.
 		// No UTF-8 character starts more than three bytes before pos.

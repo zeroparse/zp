@@ -5,14 +5,14 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // compareSnapshotNode checks that Kind, Len and Value of a snapshot node answer as those of the node
 // it was frozen from, and follows the elements and the node fields of both.
-func compareSnapshotNode(t *testing.T, path string, s SnapshotNode, n *core.Node, kinds map[core.NodeKind]int) {
+func compareSnapshotNode(t *testing.T, path string, s SnapshotNode, n *value.Node, kinds map[value.NodeKind]int) {
 	t.Helper()
 	if n == nil {
 		if s.Valid() || s.Len() != 0 || s.Value() != nil {
@@ -28,7 +28,7 @@ func compareSnapshotNode(t *testing.T, path string, s SnapshotNode, n *core.Node
 		compareSnapshotNode(t, fmt.Sprintf("%s[%d]", path, i), s.Child(i), n.Elem(i), kinds)
 	}
 	for name, fv := range n.Fields() {
-		if c, ok := fv.(*core.Node); ok && n.Kind() == core.KindStruct {
+		if c, ok := fv.(*value.Node); ok && n.Kind() == value.KindStruct {
 			sv, _ := s.Field(name)
 			compareSnapshotNode(t, path+"."+name, sv.(SnapshotNode), c, kinds)
 		}
@@ -51,13 +51,13 @@ rule main = v1:"a" v2:"b" => Pair{All: list($v1, $v2), Nums: list(7, 8), Names: 
 		if err != nil {
 			t.Fatal(err)
 		}
-		kinds := map[core.NodeKind]int{}
+		kinds := map[value.NodeKind]int{}
 		compareSnapshotNode(t, "root", snap.Root(), root, kinds)
-		if kinds[core.KindListValue] == 0 || kinds[core.KindValue] == 0 || kinds[core.KindStruct] == 0 {
+		if kinds[value.KindListValue] == 0 || kinds[value.KindValue] == 0 || kinds[value.KindStruct] == 0 {
 			t.Fatalf("the tree does not cover the kinds: %v", kinds)
 		}
 		// Frozen again from the snapshot, the same answers.
-		compareSnapshotNode(t, "materialized", snap.Root(), snap.Materialize(), map[core.NodeKind]int{})
+		compareSnapshotNode(t, "materialized", snap.Root(), snap.Materialize(), map[value.NodeKind]int{})
 	})
 }
 

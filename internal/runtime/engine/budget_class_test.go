@@ -9,11 +9,13 @@ import (
 	"strconv"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 const budgetClassRangeCount = 2048
@@ -28,7 +30,7 @@ func budgetClassRanges(n int) []ast.CharRange {
 	return ranges
 }
 
-func budgetClassNode(t *testing.T, p *Program, input string, opts ParseOptions) *core.Node {
+func budgetClassNode(t *testing.T, p *Program, input string, opts ParseOptions) *value.Node {
 	t.Helper()
 	n, err := p.ParseWith("main", input, opts)
 	if err != nil || n == nil {
@@ -37,11 +39,11 @@ func budgetClassNode(t *testing.T, p *Program, input string, opts ParseOptions) 
 	return n
 }
 
-func budgetClassBudgetOptions(backend Backend, unit core.PositionUnit, allowance uint64, observed **state.Parser) ParseOptions {
+func budgetClassBudgetOptions(backend Backend, unit zpinput.PositionUnit, allowance uint64, observed **state.Parser) ParseOptions {
 	return ParseOptions{
 		Backend: backend,
 		Unit:    unit,
-		Limits:  core.Limits{Compute: 1 << 30},
+		Limits:  runtime.Limits{Compute: 1 << 30},
 		Trace: func(e TraceEvent) {
 			if e.Kind == TraceEnter && e.Rule == "main" {
 				if observed != nil {
@@ -53,15 +55,15 @@ func budgetClassBudgetOptions(backend Backend, unit core.PositionUnit, allowance
 	}
 }
 
-func requireClassBudgetLimit(t *testing.T, p *Program, input string, backend Backend, unit core.PositionUnit) *state.Parser {
+func requireClassBudgetLimit(t *testing.T, p *Program, input string, backend Backend, unit zpinput.PositionUnit) *state.Parser {
 	t.Helper()
 	var observed *state.Parser
 	n, err := p.ParseWith("main", input, budgetClassBudgetOptions(backend, unit, 32, &observed))
-	if n != nil || !errors.Is(err, core.ErrLimit) {
+	if n != nil || !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("%v/%v input %q: node=%v err type=%T, want fatal compute limit error", backend, unit, input, n, err)
 	}
-	var limit *core.LimitError
-	if !errors.As(err, &limit) || limit.Kind != core.LimitCompute {
+	var limit *runtime.LimitError
+	if !errors.As(err, &limit) || limit.Kind != runtime.LimitCompute {
 		t.Fatalf("%v/%v input %q: error=%T %v, want spend LimitError", backend, unit, input, err, err)
 	}
 	if limit.Requested != 1 || limit.Used != limit.Limit {
@@ -79,7 +81,7 @@ func TestBudgetClassLargeNonASCIIRangesAreCharged(t *testing.T) {
 	negative := classMembershipProgram(t, &ast.CharClass{Ranges: ranges, Negated: true})
 
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				if n := budgetClassNode(t, positive, late, ParseOptions{Backend: backend, Unit: unit}); nodes.D(n).Text != late {
 					t.Fatalf("late class hit text=%q, want %q", nodes.D(n).Text, late)
@@ -87,7 +89,7 @@ func TestBudgetClassLargeNonASCIIRangesAreCharged(t *testing.T) {
 				if n := budgetClassNode(t, negative, gap, ParseOptions{Backend: backend, Unit: unit}); nodes.D(n).Text != gap {
 					t.Fatalf("negated class text=%q, want %q", nodes.D(n).Text, gap)
 				}
-				if n, err := positive.ParseWith("main", gap, ParseOptions{Backend: backend, Unit: unit}); n != nil || err == nil || errors.Is(err, core.ErrLimit) {
+				if n, err := positive.ParseWith("main", gap, ParseOptions{Backend: backend, Unit: unit}); n != nil || err == nil || errors.Is(err, runtime.ErrLimit) {
 					t.Fatalf("unlimited positive miss: node=%v err=%v", n, err)
 				}
 
@@ -108,7 +110,7 @@ func TestBudgetClassRangeCancellationAndPoolRetry(t *testing.T) {
 	p := classMembershipProgram(t, &ast.CharClass{Ranges: ranges})
 
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				var observed *state.Parser
 				var control *state.BudgetControl
@@ -117,7 +119,7 @@ func TestBudgetClassRangeCancellationAndPoolRetry(t *testing.T) {
 				opts := ParseOptions{
 					Backend: backend,
 					Unit:    unit,
-					Limits:  core.Limits{Compute: 1 << 30},
+					Limits:  runtime.Limits{Compute: 1 << 30},
 					Trace: func(e TraceEvent) {
 						if e.Kind == TraceEnter && e.Rule == "main" {
 							observed, control = state.TraceParser(e), state.TraceParser(e).Control
@@ -173,11 +175,11 @@ func TestBudgetClassInterruptionBypassesChoiceAndRecovery(t *testing.T) {
 	// Without an active control, the class miss is recovered and the grammar
 	// completes. The controlled attempt must terminate before recovery/choice.
 	n, err := p.ParseWith("main", gap, ParseOptions{})
-	if n == nil || errors.Is(err, core.ErrLimit) {
+	if n == nil || errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("uncontrolled recovery baseline: node=%v err=%v", n, err)
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		if observed := requireClassBudgetLimit(t, p, gap, backend, core.CodePoints); observed == nil {
+		if observed := requireClassBudgetLimit(t, p, gap, backend, zpinput.CodePoints); observed == nil {
 			t.Fatalf("%v: trace did not observe start rule", backend)
 		}
 	}
@@ -198,12 +200,12 @@ func TestBudgetClassFastPathParity(t *testing.T) {
 	for _, tc := range cases {
 		p := classMembershipProgram(t, tc.class)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				t.Run(tc.name+"/"+backend.String()+"/"+unit.String(), func(t *testing.T) {
 					base, baseErr := p.ParseWith("main", tc.input, ParseOptions{Backend: backend, Unit: unit})
 					controlled, controlledErr := p.ParseWith("main", tc.input, ParseOptions{
 						Backend: backend, Unit: unit,
-						Limits: core.Limits{Compute: 10000},
+						Limits: runtime.Limits{Compute: 10000},
 					})
 					if !reflect.DeepEqual(controlled, base) || !reflect.DeepEqual(controlledErr, baseErr) {
 						t.Fatalf("controlled result differs: got %#v/%#v, want %#v/%#v", controlled, controlledErr, base, baseErr)
@@ -267,7 +269,7 @@ func TestBudgetClassOptimizedRoutes(t *testing.T) {
 			// the parse, which a compiled grammar serves in document mode.
 			loaded := saveLoad(t, p, "main", CompiledDocument)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					for _, program := range []*Program{p, loaded} {
 						if program == loaded && backend == Closure {
 							continue
@@ -277,7 +279,7 @@ func TestBudgetClassOptimizedRoutes(t *testing.T) {
 						var c *state.BudgetControl
 						var start uint64
 						n, err := program.ParseWith("main", tc.input, ParseOptions{
-							Backend: backend, Unit: unit, Limits: core.Limits{Compute: 1 << 30},
+							Backend: backend, Unit: unit, Limits: runtime.Limits{Compute: 1 << 30},
 							Trace: func(e TraceEvent) {
 								if e.Kind == TraceEnter && e.Rule == "main" {
 									c = state.TraceParser(e).Control

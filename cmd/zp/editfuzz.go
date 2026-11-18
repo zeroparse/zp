@@ -11,10 +11,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/cliflag"
 	"zeroparse.dev/zp/pkg/editfuzz"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func editFuzzCmd(args []string, stdout io.Writer) error {
@@ -84,7 +85,7 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 		}
 		bs = append(bs, b)
 	}
-	var us []core.PositionUnit
+	var us []input.PositionUnit
 	for _, name := range strings.Split(*units, ",") {
 		u, err := cliflag.ParseUnit(name)
 		if err != nil {
@@ -105,7 +106,7 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 	return nil
 }
 
-func editFuzzReplay(src []byte, path, save string, minimize bool, maxAttempts int, limits core.Limits, stdout io.Writer) error {
+func editFuzzReplay(src []byte, path, save string, minimize bool, maxAttempts int, limits runtime.Limits, stdout io.Writer) error {
 	seq, err := editfuzz.Load(path)
 	if err != nil {
 		return err

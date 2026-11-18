@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	rt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The adapter reads the typed values of the generated parser of zp.zp. A
@@ -168,7 +168,7 @@ var (
 )
 
 // typedTree moves the File node root of an engine parse into the typed values.
-func typedTree(t testing.TB, root *core.Node) *types.File {
+func typedTree(t testing.TB, root *value.Node) *types.File {
 	t.Helper()
 	f, _ := typedValue(t, root, reflect.TypeOf((*types.File)(nil))).Interface().(*types.File)
 	return f
@@ -178,7 +178,7 @@ func typedTree(t testing.TB, root *core.Node) *types.File {
 func typedValue(t testing.TB, v any, typ reflect.Type) reflect.Value {
 	t.Helper()
 	out := reflect.New(typ).Elem()
-	n, _ := v.(*core.Node)
+	n, _ := v.(*value.Node)
 	if v == nil || n == nil && typ.Kind() != reflect.String && typ.Kind() != reflect.Bool {
 		return out
 	}
@@ -203,7 +203,7 @@ func typedValue(t testing.TB, v any, typ reflect.Type) reflect.Value {
 		}
 	case reflect.Interface:
 		var p reflect.Value
-		if n.Kind() == core.KindError {
+		if n.Kind() == value.KindError {
 			p = reflect.ValueOf(&types.Error{Span: span(n), Message: n.Text()})
 		} else if pt, ok := treeTypes[n.Type()]; ok {
 			p = typedValue(t, n, pt)
@@ -215,7 +215,7 @@ func typedValue(t testing.TB, v any, typ reflect.Type) reflect.Value {
 		}
 		out.Set(p)
 	case reflect.Pointer:
-		if n.Kind() == core.KindError {
+		if n.Kind() == value.KindError {
 			return out // an error in a place of a struct type is nil
 		}
 		p := reflect.New(typ.Elem())
@@ -227,10 +227,10 @@ func typedValue(t testing.TB, v any, typ reflect.Type) reflect.Value {
 	return out
 }
 
-func span(n *core.Node) rt.Span { return rt.Span{Start: n.Start(), End: n.End()} }
+func span(n *value.Node) rt.Span { return rt.Span{Start: n.Start(), End: n.End()} }
 
 // fill sets the struct s, a struct or node type of the typed values, from n.
-func fill(t testing.TB, n *core.Node, s reflect.Value) {
+func fill(t testing.TB, n *value.Node, s reflect.Value) {
 	t.Helper()
 	st := s.Type()
 	if st.NumField() == 1 && st.Field(0).Anonymous && st.Field(0).Type != spanType {

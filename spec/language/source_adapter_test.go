@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The generated source parser, with its adapter, must build the grammar that
@@ -44,8 +44,8 @@ func sourceErrorsOf(err error) ([]parser.SourceError, bool) {
 	var out []parser.SourceError
 	var glist zpparser.SyntaxErrors
 	var gone *zpparser.SyntaxError
-	var list core.SyntaxErrors
-	var one *core.SyntaxError
+	var list value.SyntaxErrors
+	var one *value.SyntaxError
 	switch {
 	case errors.As(err, &glist):
 		for _, e := range glist {

@@ -11,9 +11,9 @@ before choosing an edit location:
 | Grammar source parsing | `internal/frontend/parser/` |
 | Compiler and static analysis | `internal/compile/` |
 | Runtime: execution, bytecode VMs, Documents, streams and limit controls | `internal/runtime/engine/` (parse, Document and stream entries) over `internal/runtime/` (`program/` the run-time program, `state/` the shared parser state, `vm/` the VMs, `document/` the Document, `nodes/`, `limits/`); the compile entry in `internal/driver/entry/`, and in `internal/driver/checked/` the compiler side that the runtime reaches through `state.Source`; backends in `internal/backend/` (`closure/`, `vmlower/` the bytecode compiler, `codegen/{common,golang,typescript}/`) |
-| Code generation entry points | `codegen/` (`codegen.Go`, `codegen.TypeScript`, embedding the library sources `codegen/go/lib/` and `codegen/ts/lib/`), `internal/backend/codegen/common/` |
+| Code generation entry points | `codegen/` (`codegen.Go`, `codegen.TypeScript`, embedding the library sources `pkg/runtime/golib/` and `internal/backend/codegen/typescript/lib/`), `internal/backend/codegen/common/` |
 | Output schema and structural queries | `pkg/runtime/schema/` (the types, their validation and `Compare`), `internal/frontend/schemaexport/` (the export), `pkg/runtime/query/` (the queries) |
-| Generated Go parser source | Generator `internal/backend/codegen/golang/print/generator.go` and library package `codegen/go/lib/` (imported or copied into generated parsers; depends only on `core/`); generated parsers under `internal/bench/parsers/` are outputs |
+| Generated Go parser source | Generator `internal/backend/codegen/golang/print/generator.go` and library package `pkg/runtime/golib/` (imported or copied into generated parsers; depends only on `core/`); generated parsers under `internal/bench/parsers/` are outputs |
 | CLI, linter, editor service and sample generation | `cmd/zp/`, `pkg/lint/`, `internal/lsp/`, `pkg/sample/` |
 | Grammars of ten languages, playground and site | `testdata/grammars/`, `cmd/playground/`, `site/` (ready-made parsers: the separate alpha-parsers repository) |
 

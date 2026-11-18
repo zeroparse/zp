@@ -6,10 +6,11 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func TestSnapshotPositionOverlayZeroAndOverflow(t *testing.T) {
@@ -20,7 +21,7 @@ func TestSnapshotPositionOverlayZeroAndOverflow(t *testing.T) {
 		previous.positions[i] = snapshotPositionDelta{start: -3, end: 4, gen: 9}
 		next.nodes[i] = snapshotRecord{start: 0, end: 9, gen: 9}
 	}
-	p := &state.Parser{Control: state.NewBudgetControl(nil, core.Limits{})}
+	p := &state.Parser{Control: state.NewBudgetControl(nil, runtime.Limits{})}
 	shared := shareSnapshotGraph(p, &previous, next)
 	n := snapshotHandle(&shared, 1)
 	materialized := (&Snapshot{graph: shared}).Materialize()
@@ -39,8 +40,8 @@ func TestSnapshotPositionOverlayZeroAndOverflow(t *testing.T) {
 }
 
 func TestSnapshotPositionOverlayCyclesAndTypedNil(t *testing.T) {
-	root := nodes.Ptr(nodes.Data{Start: 0, End: 128, Children: make([]*core.Node, 128)})
-	nodes.D(root).Fields = coreimpl.Fields{{Name: "self", Value: root}, {Name: "typedNil", Value: (*core.Node)(nil)}, {Name: "scalarPosition", Value: 42}}
+	root := nodes.Ptr(nodes.Data{Start: 0, End: 128, Children: make([]*value.Node, 128)})
+	nodes.D(root).Fields = valueimpl.Fields{{Name: "self", Value: root}, {Name: "typedNil", Value: (*value.Node)(nil)}, {Name: "scalarPosition", Value: 42}}
 	for i := range nodes.D(root).Children {
 		nodes.D(root).Children[i] = nodes.Ptr(nodes.Data{Start: int32(i), End: int32(i + 1), Mark: 1})
 	}
@@ -95,10 +96,10 @@ func TestSnapshotPositionOverlayBudgetAndRetry(t *testing.T) {
 	for i := range next.nodes {
 		next.nodes[i] = snapshotRecord{start: 3, end: 5, gen: 1}
 	}
-	p := &state.Parser{Control: state.NewBudgetControl(nil, core.Limits{Compute: 264})}
+	p := &state.Parser{Control: state.NewBudgetControl(nil, runtime.Limits{Compute: 264})}
 	err := catchFatal(t, func() { shareSnapshotGraph(p, &previous, next) })
-	var limit *core.LimitError
-	if !errors.As(err, &limit) || limit.Kind != core.LimitCompute || limit.Requested != 3 {
+	var limit *runtime.LimitError
+	if !errors.As(err, &limit) || limit.Kind != runtime.LimitCompute || limit.Requested != 3 {
 		t.Fatal("overlay metadata copy escaped compute limit", err)
 	}
 	if previous.positions != nil || next.positions != nil || previous.nodes[0].start != 0 || next.nodes[0].start != 3 {

@@ -7,12 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // A shared AST leaf is first compiled value-free for a text struct rule, then
@@ -39,18 +41,18 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				input := strings.Repeat(tc.text, 3)
 				n, err := shared.ParseWith("main", input, ParseOptions{Unit: unit})
 				if err != nil {
 					t.Fatal(err)
 				}
 				width := int32(1)
-				if unit == core.Bytes {
+				if unit == zpinput.Bytes {
 					width = int32(len(tc.text))
 				}
 				for i, name := range []string{"a", "b", "c"} {
-					val, ok := n.Field(name).(*core.Node)
+					val, ok := n.Field(name).(*value.Node)
 					text := ""
 					if val != nil && name == "b" {
 						text, _ = val.Field("Text").(string)
@@ -61,7 +63,7 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 						t.Fatalf("unit=%v capture=%s lost value or span: %v", unit, name, val)
 					}
 					// A text struct value carries no rule name.
-					wantType, wantRule := coreimpl.TypeString, "value"
+					wantType, wantRule := valueimpl.TypeString, "value"
 					if name == "b" {
 						wantType, wantRule = "Token", ""
 					}
@@ -72,7 +74,7 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 				for _, recognize := range []bool{false, true} {
 					for _, text := range []string{input, "", tc.text, "x"} {
 						for limit := uint64(0); limit <= 80; limit++ {
-							for _, limits := range []core.Limits{{Compute: limit}, {Compute: limit}} {
+							for _, limits := range []runtime.Limits{{Compute: limit}, {Compute: limit}} {
 								opts := ParseOptions{Unit: unit, Recognize: recognize, Limits: limits}
 								a, ae := shared.ParseWith("main", text, opts)
 								b, be := reference.ParseWith("main", text, opts)

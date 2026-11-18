@@ -8,8 +8,9 @@ import (
 	"io"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 type budgetCancelledRefillReader struct {
@@ -46,7 +47,7 @@ rule row = .+ #atomic`)
 				}
 				o.Context = ctx
 				emits := 0
-				err := prog.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, o)
+				err := prog.ParseStreamWith("main", reader, func(*value.Node) error { emits++; return nil }, o)
 				if !errors.Is(err, context.Canceled) || reader.calls != 1 || emits != 0 {
 					t.Fatalf("error=%v readercalls=%d emits=%d", err, reader.calls, emits)
 				}
@@ -61,7 +62,7 @@ func TestBudgetStreamRawReaderAdmission(t *testing.T) {
 	cancel()
 	caller := &budgetCancelledRefillReader{cancel: func() {}}
 	var returned error
-	observer := &state.StreamReaderObserver{Reader: caller, Result: &returned, Control: state.NewBudgetControl(ctx, core.Limits{})}
+	observer := &state.StreamReaderObserver{Reader: caller, Result: &returned, Control: state.NewBudgetControl(ctx, runtime.Limits{})}
 	err := catchFatal(t, func() { _, _ = observer.Read(make([]byte, 4)) })
 	if !errors.Is(err, context.Canceled) || caller.calls != 0 || returned != nil {
 		t.Fatalf("error=%v calls=%d returned=%v", err, caller.calls, returned)
@@ -100,7 +101,7 @@ rule row = .+ #atomic`)
 		}
 		var err error
 		got := budgetContextRecover(func() {
-			err = prog.ParseStreamWith("main", reader, func(*core.Node) error { t.Fatal("unexpected emit"); return nil }, o)
+			err = prog.ParseStreamWith("main", reader, func(*value.Node) error { t.Fatal("unexpected emit"); return nil }, o)
 		})
 		if got != token || err != nil || reader.calls != 1 {
 			t.Fatalf("panic=%#v error=%v calls=%d", got, err, reader.calls)

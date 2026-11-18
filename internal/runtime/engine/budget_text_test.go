@@ -9,11 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
-func fallbackTextInput(unit core.PositionUnit, base int, bytes []byte, runes []rune, control *state.BudgetControl) state.Input {
+func fallbackTextInput(unit input.PositionUnit, base int, bytes []byte, runes []rune, control *state.BudgetControl) state.Input {
 	return state.Input{Unit: unit, Base: base, Bs: bytes, In: runes, Control: control}
 }
 
@@ -26,7 +27,7 @@ func TestBudgetInputTextNativeParityAndDetachedResult(t *testing.T) {
 			source[i] = byte(i*37 + 11)
 		}
 		start, end := 3, n+3
-		in := fallbackTextInput(core.Bytes, 17, source, nil, state.NewBudgetControl(nil, core.Limits{Compute: 100_000}))
+		in := fallbackTextInput(input.Bytes, 17, source, nil, state.NewBudgetControl(nil, runtime.Limits{Compute: 100_000}))
 		got := in.Text(17+start, 17+end)
 		want := string(source[start:end])
 		if got != want {
@@ -64,7 +65,7 @@ func TestBudgetInputTextNativeParityAndDetachedResult(t *testing.T) {
 			}
 		}
 		start, end := 2, n+2
-		in := fallbackTextInput(core.CodePoints, 9, nil, runes, state.NewBudgetControl(nil, core.Limits{Compute: 100_000}))
+		in := fallbackTextInput(input.CodePoints, 9, nil, runes, state.NewBudgetControl(nil, runtime.Limits{Compute: 100_000}))
 		got := in.Text(9+start, 9+end)
 		want := string(runes[start:end])
 		if got != want {
@@ -86,14 +87,14 @@ func TestBudgetInputTextChunkInterruptionLeavesSourceAndRetries(t *testing.T) {
 	t.Parallel()
 	byteSource := []byte(strings.Repeat("a", 4097))
 	byteBefore := append([]byte(nil), byteSource...)
-	byteInput := fallbackTextInput(core.Bytes, 0, byteSource, nil, state.NewBudgetControl(nil, core.Limits{Compute: 4096}))
-	if err := catchFatal(t, func() { _ = byteInput.Text(0, len(byteSource)) }); !errors.Is(err, core.ErrLimit) {
+	byteInput := fallbackTextInput(input.Bytes, 0, byteSource, nil, state.NewBudgetControl(nil, runtime.Limits{Compute: 4096}))
+	if err := catchFatal(t, func() { _ = byteInput.Text(0, len(byteSource)) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("Bytes second-chunk error = %v, want ErrLimit", err)
 	}
 	if !reflect.DeepEqual(byteSource, byteBefore) || byteInput.Control.Used != 4096 {
 		t.Fatalf("Bytes failed copy mutated source or charged unexpected spend: counter=%d", byteInput.Control.Used)
 	}
-	byteInput.Control = state.NewBudgetControl(nil, core.Limits{Compute: 10_000})
+	byteInput.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 10_000})
 	if got, want := byteInput.Text(0, len(byteSource)), string(byteSource); got != want {
 		t.Fatal("Bytes retry differs from native conversion")
 	}
@@ -103,14 +104,14 @@ func TestBudgetInputTextChunkInterruptionLeavesSourceAndRetries(t *testing.T) {
 		runeSource[i] = 'λ'
 	}
 	runeBefore := append([]rune(nil), runeSource...)
-	runeInput := fallbackTextInput(core.CodePoints, 0, nil, runeSource, state.NewBudgetControl(nil, core.Limits{Compute: 257}))
-	if err := catchFatal(t, func() { _ = runeInput.Text(0, len(runeSource)) }); !errors.Is(err, core.ErrLimit) {
+	runeInput := fallbackTextInput(input.CodePoints, 0, nil, runeSource, state.NewBudgetControl(nil, runtime.Limits{Compute: 257}))
+	if err := catchFatal(t, func() { _ = runeInput.Text(0, len(runeSource)) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("CodePoints encoding-chunk error = %v, want ErrLimit", err)
 	}
 	if !reflect.DeepEqual(runeSource, runeBefore) || runeInput.Control.Used != 256 {
 		t.Fatalf("CodePoints failure mutated source or budget counter=%d, want one completed chunk", runeInput.Control.Used)
 	}
-	runeInput.Control = state.NewBudgetControl(nil, core.Limits{Compute: 10_000})
+	runeInput.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 10_000})
 	if got, want := runeInput.Text(0, len(runeSource)), string(runeSource); got != want {
 		t.Fatal("CodePoints retry differs from native conversion")
 	}
@@ -119,7 +120,7 @@ func TestBudgetInputTextChunkInterruptionLeavesSourceAndRetries(t *testing.T) {
 func TestBudgetInputTextPollingCancellationAtCopyAndEncoding(t *testing.T) {
 	t.Parallel()
 	bytes := []byte(strings.Repeat("b", 8192))
-	byteInput := fallbackTextInput(core.Bytes, 0, bytes, nil, state.NewBudgetControl(newPollingContext(2), core.Limits{}))
+	byteInput := fallbackTextInput(input.Bytes, 0, bytes, nil, state.NewBudgetControl(newPollingContext(2), runtime.Limits{}))
 	if err := catchFatal(t, func() { _ = byteInput.Text(0, len(bytes)) }); !errors.Is(err, context.Canceled) {
 		t.Fatalf("Bytes cancellation = %v, want context.Canceled", err)
 	}
@@ -131,7 +132,7 @@ func TestBudgetInputTextPollingCancellationAtCopyAndEncoding(t *testing.T) {
 	for i := range runes {
 		runes[i] = '語'
 	}
-	runeInput := fallbackTextInput(core.CodePoints, 0, nil, runes, state.NewBudgetControl(newPollingContext(3), core.Limits{}))
+	runeInput := fallbackTextInput(input.CodePoints, 0, nil, runes, state.NewBudgetControl(newPollingContext(3), runtime.Limits{}))
 	if err := catchFatal(t, func() { _ = runeInput.Text(0, len(runes)) }); !errors.Is(err, context.Canceled) {
 		t.Fatalf("CodePoints cancellation = %v, want context.Canceled", err)
 	}
@@ -143,7 +144,7 @@ func TestBudgetInputTextPollingCancellationAtCopyAndEncoding(t *testing.T) {
 func TestBudgetInputTextSourceSubstringRemainsConstantBudget(t *testing.T) {
 	t.Parallel()
 	long := strings.Repeat("x", 8192)
-	byteInput := state.Input{Unit: core.Bytes, Bs: []byte(long), Src: long, SrcOK: true, Control: state.NewBudgetControl(nil, core.Limits{Compute: 1})}
+	byteInput := state.Input{Unit: input.Bytes, Bs: []byte(long), Src: long, SrcOK: true, Control: state.NewBudgetControl(nil, runtime.Limits{Compute: 1})}
 	if got := byteInput.Text(1024, 7168); got != long[1024:7168] {
 		t.Fatal("Bytes source substring mismatch")
 	}
@@ -156,7 +157,7 @@ func TestBudgetInputTextSourceSubstringRemainsConstantBudget(t *testing.T) {
 	for i := range offs {
 		offs[i] = int32(i)
 	}
-	codePointInput := state.Input{Unit: core.CodePoints, In: runes, Src: long, SrcOK: true, Offs: offs, Control: state.NewBudgetControl(nil, core.Limits{Compute: 1})}
+	codePointInput := state.Input{Unit: input.CodePoints, In: runes, Src: long, SrcOK: true, Offs: offs, Control: state.NewBudgetControl(nil, runtime.Limits{Compute: 1})}
 	if got := codePointInput.Text(1024, 7168); got != long[1024:7168] {
 		t.Fatal("CodePoints source substring mismatch")
 	}
@@ -169,9 +170,9 @@ func TestBudgetTraceTextInterruptionRetriesPooledParser(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = .* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, unit := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 			raw := strings.Repeat("z", 9000)
-			if unit == core.CodePoints {
+			if unit == input.CodePoints {
 				raw = strings.Repeat("\xff", 9000)
 			}
 			armed := false
@@ -179,14 +180,14 @@ func TestBudgetTraceTextInterruptionRetriesPooledParser(t *testing.T) {
 			node, err := prog.ParseWith("main", raw, ParseOptions{
 				Backend: backend,
 				Unit:    unit,
-				Limits: core.Limits{
+				Limits: runtime.Limits{
 					Compute: 1 << 30,
 				},
 				Trace: func(e TraceEvent) {
 					if !armed && e.Kind == TraceExit && e.Rule == "main" && e.Matched {
 						armed = true
 						observed = state.TraceParser(e)
-						if unit == core.Bytes {
+						if unit == input.Bytes {
 							state.TraceParser(e).SrcOK = false
 						}
 						state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used
@@ -194,7 +195,7 @@ func TestBudgetTraceTextInterruptionRetriesPooledParser(t *testing.T) {
 					}
 				},
 			})
-			if !armed || node != nil || !errors.Is(err, core.ErrLimit) {
+			if !armed || node != nil || !errors.Is(err, runtime.ErrLimit) {
 				t.Fatalf("%v/%v trace Text interruption: armed=%t node=%v err=%v", backend, unit, armed, node, err)
 			}
 			if observed == nil || observed.Scratch != nil || observed.Control != nil {

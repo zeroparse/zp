@@ -8,10 +8,10 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/enginetest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // The tests of this package compile the grammars that they generate parsers for with the engine,
@@ -34,7 +34,7 @@ var (
 
 // libSource is the text of the library package, for tests that check its source.
 var libSource = func() string {
-	paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", "..", "codegen", "go", "lib", "*.go"))
+	paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime", "golib", "*.go"))
 	if err != nil {
 		panic(err)
 	}
@@ -90,8 +90,8 @@ func ignoreCaseLines(t *testing.T, src string, inputs []string) string {
 
 // firstCharEnd returns the position after the character at pos in the unit u: what a call that
 // looks at that character only has examined, which is pos+1 at the end of the input.
-func firstCharEnd(input string, pos int, u core.PositionUnit) int {
-	if u == core.Bytes && pos < len(input) {
+func firstCharEnd(input string, pos int, u zpinput.PositionUnit) int {
+	if u == zpinput.Bytes && pos < len(input) {
 		_, size := utf8.DecodeRuneInString(input[pos:])
 		return pos + size
 	}

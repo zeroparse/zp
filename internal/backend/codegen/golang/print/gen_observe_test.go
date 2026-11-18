@@ -88,8 +88,8 @@ rule part = "é"`, "éé", `last:=events[len(events)-1];expectedEnd:=2;if unit==
 
 const generatedNodeTraceConsumer = `package PACKAGE
 
-import zprt "zeroparse.dev/zp/codegen/go/lib"
-import zpcore "zeroparse.dev/zp/core"
+import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 import("context";"encoding/json";"errors";"fmt";"reflect";"sync";"testing";reference "tracefixture/reference_PACKAGE")
 func TestTrace(t *testing.T){
  for _,unit:=range []PositionUnit{CodePoints,Bytes}{
@@ -98,24 +98,24 @@ func TestTrace(t *testing.T){
    refUnit:=reference.CodePoints;if unit==Bytes{refUnit=reference.Bytes}
    referenceOpts:=[]reference.ParseOption{reference.WithUnit(refUnit)};if controlled{referenceOpts=append(referenceOpts,reference.WithLimits(reference.Limits{Compute:100000}))}
    want,werr:=reference.Parse(INPUT,referenceOpts...)
-   var events []zpcore.TraceEvent
-   traced:=append(append([]ParseOption{},opts...),zprt.WithTrace(func(e zpcore.TraceEvent){events=append(events,e)}))
+   var events []zpinstrument.TraceEvent
+   traced:=append(append([]ParseOption{},opts...),zprt.WithTrace(func(e zpinstrument.TraceEvent){events=append(events,e)}))
    got,gerr:=Parse(INPUT,traced...)
    a,_:=json.Marshal(want);b,_:=json.Marshal(got)
    if string(a)!=string(b)||fmt.Sprint(werr)!=fmt.Sprint(gerr){t.Fatal("trace changed result",string(a),string(b),werr,gerr)}
    if len(events)<2 || events[0].Rule!="main" || events[0].Depth!=1 {t.Fatal(events)}
-   var stack []zpcore.TraceEvent
+   var stack []zpinstrument.TraceEvent
    for _,e:=range events{
-    if e.Kind==zpcore.TraceExit&&(e.Examined<e.Pos||e.Matched&&e.Examined<e.End) {t.Fatal("examined end",e)}
+    if e.Kind==zpinstrument.TraceExit&&(e.Examined<e.Pos||e.Matched&&e.Examined<e.End) {t.Fatal("examined end",e)}
     switch e.Kind{
-    case zpcore.TraceEnter:if e.Depth!=len(stack)+1 {t.Fatal("entry depth",e,stack)};stack=append(stack,e)
-    case zpcore.TraceExit:if len(stack)==0 {t.Fatal("unpaired exit",e)};in:=stack[len(stack)-1];stack=stack[:len(stack)-1];if in.Rule!=e.Rule||in.Pos!=e.Pos||in.Depth!=e.Depth||in.Level!=e.Level {t.Fatal("exit mismatch",in,e)};if e.Memo&&e.Evals!=0 {t.Fatal("memo evaluated",e)};if !e.Memo&&e.Evals<1 {t.Fatal("missing body evaluation",e)}
-    case zpcore.TraceSkipped:if e.SkipReason!="first-character"||e.Evals!=0||e.Memo||e.Depth!=len(stack)+1 {t.Fatal("invalid skip",e)}
+    case zpinstrument.TraceEnter:if e.Depth!=len(stack)+1 {t.Fatal("entry depth",e,stack)};stack=append(stack,e)
+    case zpinstrument.TraceExit:if len(stack)==0 {t.Fatal("unpaired exit",e)};in:=stack[len(stack)-1];stack=stack[:len(stack)-1];if in.Rule!=e.Rule||in.Pos!=e.Pos||in.Depth!=e.Depth||in.Level!=e.Level {t.Fatal("exit mismatch",in,e)};if e.Memo&&e.Evals!=0 {t.Fatal("memo evaluated",e)};if !e.Memo&&e.Evals<1 {t.Fatal("missing body evaluation",e)}
+    case zpinstrument.TraceSkipped:if e.SkipReason!="first-character"||e.Evals!=0||e.Memo||e.Depth!=len(stack)+1 {t.Fatal("invalid skip",e)}
     default:t.Fatal(e)
     }
    }
    if len(stack)!=0 {t.Fatal("open calls",stack)}
-   count:=func(rule string,kind zpcore.TraceKind)int{n:=0;for _,e:=range events{if e.Rule==rule&&e.Kind==kind{n++}};return n}
+   count:=func(rule string,kind zpinstrument.TraceKind)int{n:=0;for _,e:=range events{if e.Rule==rule&&e.Kind==kind{n++}};return n}
    _=count
    CHECKS
    events=nil
@@ -134,8 +134,8 @@ func TestRejectionAndDepthParity(t *testing.T){
     opts:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Depth: uint64(depth)})}
     refUnit:=reference.CodePoints;if unit==Bytes{refUnit=reference.Bytes}
     want,werr:=reference.Parse(input,reference.WithUnit(refUnit),reference.WithLimits(reference.Limits{Depth: uint64(depth)}))
-    var events []zpcore.TraceEvent
-    got,gerr:=Parse(input,append(opts,zprt.WithTrace(func(e zpcore.TraceEvent){events=append(events,e)}))...)
+    var events []zpinstrument.TraceEvent
+    got,gerr:=Parse(input,append(opts,zprt.WithTrace(func(e zpinstrument.TraceEvent){events=append(events,e)}))...)
     a,_:=json.Marshal(want);b,_:=json.Marshal(got)
     if string(a)!=string(b)||fmt.Sprint(werr)!=fmt.Sprint(gerr){t.Fatal("rejection/depth parity",werr,gerr,events)}
    }
@@ -143,40 +143,40 @@ func TestRejectionAndDepthParity(t *testing.T){
  }
 }
 func TestFilteringAndIsolation(t *testing.T){
- var all,filtered []zpcore.TraceEvent
- Parse(INPUT,zprt.WithTrace(func(e zpcore.TraceEvent){all=append(all,e)}))
- Parse(INPUT,zprt.WithTrace(func(e zpcore.TraceEvent){filtered=append(filtered,e)}),zprt.WithTraceMaxDepth(1))
+ var all,filtered []zpinstrument.TraceEvent
+ Parse(INPUT,zprt.WithTrace(func(e zpinstrument.TraceEvent){all=append(all,e)}))
+ Parse(INPUT,zprt.WithTrace(func(e zpinstrument.TraceEvent){filtered=append(filtered,e)}),zprt.WithTraceMaxDepth(1))
  for _,e:=range filtered{if e.Depth!=1 {t.Fatal("depth filter",e)}}
  if len(filtered)!=2 {t.Fatal(filtered)}
- delivered:=0;Parse(INPUT,zprt.WithTrace(func(zpcore.TraceEvent){delivered++}),zprt.WithTraceFilter("not-defined"));if delivered!=0 {t.Fatal("unknown filter matched")}
+ delivered:=0;Parse(INPUT,zprt.WithTrace(func(zpinstrument.TraceEvent){delivered++}),zprt.WithTraceFilter("not-defined"));if delivered!=0 {t.Fatal("unknown filter matched")}
  names:=[]string{"main"};filter:=zprt.WithTraceFilter(names...);names[0]="not-defined"
- var selected []zpcore.TraceEvent;Parse(INPUT,zprt.WithTrace(func(e zpcore.TraceEvent){selected=append(selected,e)}),filter)
+ var selected []zpinstrument.TraceEvent;Parse(INPUT,zprt.WithTrace(func(e zpinstrument.TraceEvent){selected=append(selected,e)}),filter)
  if !reflect.DeepEqual(all,selected){t.Fatal("filter ownership or descendants")}
  entered:=false
- Parse(INPUT,zprt.WithTrace(func(e zpcore.TraceEvent){if !entered{entered=true;Parse(INPUT,zprt.WithTrace(func(zpcore.TraceEvent){}))}}))
+ Parse(INPUT,zprt.WithTrace(func(e zpinstrument.TraceEvent){if !entered{entered=true;Parse(INPUT,zprt.WithTrace(func(zpinstrument.TraceEvent){}))}}))
  if !entered {t.Fatal("missing callback")}
  var wg sync.WaitGroup
- for i:=0;i<4;i++{wg.Go(func(){for j:=0;j<4;j++{Parse(INPUT,zprt.WithTrace(func(zpcore.TraceEvent){}))}})};wg.Wait()
+ for i:=0;i<4;i++{wg.Go(func(){for j:=0;j<4;j++{Parse(INPUT,zprt.WithTrace(func(zpinstrument.TraceEvent){}))}})};wg.Wait()
  // A later invocation must have no prior callback, even after pooling.
- calls:=0;Parse(INPUT,zprt.WithTrace(func(zpcore.TraceEvent){calls++}));before:=calls
+ calls:=0;Parse(INPUT,zprt.WithTrace(func(zpinstrument.TraceEvent){calls++}));before:=calls
  Parse(INPUT);if calls!=before{t.Fatal("observer leaked across parses")}
- private:=&zprt.Parser{Observation:&zprt.X_observation{X_trace:func(zpcore.TraceEvent){}}}
+ private:=&zprt.Parser{Observation:&zprt.X_observation{X_trace:func(zpinstrument.TraceEvent){}}}
  private.X_release();if private.Observation!=nil {t.Fatal("pool retained observer")}
 }
 func TestCallbackPanicAndInterruption(t *testing.T){
  marker:=&struct{n int}{7}
  for _,value:=range []any{marker,zprt.X_fatal{errors.New("private marker")},zprt.X_contextPanic{marker},zprt.X_tracePanic{marker}}{
-  func(){defer func(){got:=recover();if got!=value{t.Fatalf("panic identity %T %v want %T %v",got,got,value,value)}}();Parse(INPUT,zprt.WithTrace(func(zpcore.TraceEvent){panic(value)}));t.Fatal("panic swallowed")}()
+  func(){defer func(){got:=recover();if got!=value{t.Fatalf("panic identity %T %v want %T %v",got,got,value,value)}}();Parse(INPUT,zprt.WithTrace(func(zpinstrument.TraceEvent){panic(value)}));t.Fatal("panic swallowed")}()
  }
  // A failure after nested callbacks still cleans pooled observation state.
- n:=0;func(){defer func(){if recover()!=marker{t.Fatal("nested panic")}}();Parse(INPUT,zprt.WithTrace(func(zpcore.TraceEvent){n++;if n==3{panic(marker)}}));t.Fatal("nested panic absent")}()
+ n:=0;func(){defer func(){if recover()!=marker{t.Fatal("nested panic")}}();Parse(INPUT,zprt.WithTrace(func(zpinstrument.TraceEvent){n++;if n==3{panic(marker)}}));t.Fatal("nested panic absent")}()
  Parse(INPUT)
  ctx,cancel:=context.WithCancel(context.Background());cancel()
- if _,err:=Parse(INPUT,WithContext(ctx),zprt.WithTrace(func(zpcore.TraceEvent){t.Fatal("callback after pre-cancel")}));!errors.Is(err,context.Canceled){t.Fatal(err)}
- var events []zpcore.TraceEvent
- _,err:=Parse(INPUT,WithLimits(Limits{Compute:1}),zprt.WithTrace(func(e zpcore.TraceEvent){events=append(events,e)}))
+ if _,err:=Parse(INPUT,WithContext(ctx),zprt.WithTrace(func(zpinstrument.TraceEvent){t.Fatal("callback after pre-cancel")}));!errors.Is(err,context.Canceled){t.Fatal(err)}
+ var events []zpinstrument.TraceEvent
+ _,err:=Parse(INPUT,WithLimits(Limits{Compute:1}),zprt.WithTrace(func(e zpinstrument.TraceEvent){events=append(events,e)}))
  if !errors.Is(err,ErrLimit){t.Fatal("budget",err)}
- for _,e:=range events{if e.Kind==zpcore.TraceExit&&e.Rule=="main"{t.Fatal("fabricated root exit",events)}}
+ for _,e:=range events{if e.Kind==zpinstrument.TraceExit&&e.Rule=="main"{t.Fatal("fabricated root exit",events)}}
  Parse(INPUT)
 }
 `

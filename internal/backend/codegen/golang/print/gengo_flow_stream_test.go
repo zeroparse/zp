@@ -231,11 +231,11 @@ import (
 	"os"
 	"strings"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"; zpcore "zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 IMPORTS)
 
-var entries = []func(io.Reader, func(*core.Node) error, ...zprt.ParseOption) error{
+var entries = []func(io.Reader, func(*zpvalue.Node) error, ...zprt.ParseOption) error{
 ENTRIES}
 
 func sum(v any) string {
@@ -273,15 +273,15 @@ func main() {
 	for i := range inputs {
 		for j, in := range inputs[i] {
 			for _, chunk := range []int{0, 1, 5} {
-				var events []zpcore.TraceEvent
+				var events []zpinstrument.TraceEvent
 				var elems []any
 				reads := 0
-				emit := func(n *core.Node) error { elems = append(elems, [2]any{reads, n}); return nil }
-				err := entries[i](&reader{s: in, chunk: chunk, reads: &reads}, emit, zprt.WithTrace(func(e zpcore.TraceEvent) { events = append(events, e) }))
-				var prof zpcore.Profile
+				emit := func(n *zpvalue.Node) error { elems = append(elems, [2]any{reads, n}); return nil }
+				err := entries[i](&reader{s: in, chunk: chunk, reads: &reads}, emit, zprt.WithTrace(func(e zpinstrument.TraceEvent) { events = append(events, e) }))
+				var prof zpinstrument.Profile
 				reads = 0
 				elems2 := 0
-				perr := entries[i](&reader{s: in, chunk: chunk, reads: &reads}, func(*core.Node) error { elems2++; return nil }, zprt.WithProfile(&prof))
+				perr := entries[i](&reader{s: in, chunk: chunk, reads: &reads}, func(*zpvalue.Node) error { elems2++; return nil }, zprt.WithProfile(&prof))
 				snap := prof.Snapshot()
 				snap.Time = 0
 				for k := range snap.Rules {

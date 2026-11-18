@@ -8,22 +8,22 @@ import (
 	"strings"
 	"unsafe"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Data is the representation of a core.Node.
-type Data = coreimpl.Data[core.Node]
+type Data = valueimpl.Data[value.Node]
 
 // D returns the representation of n. A core.Node holds its representation as its only field.
-func D(n *core.Node) *Data { return (*Data)(unsafe.Pointer(n)) }
+func D(n *value.Node) *Data { return (*Data)(unsafe.Pointer(n)) }
 
 // Of returns the node with the representation d.
-func Of(d Data) core.Node { return *(*core.Node)(unsafe.Pointer(&d)) }
+func Of(d Data) value.Node { return *(*value.Node)(unsafe.Pointer(&d)) }
 
 // Ptr returns a new node with the representation d.
-func Ptr(d Data) *core.Node {
-	n := new(core.Node)
+func Ptr(d Data) *value.Node {
+	n := new(value.Node)
 	*D(n) = d
 	return n
 }
@@ -31,8 +31,8 @@ func Ptr(d Data) *core.Node {
 // IsNode reports whether n is a node of the value model (a string node, a tuple or list node, a
 // node of a named node type, or an error value) rather than a struct, a box or a list or tuple
 // value.
-func IsNode(n *core.Node) bool {
-	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= coreimpl.BaseMissing {
+func IsNode(n *value.Node) bool {
+	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= valueimpl.BaseMissing {
 		return true
 	}
 	return D(n).Terminal
@@ -40,11 +40,11 @@ func IsNode(n *core.Node) bool {
 
 // UnboxNode returns the value that the carrier n stands for: the box's value for a box, nil for
 // nil, and n otherwise.
-func UnboxNode(n *core.Node) any {
+func UnboxNode(n *value.Node) any {
 	if n == nil {
 		return nil
 	}
-	if D(n).Kind == coreimpl.BoxKind {
+	if D(n).Kind == valueimpl.BoxKind {
 		return D(n).Box
 	}
 	return n
@@ -52,7 +52,7 @@ func UnboxNode(n *core.Node) any {
 
 // UnboxValue is UnboxNode for a value that may be a carrier.
 func UnboxValue(v any) any {
-	if n, ok := v.(*core.Node); ok {
+	if n, ok := v.(*value.Node); ok {
 		return UnboxNode(n)
 	}
 	return v
@@ -60,13 +60,13 @@ func UnboxValue(v any) any {
 
 // NodeTypeKinds are the kinds of the nodes of a named node type, by the base (BaseString,
 // BaseTuple, BaseList) of the node converted to it. They have no rule.
-type NodeTypeKinds [coreimpl.BaseList + 1]*coreimpl.Kind
+type NodeTypeKinds [valueimpl.BaseList + 1]*valueimpl.Kind
 
 // NewNodeTypeKinds returns the interned kinds of the named node type typ.
 func NewNodeTypeKinds(typ string) *NodeTypeKinds {
 	var ks NodeTypeKinds
 	for base := range ks {
-		ks[base] = coreimpl.NodeTypeKind(typ, base)
+		ks[base] = valueimpl.NodeTypeKind(typ, base)
 	}
 	return &ks
 }
@@ -74,8 +74,8 @@ func NewNodeTypeKinds(typ string) *NodeTypeKinds {
 // Convert returns the node of the named node type of ks that the value v converts to: a copy of
 // v with the same range and content, or v itself if it already has the type. It reports false if
 // v is not a string, tuple or list node.
-func (ks *NodeTypeKinds) Convert(v any) (*core.Node, bool) {
-	n, ok := v.(*core.Node)
+func (ks *NodeTypeKinds) Convert(v any) (*value.Node, bool) {
+	n, ok := v.(*value.Node)
 	if !ok || n == nil || !HasBase(n) {
 		return nil, false
 	}
@@ -84,14 +84,14 @@ func (ks *NodeTypeKinds) Convert(v any) (*core.Node, bool) {
 
 // HasBase reports whether n is a string, tuple or list node, of a named node type or not: a node that
 // a conversion converts.
-func HasBase(n *core.Node) bool {
+func HasBase(n *value.Node) bool {
 	k := D(n).Kind
-	return k != nil && k.Base >= 0 && k.Base <= coreimpl.BaseList
+	return k != nil && k.Base >= 0 && k.Base <= valueimpl.BaseList
 }
 
 // Retype returns n, a string, tuple or list node (HasBase), as a node of the named node type of ks: a
 // copy of n with the same range and content, or n itself if it already has the type.
-func (ks *NodeTypeKinds) Retype(n *core.Node) *core.Node {
+func (ks *NodeTypeKinds) Retype(n *value.Node) *value.Node {
 	d := D(n)
 	k := ks[d.Kind.Base]
 	if d.Kind == k {
@@ -110,7 +110,7 @@ func (ks *NodeTypeKinds) Retype(n *core.Node) *core.Node {
 
 // ConvertOwned gives n, a node that nothing else holds, the named node type of ks in place. It
 // reports false if n is not a string, tuple or list node.
-func (ks *NodeTypeKinds) ConvertOwned(n *core.Node) bool {
+func (ks *NodeTypeKinds) ConvertOwned(n *value.Node) bool {
 	if n == nil || !HasBase(n) {
 		return false
 	}
@@ -119,52 +119,52 @@ func (ks *NodeTypeKinds) ConvertOwned(n *core.Node) bool {
 }
 
 // FieldOf returns the value of the field name of n.
-func FieldOf(n *core.Node, name string) (any, bool) {
+func FieldOf(n *value.Node, name string) (any, bool) {
 	return D(n).Fields.Get(name)
 }
 
 // ShapeOf returns what n stands for in the value model.
-func ShapeOf(n *core.Node) coreimpl.Shape { return coreimpl.ShapeOfKind(D(n).Kind, D(n).Terminal) }
+func ShapeOf(n *value.Node) valueimpl.Shape { return valueimpl.ShapeOfKind(D(n).Kind, D(n).Terminal) }
 
 // KindOfShape returns the core.NodeKind of a node that has the shape. It agrees with
 // core.Node.Kind, which TestKindOfShape checks.
-func KindOfShape(shape coreimpl.Shape) core.NodeKind {
+func KindOfShape(shape valueimpl.Shape) value.NodeKind {
 	switch shape {
-	case coreimpl.ShapeString:
-		return core.KindString
-	case coreimpl.ShapeTuple:
-		return core.KindTuple
-	case coreimpl.ShapeList:
-		return core.KindList
-	case coreimpl.ShapeError:
-		return core.KindError
-	case coreimpl.ShapeBox:
-		return core.KindValue
-	case coreimpl.ShapeTupleValue:
-		return core.KindTupleValue
-	case coreimpl.ShapeListValue:
-		return core.KindListValue
+	case valueimpl.ShapeString:
+		return value.KindString
+	case valueimpl.ShapeTuple:
+		return value.KindTuple
+	case valueimpl.ShapeList:
+		return value.KindList
+	case valueimpl.ShapeError:
+		return value.KindError
+	case valueimpl.ShapeBox:
+		return value.KindValue
+	case valueimpl.ShapeTupleValue:
+		return value.KindTupleValue
+	case valueimpl.ShapeListValue:
+		return value.KindListValue
 	}
-	return core.KindStruct
+	return value.KindStruct
 }
 
 // ValueTypeName names the type of a value of the given shape in messages, in the terms of the
 // value model: node[string] for a string node, node[(_, _)] and node[[]_] for tuple and list
 // nodes (a tuple has elems elements), error for an error value, (_, _) and []_ for tuple and list
 // values, and name for a struct.
-func ValueTypeName(shape coreimpl.Shape, name string, elems int) string {
+func ValueTypeName(shape valueimpl.Shape, name string, elems int) string {
 	switch shape {
-	case coreimpl.ShapeString:
+	case valueimpl.ShapeString:
 		return "node[string]"
-	case coreimpl.ShapeTuple:
+	case valueimpl.ShapeTuple:
 		return "node[" + tupleTerm(elems) + "]"
-	case coreimpl.ShapeList:
+	case valueimpl.ShapeList:
 		return "node[[]_]"
-	case coreimpl.ShapeError:
+	case valueimpl.ShapeError:
 		return "error"
-	case coreimpl.ShapeTupleValue:
+	case valueimpl.ShapeTupleValue:
 		return tupleTerm(elems)
-	case coreimpl.ShapeListValue:
+	case valueimpl.ShapeListValue:
 		return "[]_"
 	}
 	return name
@@ -180,6 +180,6 @@ func tupleTerm(n int) string {
 
 // CaptureLocations returns the locations of the captures of the tuple node n, in name order (see
 // coreimpl.CaptureLocations).
-func CaptureLocations(n *core.Node) []coreimpl.CaptureLocation {
-	return coreimpl.CaptureLocations(D(n), D)
+func CaptureLocations(n *value.Node) []valueimpl.CaptureLocation {
+	return valueimpl.CaptureLocations(D(n), D)
 }

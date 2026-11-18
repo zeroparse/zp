@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // termBackends are the backends that print the term compositions.
@@ -107,7 +107,7 @@ func minimumCompute(t *testing.T, p *engine.Parser, input string, b engine.Backe
 	lo, hi := uint64(0), uint64(1)<<20 // lo fails, hi parses
 	for hi-lo > 1 {
 		mid := (lo + hi) / 2
-		if _, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: mid})); err != nil {
+		if _, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(runtime.Limits{Compute: mid})); err != nil {
 			lo = mid
 		} else {
 			hi = mid

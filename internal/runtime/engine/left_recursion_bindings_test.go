@@ -3,9 +3,10 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // TestLeftRecursionGuardIgnoresVariables checks that a left-recursive re-entry at the same
@@ -20,10 +21,10 @@ func TestLeftRecursionGuardIgnoresVariables(t *testing.T) {
 		prog := mustCompile(t, codegentest.LRBindingSource, options)
 		plain := mustCompile(t, codegentest.PlainLRSource, options)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					// A compute limit makes the parse take the controlled memo lookups.
-					for _, lim := range []core.Limits{{Depth: 400}, {Compute: 1 << 40, Depth: 400}} {
+					for _, lim := range []runtime.Limits{{Depth: 400}, {Compute: 1 << 40, Depth: 400}} {
 						opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: lim}
 						for _, input := range inputs {
 							got := codegentest.ResultJSON(prog.ParseWith("main", input, opts))
@@ -34,7 +35,7 @@ func TestLeftRecursionGuardIgnoresVariables(t *testing.T) {
 						}
 					}
 				}
-				d, err := prog.NewDocumentWith("main", "xx", ParseOptions{Backend: backend, Unit: unit, Limits: core.Limits{Depth: 400}})
+				d, err := prog.NewDocumentWith("main", "xx", ParseOptions{Backend: backend, Unit: unit, Limits: runtime.Limits{Depth: 400}})
 				if err != nil {
 					t.Fatal(err)
 				}

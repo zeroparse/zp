@@ -9,12 +9,12 @@ import (
 	"unsafe"
 	"weak"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 //go:noinline
-func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit core.PositionUnit, active bool) (weak.Pointer[byte], TraceEvent) {
+func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit input.PositionUnit, active bool) (weak.Pointer[byte], TraceEvent) {
 	t.Helper()
 	text := strings.Repeat("a", 256<<10)
 	// Observe the original immutable string's backing allocation, rather than
@@ -47,7 +47,7 @@ func TestBudgetBatchTraceEventReleasesOriginalInputAfterGC(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a"* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, active := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/active=%t", backend, unit, active), func(t *testing.T) {
 					if active && !state.BudgetControlsEnabled {

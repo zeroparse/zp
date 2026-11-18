@@ -3,8 +3,8 @@ package document_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestMissingTokensDocumentChangesRejectionPreservesBaseline(t *testing.T) {
@@ -36,7 +36,7 @@ func TestMissingTokensDocumentChangesRejectionPreservesBaseline(t *testing.T) {
 	if _, err := d.SnapshotWith(ParseOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if events := d.DrainChanges(); len(events) != 1 || events[0].Output != core.OutputUnchanged {
+	if events := d.DrainChanges(); len(events) != 1 || events[0].Output != input.OutputUnchanged {
 		t.Fatal("valid parse did not compare against original baseline", events)
 	}
 }

@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 const streamStorageGrammar = `rule main = h:"#head\n" #atomic row* #stream $$ {text($h) == "#head\n"}
@@ -22,7 +23,7 @@ func TestStreamPrefixStorageIsolation(t *testing.T) {
 	if !state.StreamPrefixIsolation {
 		t.Skip("reference build shares prefix storage")
 	}
-	p := state.NewStreamParser(&mustCompile(t, `rule main = "a"`).sharedProgram, strings.NewReader("a"), core.CodePoints)
+	p := state.NewStreamParser(&mustCompile(t, `rule main = "a"`).sharedProgram, strings.NewReader("a"), zpinput.CodePoints)
 	root := p.NewFrame(1)
 	p.Frame = root
 	prefix := p.NewNode(nodes.Data{Text: "prefix"})
@@ -47,7 +48,7 @@ func TestStreamPrefixAllocationBudget(t *testing.T) {
 	if !state.StreamPrefixIsolation {
 		t.Skip("reference build uses slabs")
 	}
-	p := state.NewStreamParser(&mustCompile(t, `rule main = "a"`).sharedProgram, strings.NewReader("a"), core.CodePoints)
+	p := state.NewStreamParser(&mustCompile(t, `rule main = "a"`).sharedProgram, strings.NewReader("a"), zpinput.CodePoints)
 	for range state.NodeChunk/8 + 4 {
 		p.NewNode(nodes.Data{Text: "prefix"})
 	}
@@ -83,19 +84,19 @@ func TestStreamPrefixLoadedRepetitions(t *testing.T) {
 			saved := saveLoad(t, prog, "main", mode)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				if backend == Closure {
-					err := saved.ParseStreamWith("main", strings.NewReader(text), func(*core.Node) error { return nil }, servedBy(mode, ParseOptions{Backend: backend}))
+					err := saved.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { return nil }, servedBy(mode, ParseOptions{Backend: backend}))
 					wantClosureRefused(t, err)
 					continue
 				}
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					t.Run(fmt.Sprintf("%s/%s/%s/%s", bound, mode, backend, unit), func(t *testing.T) {
-						var retained []*core.Node
-						err := saved.ParseStreamWith("main", strings.NewReader(text), func(n *core.Node) error { retained = append(retained, n); return nil }, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
+						var retained []*value.Node
+						err := saved.ParseStreamWith("main", strings.NewReader(text), func(n *value.Node) error { retained = append(retained, n); return nil }, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
 						if err != nil || len(retained) != count {
 							t.Fatalf("got %d rows: %v", len(retained), err)
 						}
 						for _, n := range retained {
-							if nodes.D(n.Field("x").(*core.Node)).Text != "x" {
+							if nodes.D(n.Field("x").(*value.Node)).Text != "x" {
 								t.Fatal("retained capture changed")
 							}
 						}
@@ -111,13 +112,13 @@ func TestStreamPrefixMemoReuse(t *testing.T) {
 	prog := mustCompile(t, `rule main = &header h:header (x:"x" #atomic)* #stream $$ {text($h) == "#head\n"}
 rule header = "#head\n" #atomic`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				input := "#head\n" + strings.Repeat("x", 1300)
 				count := 0
-				err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *core.Node) error {
-					if nodes.D(n.Field("x").(*core.Node)).Text != "x" {
+				err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *value.Node) error {
+					if nodes.D(n.Field("x").(*value.Node)).Text != "x" {
 						t.Fatal("emitted capture changed")
 					}
 					count++
@@ -139,10 +140,10 @@ func TestStreamPrefixLeftRecursiveCaptureSurvivesCommit(t *testing.T) {
 	prog := mustCompile(t, `rule main = h:head #atomic "x"* #stream {text($h) == "aa"} $$
 rule head = head "a" / "a" #atomic`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				count := 0
-				err := prog.ParseStreamWith("main", strings.NewReader("aaxx"), func(*core.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
+				err := prog.ParseStreamWith("main", strings.NewReader("aaxx"), func(*value.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
 				if err != nil || count != 2 {
 					t.Fatalf("LR capture lost after stream commits: count=%d, %v", count, err)
 				}
@@ -176,7 +177,7 @@ func BenchmarkStreamStorageRetainedHeap(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				text := "#head\n" + "x" + strings.Repeat("abcdefghij,", 5000) + "\n" + strings.Repeat("xa,\n", 300)
 				b.Run(fmt.Sprintf("root=%t/%s/%s", liveRoot, backend, unit), func(b *testing.B) {
 					var total int64
@@ -187,7 +188,7 @@ func BenchmarkStreamStorageRetainedHeap(b *testing.B) {
 						p := state.NewStreamParser(&prog.sharedProgram, strings.NewReader(text), unit)
 						p.Descs = prog.descs(backend, state.Inlined)
 						count := 0
-						p.Emit = func(n *core.Node) error {
+						p.Emit = func(n *value.Node) error {
 							count++
 							if count == 200 {
 								runtime.GC()
@@ -225,7 +226,7 @@ func BenchmarkStreamRetentionWorkload(b *testing.B) {
 		if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 			b.Fatal(err)
 		}
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			for _, pattern := range []string{"small", "mixed", "wide"} {
 				row := "x" + strings.Repeat("abcdefghij,", 5000) + "\n"
 				body, count := strings.Repeat("xa,\n", 3000), 3000
@@ -243,7 +244,7 @@ func BenchmarkStreamRetentionWorkload(b *testing.B) {
 					b.ReportAllocs()
 					for b.Loop() {
 						got := 0
-						err := prog.ParseStreamWith("main", strings.NewReader(text), func(*core.Node) error { got++; return nil }, ParseOptions{Backend: backend, Unit: unit})
+						err := prog.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { got++; return nil }, ParseOptions{Backend: backend, Unit: unit})
 						if err != nil || got != count {
 							b.Fatalf("emitted %d of %d: %v", got, count, err)
 						}
@@ -277,9 +278,9 @@ func BenchmarkStreamPrefixSize(b *testing.B) {
 					b.ReportAllocs()
 					for b.Loop() {
 						count := 0
-						var emit func(*core.Node) error
+						var emit func(*value.Node) error
 						if !noCallback {
-							emit = func(*core.Node) error { count++; return nil }
+							emit = func(*value.Node) error { count++; return nil }
 						}
 						// This fixture retains the wide prefix rather than the simple header.
 						// The input suffix predicate is disabled in this benchmark's grammar.

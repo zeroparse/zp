@@ -3,10 +3,11 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // TestTextFieldComparisons checks that the backends agree on comparisons of string fields, with
@@ -14,9 +15,9 @@ import (
 func TestTextFieldComparisons(t *testing.T) {
 	t.Parallel()
 	prog := compileBare(t, codegentest.TextCompareGrammar, compile.Options{})
-	limits := core.Limits{Compute: 1 << 40}
+	limits := runtime.Limits{Compute: 1 << 40}
 	for _, controlled := range []bool{false, true} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			for _, input := range codegentest.TextCompareInputs {
 				opts := ParseOptions{Backend: Closure, Unit: unit}
 				if controlled {
@@ -36,9 +37,9 @@ func TestTextFieldComparisons(t *testing.T) {
 
 // parseSteps parses input as ParseWith does, under budget controls, and returns the steps used and
 // the result.
-func parseSteps(t *testing.T, prog *Program, backend Backend, unit core.PositionUnit, input string) (uint64, string) {
+func parseSteps(t *testing.T, prog *Program, backend Backend, unit zpinput.PositionUnit, input string) (uint64, string) {
 	t.Helper()
-	o := ParseOptions{Backend: backend, Unit: unit, Limits: core.Limits{Compute: 1 << 40}}
+	o := ParseOptions{Backend: backend, Unit: unit, Limits: runtime.Limits{Compute: 1 << 40}}
 	active, _, control, err := prog.admitParse("main", o, optionsFamily(o), false, input)
 	if err != nil {
 		t.Fatal(err)
@@ -72,7 +73,7 @@ func TestTextFieldComparisonEdges(t *testing.T) {
 	t.Parallel()
 	inputs := []string{"?!", "?a!", "#a", "^ab", "^m", "~ab", "=a", "&x,y", "&a,b", "&b,a", "&ab,ab"}
 	prog := compileBare(t, textCompareEdgeGrammar, compile.Options{})
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 		for _, input := range inputs {
 			// The reference build has no budget controls to compare against.
 			var wantResult string

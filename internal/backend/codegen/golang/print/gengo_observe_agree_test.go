@@ -12,10 +12,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The engine and the generated Go parsers report the calls of a parse with the same events and add them
@@ -36,41 +38,41 @@ import (
 //     that fails within its first character, or with no call of a at all.
 //
 // It returns the calls it set aside and the first difference.
-func callsAgree(a, b []core.TraceEvent, in string, unit core.PositionUnit) (aside setAside, msg string) {
-	subtree := func(evs []core.TraceEvent, i int) (end int, exit core.TraceEvent, ok bool) {
+func callsAgree(a, b []instrument.TraceEvent, in string, unit input.PositionUnit) (aside setAside, msg string) {
+	subtree := func(evs []instrument.TraceEvent, i int) (end int, exit instrument.TraceEvent, ok bool) {
 		depth := 0
 		for k := i; k < len(evs); k++ {
 			switch evs[k].Kind {
-			case core.TraceEnter:
+			case instrument.TraceEnter:
 				depth++
-			case core.TraceExit:
+			case instrument.TraceExit:
 				if depth--; depth == 0 {
 					return k + 1, evs[k], true
 				}
 			}
 		}
-		return len(evs), core.TraceEvent{}, false
+		return len(evs), instrument.TraceEvent{}, false
 	}
 	// cannotMatch reports whether the call that begins at evs[i] fails within its first character, and
 	// returns the end of its events.
-	cannotMatch := func(evs []core.TraceEvent, i int) (int, bool) {
+	cannotMatch := func(evs []instrument.TraceEvent, i int) (int, bool) {
 		end, exit, ok := subtree(evs, i)
 		return end, ok && !exit.Matched && exit.Examined <= firstCharEnd(in, evs[i].Pos, unit)
 	}
-	sameCall := func(x, y core.TraceEvent) bool {
+	sameCall := func(x, y instrument.TraceEvent) bool {
 		return x.Rule == y.Rule && x.Pos == y.Pos && x.Level == y.Level && x.Depth == y.Depth
 	}
 	i, j := 0, 0
 	for i < len(a) || j < len(b) {
-		if i < len(a) && a[i].Kind == core.TraceSkipped {
+		if i < len(a) && a[i].Kind == instrument.TraceSkipped {
 			return aside, fmt.Sprintf("the first producer reports a skipped call of %s@%d", a[i].Rule, a[i].Pos)
 		}
-		if j < len(b) && b[j].Kind == core.TraceSkipped {
+		if j < len(b) && b[j].Kind == instrument.TraceSkipped {
 			s := b[j]
-			if s.SkipReason != core.SkipFirstCharacter {
+			if s.SkipReason != instrument.SkipFirstCharacter {
 				return aside, fmt.Sprintf("skipped call of %s@%d with the reason %q", s.Rule, s.Pos, s.SkipReason)
 			}
-			if i < len(a) && a[i].Kind == core.TraceEnter && sameCall(a[i], s) {
+			if i < len(a) && a[i].Kind == instrument.TraceEnter && sameCall(a[i], s) {
 				end, ok := cannotMatch(a, i)
 				if !ok {
 					return aside, fmt.Sprintf("the second producer skips %s@%d (level %d, depth %d), a call the first makes that does not fail within its first character",
@@ -88,7 +90,7 @@ func callsAgree(a, b []core.TraceEvent, in string, unit core.PositionUnit) (asid
 		}
 		if i < len(a) && j < len(b) && a[i].Kind == b[j].Kind && sameCall(a[i], b[j]) {
 			x, y := a[i], b[j]
-			if x.Kind == core.TraceEnter {
+			if x.Kind == instrument.TraceEnter {
 				if x.Lookahead != y.Lookahead {
 					return aside, fmt.Sprintf("lookahead of the call of %s@%d: %v, %v", x.Rule, x.Pos, x.Lookahead, y.Lookahead)
 				}
@@ -105,21 +107,21 @@ func callsAgree(a, b []core.TraceEvent, in string, unit core.PositionUnit) (asid
 			j++
 			continue
 		}
-		if i < len(a) && a[i].Kind == core.TraceEnter {
+		if i < len(a) && a[i].Kind == instrument.TraceEnter {
 			if end, ok := cannotMatch(a, i); ok {
 				aside.add(a[i:end], &aside.a)
 				i = end
 				continue
 			}
 		}
-		if j < len(b) && b[j].Kind == core.TraceEnter {
+		if j < len(b) && b[j].Kind == instrument.TraceEnter {
 			if end, ok := cannotMatch(b, j); ok {
 				aside.add(b[j:end], &aside.b)
 				j = end
 				continue
 			}
 		}
-		describe := func(evs []core.TraceEvent, k int) string {
+		describe := func(evs []instrument.TraceEvent, k int) string {
 			if k >= len(evs) {
 				return "the end"
 			}
@@ -131,18 +133,20 @@ func callsAgree(a, b []core.TraceEvent, in string, unit core.PositionUnit) (asid
 	return aside, ""
 }
 
-func exitFields(e core.TraceEvent) string {
+func exitFields(e instrument.TraceEvent) string {
 	return fmt.Sprintf("{end %d matched %v memo %v evals %d lookahead %v reused %d}", e.End, e.Matched, e.Memo, e.Evals, e.Lookahead, e.ReusedElements)
 }
 
 // setAside is what callsAgree set aside: the events of the calls only one producer made (a, b), the
 // skipped events of b among b, and counts.
 type setAside struct {
-	a, b                       []core.TraceEvent
+	a, b                       []instrument.TraceEvent
 	compared, paired, unpaired int
 }
 
-func (s *setAside) add(evs []core.TraceEvent, to *[]core.TraceEvent) { *to = append(*to, evs...) }
+func (s *setAside) add(evs []instrument.TraceEvent, to *[]instrument.TraceEvent) {
+	*to = append(*to, evs...)
+}
 
 // profileCounts are the counts of a profile that the calls set aside by callsAgree change by known amounts.
 type profileCounts struct {
@@ -152,7 +156,7 @@ type profileCounts struct {
 // profileMinus returns the counts of s, totals under the key "", with those of the calls of aside taken
 // out, as Profile counts them (TraceSkipped events are not counted here). Rows left with no count are
 // dropped.
-func profileMinus(s core.ProfileSnapshot, aside []core.TraceEvent) map[string]profileCounts {
+func profileMinus(s instrument.ProfileSnapshot, aside []instrument.TraceEvent) map[string]profileCounts {
 	out := map[string]profileCounts{"": {Entered: s.Entered, Calls: s.Calls, Evals: s.Evals, MemoHits: s.MemoHits, Examined: s.Examined, ReusedElements: s.ReusedElements}}
 	for _, r := range s.Rules {
 		out[r.Rule] = profileCounts{r.Entered, r.Calls, r.Evals, r.MemoHits, r.Matched, r.Failed, r.Consumed, r.Examined, r.Wasted, r.ReusedElements}
@@ -160,10 +164,10 @@ func profileMinus(s core.ProfileSnapshot, aside []core.TraceEvent) map[string]pr
 	for _, e := range aside {
 		row, total := out[e.Rule], out[""]
 		switch e.Kind {
-		case core.TraceEnter:
+		case instrument.TraceEnter:
 			row.Entered--
 			total.Entered--
-		case core.TraceExit:
+		case instrument.TraceExit:
 			examined := max(e.Examined-e.Pos, 0)
 			row.Calls--
 			total.Calls--
@@ -201,7 +205,7 @@ func profileMinus(s core.ProfileSnapshot, aside []core.TraceEvent) map[string]pr
 
 // profilesAgree compares the profiles of the two producers of a parse once the calls that callsAgree
 // set aside are taken out, and returns the first difference.
-func profilesAgree(a, b core.ProfileSnapshot, aside setAside) string {
+func profilesAgree(a, b instrument.ProfileSnapshot, aside setAside) string {
 	if a.Parses != b.Parses || a.Parses > 1 {
 		return fmt.Sprintf("parses %d, %d", a.Parses, b.Parses)
 	}
@@ -210,7 +214,7 @@ func profilesAgree(a, b core.ProfileSnapshot, aside setAside) string {
 	}
 	skipped := 0
 	for _, e := range aside.b {
-		if e.Kind == core.TraceSkipped {
+		if e.Kind == instrument.TraceSkipped {
 			skipped++
 		}
 	}
@@ -243,13 +247,14 @@ import (
 	"io"
 	"os"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 IMPORTS)
 
 type entry struct {
 	name string
-	run  func(string, core.PositionUnit, ...zprt.ParseOption) error
+	run  func(string, zpinput.PositionUnit, ...zprt.ParseOption) error
 }
 
 var entries = [][]entry{
@@ -266,13 +271,13 @@ func (r *oneByte) Read(b []byte) (int, error) {
 }
 
 // middle returns the position and the end of the character in the middle of in, and the character.
-func middle(in string, unit core.PositionUnit) (int, int, string) {
+func middle(in string, unit zpinput.PositionUnit) (int, int, string) {
 	r := []rune(in)
 	k := len(r) / 2
 	if k == len(r) {
 		return 0, 0, ""
 	}
-	if unit == core.Bytes {
+	if unit == zpinput.Bytes {
 		pos := len(string(r[:k]))
 		return pos, pos + len(string(r[k])), string(r[k])
 	}
@@ -280,7 +285,7 @@ func middle(in string, unit core.PositionUnit) (int, int, string) {
 }
 
 // untimed returns the snapshot of prof without its times.
-func untimed(prof *core.Profile) core.ProfileSnapshot {
+func untimed(prof *zpinstrument.Profile) zpinstrument.ProfileSnapshot {
 	snap := prof.Snapshot()
 	snap.Time = 0
 	for k := range snap.Rules {
@@ -297,13 +302,13 @@ func main() {
 	}
 	for i := range entries {
 		for j, in := range inputs[i] {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				for _, e := range entries[i] {
 					// Two trace functions and two profiles, each of which must receive the whole parse.
-					var events, second []core.TraceEvent
-					var prof, prof2 core.Profile
-					err := e.run(string(in), unit, zprt.WithTrace(func(ev core.TraceEvent) { events = append(events, ev) }), zprt.WithProfile(&prof),
-						zprt.WithTrace(func(ev core.TraceEvent) { second = append(second, ev) }), zprt.WithProfile(&prof2))
+					var events, second []zpinstrument.TraceEvent
+					var prof, prof2 zpinstrument.Profile
+					err := e.run(string(in), unit, zprt.WithTrace(func(ev zpinstrument.TraceEvent) { events = append(events, ev) }), zprt.WithProfile(&prof),
+						zprt.WithTrace(func(ev zpinstrument.TraceEvent) { second = append(second, ev) }), zprt.WithProfile(&prof2))
 					// The same parse with a trace filter and a depth limit: the filter names a rule called
 					// within the start rule, if any, and a name that is not a rule.
 					filter := []string{"main", "no such rule"}
@@ -313,23 +318,23 @@ func main() {
 							break
 						}
 					}
-					var filtered []core.TraceEvent
-					var filteredProf core.Profile
+					var filtered []zpinstrument.TraceEvent
+					var filteredProf zpinstrument.Profile
 					e.run(string(in), unit, zprt.WithTraceFilter("main"), zprt.WithTraceFilter(filter...), zprt.WithTraceMaxDepth(1), zprt.WithTraceMaxDepth(MAXDEPTH),
-						zprt.WithTrace(func(ev core.TraceEvent) { filtered = append(filtered, ev) }), zprt.WithProfile(&filteredProf))
+						zprt.WithTrace(func(ev zpinstrument.TraceEvent) { filtered = append(filtered, ev) }), zprt.WithProfile(&filteredProf))
 					b, _ := json.Marshal(struct {
 						Case, Input int
 						Bytes       bool
 						Entry       string
-						Events      []core.TraceEvent
-						Profile     core.ProfileSnapshot
-						Second      []core.TraceEvent
-						Profile2    core.ProfileSnapshot
+						Events      []zpinstrument.TraceEvent
+						Profile     zpinstrument.ProfileSnapshot
+						Second      []zpinstrument.TraceEvent
+						Profile2    zpinstrument.ProfileSnapshot
 						Filter      []string
-						Filtered    []core.TraceEvent
-						FilteredProfile core.ProfileSnapshot
+						Filtered    []zpinstrument.TraceEvent
+						FilteredProfile zpinstrument.ProfileSnapshot
 						Err         string
-					}{i, j, unit == core.Bytes, e.name, events, untimed(&prof), second, untimed(&prof2), filter, filtered, untimed(&filteredProf), fmt.Sprint(err)})
+					}{i, j, unit == zpinput.Bytes, e.name, events, untimed(&prof), second, untimed(&prof2), filter, filtered, untimed(&filteredProf), fmt.Sprint(err)})
 					fmt.Println(string(b))
 				}
 			}
@@ -345,13 +350,13 @@ type agreeReport struct {
 	Case, Input     int
 	Bytes           bool
 	Entry           string
-	Events          []core.TraceEvent
-	Profile         core.ProfileSnapshot
-	Second          []core.TraceEvent
-	Profile2        core.ProfileSnapshot
+	Events          []instrument.TraceEvent
+	Profile         instrument.ProfileSnapshot
+	Second          []instrument.TraceEvent
+	Profile2        instrument.ProfileSnapshot
 	Filter          []string
-	Filtered        []core.TraceEvent
-	FilteredProfile core.ProfileSnapshot
+	Filtered        []instrument.TraceEvent
+	FilteredProfile instrument.ProfileSnapshot
 	Err             string
 }
 
@@ -376,7 +381,7 @@ func libPatchFromEnv(t *testing.T, then func(name, src string) string) (func(nam
 		t.Fatalf("%s: %v", agreeLibPatchEnv, err)
 	}
 	dir, name := filepath.Split(filepath.FromSlash(m.File))
-	if filepath.ToSlash(filepath.Clean(dir)) != "codegen/go/lib" {
+	if filepath.ToSlash(filepath.Clean(dir)) != "pkg/runtime/golib" {
 		t.Fatalf("%s: %s is not a file of the library", agreeLibPatchEnv, m.File)
 	}
 	patched := 0
@@ -510,13 +515,13 @@ func runAgreeProbes(t *testing.T, cases []codegentest.Case) []agreeReport {
 }
 
 // middleChar is the middle function of agreeProbeMain.
-func middleChar(in string, unit core.PositionUnit) (int, int, string) {
+func middleChar(in string, unit input.PositionUnit) (int, int, string) {
 	r := []rune(in)
 	k := len(r) / 2
 	if k == len(r) {
 		return 0, 0, ""
 	}
-	if unit == core.Bytes {
+	if unit == input.Bytes {
 		pos := len(string(r[:k]))
 		return pos, pos + len(string(r[k])), string(r[k])
 	}
@@ -525,17 +530,17 @@ func middleChar(in string, unit core.PositionUnit) (int, int, string) {
 
 // engineObservation runs the parse of the report r on the engine with the backend b, the trace filter
 // rules and the depth limit maxDepth, and returns its events, its profile and its error.
-func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in string, b engine.Backend, rules []string, maxDepth int) ([]core.TraceEvent, core.ProfileSnapshot, error) {
+func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in string, b engine.Backend, rules []string, maxDepth int) ([]instrument.TraceEvent, instrument.ProfileSnapshot, error) {
 	t.Helper()
-	var events []core.TraceEvent
-	var prof core.Profile
-	o := engine.ParseOptions{Expectations: true, Backend: b, Unit: core.CodePoints, Recognize: r.Entry == "recognize"}
+	var events []instrument.TraceEvent
+	var prof instrument.Profile
+	o := engine.ParseOptions{Expectations: true, Backend: b, Unit: input.CodePoints, Recognize: r.Entry == "recognize"}
 	if r.Bytes {
-		o.Unit = core.Bytes
+		o.Unit = input.Bytes
 	}
 	traced := o
-	traced.Trace = func(e core.TraceEvent) { events = append(events, e) }
-	traced.Profiles = []*core.Profile{&prof}
+	traced.Trace = func(e instrument.TraceEvent) { events = append(events, e) }
+	traced.Profiles = []*instrument.Profile{&prof}
 	if rules != nil || maxDepth != 0 {
 		traced.TraceSelection = &engine.TraceSelection{Rules: rules, MaxDepth: maxDepth}
 	}
@@ -544,17 +549,17 @@ func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in str
 	case "parse", "recognize":
 		_, err = prog.ParseWith("main", in, traced)
 	case "stream":
-		err = prog.ParseStreamWith("main", &oneByteReader{in}, func(*core.Node) error { return nil }, traced)
+		err = prog.ParseStreamWith("main", &oneByteReader{in}, func(*value.Node) error { return nil }, traced)
 	case "document", "edit":
 		d, derr := prog.NewDocumentWith("main", in, o)
 		if derr != nil {
-			return nil, core.ProfileSnapshot{}, derr
+			return nil, instrument.ProfileSnapshot{}, derr
 		}
 		if r.Entry == "edit" {
 			d.Parse()
 			pos, end, ch := middleChar(in, o.Unit)
 			if err := d.Edit(pos, end, ch); err != nil {
-				return nil, core.ProfileSnapshot{}, err
+				return nil, instrument.ProfileSnapshot{}, err
 			}
 		}
 		_, err = d.ParseWith(traced)
@@ -582,16 +587,16 @@ func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in str
 // producers make the same such calls. The edit of the parse replaces a character of the input in with
 // itself, so in is also the input of the parse. It returns the number of exits compared and the
 // differences.
-func sameCallExamined(a, b []core.TraceEvent, in string, unit core.PositionUnit, cannotMatch bool) (compared int, diffs []string) {
+func sameCallExamined(a, b []instrument.TraceEvent, in string, unit input.PositionUnit, cannotMatch bool) (compared int, diffs []string) {
 	type key struct {
 		rule                   string
 		level, depth, pos, end int
 		matched                bool
 	}
-	ends := func(evs []core.TraceEvent) (map[key][]int, []key) {
+	ends := func(evs []instrument.TraceEvent) (map[key][]int, []key) {
 		m, order := map[key][]int{}, []key(nil)
 		for _, e := range evs {
-			if e.Kind == core.TraceExit && (cannotMatch || e.Matched || e.Examined > firstCharEnd(in, e.Pos, unit)) {
+			if e.Kind == instrument.TraceExit && (cannotMatch || e.Matched || e.Examined > firstCharEnd(in, e.Pos, unit)) {
 				k := key{e.Rule, e.Level, e.Depth, e.Pos, e.End, e.Matched}
 				if m[k] == nil {
 					order = append(order, k)
@@ -620,7 +625,7 @@ func sameCallExamined(a, b []core.TraceEvent, in string, unit core.PositionUnit,
 // (the same rule, position, level, depth, end and outcome) that differ are swapped, or nil if no call
 // has two. Such exits are steps of the growth of a left-recursive seed. It leaves out the calls that
 // sameCallExamined leaves out.
-func swapGrowthExamined(evs []core.TraceEvent, in string, unit core.PositionUnit) []core.TraceEvent {
+func swapGrowthExamined(evs []instrument.TraceEvent, in string, unit input.PositionUnit) []instrument.TraceEvent {
 	type key struct {
 		rule                   string
 		level, depth, pos, end int
@@ -628,7 +633,7 @@ func swapGrowthExamined(evs []core.TraceEvent, in string, unit core.PositionUnit
 	}
 	first := map[key]int{}
 	for i, e := range evs {
-		if e.Kind != core.TraceExit || !e.Matched && e.Examined <= firstCharEnd(in, e.Pos, unit) {
+		if e.Kind != instrument.TraceExit || !e.Matched && e.Examined <= firstCharEnd(in, e.Pos, unit) {
 			continue
 		}
 		k := key{e.Rule, e.Level, e.Depth, e.Pos, e.End, e.Matched}
@@ -673,8 +678,8 @@ type agreementStats struct {
 // first did (events, prof), the filtered parse delivered the events that the filter rules and the depth
 // limit agreeMaxDepth select (codegentest.SelectedEvents; no events are no events, however a producer
 // spells them), and its profile recorded the whole parse. It returns the first difference.
-func optionsHonored(producer string, events []core.TraceEvent, prof core.ProfileSnapshot, second []core.TraceEvent, prof2 core.ProfileSnapshot,
-	rules []string, filtered []core.TraceEvent, filteredProf core.ProfileSnapshot) string {
+func optionsHonored(producer string, events []instrument.TraceEvent, prof instrument.ProfileSnapshot, second []instrument.TraceEvent, prof2 instrument.ProfileSnapshot,
+	rules []string, filtered []instrument.TraceEvent, filteredProf instrument.ProfileSnapshot) string {
 	same := func(a, b any) bool {
 		x, _ := json.Marshal(a)
 		y, _ := json.Marshal(b)
@@ -707,9 +712,9 @@ func agreementMismatches(t *testing.T, cases []codegentest.Case, reports []agree
 			prog = mustCompile(t, c.Src)
 			progs[r.Case] = prog
 		}
-		unit := core.CodePoints
+		unit := input.CodePoints
 		if r.Bytes {
-			unit = core.Bytes
+			unit = input.Bytes
 		}
 		st := stats[r.Entry]
 		if st == nil {
@@ -768,12 +773,12 @@ func agreementMismatches(t *testing.T, cases []codegentest.Case, reports []agree
 			st.paired += aside.paired
 			st.unpaired += aside.unpaired
 			for _, e := range aside.a {
-				if e.Kind == core.TraceEnter {
+				if e.Kind == instrument.TraceEnter {
 					st.engineOnly++
 				}
 			}
 			for _, e := range aside.b {
-				if e.Kind == core.TraceEnter {
+				if e.Kind == instrument.TraceEnter {
 					st.generatedOnly++
 				}
 			}

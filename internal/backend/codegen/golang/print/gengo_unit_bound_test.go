@@ -76,7 +76,7 @@ import (
 	"strings"
 	"testing"
 
-	zpparse "zeroparse.dev/zp/core"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
 )
 
 func chargesEachElement(t *testing.T, before, unit, after string, want uint64, parse func(text string, budget uint64) error) {
@@ -84,8 +84,8 @@ func chargesEachElement(t *testing.T, before, unit, after string, want uint64, p
 		text := before + strings.Repeat(unit, k) + after
 		finishes := func(budget uint64) bool {
 			err := parse(text, budget)
-			var le *zpparse.LimitError
-			if errors.As(err, &le) && le.Kind == zpparse.LimitCompute {
+			var le *zpruntime.LimitError
+			if errors.As(err, &le) && le.Kind == zpruntime.LimitCompute {
 				return false
 			}
 			if err != nil {

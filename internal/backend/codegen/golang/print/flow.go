@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
@@ -14,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Typed Go rules printed from Flow IR.
@@ -592,7 +592,7 @@ func (p *flowPrinter) expr(x flow.Expr) string {
 	case *flow.NewNode:
 		typ := "tuple"
 		if x.List {
-			typ = coreimpl.TypeList
+			typ = valueimpl.TypeList
 		}
 		return fmt.Sprintf("p.%s(%q, %s, p.Pos, %s)", p.g.helper("NewNode"), typ, p.expr(x.Start), p.expr(x.Kids))
 	case *flow.NewVals:

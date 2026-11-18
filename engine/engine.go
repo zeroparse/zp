@@ -12,14 +12,17 @@ import (
 	"io"
 	"slices"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/limits"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 	"zeroparse.dev/zp/pkg/runtime/schema"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // ParseGrammar parses ZeroParse source code into a grammar AST.
@@ -100,7 +103,7 @@ func WithContext(ctx context.Context) ParseOption {
 // WithLimits sets the invocation-local limits field by field: a nonzero field overrides the value
 // of an earlier WithLimits, including the construction defaults of a Document, and a zero field
 // leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
-func WithLimits(l core.Limits) ParseOption {
+func WithLimits(l runtime.Limits) ParseOption {
 	return func(o *engine.ParseOptions) { o.Limits = limits.Merge(o.Limits, l) }
 }
 
@@ -122,7 +125,7 @@ func WithExpectations() ParseOption {
 }
 
 // WithUnit selects the position unit. Matching always proceeds by code point, whatever the unit.
-func WithUnit(u core.PositionUnit) ParseOption {
+func WithUnit(u zpinput.PositionUnit) ParseOption {
 	return func(o *engine.ParseOptions) { o.Unit = u }
 }
 
@@ -162,17 +165,17 @@ func RecognizeOnly() ParseOption {
 
 // TraceEvent describes the start (TraceEnter) or the end (TraceExit) of a rule call. See WithTrace. It is
 // the trace event of every ZeroParse parser, generated parsers included.
-type TraceEvent = core.TraceEvent
+type TraceEvent = instrument.TraceEvent
 
 // TraceKind tells whether a TraceEvent starts or ends a rule call, or reports a call that a parser
 // skipped (core.TraceSkipped, which the engine never reports).
-type TraceKind = core.TraceKind
+type TraceKind = instrument.TraceKind
 
 const (
 	// TraceEnter is reported when a rule is called, before the memo is consulted.
-	TraceEnter = core.TraceEnter
+	TraceEnter = instrument.TraceEnter
 	// TraceExit is reported when a rule call returns.
-	TraceExit = core.TraceExit
+	TraceExit = instrument.TraceExit
 )
 
 // WithTrace calls f at the start and at the end of every rule call of the parse, in order, so that the
@@ -233,7 +236,7 @@ func traceSelection(o *engine.ParseOptions) *engine.TraceSelection {
 // that element. A nil callback disables delivery. Non-nil callbacks are invalid with Parse,
 // ParsePrefix and Document. Recoveries in a successful suffix are reported before the terminal result. With or
 // without this option, recovered errors remain available at stream completion.
-func WithDiagnosticCallback(f func(*core.SyntaxError) error) ParseOption {
+func WithDiagnosticCallback(f func(*value.SyntaxError) error) ParseOption {
 	return func(o *engine.ParseOptions) { o.DiagnosticCallback = f }
 }
 
@@ -251,19 +254,19 @@ func WithDiagnosticLimit(n int) ParseOption {
 // Profile accumulates the cost of each rule over the parses given WithProfile; Snapshot reads it. It is
 // the profile of every ZeroParse parser, generated parsers included. A Profile is not safe for
 // concurrent use.
-type Profile = core.Profile
+type Profile = instrument.Profile
 
 // ProfileSnapshot is a copy of the counts of a Profile; Hints summarizes where to look.
-type ProfileSnapshot = core.ProfileSnapshot
+type ProfileSnapshot = instrument.ProfileSnapshot
 
 // RuleProfile is the cost of one rule in a ProfileSnapshot.
-type RuleProfile = core.RuleProfile
+type RuleProfile = instrument.RuleProfile
 
 // Location is a position with its line and column.
-type Location = core.Location
+type Location = zpinput.Location
 
 // CallSite is the location and the binding level of a call.
-type CallSite = core.CallSite
+type CallSite = instrument.CallSite
 
 // WithProfile adds the cost of the parse to prof. It traces the parse (see WithTrace), so the parse is
 // several times slower, and the times in prof are meaningful relative to each other only; they do not
@@ -290,7 +293,7 @@ func parseOptions(opts []ParseOption) engine.ParseOptions {
 // Parse parses the whole input and returns the value of the start rule.
 // If the input does not match, it returns a *SyntaxError. If the parse recovered from errors with
 // #recover, it returns both the node and the SyntaxErrors.
-func (p *Parser) Parse(input string, opts ...ParseOption) (*core.Node, error) {
+func (p *Parser) Parse(input string, opts ...ParseOption) (*value.Node, error) {
 	return p.prog.ParseWith(p.start, input, parseOptions(opts))
 }
 
@@ -306,7 +309,7 @@ func (p *Parser) Parse(input string, opts ...ParseOption) (*core.Node, error) {
 // WithDiagnosticCallback delivers committed recoveries immediately before their elements; its
 // error stops parsing before that element is emitted. Recovered errors are still returned at EOF.
 // WithDiagnosticLimit bounds the retained recovery tail and explicitly marks a truncated result.
-func (p *Parser) ParseStream(r io.Reader, emit func(*core.Node) error, opts ...ParseOption) error {
+func (p *Parser) ParseStream(r io.Reader, emit func(*value.Node) error, opts ...ParseOption) error {
 	return p.prog.ParseStreamWith(p.start, r, emit, parseOptions(opts))
 }
 
@@ -335,13 +338,13 @@ func (v DocumentVersion) Sequence() uint64 { return v.v.Sequence() }
 func (d *Document) Version() DocumentVersion { return DocumentVersion{d.doc.Version()} }
 
 // Unit returns the position unit selected when the document was constructed.
-func (d *Document) Unit() core.PositionUnit { return d.doc.Unit() }
+func (d *Document) Unit() zpinput.PositionUnit { return d.doc.Unit() }
 
 // EditBatch atomically applies ordered, nonoverlapping edits in base coordinates.
 // It rejects stale or foreign tokens, repeated starts, invalid ranges and byte
 // boundaries. An empty batch validates base but changes nothing. A nonempty
 // batch advances one revision and clears parse caches without parsing.
-func (d *Document) EditBatch(base DocumentVersion, edits ...core.TextEdit) error {
+func (d *Document) EditBatch(base DocumentVersion, edits ...zpinput.TextEdit) error {
 	return d.doc.EditBatch(base.v, edits...)
 }
 
@@ -358,7 +361,7 @@ func (s *Snapshot) Version() DocumentVersion { return DocumentVersion{s.s.Versio
 func (s *Snapshot) Text() string { return s.s.Text() }
 
 // Unit returns the position unit of the captured tree.
-func (s *Snapshot) Unit() core.PositionUnit { return s.s.Unit() }
+func (s *Snapshot) Unit() zpinput.PositionUnit { return s.s.Unit() }
 
 // Root returns the captured root, or the zero handle for a nil result.
 func (s *Snapshot) Root() SnapshotNode { return SnapshotNode{s.s.Root()} }
@@ -367,11 +370,11 @@ func (s *Snapshot) Root() SnapshotNode { return SnapshotNode{s.s.Root()} }
 func (s *Snapshot) Error() error { return s.s.Error() }
 
 // Stats returns the evaluation and memo counts of the captured parse.
-func (s *Snapshot) Stats() core.ParseStats { return s.s.Stats() }
+func (s *Snapshot) Stats() runtime.ParseStats { return s.s.Stats() }
 
 // Materialize makes an independent mutable tree, preserving sharing, cycles, nil child slots,
 // and nil versus allocated-empty slices.
-func (s *Snapshot) Materialize() *core.Node { return s.s.Materialize() }
+func (s *Snapshot) Materialize() *value.Node { return s.s.Materialize() }
 
 // SnapshotNode is a comparable read-only node handle; its zero value is nil.
 type SnapshotNode struct {
@@ -383,7 +386,7 @@ func (n SnapshotNode) Valid() bool { return n.n.Valid() }
 
 // Kind returns what the node stands for, as Node.Kind does. Like Node.Kind, it panics on a nil
 // node.
-func (n SnapshotNode) Kind() core.NodeKind { return n.n.Kind() }
+func (n SnapshotNode) Kind() value.NodeKind { return n.n.Kind() }
 
 // Type returns the node type, or an empty string for nil.
 func (n SnapshotNode) Type() string { return n.n.Type() }
@@ -497,7 +500,7 @@ func (d *Document) Edit(start, end int, text string) error { return d.doc.Edit(s
 // interruption discards reusable state while preserving text for retry.
 // Parser-produced syntax diagnostics belong to that call: mutating them does
 // not affect later parses. Returned Nodes may share the mutable Document graph.
-func (d *Document) Parse(opts ...ParseOption) (*core.Node, error) {
+func (d *Document) Parse(opts ...ParseOption) (*value.Node, error) {
 	o := d.doc.ParseDefaults()
 	for _, opt := range opts {
 		opt(&o)
@@ -506,7 +509,7 @@ func (d *Document) Parse(opts ...ParseOption) (*core.Node, error) {
 }
 
 // Stats returns the evaluation and reuse counts of the last Parse.
-func (d *Document) Stats() core.ParseStats { return d.doc.Stats() }
+func (d *Document) Stats() runtime.ParseStats { return d.doc.Stats() }
 
 // CompiledMode is the mode of a compiled grammar file, chosen when it is saved. A file holds the
 // module of one mode and serves only the parses of that mode; the closure backend, Grammar and
@@ -594,7 +597,7 @@ func (p *Parser) Grammar() *ast.Grammar { return entry.Grammar(p.prog) }
 // PrefixResult reports a rule's value and successful cursor. Consumption comes
 // from the runtime cursor, even when Node is nil or its span differs.
 type PrefixResult struct {
-	Node          *core.Node
+	Node          *value.Node
 	Consumed      int // Selected parser Unit; defaults to CodePoints.
 	ConsumedBytes int // Exact UTF-8 byte endpoint in the supplied input.
 }
@@ -617,7 +620,7 @@ func (p *Parser) ParsePrefix(name, input string, opts ...ParseOption) (PrefixRes
 // Iterate validates a #stream parser and returns a lazy pull iterator. Reader
 // access begins on Next; lookahead and buffering may still read ahead. With a
 // diagnostic callback, Next reports committed recoveries before their element.
-func (p *Parser) Iterate(r io.Reader, opts ...ParseOption) (*core.StreamIterator, error) {
+func (p *Parser) Iterate(r io.Reader, opts ...ParseOption) (*runtime.StreamIterator, error) {
 	return p.prog.Iterate(p.start, r, parseOptions(opts))
 }
 
@@ -625,16 +628,16 @@ func (p *Parser) Iterate(r io.Reader, opts ...ParseOption) (*core.StreamIterator
 // advance source revisions; outcome From/To identify compared snapshots. Consumers
 // track those streams separately. FullRefresh requires rebuilding current state.
 type DocumentChange struct {
-	Kind        core.DocumentChangeKind
+	Kind        zpinput.DocumentChangeKind
 	From, To    DocumentVersion
-	Unit        core.PositionUnit
-	Edits       []core.TextEdit
+	Unit        zpinput.PositionUnit
+	Edits       []zpinput.TextEdit
 	FullRefresh bool
 	// Invalidated is conservative: an accepted edit may affect the whole output.
 	// Reevaluation remains unknown; invalidation is not evidence of execution.
 	Invalidated  bool
 	Reevaluation string
-	Output       core.OutputChange
+	Output       zpinput.OutputChange
 }
 
 // EnableChanges opts into bounded notifications and one retained comparison
@@ -671,7 +674,7 @@ func (d *Document) ResetHistory() { d.doc.ResetHistory() }
 
 // CacheStats inspects retained incremental history without changing it.
 // Document methods, including this one, require exclusive ownership.
-func (d *Document) CacheStats() core.CacheStats { return d.doc.CacheStats() }
+func (d *Document) CacheStats() runtime.CacheStats { return d.doc.CacheStats() }
 
 // ErrSchemaUnavailable reports that checked grammar metadata is unavailable.
 // In particular, a parser loaded from a compiled file cannot export a schema.

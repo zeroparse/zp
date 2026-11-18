@@ -4,13 +4,13 @@
 package classretry
 
 import (
-	rt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*core.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*zpvalue.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -19,7 +19,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*core.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*zpvalue.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -74,11 +74,11 @@ func init() {
 	zpGrammar.DefaultStart = "main"
 }
 
-func e2(p *rt.Parser, _ int) (*core.Node, bool) {
+func e2(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, x2, size, x15 int
 	var x4, x6 rt.Mark
-	var v7, v13, v16, v17, v18 *core.Node
+	var v7, v13, v16, v17, v18 *zpvalue.Node
 	var x9 rune
 	var x10, ok bool
 	x1, x2 = p.Pos, len(p.KidStack)
@@ -137,12 +137,12 @@ func e2(p *rt.Parser, _ int) (*core.Node, bool) {
 	return v18, true
 }
 
-func e7(p *rt.Parser, _ int) (*core.Node, bool) {
+func e7(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, x3, x5, x6, x8, x18, x20, size, x22, x28, x32 int
-	var x2, x19 []*core.Node
+	var x2, x19 []*zpvalue.Node
 	var ok, x15 bool
-	var v4, v12, v21, v23, v24, v25, v29, v30, v31, v33, v34 *core.Node
+	var v4, v12, v21, v23, v24, v25, v29, v30, v31, v33, v34 *zpvalue.Node
 	var x9, x11 rt.Mark
 	var x14, ch rune
 	x1 = p.Pos
@@ -251,7 +251,7 @@ fail:
 	return nil, false
 }
 
-func r1(p *rt.Parser) (*core.Node, bool) {
+func r1(p *rt.Parser) (*zpvalue.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -268,4 +268,4 @@ func r1(p *rt.Parser) (*core.Node, bool) {
 	return v, ok
 }
 
-const _ = rt.Protocol20
+const _ = rt.Protocol21

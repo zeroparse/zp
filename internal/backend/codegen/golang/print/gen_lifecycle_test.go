@@ -44,7 +44,7 @@ rule main = "a" => Outer{Inner: Inner{N: 1}}`, "a"},
 			main := fmt.Sprintf(`package main
 import (
 	"fmt"
-	zprt "zeroparse.dev/zp/codegen/go/lib"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
 )
 func main() {
     for _, unit := range []PositionUnit{CodePoints, Bytes} {
@@ -103,7 +103,7 @@ func testGeneratedEnvironmentBindings(t *testing.T) {
 	main := `package main
 import (
 	"strings"
-	zprt "zeroparse.dev/zp/codegen/go/lib"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
 )
 func main() {
  for _, unit := range []PositionUnit{CodePoints, Bytes} {

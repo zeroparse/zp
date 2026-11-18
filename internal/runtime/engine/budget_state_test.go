@@ -13,31 +13,33 @@ import (
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	value "zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
-func stateBudgetParser(limits core.Limits) *state.Parser {
+func stateBudgetParser(limits runtime.Limits) *state.Parser {
 	prog := &state.SharedProgram{}
 	state.InitSharedProgram(prog, &program.Program{})
 	return &state.Parser{Prog: prog, Input: state.Input{Control: state.NewBudgetControl(nil, limits)}}
 }
 
-func undoFixture(p *state.Parser) (*state.Frame, []*core.Node) {
-	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: coreimpl.Fields{{Name: "keep", Value: "zero"}}})
+func undoFixture(p *state.Parser) (*state.Frame, []*zpvalue.Node) {
+	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: valueimpl.Fields{{Name: "keep", Value: "zero"}}})
 	first0 := value.Ptr(value.Data{Text: "first-zero"})
 	latest0 := value.Ptr(value.Data{Text: "latest-zero"})
 	old1 := value.Ptr(value.Data{Text: "old-one"})
 	last1 := value.Ptr(value.Data{Text: "last-one"})
-	f := &state.Frame{Vals: []*core.Node{latest0, old1}}
+	f := &state.Frame{Vals: []*zpvalue.Node{latest0, old1}}
 	p.Trail = []state.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
-	return f, []*core.Node{old0, first0, old1, last1, latest0}
+	return f, []*zpvalue.Node{old0, first0, old1, last1, latest0}
 }
 
-func assertUndoRestored(t *testing.T, f *state.Frame, nodes []*core.Node) {
+func assertUndoRestored(t *testing.T, f *state.Frame, nodes []*zpvalue.Node) {
 	t.Helper()
 	if f.Vals[0] != nodes[0] || f.Vals[1] != nodes[2] {
 		t.Fatalf("restored slots = (%p,%p), want (%p,%p)", f.Vals[0], f.Vals[1], nodes[0], nodes[2])
@@ -49,12 +51,12 @@ func assertUndoRestored(t *testing.T, f *state.Frame, nodes []*core.Node) {
 
 func TestBudgetResetRestoresRepeatedCaptureWritesInReverse(t *testing.T) {
 	t.Parallel()
-	p := stateBudgetParser(core.Limits{Compute: 4})
+	p := stateBudgetParser(runtime.Limits{Compute: 4})
 	f, nodes := undoFixture(p)
 	p.Pos = 71
 	p.Frame = f
 	p.SetVars([]any{1})
-	p.Recovered = []state.RecEntry{state.ErrEntry(&core.SyntaxError{Messages: []string{"temporary"}})}
+	p.Recovered = []state.RecEntry{state.ErrEntry(&zpvalue.SyntaxError{Messages: []string{"temporary"}})}
 	m := state.Mark{Pos: 4, Env: nil, Trail: 0, Recovered: 0}
 
 	p.Reset(m)
@@ -66,14 +68,14 @@ func TestBudgetResetRestoresRepeatedCaptureWritesInReverse(t *testing.T) {
 
 func TestBudgetResetPollingCancellationDuringUndo(t *testing.T) {
 	t.Parallel()
-	p := stateBudgetParser(core.Limits{})
-	f := &state.Frame{Vals: make([]*core.Node, 257)}
+	p := stateBudgetParser(runtime.Limits{})
+	f := &state.Frame{Vals: make([]*zpvalue.Node, 257)}
 	for i := range f.Vals {
 		old := value.Ptr(value.Data{Text: "old"})
 		f.Vals[i] = value.Ptr(value.Data{Text: "new"})
 		p.Trail = append(p.Trail, state.Undo{F: f, Slot: i, Old: old})
 	}
-	p.Control = state.NewBudgetControl(newPollingContext(1), core.Limits{})
+	p.Control = state.NewBudgetControl(newPollingContext(1), runtime.Limits{})
 	err := catchFatal(t, func() { p.Reset(state.Mark{Trail: 0}) })
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("undo cancellation = %v, want context.Canceled", err)
@@ -90,16 +92,16 @@ func TestBudgetResetPollingCancellationDuringUndo(t *testing.T) {
 
 func TestBudgetAttachCapturesNilFrameAndFieldOrder(t *testing.T) {
 	t.Parallel()
-	retained := value.Ptr(value.Data{Text: "base", Fields: coreimpl.Fields{{Name: "existing", Value: "kept"}}})
-	allNil := &state.Frame{Vals: make([]*core.Node, 320)}
-	p := stateBudgetParser(core.Limits{Compute: 100_000})
+	retained := value.Ptr(value.Data{Text: "base", Fields: valueimpl.Fields{{Name: "existing", Value: "kept"}}})
+	allNil := &state.Frame{Vals: make([]*zpvalue.Node, 320)}
+	p := stateBudgetParser(runtime.Limits{Compute: 100_000})
 	got := p.AttachCaptures(retained, &program.Scope{Names: make([]string, len(allNil.Vals))}, allNil, 2, 9)
 	if got != retained || len(value.D(retained).Fields) != 1 || value.D(retained).Fields[0].Value != "kept" {
 		t.Fatal("all-nil capture frame changed the base node")
 	}
 
 	fields := []string{"first", "duplicate", "third", "duplicate", "late_" + strings.Repeat("p", 80)}
-	values := []*core.Node{
+	values := []*zpvalue.Node{
 		value.Ptr(value.Data{Text: "first-value"}), value.Ptr(value.Data{Text: "old-duplicate"}), value.Ptr(value.Data{Text: "third-value"}), value.Ptr(value.Data{Text: "new-duplicate"}), value.Ptr(value.Data{Text: "late-value"}),
 	}
 	base := value.Ptr(value.Data{Text: "fresh-body", Fresh: true})
@@ -124,10 +126,10 @@ func TestBudgetAttachCapturesNilFrameAndFieldOrder(t *testing.T) {
 func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 	t.Parallel()
 	child := value.Ptr(value.Data{Text: "retained-child"})
-	prior := coreimpl.Fields{{Name: "prior", Value: "unchanged"}}
-	shared := value.Ptr(value.Data{Text: "shared", Fields: append(coreimpl.Fields(nil), prior...)})
-	p := stateBudgetParser(core.Limits{Compute: 100_000})
-	wrapped := p.AttachCaptures(shared, &program.Scope{Names: []string{"child"}}, &state.Frame{Vals: []*core.Node{child}}, 4, 7)
+	prior := valueimpl.Fields{{Name: "prior", Value: "unchanged"}}
+	shared := value.Ptr(value.Data{Text: "shared", Fields: append(valueimpl.Fields(nil), prior...)})
+	p := stateBudgetParser(runtime.Limits{Compute: 100_000})
+	wrapped := p.AttachCaptures(shared, &program.Scope{Names: []string{"child"}}, &state.Frame{Vals: []*zpvalue.Node{child}}, 4, 7)
 	if wrapped == shared || len(value.D(wrapped).Children) != 1 || value.D(wrapped).Children[0] != shared {
 		t.Fatal("nonfresh node was not wrapped before capture attachment")
 	}
@@ -139,7 +141,7 @@ func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 	}
 
 	self := value.Ptr(value.Data{Text: "self", Fresh: true})
-	got := p.AttachCaptures(self, &program.Scope{Names: []string{"self"}}, &state.Frame{Vals: []*core.Node{self}}, 1, 2)
+	got := p.AttachCaptures(self, &program.Scope{Names: []string{"self"}}, &state.Frame{Vals: []*zpvalue.Node{self}}, 1, 2)
 	if got == self || len(value.D(got).Children) != 1 || value.D(got).Children[0] != self {
 		t.Fatal("self-capture did not wrap the body node")
 	}
@@ -150,10 +152,10 @@ func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 
 func TestBudgetAttachCapturesInterruptsDiscoveryAndFieldWalk(t *testing.T) {
 	t.Parallel()
-	base := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "prior", Value: "kept"}}})
-	wide := &state.Frame{Vals: make([]*core.Node, 320)}
-	p := stateBudgetParser(core.Limits{Compute: 128})
-	if err := catchFatal(t, func() { _ = p.AttachCaptures(base, &program.Scope{Names: make([]string, 320)}, wide, 0, 1) }); !errors.Is(err, core.ErrLimit) {
+	base := value.Ptr(value.Data{Text: "retained", Fields: valueimpl.Fields{{Name: "prior", Value: "kept"}}})
+	wide := &state.Frame{Vals: make([]*zpvalue.Node, 320)}
+	p := stateBudgetParser(runtime.Limits{Compute: 128})
+	if err := catchFatal(t, func() { _ = p.AttachCaptures(base, &program.Scope{Names: make([]string, 320)}, wide, 0, 1) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("all-nil discovery interruption = %v, want ErrLimit", err)
 	}
 	if len(value.D(base).Fields) != 1 || value.D(base).Fields[0].Value != "kept" {
@@ -162,14 +164,14 @@ func TestBudgetAttachCapturesInterruptsDiscoveryAndFieldWalk(t *testing.T) {
 
 	const n = 48
 	names := make([]string, n)
-	vals := make([]*core.Node, n)
+	vals := make([]*zpvalue.Node, n)
 	for i := range names {
 		names[i] = fmt.Sprintf("capture_%03d_%s", i, strings.Repeat("common_prefix_", 12))
 		vals[i] = value.Ptr(value.Data{Text: fmt.Sprintf("value-%d", i)})
 	}
-	retained := value.Ptr(value.Data{Text: "shared-retained", Fields: coreimpl.Fields{{Name: "existing", Value: "stable"}}})
-	p = stateBudgetParser(core.Limits{Compute: 256})
-	if err := catchFatal(t, func() { _ = p.AttachCaptures(retained, &program.Scope{Names: names}, &state.Frame{Vals: vals}, 3, 9) }); !errors.Is(err, core.ErrLimit) {
+	retained := value.Ptr(value.Data{Text: "shared-retained", Fields: valueimpl.Fields{{Name: "existing", Value: "stable"}}})
+	p = stateBudgetParser(runtime.Limits{Compute: 256})
+	if err := catchFatal(t, func() { _ = p.AttachCaptures(retained, &program.Scope{Names: names}, &state.Frame{Vals: vals}, 3, 9) }); !errors.Is(err, runtime.ErrLimit) {
 		t.Fatalf("capture field walk interruption = %v, want ErrLimit", err)
 	}
 	if len(value.D(retained).Fields) != 1 || value.D(retained).Fields[0].Name != "existing" || value.D(retained).Fields[0].Value != "stable" || value.D(retained).Text != "shared-retained" {
@@ -194,12 +196,12 @@ rule fallback = .* #atomic
 rule arm = _`
 	prog := mustCompile(t, src)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		for _, u := range []input.PositionUnit{input.Bytes, input.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				armed := false
 				fallback := 0
 				var observed *state.Parser
-				n, err := prog.ParseWith("main", "a", ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
+				n, err := prog.ParseWith("main", "a", ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: runtime.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
 					observed = state.TraceParser(e)
 					if e.Kind == TraceEnter && e.Rule == "fallback" {
 						fallback++
@@ -212,7 +214,7 @@ rule arm = _`
 						state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 20
 					}
 				}})
-				if !armed || n != nil || !errors.Is(err, core.ErrLimit) || fallback != 0 || observed == nil || observed.Scratch != nil || observed.Control != nil {
+				if !armed || n != nil || !errors.Is(err, runtime.ErrLimit) || fallback != 0 || observed == nil || observed.Scratch != nil || observed.Control != nil {
 					t.Fatalf("%v/%v recognize=%t: armed=%t returned=%t err=%v fallback=%d", b, u, recognize, armed, n != nil, err, fallback)
 				}
 				n, err = prog.ParseWith("main", "a", ParseOptions{Backend: b, Unit: u, Recognize: recognize})
@@ -241,8 +243,8 @@ func TestBudgetStateProjectedFrameClear(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := stateBudgetParser(core.Limits{Compute: 64})
-	if err := catchFatal(t, func() { m(p) }); !errors.Is(err, core.ErrLimit) || len(p.Trail) != 0 {
+	p := stateBudgetParser(runtime.Limits{Compute: 64})
+	if err := catchFatal(t, func() { m(p) }); !errors.Is(err, runtime.ErrLimit) || len(p.Trail) != 0 {
 		t.Fatalf("projected clear err=%v capture writes=%d", err, len(p.Trail))
 	}
 }

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 //go:noinline
@@ -45,8 +45,8 @@ func TestDocumentVersionDoesNotRetainDocument(t *testing.T) {
 	t.Fatal("version token retained its document")
 }
 
-func batchOracle(text string, unit core.PositionUnit, edits []core.TextEdit) string {
-	if unit == core.Bytes {
+func batchOracle(text string, unit zpinput.PositionUnit, edits []zpinput.TextEdit) string {
+	if unit == zpinput.Bytes {
 		var out strings.Builder
 		pos := 0
 		for _, e := range edits {
@@ -85,7 +85,7 @@ rule item = .`, codegentest.IncrementalGrammar, `rule main = ("a" @error("need a
 					wantClosureRefused(t, err)
 					continue
 				}
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					for _, large := range []bool{false, true} {
 						t.Run(fmt.Sprintf("%d/%d/%s/%s/%v", gi, pi, back, unit, large), func(t *testing.T) {
 							initial := "é\xc3x\xa9\n"
@@ -106,17 +106,17 @@ rule item = .`, codegentest.IncrementalGrammar, `rule main = ("a" @error("need a
 								}
 								before := d.Text()
 								positions := decodedBoundaries(before)
-								if unit == core.CodePoints {
+								if unit == zpinput.CodePoints {
 									for j := range positions {
 										positions[j] = j
 									}
 								}
-								var edits []core.TextEdit
+								var edits []zpinput.TextEdit
 								at := 0
 								for j := 0; j < 3 && at < len(positions); j++ {
 									start := at + rng.Intn(len(positions)-at)
 									end := start + rng.Intn(min(3, len(positions)-start))
-									edits = append(edits, core.TextEdit{Start: positions[start], End: positions[end], Text: replacements[rng.Intn(len(replacements))]})
+									edits = append(edits, zpinput.TextEdit{Start: positions[start], End: positions[end], Text: replacements[rng.Intn(len(replacements))]})
 									at = end + 1
 								}
 								wantText := batchOracle(before, unit, edits)

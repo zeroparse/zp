@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestPublicStreamDiagnosticCallbackOrderAndAbort(t *testing.T) {
@@ -18,11 +19,11 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 	}
 	const input = "abX!abY?ab"
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				var events []string
-				var copies []*core.SyntaxError
-				options := []engine.ParseOption{engine.WithExpectations(), engine.WithBackend(backend), engine.WithUnit(unit), engine.WithDiagnosticCallback(func(e *core.SyntaxError) error {
+				var copies []*value.SyntaxError
+				options := []engine.ParseOption{engine.WithExpectations(), engine.WithBackend(backend), engine.WithUnit(unit), engine.WithDiagnosticCallback(func(e *value.SyntaxError) error {
 					events = append(events, "diagnostic")
 					copies = append(copies, e)
 					if len(e.Messages) != 1 || e.Messages[0] != "record" {
@@ -31,7 +32,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 					e.Messages[0] = "changed"
 					return nil
 				})}
-				err := p.ParseStream(strings.NewReader(input), func(*core.Node) error {
+				err := p.ParseStream(strings.NewReader(input), func(*value.Node) error {
 					events = append(events, "element")
 					return nil
 				}, options...)
@@ -39,7 +40,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 				if !reflect.DeepEqual(events, want) {
 					t.Fatalf("delivery order: got %v want %v", events, want)
 				}
-				var recovered core.SyntaxErrors
+				var recovered value.SyntaxErrors
 				if !errors.As(err, &recovered) || len(recovered) != 2 || len(copies) != 2 {
 					t.Fatalf("recovered: %v, copies=%d", err, len(copies))
 				}
@@ -51,11 +52,11 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 
 				stop := errors.New("diagnostic stop")
 				var stopped []string
-				abort := []engine.ParseOption{engine.WithExpectations(), engine.WithBackend(backend), engine.WithUnit(unit), engine.WithDiagnosticCallback(func(*core.SyntaxError) error {
+				abort := []engine.ParseOption{engine.WithExpectations(), engine.WithBackend(backend), engine.WithUnit(unit), engine.WithDiagnosticCallback(func(*value.SyntaxError) error {
 					stopped = append(stopped, "diagnostic")
 					return stop
 				})}
-				err = p.ParseStream(strings.NewReader(input), func(*core.Node) error {
+				err = p.ParseStream(strings.NewReader(input), func(*value.Node) error {
 					stopped = append(stopped, "element")
 					return nil
 				}, abort...)
@@ -85,7 +86,7 @@ func TestPublicStreamDiagnosticCallbackIsStreamOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	callback := engine.WithDiagnosticCallback(func(*core.SyntaxError) error { return nil })
+	callback := engine.WithDiagnosticCallback(func(*value.SyntaxError) error { return nil })
 	if _, err := p.Parse("a", callback); err == nil {
 		t.Fatal("batch Parse accepted a stream diagnostic callback")
 	}

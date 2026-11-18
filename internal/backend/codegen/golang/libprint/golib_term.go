@@ -13,7 +13,7 @@ import (
 
 // goTermsFile is the file of the printed term compositions in the generated Go library, relative to
 // the directory of this package.
-const goTermsFile = "../../../../../codegen/go/lib/term_exec.go"
+const goTermsFile = "../../../../../pkg/runtime/golib/term_exec.go"
 
 // termFuncs are the compositions of the operators of terms, in the order they are printed.
 var termFuncs = []struct{ fn, name string }{
@@ -185,7 +185,7 @@ func goTermError(recv, typeName string) string {
 	return b.String()
 }
 
-// printGoTerms returns the Go file of the printed term compositions for package libgo.
+// printGoTerms returns the Go file of the printed term compositions for package golib.
 func printGoTerms() (string, error) {
 	m := compose.Build()
 	var b strings.Builder
@@ -268,7 +268,7 @@ func goValueOp(callee string, a []string, typed bool) (string, bool) {
 		if typed {
 			return a[1], true
 		}
-		return fmt.Sprintf("p.NewNode(Data{Kind: coreimpl.BoxKind, Box: %[2]s, Start: int32(%[1]s.start), End: int32(%[1]s.end)})", a[0], a[1]), true
+		return fmt.Sprintf("p.NewNode(Data{Kind: valueimpl.BoxKind, Box: %[2]s, Start: int32(%[1]s.start), End: int32(%[1]s.end)})", a[0], a[1]), true
 	case "node.hasText":
 		if typed {
 			return "tnodeHasText(" + a[0] + ")", true
@@ -500,7 +500,7 @@ func engineValueOp(callee string, a []string) (string, bool) {
 	case "node.field":
 		return fmt.Sprintf("p.ValueField(nodes.D(%s).Fields, %s)", a[0], a[1]), true
 	case "val.box":
-		return fmt.Sprintf("p.NewNode(nodes.Data{Kind: coreimpl.BoxKind, Box: %[2]s, Start: int32(%[1]s.Start), End: int32(%[1]s.End)})", a[0], a[1]), true
+		return fmt.Sprintf("p.NewNode(nodes.Data{Kind: valueimpl.BoxKind, Box: %[2]s, Start: int32(%[1]s.Start), End: int32(%[1]s.End)})", a[0], a[1]), true
 	case "node.hasText":
 		return "nodes.D(" + a[0] + ").Terminal", true
 	case "node.heldText":
@@ -536,7 +536,7 @@ func engineValueOp(callee string, a []string) (string, bool) {
 	case "node.isType":
 		return fmt.Sprintf("%s.Type() == %s.Name", a[0], a[1]), true
 	case "node.isMissing":
-		return a[0] + ".Type() == coreimpl.TypeMissing", true
+		return a[0] + ".Type() == valueimpl.TypeMissing", true
 	case "node.children":
 		return "nodes.D(" + a[0] + ").Children", true
 	case "node.hasBase":

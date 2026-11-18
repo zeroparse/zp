@@ -4,13 +4,13 @@
 package csvdoc
 
 import (
-	rt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*core.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*zpvalue.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -24,7 +24,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*core.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*zpvalue.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -134,13 +134,13 @@ func init() {
 	zpGrammar.DefaultStart = "main"
 }
 
-func e3(p *rt.Parser, _ int) (*core.Node, bool) {
+func e3(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, x7, x8 int
-	var x2 []*core.Node
+	var x2 []*zpvalue.Node
 	var x3, x10 rt.Mark
 	var ok bool
-	var v12, v13, v14, v15 *core.Node
+	var v12, v13, v14, v15 *zpvalue.Node
 	x1 = p.Pos
 	x2 = p.Nodes(1)[:0]
 	x3 = p.Mark()
@@ -183,12 +183,12 @@ fail:
 	return nil, false
 }
 
-func e6(p *rt.Parser, _ int) (*core.Node, bool) {
+func e6(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, x10 rt.Mark
 	var x5, x6 int
 	var ok bool
-	var v4, v13, v14 *core.Node
+	var v4, v13, v14 *zpvalue.Node
 	var x7, x8 *rt.CaptureFrame
 	x1 = p.Mark()
 	p.Silent++
@@ -247,13 +247,13 @@ fail:
 	return nil, false
 }
 
-func e10(p *rt.Parser, _ int) (*core.Node, bool) {
+func e10(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
 	var x1, size, x8, x9, x11, x15, x16, x18, x19, x21, x25, x28, x29 int
 	var x2, x13, x23 rt.Mark
 	var x4, ch rune
 	var x5, ok, x10, x20 bool
-	var v30 *core.Node
+	var v30 *zpvalue.Node
 	x1 = p.Pos
 	x2 = p.Mark()
 	if p.Document == nil && p.Pos < len(p.In) {
@@ -466,9 +466,9 @@ L3:
 	return v30, true
 }
 
-func e13(p *rt.Parser, _ int) (*core.Node, bool) {
+func e13(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	p.Spend()
-	var v *core.Node
+	var v *zpvalue.Node
 	var x1, x10 int
 	var x3 rune
 	var x4, ok bool
@@ -530,4 +530,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol20
+const _ = rt.Protocol21

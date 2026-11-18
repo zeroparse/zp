@@ -6,10 +6,10 @@ import (
 	"runtime"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 func TestSnapshotSharingCyclesAndTypedNil(t *testing.T) {
@@ -23,8 +23,8 @@ func TestSnapshotSharingCyclesAndTypedNil(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nodes.D(legacy).Children = []*core.Node{legacy, nil}
-	nodes.D(legacy).Fields = coreimpl.Fields{{Name: "self", Value: legacy}, {Name: "typedNil", Value: (*core.Node)(nil)}, {Name: "int", Value: 7}, {Name: "text", Value: "a"}}
+	nodes.D(legacy).Children = []*value.Node{legacy, nil}
+	nodes.D(legacy).Fields = valueimpl.Fields{{Name: "self", Value: legacy}, {Name: "typedNil", Value: (*value.Node)(nil)}, {Name: "int", Value: 7}, {Name: "text", Value: "a"}}
 	first, err := d.SnapshotWith(ParseOptions{})
 	if err != nil {
 		t.Fatal(err)

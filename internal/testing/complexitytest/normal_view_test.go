@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // TestNormalViewMatches checks that the normal view of each bundled grammar matches what the
@@ -147,7 +147,7 @@ var errLimit = errors.New("limit")
 // A grammar with #missing, which prefix parses reject, is parsed whole, and the end is then the
 // length of the input.
 func prefixEnd(prog *engine.Program, in string) (int, error) {
-	o := engine.ParseOptions{Recognize: true, Limits: core.Limits{Compute: 50_000_000}}
+	o := engine.ParseOptions{Recognize: true, Limits: runtime.Limits{Compute: 50_000_000}}
 	var err error
 	end := len(in)
 	if prog.HasMissing {
@@ -157,7 +157,7 @@ func prefixEnd(prog *engine.Program, in string) (int, error) {
 		r, err = prog.ParsePrefixWith("", in, o)
 		end = r.ConsumedBytes
 	}
-	var le *core.LimitError
+	var le *runtime.LimitError
 	if errors.As(err, &le) {
 		return 0, errLimit
 	}

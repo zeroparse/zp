@@ -3,8 +3,8 @@ package state
 import (
 	"unsafe"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // termRegs holds the registers of the term programs that a parser evaluates, in four files (see
@@ -13,13 +13,13 @@ import (
 type termRegs struct {
 	a []any
 	n []int
-	s [][]*core.Node
+	s [][]*value.Node
 	t []string
 }
 
 func (r *termRegs) bytes() uint64 {
 	return uint64(cap(r.a))*anyBytes + uint64(cap(r.n))*intBytes +
-		uint64(cap(r.s))*uint64(unsafe.Sizeof([]*core.Node(nil))) + uint64(cap(r.t))*uint64(unsafe.Sizeof(""))
+		uint64(cap(r.s))*uint64(unsafe.Sizeof([]*value.Node(nil))) + uint64(cap(r.t))*uint64(unsafe.Sizeof(""))
 }
 
 // growRegs extends s by n registers. The registers above the tops are zero: Eval clears what it
@@ -55,7 +55,7 @@ func b2i(b bool) int {
 	return 0
 }
 
-func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*core.Node, ts []string) (any, error) {
+func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*value.Node, ts []string) (any, error) {
 	p := c.P
 	code := t.Code
 	var err error
@@ -176,16 +176,16 @@ func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*core.Node, ts []s
 			st := &t.Structs[in.A]
 			a[in.Dst] = p.NewNode(nodes.Data{Kind: st.Kind, Fields: p.fields(st.Fields)})
 		case TSetField:
-			p.SetValueField(&nodes.D(a[in.A].(*core.Node)).Fields, t.Names[in.C], a[in.B])
+			p.SetValueField(&nodes.D(a[in.A].(*value.Node)).Fields, t.Names[in.C], a[in.B])
 		case TField:
 			p.Spend()
-			x := a[in.A].(*core.Node)
+			x := a[in.A].(*value.Node)
 			p.SetValueField(&nodes.D(x).Fields, t.Names[in.C], a[in.B])
 			n[in.Dst] = b2i(p.termCover(x, a[in.B], n[in.Dst] != 0))
 		case TCover:
-			n[in.Dst] = b2i(p.termCover(a[in.A].(*core.Node), a[in.B], n[in.C] != 0))
+			n[in.Dst] = b2i(p.termCover(a[in.A].(*value.Node), a[in.B], n[in.C] != 0))
 		case TMade:
-			p.termMade(c, a[in.A].(*core.Node), n[in.B] != 0)
+			p.termMade(c, a[in.A].(*value.Node), n[in.B] != 0)
 		case TJump:
 			pc = int(in.Dst) - 1
 		case TJumpF:

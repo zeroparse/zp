@@ -11,11 +11,13 @@ import (
 	"testing/iotest"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // scanSiteGrammars are the grammars with scan sites of the tests of all targets.
@@ -104,7 +106,7 @@ func TestScanSitesReuseRecords(t *testing.T) {
 	defer func() { state.SkipRecordsOff = false }()
 	prog := mustCompile(t, scanSiteGrammars[2].Src)
 	in := strings.Repeat("(", 400) + strings.Repeat(" ", 400)
-	o := ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 200_000}}
+	o := ParseOptions{Backend: Closure, Limits: runtime.Limits{Compute: 200_000}}
 	state.SkipRecordsOff = false
 	if _, err := prog.ParseWith("main", in, o); err != nil {
 		t.Errorf("the parse with records: %v", err)
@@ -190,7 +192,7 @@ func TestScanSitesNegativeControls(t *testing.T) {
 	defer func() { state.SkipRecordMutation = 0 }()
 	prog := mustCompile(t, scanSiteGrammars[2].Src)
 	in := strings.Repeat("(", 400) + strings.Repeat(" ", 400)
-	o := ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 200_000}}
+	o := ParseOptions{Backend: Closure, Limits: runtime.Limits{Compute: 200_000}}
 	for _, m := range []struct {
 		name string
 		mut  int
@@ -240,11 +242,11 @@ func scanSitesInStreams(t *testing.T, prog *Program, b Backend) {
 		var want []string
 		o := ParseOptions{Backend: b, Expectations: true}
 		state.SkipRecordsOff = true
-		werr := prog.ParseStreamWith("main", strings.NewReader(text), func(n *core.Node) error { want = append(want, skipDump(t, n, nil)); return nil }, o)
+		werr := prog.ParseStreamWith("main", strings.NewReader(text), func(n *value.Node) error { want = append(want, skipDump(t, n, nil)); return nil }, o)
 		state.SkipRecordsOff = false
 		for _, mk := range []func(io.Reader) io.Reader{iotest.OneByteReader, iotest.HalfReader, iotest.DataErrReader} {
 			var got []string
-			err := prog.ParseStreamWith("main", mk(strings.NewReader(text)), func(n *core.Node) error { got = append(got, skipDump(t, n, nil)); return nil }, o)
+			err := prog.ParseStreamWith("main", mk(strings.NewReader(text)), func(n *value.Node) error { got = append(got, skipDump(t, n, nil)); return nil }, o)
 			if (err == nil) != (werr == nil) || strings.Join(got, "|") != strings.Join(want, "|") {
 				t.Fatalf("%s: text %q: got %v (%v), want %v (%v)", b, text, got, err, want, werr)
 			}
@@ -256,7 +258,7 @@ func scanSitesInStreams(t *testing.T, prog *Program, b Backend) {
 func scanSteps(t *testing.T, prog *Program, in string, b Backend) uint64 {
 	t.Helper()
 	var steps uint64
-	o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
+	o := ParseOptions{Backend: b, Limits: runtime.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
 		if e.Kind == TraceExit && e.Rule == "main" {
 			steps = state.TraceParser(e).Control.Used
 		}
@@ -386,7 +388,7 @@ func compileWithout(t *testing.T, src string, flag *bool) *Program {
 	}
 	for _, p := range []*Program{prog, rec} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			p.ParseWith("main", "", ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}})
+			p.ParseWith("main", "", ParseOptions{Backend: b, Limits: runtime.Limits{Compute: 1 << 40}})
 		}
 	}
 	return prog
@@ -430,10 +432,10 @@ func TestScanSitesHitAtTheirOwnHotSpan(t *testing.T) {
 // other state.
 func TestScanSitesInConcurrentParses(t *testing.T) {
 	prog := mustCompile(t, scanSpanProbe)
-	lim := core.Limits{Compute: 1 << 40}
+	lim := runtime.Limits{Compute: 1 << 40}
 	if !state.BudgetControlsEnabled {
 		// The reference build has no budget controls; the parses still share the counters.
-		lim = core.Limits{}
+		lim = runtime.Limits{}
 	}
 	var wg sync.WaitGroup
 	for g := 0; g < 8; g++ {
@@ -528,7 +530,7 @@ func TestScanSitesKeepTheExaminedRange(t *testing.T) {
 		for _, g := range grammars {
 			prog, plain := mustCompile(t, g.Src), compileWithoutScanSites(t, g.Src)
 			inputs := append([]string{strings.Repeat(" ", 30) + "z", strings.Repeat(" ", 20) + "z ", strings.Repeat("x", 20) + "yzzzzzA!", strings.Repeat("x", 20) + "yzzzzzA?", strings.Repeat("\xff", 20) + "!zzz", strings.Repeat("\xff", 20) + "!z", strings.Repeat("é", 20) + "!zzz", strings.Repeat("é", 20) + "?", strings.Repeat("\xe2\x82", 10) + "!zzz", strings.Repeat("\xe2\x82!", 10) + "\xe2\x82"}, scanSiteInputs(g.Alphabet, rng)...)
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 				for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					o := ParseOptions{Backend: b, Unit: unit}
 					for _, in := range inputs {
@@ -590,7 +592,7 @@ func TestScanSitesShareRecordsWithLookaheads(t *testing.T) {
 func documentSteps(t *testing.T, prog *Program, b Backend, text string, a, e int, ins string) (first, edit uint64) {
 	t.Helper()
 	var steps uint64
-	o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}, Trace: func(ev TraceEvent) {
+	o := ParseOptions{Backend: b, Limits: runtime.Limits{Compute: 1 << 40}, Trace: func(ev TraceEvent) {
 		if ev.Kind == TraceExit && ev.Rule == "main" {
 			steps = state.TraceParser(ev).Control.Used
 		}

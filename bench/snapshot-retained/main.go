@@ -10,17 +10,19 @@ import (
 	"runtime"
 	"strings"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 type legacyResult struct {
 	version engine.DocumentVersion
-	unit    core.PositionUnit
+	unit    input.PositionUnit
 	text    string
-	root    *core.Node
+	root    *zpvalue.Node
 	err     error
-	stats   core.ParseStats
+	stats   zpruntime.ParseStats
 }
 
 type result struct {
@@ -66,12 +68,12 @@ func run() error {
 	default:
 		return fmt.Errorf("invalid backend %q", *backendName)
 	}
-	var unit core.PositionUnit
+	var unit input.PositionUnit
 	switch *unitName {
 	case "codepoints":
-		unit = core.CodePoints
+		unit = input.CodePoints
 	case "bytes":
-		unit = core.Bytes
+		unit = input.Bytes
 	default:
 		return fmt.Errorf("invalid unit %q", *unitName)
 	}

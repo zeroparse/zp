@@ -3,9 +3,10 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // TestMemoLookaheadStateEvaluations checks that calls that alternate between lookahead states
@@ -17,16 +18,16 @@ func TestMemoLookaheadStateEvaluations(t *testing.T) {
 	for _, c := range codegentest.MemoLookaheadCases() {
 		prog := mustCompile(t, c.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, lim := range []core.Limits{{}, {Compute: 1 << 40}} {
+			for _, lim := range []runtime.Limits{{}, {Compute: 1 << 40}} {
 				if lim.Compute != 0 && !state.BudgetControlsEnabled {
 					// The reference build has no budget controls: it rejects a parse with a limit
 					// (ErrNoControls) before the parse starts.
 					continue
 				}
 				for _, recognize := range []bool{false, true} {
-					var pr core.Profile
+					var pr instrument.Profile
 					// The parses with recovered errors end with a syntax error.
-					_, _ = prog.ParseWith("s", c.Input, ParseOptions{Backend: b, Limits: lim, Recognize: recognize, Profiles: []*core.Profile{&pr}})
+					_, _ = prog.ParseWith("s", c.Input, ParseOptions{Backend: b, Limits: lim, Recognize: recognize, Profiles: []*instrument.Profile{&pr}})
 					evals := -1
 					for _, r := range pr.Snapshot().Rules {
 						if r.Rule == "a" {

@@ -4,13 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // engineValues binds the compositions of the operators to the engine's printed term_exec.go
@@ -30,13 +31,13 @@ func (e engineValues) parser() *Parser {
 func (engineValues) Datum(v ref.V) any {
 	if v.Kind == ref.KList || v.Kind == ref.KTuple {
 		p := &Parser{}
-		kids := make([]*core.Node, len(v.Items))
+		kids := make([]*value.Node, len(v.Items))
 		for i, x := range v.Items {
 			if x.Kind != ref.KNil {
-				kids[i] = p.NewNode(nodes.Data{Kind: coreimpl.BoxKind, Box: engineValues{}.Datum(x)})
+				kids[i] = p.NewNode(nodes.Data{Kind: valueimpl.BoxKind, Box: engineValues{}.Datum(x)})
 			}
 		}
-		return p.NewNode(nodes.Data{Kind: coreimpl.ListValueKind, Children: kids})
+		return p.NewNode(nodes.Data{Kind: valueimpl.ListValueKind, Children: kids})
 	}
 	switch v.Kind {
 	case ref.KInt:
@@ -86,7 +87,7 @@ func (e engineValues) Call(o *code.Op, args []any) []any {
 }
 
 func TestEngineValueConformance(t *testing.T) {
-	controlled := &Parser{Input: Input{Control: NewBudgetControl(context.Background(), core.Limits{Compute: 1 << 62})}}
+	controlled := &Parser{Input: Input{Control: NewBudgetControl(context.Background(), runtime.Limits{Compute: 1 << 62})}}
 	for name, impl := range map[string]engineValues{"engine": {}, "engine controlled": {controlled}} {
 		s := conform.ValueSuite{Name: name, Impl: impl, Ops: []string{"binary", "unary", "logic"}}
 		if err := conform.RunValues(s); err != nil {
@@ -154,7 +155,7 @@ func TestEngineValueConformanceDetectsBrokenEvaluation(t *testing.T) {
 // an arithmetic operator.
 func TestEngineValueBoxedOperands(t *testing.T) {
 	p := &Parser{}
-	box := func(v any) *core.Node { return p.NewNode(nodes.Data{Kind: coreimpl.BoxKind, Box: v}) }
+	box := func(v any) *value.Node { return p.NewNode(nodes.Data{Kind: valueimpl.BoxKind, Box: v}) }
 	for _, c := range []struct {
 		op   string
 		l, r any

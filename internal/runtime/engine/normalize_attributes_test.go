@@ -4,12 +4,12 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestNormalizationCopyOnChangeParity(t *testing.T) {
@@ -65,7 +65,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 				return
 			}
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					for _, input := range []string{"", "b", "ab", "aaab", "a;", "x;", "123", "1 + 2 * 3", "é"} {
 						opts := ParseOptions{Backend: backend, Unit: unit}
 						if actual, expected := codegentest.ResultJSON(optimized.ParseWith("main", input, opts)), codegentest.ResultJSON(eager.ParseWith("main", input, opts)); actual != expected {

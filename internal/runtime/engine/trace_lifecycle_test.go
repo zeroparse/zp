@@ -8,10 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	value "zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func assertTraceParserDetached(t *testing.T, p *state.Parser, aborted bool) {
@@ -59,7 +60,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, outcome := range []string{"success", "syntax", "reader-error", "emit-error", "trace-panic", "emit-panic"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, outcome), func(t *testing.T) {
 					stop := errors.New("stream stopped")
@@ -74,11 +75,11 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 					}
 					r := &traceLifecycleClosingReader{Reader: reader}
 					var e TraceEvent
-					var nodes []*core.Node
+					var nodes []*zpvalue.Node
 					var snapshots []string
 					err := error(nil)
 					got := traceLifecycleRecover(func() {
-						err = prog.ParseStreamWith("main", r, func(n *core.Node) error {
+						err = prog.ParseStreamWith("main", r, func(n *zpvalue.Node) error {
 							nodes = append(nodes, n)
 							snapshots = append(snapshots, codegentest.ResultJSON(n, nil))
 							if outcome == "emit-error" {
@@ -106,7 +107,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 							t.Fatalf("err=%v panic=%v nodes=%d", err, got, len(nodes))
 						}
 					case "syntax":
-						var se *core.SyntaxError
+						var se *zpvalue.SyntaxError
 						if got != nil || !errors.As(err, &se) || len(nodes) != 1 {
 							t.Fatalf("err=%v panic=%v nodes=%d", err, got, len(nodes))
 						}
@@ -126,10 +127,10 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 					if r.closed {
 						t.Fatal("parser closed caller's reader")
 					}
-					if value.D(nodes[0].Field("k").(*core.Node)).Text != "a" || value.D(nodes[0].Field("v").(*core.Node)).Text != "1" {
+					if value.D(nodes[0].Field("k").(*zpvalue.Node)).Text != "a" || value.D(nodes[0].Field("v").(*zpvalue.Node)).Text != "1" {
 						t.Fatal("emitted fields changed")
 					}
-					if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*core.Node) error { return nil }, ParseOptions{Backend: b, Unit: u}); err != nil {
+					if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*zpvalue.Node) error { return nil }, ParseOptions{Backend: b, Unit: u}); err != nil {
 						t.Fatal(err)
 					}
 					for i, n := range nodes {

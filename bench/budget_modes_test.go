@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // BenchmarkBudgetControlModes separates warm context polling from finite counters. The inactive and
@@ -33,11 +33,11 @@ func BenchmarkBudgetControlModes(b *testing.B) {
 							}
 							if mode == "inactive" || mode == "context" {
 								// A zero budget selects the default, which is a counter; Unlimited leaves only the context.
-								opts = append(opts, engine.WithLimits(core.Limits{Compute: core.Unlimited}))
+								opts = append(opts, engine.WithLimits(runtime.Limits{Compute: runtime.Unlimited}))
 							}
 							if mode == "budget" || mode == "combined" {
 								// The largest finite budget: ^uint64(0) is Unlimited, which runs without a control.
-								opts = append(opts, engine.WithLimits(core.Limits{Compute: ^uint64(0) - 1}))
+								opts = append(opts, engine.WithLimits(runtime.Limits{Compute: ^uint64(0) - 1}))
 							}
 							if err := parseOK(p, &w, input, opts...); err != nil {
 								b.Fatal(err)

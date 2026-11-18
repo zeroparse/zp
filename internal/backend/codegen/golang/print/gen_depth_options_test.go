@@ -10,10 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // Differentially exercise every rule-call owner, including first-character
@@ -87,17 +88,17 @@ rule n Word = t:(("(" n ")" / "é") #recover(skip="?")) #atomic => Word{Text: te
 			var rows strings.Builder
 			for _, name := range []string{"main", prog.RuleList[len(prog.RuleList)-1].Name} {
 				for _, in := range c.Inputs {
-					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+					for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 						for _, limit := range []int{1, 2, 3, 4, 5, 6, 8, 20} {
-							_, err := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: uint64(limit)}})
-							_, recErr := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: uint64(limit)}, Recognize: true})
-							fmt.Fprintf(&rows, "{%q,%q,%s,%d,%q,%q},\n", name, in, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], limit, fmt.Sprint(err), fmt.Sprint(recErr))
+							_, err := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: runtime.Limits{Depth: uint64(limit)}})
+							_, recErr := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: runtime.Limits{Depth: uint64(limit)}, Recognize: true})
+							fmt.Fprintf(&rows, "{%q,%q,%s,%d,%q,%q},\n", name, in, map[input.PositionUnit]string{input.CodePoints: "CodePoints", input.Bytes: "Bytes"}[unit], limit, fmt.Sprint(err), fmt.Sprint(recErr))
 						}
 					}
 				}
 			}
 			harness := `package ` + pkg + `
-import("fmt";"strings";"sync";"testing";zprt "zeroparse.dev/zp/codegen/go/lib")
+import("fmt";"strings";"sync";"testing";zprt "zeroparse.dev/zp/pkg/runtime/golib")
 func TestLimitsAndReuse(t *testing.T) {
  rows:=[]struct{name,input string;unit PositionUnit;limit int;want,recWant string}{` + rows.String() + `}
  for repeat:=0;repeat<3;repeat++ {for _,c:=range rows {

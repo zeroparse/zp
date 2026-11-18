@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // Go string literals preserve invalid bytes; JSON input fixtures would replace
@@ -60,11 +60,11 @@ func testGeneratedInvalidUTF8Literals(t *testing.T) {
 			write(pkg+"/parser.go", code)
 			fmt.Fprintf(&imports, "%s %q\n", pkg, "literaltest/"+pkg)
 			for _, input := range tc.Inputs {
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					var harness strings.Builder
 					n, err := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit})
 					want.WriteString(codegentest.ResultJSON(n, err) + "\n")
-					fmt.Fprintf(&harness, "{ input:=%q; unit:=%s.%s; n,err:=%s.Parse(input,%[4]s.WithUnit(unit)); rec:=%s.Recognize(input,%[4]s.WithUnit(unit)); if fmt.Sprint(rec)!=fmt.Sprint(err){panic(\"recognition differs\")}\n", input, pkg, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], pkg, pkg)
+					fmt.Fprintf(&harness, "{ input:=%q; unit:=%s.%s; n,err:=%s.Parse(input,%[4]s.WithUnit(unit)); rec:=%s.Recognize(input,%[4]s.WithUnit(unit)); if fmt.Sprint(rec)!=fmt.Sprint(err){panic(\"recognition differs\")}\n", input, pkg, map[zpinput.PositionUnit]string{zpinput.CodePoints: "CodePoints", zpinput.Bytes: "Bytes"}[unit], pkg, pkg)
 					if mode != "untyped" {
 						fmt.Fprintf(&harness, `ast,ae:=%s.ParseValue(input,%[1]s.WithUnit(unit)); if fmt.Sprint(ae)!=fmt.Sprint(err){panic("typed error differs")}; if err==nil {child:=n.Field("T").(*%s.Node); wantText:=input; if unit==%s.CodePoints{wantText=string([]rune(input))};if child.Text()!=wantText{panic("matched text differs from input")}; if ast==nil || ast.T==nil || ast.T.Start!=child.Start() || ast.T.End!=child.End() || ast.T.Value!=child.Text() {panic("typed literal value differs")}}`+"\n", pkg, pkg, pkg)
 					}

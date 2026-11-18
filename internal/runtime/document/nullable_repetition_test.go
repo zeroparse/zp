@@ -5,15 +5,15 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestNullableRepetitionResumedMinimum(t *testing.T) {
 	const prefix = 1000
 	p := mustCompile(t, fmt.Sprintf("rule main = item #repeat(%d, ) $$\nrule item = \"é\" / _", prefix+1))
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			d, err := p.NewDocumentWith("main", strings.Repeat("é", prefix), ParseOptions{Backend: backend, Unit: unit})
 			if err != nil {
 				t.Fatal(err)
@@ -22,7 +22,7 @@ func TestNullableRepetitionResumedMinimum(t *testing.T) {
 				t.Fatalf("initial repetition not recorded: %v", err)
 			}
 			end := 1
-			if unit == core.Bytes {
+			if unit == input.Bytes {
 				end = len("é")
 			}
 			if err := d.Edit(0, end, ""); err != nil {

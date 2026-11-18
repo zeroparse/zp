@@ -5,8 +5,10 @@ import (
 	"weak"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Document parses a text that is edited repeatedly. It reuses the memo of the previous parse for
@@ -38,11 +40,11 @@ type Document struct {
 	defaults state.ParseOptions
 	in       state.Input // current text (fully loaded)
 	memo     *state.MemoTable
-	stats    core.ParseStats
+	stats    runtime.ParseStats
 	edits    []state.DocEdit // all edits so far; nodes record how many their positions account for
 	runs     map[state.RunKey]*state.RunRecord
 	runGen   uint32             // edit generation of runs; unchanged parses keep this map
-	kids     []*core.Node       // the parser's stack of repetition values, kept for the next parse
+	kids     []*value.Node      // the parser's stack of repetition values, kept for the next parse
 	machine  state.BackendState // the backend state of the last parse, cleared and kept for the next one
 	// resumed is the number of repetition elements the last Parse resumed (for tests).
 	resumed int
@@ -64,7 +66,7 @@ type Runner interface {
 	// Shared returns the program part that a parser for this runner reads.
 	Shared() *state.SharedProgram
 	// Run parses p's input from the rule start on backend b.
-	Run(p *state.Parser, b state.Backend, start string) (*core.Node, error)
+	Run(p *state.Parser, b state.Backend, start string) (*value.Node, error)
 }
 
 // New returns a Document that parses the text in from the rule start
@@ -85,17 +87,17 @@ func (d *Document) ParseDefaults() state.ParseOptions { return d.defaults }
 func (d *Document) Text() string { return d.in.Text(0, d.in.Loaded()) }
 
 // Stats returns the evaluation and memo usage counts of the last Parse.
-func (d *Document) Stats() core.ParseStats { return d.stats }
+func (d *Document) Stats() runtime.ParseStats { return d.stats }
 
 // Parse parses the current text. Parser-produced syntax diagnostics belong to
 // this call; returned Nodes can share the Document's mutable graph.
-func (d *Document) Parse() (*core.Node, error) { return d.ParseWith(d.defaults) }
+func (d *Document) Parse() (*value.Node, error) { return d.ParseWith(d.defaults) }
 
 // ParseWith parses using fully resolved options. Unit, effective backend and
 // recognition mode must match construction; this method does not merge defaults.
-func (d *Document) ParseWith(o state.ParseOptions) (*core.Node, error) {
+func (d *Document) ParseWith(o state.ParseOptions) (*value.Node, error) {
 	if d.changes != nil {
-		var n *core.Node
+		var n *value.Node
 		_, err := d.snapshotWith(o, &n)
 		return n, err
 	}
@@ -104,7 +106,7 @@ func (d *Document) ParseWith(o state.ParseOptions) (*core.Node, error) {
 
 // parseWithCapture keeps parsing and result capture inside one interruption and
 // cleanup boundary. capture uses the same controller as the parser.
-func (d *Document) parseWithCapture(o state.ParseOptions, capture func(*state.Parser, *core.Node, error) error) (n *core.Node, err error) {
+func (d *Document) parseWithCapture(o state.ParseOptions, capture func(*state.Parser, *value.Node, error) error) (n *value.Node, err error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
 		return nil, program.MissingUnsupported("Document parsing")
 	}
@@ -202,7 +204,7 @@ func (d *Document) parseWithCapture(o state.ParseOptions, capture func(*state.Pa
 		// Snapshot capture publishes its own diagnostics. Ordinary Parse must
 		// detach recovered errors from memo entries before exposing them.
 		if capture == nil {
-			if recovered, ok := err.(core.SyntaxErrors); ok {
+			if recovered, ok := err.(value.SyntaxErrors); ok {
 				m := p.FreeBegin(true) // work of the Document that a parse from scratch does not do
 				err = copyDocumentDiagnostics(p, recovered)
 				p.FreeEnd(m)
@@ -260,13 +262,13 @@ func (d *Document) Edit(start, end int, text string) error {
 	if start < 0 || end < start || end > n {
 		return fmt.Errorf("invalid range [%d,%d) for text of length %d", start, end, n)
 	}
-	if d.in.Unit == core.Bytes {
+	if d.in.Unit == input.Bytes {
 		for _, pos := range []int{start, end} {
 			var err error
 			if state.DocumentPieceInput && d.in.Pieces != nil {
 				err = d.in.Pieces.ValidBoundary(pos)
 			} else {
-				err = state.ValidBoundary(d.in.Src, core.Bytes, pos)
+				err = state.ValidBoundary(d.in.Src, input.Bytes, pos)
 			}
 			if err != nil {
 				return err
@@ -279,7 +281,7 @@ func (d *Document) Edit(start, end int, text string) error {
 	from := d.Version()
 	delta := d.in.Replace(start, end, text)
 	d.sequence++
-	d.recordEdit(from, []core.TextEdit{{Start: start, End: end, Text: text}})
+	d.recordEdit(from, []input.TextEdit{{Start: start, End: end, Text: text}})
 	if state.DocumentPieceInput && d.in.Pieces == nil && d.in.Loaded() >= state.DocumentPieceMinSize {
 		// A small Document can grow into the measured range where the piece
 		// representation wins. Promote once, after the flat edit has completed.

@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // explainCmd parses the input and, for each syntax error, prints the rule calls that recorded
@@ -31,16 +31,16 @@ func explainCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 		first = append(slices.Clip(opts), engine.WithTrace(func(engine.TraceEvent) {}))
 	}
 	_, perr := p.Parse(src, first...)
-	var errs []*core.SyntaxError
-	var se *core.SyntaxError
-	var list core.SyntaxErrors
+	var errs []*value.SyntaxError
+	var se *value.SyntaxError
+	var list value.SyntaxErrors
 	recovered := false // the parse recovered from every error (Parse returned SyntaxErrors)
 	switch {
 	case perr == nil:
 		fmt.Fprintln(stdout, "ok: the input matches")
 		return nil
 	case errors.As(perr, &se):
-		errs = []*core.SyntaxError{se}
+		errs = []*value.SyntaxError{se}
 	case errors.As(perr, &list):
 		errs, recovered = list, true
 	default:
@@ -79,7 +79,7 @@ type explainer struct {
 	stack []explainFrame
 	at    map[int]*explained // per error position
 	// placed holds the recovered errors already attributed to a call.
-	placed map[*core.SyntaxError]bool
+	placed map[*value.SyntaxError]bool
 }
 
 type explainFrame struct {
@@ -124,7 +124,7 @@ func (x *explainer) event(e engine.TraceEvent) {
 	for _, r := range e.Recovered() {
 		if !x.placed[r] {
 			if x.placed == nil {
-				x.placed = map[*core.SyntaxError]bool{}
+				x.placed = map[*value.SyntaxError]bool{}
 			}
 			x.placed[r] = true
 			x.record(e, top, r, true)
@@ -134,7 +134,7 @@ func (x *explainer) event(e engine.TraceEvent) {
 
 // record lists, for the call top that e ends, the expectations of f (its failure or an error it
 // recovered from) that it recorded itself, and passes all of them on to its caller.
-func (x *explainer) record(e engine.TraceEvent, top explainFrame, f *core.SyntaxError, recovered bool) {
+func (x *explainer) record(e engine.TraceEvent, top explainFrame, f *value.SyntaxError, recovered bool) {
 	if x.at[f.Pos] == nil {
 		return
 	}
@@ -175,7 +175,7 @@ func (x *explainer) record(e engine.TraceEvent, top explainFrame, f *core.Syntax
 	}
 }
 
-func (x *explainer) print(w io.Writer, e *core.SyntaxError, limit int) {
+func (x *explainer) print(w io.Writer, e *value.SyntaxError, limit int) {
 	ex := x.at[e.Pos]
 	if len(ex.calls) > 0 {
 		fmt.Fprintf(w, "\nCalls that recorded what was expected at %d:%d (innermost first):\n", e.Line, e.Col)

@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // expectationCases are grammars with inputs that fail, recover or succeed.
@@ -50,7 +51,7 @@ func TestExpectationsOffKeepsResultsAndPositions(t *testing.T) {
 					}
 					continue
 				}
-				var onList, offList core.SyntaxErrors
+				var onList, offList value.SyntaxErrors
 				if errors.As(onErr, &onList) && errors.As(offErr, &offList) {
 					// Recovered errors: the tree, and the position of each error, are the same.
 					if a, w := dumpNode(off), dumpNode(on); a != w || len(onList) != len(offList) {
@@ -63,7 +64,7 @@ func TestExpectationsOffKeepsResultsAndPositions(t *testing.T) {
 					}
 					continue
 				}
-				var onSE, offSE *core.SyntaxError
+				var onSE, offSE *value.SyntaxError
 				if !errors.As(onErr, &onSE) || !errors.As(offErr, &offSE) {
 					t.Fatalf("%s %q %v: not syntax errors: %v, %v", c.name, in, b, onErr, offErr)
 				}
@@ -85,7 +86,7 @@ var expectedText = regexp.MustCompile(`syntax error: expected [^"\\]*(\\"[^"\\]*
 
 // dumpNode renders a result without the expectations in the text of recovered errors, whose
 // positions and spans stay.
-func dumpNode(n *core.Node) string {
+func dumpNode(n *value.Node) string {
 	return expectedText.ReplaceAllString(codegentest.ResultJSON(n, nil), "syntax error")
 }
 
@@ -119,7 +120,7 @@ func TestExpectationsDocumentFixesMode(t *testing.T) {
 			t.Errorf("expectations %v: changing the mode gives %v", on, err)
 		}
 		_, err = d.Parse()
-		var se *core.SyntaxError
+		var se *value.SyntaxError
 		if !errors.As(err, &se) || (len(se.Expected) > 0) != on {
 			t.Errorf("expectations %v: Document error %v", on, err)
 		}
@@ -176,14 +177,14 @@ func TestLongExpectedLists(t *testing.T) {
 	} {
 		for _, b := range expectationBackends {
 			// A compute limit sorts and formats under budget controls, with the same result.
-			ls := []core.Limits{{}}
+			ls := []runtime.Limits{{}}
 			if state.BudgetControlsEnabled {
-				ls = append(ls, core.Limits{Compute: 1 << 50})
+				ls = append(ls, runtime.Limits{Compute: 1 << 50})
 			}
 			for _, l := range ls {
 				n, err := prog.ParseWith("main", c.input, ParseOptions{Backend: b, Expectations: true, Limits: l})
-				var se *core.SyntaxError
-				var list core.SyntaxErrors
+				var se *value.SyntaxError
+				var list value.SyntaxErrors
 				if errors.As(err, &list) && len(list) == 1 {
 					se = list[0]
 					if text := codegentest.ResultJSON(n, nil); !strings.Contains(text, strconv.Quote(c.message)) {

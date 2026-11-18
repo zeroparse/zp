@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The engine's dependency memo of left recursion under conformance: every ctx operation runs through
@@ -77,7 +77,7 @@ func (m *ctxMachine) UseRegisters(regs map[string]any) { m.regs = regs }
 
 func (m *ctxMachine) Handle(name string) any {
 	if name == conform.OprNodeOp {
-		return new(core.Node)
+		return new(value.Node)
 	}
 	panic("engine binding: no handle " + name)
 }

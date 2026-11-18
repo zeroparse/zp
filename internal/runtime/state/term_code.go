@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Term code: a TermProgram as a bytecode module stores it (bytecode.Term), so that a saved program
@@ -45,7 +45,7 @@ func (t *TermProgram) Export(str func(string) int) (bytecode.Term, error) {
 		x.Members = append(x.Members, bytecode.TermMember{Kind: m.Kind, Name: str(m.Name), Field: str(m.Field)})
 	}
 	for _, k := range t.NodeTypes {
-		x.NodeTypes = append(x.NodeTypes, str(k[coreimpl.BaseList].Type))
+		x.NodeTypes = append(x.NodeTypes, str(k[valueimpl.BaseList].Type))
 	}
 	for _, c := range t.Casts {
 		typ := -1
@@ -65,7 +65,7 @@ type TermTypes struct {
 	// NodeType returns the kinds of the named node type name, or nil if there is none.
 	NodeType func(name string) *nodes.NodeTypeKinds
 	// Struct returns the kind of the nodes of the struct type name, or nil if there is none.
-	Struct func(name string) *coreimpl.Kind
+	Struct func(name string) *valueimpl.Kind
 	// Cast returns the type of the resolved type text of a cast, or an error.
 	Cast func(text string) (*program.FieldType, error)
 }

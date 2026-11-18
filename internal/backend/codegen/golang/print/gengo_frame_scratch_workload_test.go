@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 const nodeFrameScratchGrammar = `type Tok = { Text string }
@@ -64,10 +64,10 @@ rule main Tok = t:(("é" / "�")* $$) #atomic => Tok{Text: text($t)}`, `func fr
 			var rows strings.Builder
 			if c.name != "typescript" {
 				for _, input := range []string{"", "é", "éé", "�", "é�", "é!", "\xff", "é\xff", "\xe2\x82"} {
-					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+					for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 						n, err := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit})
 						_, rerr := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit, Recognize: true})
-						fmt.Fprintf(&rows, "{%q,%s,%q,%q},\n", input, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], codegentest.ResultJSON(n, err), fmt.Sprint(rerr))
+						fmt.Fprintf(&rows, "{%q,%s,%q,%q},\n", input, map[zpinput.PositionUnit]string{zpinput.CodePoints: "CodePoints", zpinput.Bytes: "Bytes"}[unit], codegentest.ResultJSON(n, err), fmt.Sprint(rerr))
 					}
 				}
 			}
@@ -112,7 +112,7 @@ rule main Tok = t:(("é" / "�")* $$) #atomic => Tok{Text: text($t)}`, `func fr
 
 const frameScratchFixture = `package framefixture
 
-import zprt "zeroparse.dev/zp/codegen/go/lib"
+import zprt "zeroparse.dev/zp/pkg/runtime/golib"
 import("crypto/sha256";"encoding/json";"fmt";"strings";"sync";"testing")
 const captureCase = CAPTURE_CASE
 func frameJSON(n *Node,err error)string {out:=map[string]any{"node":n};if err!=nil {out["err"]=err.Error()};b,_:=json.Marshal(out);return string(b)}

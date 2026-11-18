@@ -1,7 +1,8 @@
 package state
 
 import (
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Tracing reports every rule call of a parse to a function (ParseOptions.Trace). It is built
@@ -13,16 +14,16 @@ import (
 
 // TraceKind is core.TraceKind. A parse reports TraceEnter and TraceExit; the engine reports no
 // TraceSkipped events (the calls that its backends skip are not reported).
-type TraceKind = core.TraceKind
+type TraceKind = instrument.TraceKind
 
 const (
-	TraceEnter = core.TraceEnter
-	TraceExit  = core.TraceExit
+	TraceEnter = instrument.TraceEnter
+	TraceExit  = instrument.TraceExit
 )
 
 // TraceEvent is core.TraceEvent. Its accessors read the parse's tracing state (Tracer, the event's
 // TraceSource): call them only from the trace function, while it handles the event.
-type TraceEvent = core.TraceEvent
+type TraceEvent = instrument.TraceEvent
 
 // TraceParser returns the parser that reported e, or nil for an event that no parse reported.
 // It gives code outside the public API the parse state behind an event.
@@ -54,7 +55,7 @@ type Tracer struct {
 	maxDepth int
 	// profiles record the events of the parse. Each records an event before fn handles it and resumes
 	// after, so that the time of fn is not counted.
-	profiles []*core.ProfileRecorder
+	profiles []*instrument.ProfileRecorder
 	// direct is set by tracedCall just before it calls call for the call it has reported, so that
 	// call runs it instead of reporting it again.
 	direct bool
@@ -88,7 +89,7 @@ func (t *Tracer) Text(start, end int) string {
 }
 
 // Failure returns the farthest failure of the exit being reported.
-func (t *Tracer) Failure() *core.SyntaxError {
+func (t *Tracer) Failure() *value.SyntaxError {
 	if len(t.exp) == 0 {
 		return nil
 	}
@@ -96,7 +97,7 @@ func (t *Tracer) Failure() *core.SyntaxError {
 }
 
 // Recovered returns the errors recovered during the call of the exit being reported.
-func (t *Tracer) Recovered() []*core.SyntaxError {
+func (t *Tracer) Recovered() []*value.SyntaxError {
 	p := t.p
 	if t.tail {
 		// A bounded stream has released earlier committed recoveries: report the same ordered
@@ -174,7 +175,7 @@ type tracedCallState struct {
 // SetTrace makes the parse report its rule calls to fn and record them in profiles (nothing if fn is
 // nil and there are no profiles); SelectTrace then limits what fn receives. CloseTrace ends the
 // recording when the parse returns.
-func (p *Parser) SetTrace(fn func(TraceEvent), profiles []*core.Profile) {
+func (p *Parser) SetTrace(fn func(TraceEvent), profiles []*instrument.Profile) {
 	if fn == nil && len(profiles) == 0 {
 		return
 	}
@@ -214,7 +215,7 @@ func (p *Parser) CloseTrace() {
 }
 
 // tracedCall reports a call of r, runs it with call, and reports its result.
-func (p *Parser) tracedCall(r *Rule, min int) (*core.Node, bool) {
+func (p *Parser) tracedCall(r *Rule, min int) (*value.Node, bool) {
 	p.TraceEnter(r, min)
 	p.Tr.direct = true
 	v, ok := p.Call(r, min)

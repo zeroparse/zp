@@ -8,10 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 var vmBackends = []Backend{Bytecode, BytecodeIterative}
@@ -80,7 +81,7 @@ func TestVMFamiliesMatchOnCorpus(t *testing.T) {
 				}
 				for _, b := range vmBackends {
 					for _, in := range c.Inputs {
-						for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+						for _, u := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 							x, xs := parseInFamily(prog, b, in, u, state.Inlined)
 							y, ys := parseInFamily(prog, b, in, u, state.CallPreserving)
 							if x != y || xs != ys {
@@ -147,7 +148,7 @@ func TestVMFamiliesPreparedOnFirstUse(t *testing.T) {
 		}
 
 		stream := mustCompile(t, codegentest.Records)
-		if err := stream.ParseStreamWith("main", strings.NewReader("#records\na=1\n"), func(*core.Node) error { return nil }, traced); err != nil && err != io.EOF {
+		if err := stream.ParseStreamWith("main", strings.NewReader("#records\na=1\n"), func(*value.Node) error { return nil }, traced); err != nil && err != io.EOF {
 			t.Fatal(err)
 		}
 		if got := prepared(stream); got != [2]bool{false, true} {

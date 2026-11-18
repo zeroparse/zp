@@ -15,10 +15,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // observeProbeMain is the consumer of the generated packages with the prefix PREFIX: for each input and entry
@@ -33,7 +34,7 @@ import (
 	"os"
 	"strings"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"; zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 IMPORTS)
 
 var entries = []struct{ parse, recognize func(string, ...zprt.ParseOption) error }{
@@ -45,9 +46,9 @@ func sum(v any) string {
 }
 
 func report(id, name string, run func(string, ...zprt.ParseOption) error, in string, detail bool) {
-	var events []zpcore.TraceEvent
-	err := run(in, zprt.WithTrace(func(e zpcore.TraceEvent) { events = append(events, e) }))
-	var prof zpcore.Profile
+	var events []zpinstrument.TraceEvent
+	err := run(in, zprt.WithTrace(func(e zpinstrument.TraceEvent) { events = append(events, e) }))
+	var prof zpinstrument.Profile
 	perr := run(in, zprt.WithProfile(&prof))
 	snap := prof.Snapshot()
 	snap.Time = 0
@@ -202,7 +203,7 @@ type observedProfile struct {
 
 // observedReport is the events and the profile of one entry of one input.
 type observedReport struct {
-	events  []core.TraceEvent
+	events  []instrument.TraceEvent
 	profile *observedProfile
 }
 
@@ -217,7 +218,7 @@ func detailReports(t *testing.T, lines []string) map[string]*observedReport {
 				r = &observedReport{}
 				out[m[1]+"/"+m[2]+" "+m[3]] = r
 			}
-			var x core.TraceEvent
+			var x instrument.TraceEvent
 			if err := json.Unmarshal([]byte(m[4]), &x); err != nil {
 				t.Fatalf("event line %q: %v", l, err)
 			}
@@ -264,10 +265,10 @@ func profileMismatch(r *observedReport) string {
 	for _, e := range r.events {
 		x := get(e.Rule)
 		switch e.Kind {
-		case core.TraceEnter:
+		case instrument.TraceEnter:
 			x.entered++
 			total.entered++
-		case core.TraceExit:
+		case instrument.TraceExit:
 			x.calls++
 			total.calls++
 			x.evals += e.Evals
@@ -282,7 +283,7 @@ func profileMismatch(r *observedReport) string {
 			} else {
 				x.failed++
 			}
-		case core.TraceSkipped:
+		case instrument.TraceSkipped:
 			x.skipped++
 			total.skipped++
 		}
@@ -347,10 +348,10 @@ func observationMismatches(t *testing.T, cases []codegentest.Case, start string,
 				checked++
 				events += len(r.events)
 				var eng []engine.TraceEvent
-				o := engine.ParseOptions{Expectations: true, Backend: engine.Closure, Unit: core.CodePoints, Recognize: entry == "recognize"}
+				o := engine.ParseOptions{Expectations: true, Backend: engine.Closure, Unit: input.CodePoints, Recognize: entry == "recognize"}
 				o.Trace = func(e engine.TraceEvent) { eng = append(eng, e) }
 				prog.ParseWith(start, c.Inputs[j], o)
-				if _, msg := callsAgree(eng, r.events, c.Inputs[j], core.CodePoints); msg != "" {
+				if _, msg := callsAgree(eng, r.events, c.Inputs[j], input.CodePoints); msg != "" {
 					out = append(out, fmt.Sprintf("%s %q %s: %s", c.Name, c.Inputs[j], entry, msg))
 				}
 				if msg := profileMismatch(r); msg != "" {

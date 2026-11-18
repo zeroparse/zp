@@ -8,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	iengine "zeroparse.dev/zp/internal/runtime/engine"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestCompileSource(t *testing.T) {
@@ -37,7 +38,7 @@ rule main = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $v}`, 
 	}
 
 	_, err = p.Parse("abc=")
-	var se *core.SyntaxError
+	var se *value.SyntaxError
 	if !errors.As(err, &se) || se.Line != 1 || se.Col != 5 {
 		t.Errorf("got %v", err)
 	}
@@ -77,7 +78,7 @@ func TestParseStream(t *testing.T) {
 		t.Fatal(err)
 	}
 	var got []string
-	err = p.ParseStream(strings.NewReader("ab\ncd\n"), func(n *core.Node) error {
+	err = p.ParseStream(strings.NewReader("ab\ncd\n"), func(n *value.Node) error {
 		got = append(got, n.String())
 		return nil
 	})
@@ -181,7 +182,7 @@ rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
 	}
 	parseFn := func(q *engine.Parser) error { _, err := q.Parse("a=1"); return err }
 	stream := func(q *engine.Parser) error {
-		return q.ParseStream(strings.NewReader("a=1"), func(*core.Node) error { return nil })
+		return q.ParseStream(strings.NewReader("a=1"), func(*value.Node) error { return nil })
 	}
 	prefix := func(q *engine.Parser) error { _, err := q.ParsePrefix("main", "a=1"); return err }
 	iterate := func(opts ...engine.ParseOption) func(q *engine.Parser) error {
@@ -292,20 +293,20 @@ func TestUnits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for unit, want := range map[core.PositionUnit]int{core.CodePoints: 1, core.Bytes: 2} {
+	for unit, want := range map[input.PositionUnit]int{input.CodePoints: 1, input.Bytes: 2} {
 		n, err := p.Parse("éa", engine.WithUnit(unit))
-		if err != nil || n.Field("x").(*core.Node).Start() != want {
+		if err != nil || n.Field("x").(*value.Node).Start() != want {
 			t.Errorf("%v: %v %v", unit, n, err)
 		}
 	}
-	doc, err := p.NewDocument("éa", engine.WithUnit(core.Bytes))
+	doc, err := p.NewDocument("éa", engine.WithUnit(input.Bytes))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := doc.Edit(2, 3, "b"); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := doc.Parse(); err != nil || n.Field("x").(*core.Node).Text() != "b" {
+	if n, err := doc.Parse(); err != nil || n.Field("x").(*value.Node).Text() != "b" {
 		t.Errorf("%v %v", n, err)
 	}
 }

@@ -9,10 +9,11 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // depMemoGrammars returns the grammars that the dependency memo tests compare
@@ -233,8 +234,8 @@ func TestLeftRecursionDependencyMemoLinear(t *testing.T) {
 		prog := mustCompile(t, "@start\nrule main = "+s.Rules, compile.Options{SourceInfo: true})
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			evals := func(n int) int {
-				var pr core.Profile
-				if _, err := prog.ParseWith("", s.Input(n), ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}}); err != nil {
+				var pr instrument.Profile
+				if _, err := prog.ParseWith("", s.Input(n), ParseOptions{Backend: b, Profiles: []*instrument.Profile{&pr}}); err != nil {
 					t.Fatalf("%s %s n=%d: %v", s.Name, b, n, err)
 				}
 				return pr.Snapshot().Evals
@@ -305,8 +306,8 @@ func TestLeftRecursionDependencyMemoUnexamined(t *testing.T) {
 	prog := mustCompile(t, "rule main = a $$\nrule a = a \"x\" / b \"y\" / \"n\"\nrule b = b \"z\" / a \"w\" / \"m\"")
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		evals := func(unexamined bool) int {
-			var pr core.Profile
-			if _, err := prog.ParseWith("", "mzy", ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}, ContextMemoUnexamined: unexamined}); err != nil {
+			var pr instrument.Profile
+			if _, err := prog.ParseWith("", "mzy", ParseOptions{Backend: b, Profiles: []*instrument.Profile{&pr}, ContextMemoUnexamined: unexamined}); err != nil {
 				t.Fatalf("%s: %v", b, err)
 			}
 			return pr.Snapshot().Evals
@@ -330,10 +331,10 @@ func TestEndedByResourceLimit(t *testing.T) {
 	}
 	// The reference build without budget controls rejects a limit, so there the classifier reads
 	// the error that a parse ended by the compute limit returns.
-	res := codegentest.ResultJSON(nil, &core.LimitError{Kind: core.LimitCompute, Limit: 5, Used: 4, Requested: 2})
+	res := codegentest.ResultJSON(nil, &zpruntime.LimitError{Kind: zpruntime.LimitCompute, Limit: 5, Used: 4, Requested: 2})
 	if state.BudgetControlsEnabled {
 		loop := mustCompile(t, "@start\nrule main = \"a\"+")
-		res = codegentest.ResultJSON(loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 5}}))
+		res = codegentest.ResultJSON(loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: zpruntime.Limits{Compute: 5}}))
 	}
 	if !strings.Contains(res, "compute limit") || !endedByResourceLimit(res, "x") || !endedByResourceLimit("x", res) {
 		t.Errorf("the compute limit error %s must count as a resource limit", res)

@@ -3,7 +3,7 @@ package codegentest
 import (
 	"slices"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // SelectedEvents returns the events of a whole trace that a trace function receives with the trace
@@ -11,8 +11,8 @@ import (
 // the calls of the named rules and the calls nested in them (every call if rules is empty), at most
 // maxDepth deep (any depth if maxDepth is not positive). A skipped call is selected like a call made
 // at its place. It is the reference that the producers' own selection is checked against.
-func SelectedEvents(events []core.TraceEvent, rules []string, maxDepth int) []core.TraceEvent {
-	var out []core.TraceEvent
+func SelectedEvents(events []instrument.TraceEvent, rules []string, maxDepth int) []instrument.TraceEvent {
+	var out []instrument.TraceEvent
 	var open []bool // whether each call in progress is selected
 	inner := func(rule string) bool {
 		return len(rules) == 0 || slices.Contains(rules, rule) || len(open) > 0 && open[len(open)-1]
@@ -20,10 +20,10 @@ func SelectedEvents(events []core.TraceEvent, rules []string, maxDepth int) []co
 	for _, e := range events {
 		var selected bool
 		switch e.Kind {
-		case core.TraceEnter:
+		case instrument.TraceEnter:
 			selected = inner(e.Rule)
 			open = append(open, selected)
-		case core.TraceExit:
+		case instrument.TraceExit:
 			selected, open = open[len(open)-1], open[:len(open)-1]
 		default:
 			selected = inner(e.Rule)

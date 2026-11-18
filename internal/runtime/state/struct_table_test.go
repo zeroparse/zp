@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // TestEngineValueStructTable runs the struct table (conform.StructCases) on the engine's compositions
@@ -19,19 +21,19 @@ func TestEngineValueStructTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, "type S = { F0 int }\n@start\nrule main = \"a\"\n", compile.Options{}).Runtime())
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, input.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, runtime.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p, Start: conform.StructRuleStart, End: conform.StructRuleEnd}
-		text := p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+		text := p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 		vals := map[string]any{
 			conform.MemberNil:     nil,
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
-			conform.StructLate:    p.NewNode(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
+			conform.BuiltinNode:   p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: 2, End: 5, Children: []*value.Node{text, text}}),
+			conform.StructLate:    p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
 		err := conform.RunStructs("engine", func(fields []string) string {
 			var names []string
@@ -84,23 +86,23 @@ func TestEngineValueStructTableTermCode(t *testing.T) {
 			tp.Code = append(tp.Code, TermInstr{Op: TMade, B: 0}, TermInstr{Op: TRet})
 			return tp
 		}
-		text := nodes.Ptr(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+		text := nodes.Ptr(nodes.Data{Kind: valueimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 		vals := map[string]any{
 			conform.MemberNil:     nil,
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   nodes.Ptr(nodes.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
-			conform.StructLate:    nodes.Ptr(nodes.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
+			conform.BuiltinNode:   nodes.Ptr(nodes.Data{Kind: valueimpl.SeqKind, Start: 2, End: 5, Children: []*value.Node{text, text}}),
+			conform.StructLate:    nodes.Ptr(nodes.Data{Kind: valueimpl.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
 		err := conform.RunStructs("engine term code", func(fields []string) string {
 			var got [2]string
 			var used [2]uint64
 			var fieldsOf [2]string // the same values in both, so the same pointers
 			for k, fused := range []bool{true, false} {
-				p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
+				p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, input.Bytes)}
 				if controlled {
-					p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
+					p.Control = NewBudgetControl(nil, runtime.Limits{Compute: 1 << 62})
 				}
 				var locals *Local
 				for i, f := range fields {
@@ -111,7 +113,7 @@ func TestEngineValueStructTableTermCode(t *testing.T) {
 				if err != nil {
 					return "error: " + err.Error()
 				}
-				n := v.(*core.Node)
+				n := v.(*value.Node)
 				got[k] = fmt.Sprintf("%d-%d", nodes.D(n).Start, nodes.D(n).End)
 				if len(p.Created) == 1 && p.Created[0] == n {
 					got[k] += conform.StructRecorded

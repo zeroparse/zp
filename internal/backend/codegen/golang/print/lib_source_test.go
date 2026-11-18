@@ -14,7 +14,7 @@ import (
 // miniLib is a library source with one file whose text carries marker.
 func miniLib(marker string) fstest.MapFS {
 	return fstest.MapFS{
-		"lib.go": {Data: []byte("package libgo\n\n// " + marker + "\nconst Protocol1 = 1\n")},
+		"lib.go": {Data: []byte("package golib\n\n// " + marker + "\nconst Protocol1 = 1\n")},
 	}
 }
 

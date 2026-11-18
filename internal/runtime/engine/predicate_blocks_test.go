@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestPredicateBlockBindingComparison(t *testing.T) {
@@ -16,7 +16,7 @@ func TestPredicateBlockBindingComparison(t *testing.T) {
 	program := mustCompile(t, `var x int
 rule a = {x:=1; x<10}`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			if _, err := program.ParseWith("a", "", ParseOptions{Backend: backend, Unit: unit}); err != nil {
 				t.Fatalf("%s/%s: %v", backend, unit, err)
 			}
@@ -31,7 +31,7 @@ func TestPredicateBlocksAdjacentParity(t *testing.T) {
 			block := mustCompile(t, fixture.Block)
 			adjacent := mustCompile(t, fixture.Adjacent)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					for _, recognize := range []bool{false, true} {
 						options := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}
 						for _, input := range fixture.Inputs {
@@ -77,7 +77,7 @@ func TestPredicateBlocksSourceAndSavedGrammar(t *testing.T) {
 					wantClosureRefused(t, err)
 					continue
 				}
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					for _, input := range []string{"é", "", "a", "éé"} {
 						parseOptions := ParseOptions{Backend: backend, Unit: unit}
 						got := codegentest.ResultJSON(loaded.ParseWith("main", input, servedBy(mode, parseOptions)))

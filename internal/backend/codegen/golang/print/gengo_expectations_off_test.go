@@ -199,7 +199,7 @@ import (
 	avail "codegentest/avail"
 	off "codegentest/off"
 	offs "codegentest/offs"
-	rt "zeroparse.dev/zp/codegen/go/lib"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
 )
 
 func try(name string, f func() error) {

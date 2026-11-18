@@ -4,8 +4,9 @@ import (
 	"unsafe"
 	"weak"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // ResetHistory releases incremental reuse history without changing the text,
@@ -33,7 +34,7 @@ func (d *Document) historyBytes() uint64 {
 // retainedBytes returns the bytes a parse under a memory limit starts with: the history, the memo
 // table's count, and the kept child and backend stacks.
 func (d *Document) retainedBytes() uint64 {
-	n := d.historyBytes() + uint64(cap(d.kids))*uint64(unsafe.Sizeof((*core.Node)(nil)))
+	n := d.historyBytes() + uint64(cap(d.kids))*uint64(unsafe.Sizeof((*value.Node)(nil)))
 	if d.memo != nil {
 		n += d.memo.ChargedBytes()
 	}
@@ -45,8 +46,8 @@ func (d *Document) retainedBytes() uint64 {
 
 // CacheStats returns a point-in-time estimate of cache-owned retained buffers.
 // It does not measure process heap usage or bytes returned to the OS.
-func (d *Document) CacheStats() core.CacheStats {
-	var s core.CacheStats
+func (d *Document) CacheStats() runtime.CacheStats {
+	var s runtime.CacheStats
 	t := d.memo
 	if t != nil {
 		for _, head := range t.Slots {
@@ -77,7 +78,7 @@ func (d *Document) CacheStats() core.CacheStats {
 		s.EstimatedBytes += uint64(cap(run.Elems)) * uint64(unsafe.Sizeof(state.RunElem{}))
 	}
 	s.EstimatedBytes += uint64(cap(d.edits)) * uint64(unsafe.Sizeof(state.DocEdit{}))
-	s.EstimatedBytes += uint64(cap(d.kids)) * uint64(unsafe.Sizeof((*core.Node)(nil)))
+	s.EstimatedBytes += uint64(cap(d.kids)) * uint64(unsafe.Sizeof((*value.Node)(nil)))
 	if d.machine != nil {
 		s.EstimatedBytes += d.machine.RetainedBytes()
 	}

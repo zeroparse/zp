@@ -5,10 +5,11 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // catchFatal runs f and returns the error of the Fatal panic it raises, or nil.
@@ -32,24 +33,24 @@ func catchFatal(t *testing.T, f func()) error {
 
 func catchStreamPanic(f func()) (val any) { defer func() { val = recover() }(); f(); return }
 
-func stateBudgetParser(lim core.Limits) *state.Parser {
+func stateBudgetParser(lim runtime.Limits) *state.Parser {
 	prog := &state.SharedProgram{}
 	state.InitSharedProgram(prog, &program.Program{})
 	return &state.Parser{Prog: prog, Input: state.Input{Control: state.NewBudgetControl(nil, lim)}}
 }
 
-func undoFixture(p *state.Parser) (*state.Frame, []*core.Node) {
-	old0 := nodes.Ptr(nodes.Data{Text: "old-zero", Fields: coreimpl.Fields{{Name: "keep", Value: "zero"}}})
+func undoFixture(p *state.Parser) (*state.Frame, []*value.Node) {
+	old0 := nodes.Ptr(nodes.Data{Text: "old-zero", Fields: valueimpl.Fields{{Name: "keep", Value: "zero"}}})
 	first0 := nodes.Ptr(nodes.Data{Text: "first-zero"})
 	latest0 := nodes.Ptr(nodes.Data{Text: "latest-zero"})
 	old1 := nodes.Ptr(nodes.Data{Text: "old-one"})
 	last1 := nodes.Ptr(nodes.Data{Text: "last-one"})
-	f := &state.Frame{Vals: []*core.Node{latest0, old1}}
+	f := &state.Frame{Vals: []*value.Node{latest0, old1}}
 	p.Trail = []state.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
-	return f, []*core.Node{old0, first0, old1, last1, latest0}
+	return f, []*value.Node{old0, first0, old1, last1, latest0}
 }
 
-func diagnosticParser(lim core.Limits) *state.Parser {
+func diagnosticParser(lim runtime.Limits) *state.Parser {
 	return &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, lim)}}
 }
 

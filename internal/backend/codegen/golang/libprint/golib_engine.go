@@ -222,13 +222,13 @@ func printEngineSpecs(specs []goSpec) (string, error) {
 func engineTarget() *print.Target {
 	t := &print.Target{Recv: "p *Parser", Source: "internal/ir/code/exec/compose"}
 	handles := map[string]string{
-		exec.Rule: "*Rule", exec.Value: "*core.Node", exec.Entry: "*MemoEntry", exec.Values: "KeyVals", exec.Errs: "RecEntry",
+		exec.Rule: "*Rule", exec.Value: "*zpvalue.Node", exec.Entry: "*MemoEntry", exec.Values: "KeyVals", exec.Errs: "RecEntry",
 		exec.Mark: "ExpMark", exec.Set: "[]ExpID", exec.Kept: "[]ExpID", exec.ExpID: "ExpID",
 		exec.Ctx: "CtxState", exec.Res: "ctxHit", exec.Grow: "GrowState", exec.CallState: "*CallState",
 		exec.Frame: "*Frame", exec.Backtrack: "Mark", exec.Scope: "*Env", exec.Operators: "[]*OperatorsRuleOp",
 		exec.Operator: "*OperatorsRuleOp", exec.Line: "*OperatorsRuleLine", exec.Attempt: "OperatorsRuleAttempt",
-		exec.Seq: "[]*core.Node", exec.Datum: "any", exec.LongestState: "*LongestState", exec.NudState: "*NudState", exec.ExprState: "*ExprState", exec.EditLog: "[]DocEdit",
-		exec.Obj: "*core.Node", exec.Name: "string", exec.Str: "string", exec.Act: "*EvalCtx", exec.Fail: "error", exec.Elem: "*core.Node",
+		exec.Seq: "[]*zpvalue.Node", exec.Datum: "any", exec.LongestState: "*LongestState", exec.NudState: "*NudState", exec.ExprState: "*ExprState", exec.EditLog: "[]DocEdit",
+		exec.Obj: "*zpvalue.Node", exec.Name: "string", exec.Str: "string", exec.Act: "*EvalCtx", exec.Fail: "error", exec.Elem: "*zpvalue.Node",
 		exec.NodeType: "*nodes.NodeTypeKinds", exec.FType: "*program.FieldType",
 	}
 	names := map[string]string{"engineCall": "Call", "engineCallDoc": "callDoc", "firstCall": "FirstCall", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
@@ -704,15 +704,21 @@ p.ctxKeep(&%s, %s, %s, %s, %s, e)`, a[8], a[5], a[6], a[7], a[9], a[10], a[11], 
 var engineImportPaths = []struct{ name, path string }{
 	{"program", "zeroparse.dev/zp/internal/runtime/program"},
 	{"nodes", "zeroparse.dev/zp/internal/runtime/nodes"},
-	{"coreimpl", "zeroparse.dev/zp/core/impl"},
-	{"core", "zeroparse.dev/zp/core"},
+	{"valueimpl", "zeroparse.dev/zp/pkg/runtime/value/impl"},
+	{"zpvalue", "zeroparse.dev/zp/pkg/runtime/value"},
+	{"zpinput", "zeroparse.dev/zp/pkg/runtime/input"},
+	{"zpruntime", "zeroparse.dev/zp/pkg/runtime"},
+	{"zpinstrument", "zeroparse.dev/zp/pkg/runtime/instrument"},
 }
 
 // libImportPaths are the packages that the printed code of the Go library may name, by package
 // name.
 var libImportPaths = []struct{ name, path string }{
-	{"coreimpl", "zeroparse.dev/zp/core/impl"},
-	{"core", "zeroparse.dev/zp/core"},
+	{"valueimpl", "zeroparse.dev/zp/pkg/runtime/value/impl"},
+	{"zpvalue", "zeroparse.dev/zp/pkg/runtime/value"},
+	{"zpinput", "zeroparse.dev/zp/pkg/runtime/input"},
+	{"zpruntime", "zeroparse.dev/zp/pkg/runtime"},
+	{"zpinstrument", "zeroparse.dev/zp/pkg/runtime/instrument"},
 }
 
 // engineImports returns the import declaration of printed engine code: the standard packages std
@@ -734,13 +740,22 @@ func printedImports(body string, std []string, ownPaths []struct{ name, path str
 	for _, p := range std {
 		paths = append(paths, strconv.Quote(p))
 	}
-	var own []string
+	var used []struct{ name, path string }
 	for _, p := range ownPaths {
 		if regexp.MustCompile(`\b` + p.name + `\.[A-Z]`).MatchString(body) {
+			used = append(used, p)
+		}
+	}
+	sort.Slice(used, func(i, j int) bool { return used[i].path < used[j].path })
+	var own []string
+	for _, p := range used {
+		// a package whose name in printed code is not the last element of its path is named
+		if p.name != p.path[strings.LastIndex(p.path, "/")+1:] {
+			own = append(own, p.name+" "+strconv.Quote(p.path))
+		} else {
 			own = append(own, strconv.Quote(p.path))
 		}
 	}
-	sort.Strings(own)
 	if len(paths) > 0 && len(own) > 0 {
 		paths = append(paths, "")
 	}

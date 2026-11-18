@@ -118,7 +118,7 @@ func matchesTyped(t *testing.T, d *Document, unit PositionUnit) {
 const generatedDocumentGrowthConsumer = `package fixture
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"; zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	"context"
 	"encoding/json"
 	"errors"
@@ -187,8 +187,8 @@ func TestInterruptedGrowth(t *testing.T) {
 		for _, cause := range []string{"cancel", "panic"} {
 			grown := 0
 			_, err := interrupt(t, unit, func(cancel context.CancelFunc) []ParseOption {
-				return []ParseOption{zprt.WithTrace(func(e zpcore.TraceEvent) {
-					if e.Kind != zpcore.TraceExit || !e.Memo || !e.Matched || e.Rule == "main" {
+				return []ParseOption{zprt.WithTrace(func(e zpinstrument.TraceEvent) {
+					if e.Kind != zpinstrument.TraceExit || !e.Memo || !e.Matched || e.Rule == "main" {
 						return
 					}
 					if grown++; grown == 2 {

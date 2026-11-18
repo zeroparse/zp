@@ -470,7 +470,7 @@ func dropLastStep(code []byte) []byte {
 	return append(append([]byte(nil), code[:i]...), code[i+len(stepStatement):]...)
 }
 
-// The cadence of the library's context polls (codegen/go/lib/budget.go: budgetCheckInterval).
+// The cadence of the library's context polls (pkg/runtime/golib/budget.go: budgetCheckInterval).
 const (
 	budgetCheckInterval = 256
 	budgetPollSlack     = 2

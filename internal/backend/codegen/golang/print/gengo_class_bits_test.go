@@ -3,9 +3,9 @@ package print_test
 import (
 	"testing"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
 )
 
 // TestClassBits builds the library's Class from the generator's tables for classes whose ranges

@@ -8,10 +8,10 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 )
 
-// TestCoreAPICurrent checks that coreapi_gen.go, the index of the declarations of core that the
-// generator reads, is what go generate writes from the package core as it is.
+// TestCoreAPICurrent checks that coreapi_gen.go, the index of the declarations of the runtime packages that the
+// generator reads, is what go generate writes from those packages as they are.
 func TestCoreAPICurrent(t *testing.T) {
-	want, err := print.CoreAPISource(os.DirFS("../../../../../core"))
+	want, err := print.CoreAPISource(os.DirFS("../../../../../pkg/runtime"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,6 +20,6 @@ func TestCoreAPICurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(got, want) {
-		t.Error("coreapi_gen.go is out of date with the package core; run go generate ./internal/backend/codegen/golang/print")
+		t.Error("coreapi_gen.go is out of date with the runtime packages; run go generate ./internal/backend/codegen/golang/print")
 	}
 }

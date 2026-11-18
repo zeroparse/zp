@@ -1,8 +1,8 @@
 package document
 
 import (
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // equalChangeDiagnostics compares complete supported diagnostic values. Unknown
@@ -12,8 +12,8 @@ func equalChangeDiagnostics(p *state.Parser, a, b error) bool {
 		return a == nil && b == nil
 	}
 	switch x := a.(type) {
-	case *core.SyntaxError:
-		y, ok := b.(*core.SyntaxError)
+	case *zpvalue.SyntaxError:
+		y, ok := b.(*zpvalue.SyntaxError)
 		if !ok {
 			return false
 		}
@@ -36,8 +36,8 @@ func equalChangeDiagnostics(p *state.Parser, a, b error) bool {
 			}
 		}
 		return true
-	case core.SyntaxErrors:
-		y, ok := b.(core.SyntaxErrors)
+	case zpvalue.SyntaxErrors:
+		y, ok := b.(zpvalue.SyntaxErrors)
 		if !ok || (x == nil) != (y == nil) || len(x) != len(y) {
 			return false
 		}

@@ -187,7 +187,7 @@ func TestNarrowLibRejectsUnreadableGuards(t *testing.T) {
 // TestFeaturesMatchAnalysis checks that the feature bits of the TypeScript library are those of
 // the generator's feature analysis.
 func TestFeaturesMatchAnalysis(t *testing.T) {
-	src, err := os.ReadFile("../../../../../codegen/ts/lib/lib.ts")
+	src, err := os.ReadFile("../../../../../internal/backend/codegen/typescript/lib/lib.ts")
 	if err != nil {
 		t.Fatal(err)
 	}

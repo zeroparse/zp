@@ -2,7 +2,7 @@
 
 package state
 
-import "zeroparse.dev/zp/core"
+import zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 
 // Call calls rule r at binding level min in the engine: unmemoized while its
 // memoization is deferred, and otherwise between the begin and the end of the split call protocol,
@@ -10,8 +10,8 @@ import "zeroparse.dev/zp/core"
 // engineCallDoc instead, which is decided by one test of a field that the parse sets once.
 //
 // Printed from Exec IR function engineCall of internal/ir/code/exec/compose, specialized for document, missing, budget.
-func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
-	var v *core.Node
+func (p *Parser) Call(r *Rule, min int) (*zpvalue.Node, bool) {
+	var v *zpvalue.Node
 	var ok bool
 	var hit bool
 	var mm int
@@ -82,8 +82,8 @@ func (p *Parser) FirstCall(r *Rule) bool {
 // the call) of a rule that a parse from scratch does not memoize.
 //
 // Printed from Exec IR function engineCallDoc of internal/ir/code/exec/compose, specialized for document, missing, budget.
-func (p *Parser) callDoc(r *Rule, min int) (*core.Node, bool) {
-	var v *core.Node
+func (p *Parser) callDoc(r *Rule, min int) (*zpvalue.Node, bool) {
+	var v *zpvalue.Node
 	var ok bool
 	var hit bool
 	var mm int
@@ -140,7 +140,7 @@ func (p *Parser) callDoc(r *Rule, min int) (*core.Node, bool) {
 // and otherwise saves in st what the end of the call needs.
 //
 // Printed from Exec IR function callBegin of internal/ir/code/exec/compose, specialized for document, missing, budget.
-func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*core.Node, bool, bool) {
+func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*zpvalue.Node, bool, bool) {
 	start := p.Pos
 	env := KeyVals{Missing: p.Missing != nil && r.Missing && p.Silent > 0}
 	if len(r.Vars) > 0 {
@@ -232,7 +232,7 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*core.Node, bool, b
 // dependencies send it, and restores the state from before the call.
 //
 // Printed from Exec IR function callEnd of internal/ir/code/exec/compose, specialized for document, missing, budget.
-func (p *Parser) CallEnd(r *Rule, st *CallState, v *core.Node, ok bool) (*core.Node, bool) {
+func (p *Parser) CallEnd(r *Rule, st *CallState, v *zpvalue.Node, ok bool) (*zpvalue.Node, bool) {
 	start := st.start
 	min := st.min
 	env := st.key
@@ -299,7 +299,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *core.Node, ok bool) (*core.N
 // specialized for missing also drops the tokens that each adopted step inserted.
 //
 // Printed from Exec IR function grow of internal/ir/code/exec/compose, specialized for missing.
-func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
+func (p *Parser) grow(r *Rule, min int) (*zpvalue.Node, bool) {
 	g := p.GrowBegin(p.GrowKey(r, min), r)
 	if g.ctx {
 		for {

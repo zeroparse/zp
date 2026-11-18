@@ -2,8 +2,8 @@ package state
 
 import (
 	"testing"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // TestTermEvalClearsRegisters checks that a term program gives its registers back cleared: the
@@ -13,7 +13,7 @@ func TestTermEvalClearsRegisters(t *testing.T) {
 	// The term $op: the Operators Rule local op, returned.
 	prog := &TermProgram{Code: []TermInstr{{Op: TLocal, Dst: 0, A: 0}, {Op: TRet, A: 0}}, NA: 1, Names: []string{"op"}}
 	p := &Parser{}
-	op := nodes.Ptr(nodes.Data{Kind: coreimpl.SeqKind, Start: 0, End: 1})
+	op := nodes.Ptr(nodes.Data{Kind: valueimpl.SeqKind, Start: 0, End: 1})
 	got, err := prog.Eval(&EvalCtx{P: p, Locals: &Local{Name: "op", Val: op}})
 	if err != nil {
 		t.Fatal(err)

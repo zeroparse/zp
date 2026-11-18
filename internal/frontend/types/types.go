@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/core/impl"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Ty is a type used in type checking.
@@ -52,11 +52,11 @@ func (t NamedTy) String() string {
 
 // The reserved node kinds as named types.
 var (
-	TyMatch   = NamedTy{coreimpl.TypeString, 'c'}
-	TySeq     = NamedTy{coreimpl.TypeTuple, 'c'}
-	TyList    = NamedTy{coreimpl.TypeList, 'c'}
-	TyError   = NamedTy{coreimpl.TypeError, 'c'}
-	TyMissing = NamedTy{coreimpl.TypeMissing, 'c'}
+	TyMatch   = NamedTy{valueimpl.TypeString, 'c'}
+	TySeq     = NamedTy{valueimpl.TypeTuple, 'c'}
+	TyList    = NamedTy{valueimpl.TypeList, 'c'}
+	TyError   = NamedTy{valueimpl.TypeError, 'c'}
+	TyMissing = NamedTy{valueimpl.TypeMissing, 'c'}
 )
 
 // ListTy is the list type []Elem.

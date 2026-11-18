@@ -33,7 +33,7 @@ rule main N = ("é") #atomic`)
 	// uses except for the expectation record itself, which the library keeps unexported.
 	fixture = []byte(strings.NewReplacer("package state", "package engine", "&Parser{", "&zprt.Parser{", "ExpID", "zprt.ExpID", "ExpMark", "zprt.ExpMark", "MsgBit", "zprt.MsgBit",
 		"p.ExpBase", "p.expBase", "p.Expect(", "p.Expect(", "p.Exp", "p.exp", "p.Farthest", "p.farthest").Replace(string(fixture)))
-	fixture = []byte(strings.Replace(string(fixture), "import (", "import (\n\tzprt \"zeroparse.dev/zp/codegen/go/lib\"", 1))
+	fixture = []byte(strings.Replace(string(fixture), "import (", "import (\n\tzprt \"zeroparse.dev/zp/pkg/runtime/golib\"", 1))
 	for _, mode := range []string{"plain", "direct", "conversion"} {
 		t.Run(mode, func(t *testing.T) {
 			code, err := codegentest.GenerateCode(t, g, common.GenOptions{Package: "engine", Start: "main", Types: mode != "plain", ConvertTypes: mode == "conversion"})

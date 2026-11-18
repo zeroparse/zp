@@ -5,8 +5,10 @@ package csvstream
 import (
 	"context"
 
-	rt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 var _ context.Context
@@ -15,62 +17,62 @@ var _ context.Context
 // an action. In JSON a string, tuple or list node is an object with the members start, end and
 // value, and, with source information, rule and captures; an error value is one with start, end
 // and error, and a struct one with type, start, end and fields.
-type Node = core.Node
+type Node = zpvalue.Node
 
 // NodeKind is what a Node stands for in the value model.
-type NodeKind = core.NodeKind
+type NodeKind = zpvalue.NodeKind
 
 // KindString is a node whose value is a string, the text it matched: Text.
-const KindString = core.KindString
+const KindString = zpvalue.KindString
 
 // KindTuple is a node whose value is a tuple: Len and Elem.
-const KindTuple = core.KindTuple
+const KindTuple = zpvalue.KindTuple
 
 // KindList is a node whose value is a list: Len and Elem.
-const KindList = core.KindList
+const KindList = zpvalue.KindList
 
 // KindError is an error value of recovery: its range is the skipped input and its Text() is its
 // message. It stores no text of the range.
-const KindError = core.KindError
+const KindError = zpvalue.KindError
 
 // KindStruct is a struct built by an action: Type and Field.
-const KindStruct = core.KindStruct
+const KindStruct = zpvalue.KindStruct
 
 // KindTupleValue is a tuple built by an action, without a range: Len and Elem.
-const KindTupleValue = core.KindTupleValue
+const KindTupleValue = zpvalue.KindTupleValue
 
 // KindListValue is a list built by an action, without a range: Len and Elem.
-const KindListValue = core.KindListValue
+const KindListValue = zpvalue.KindListValue
 
 // KindValue is any other value built by an action, such as an int or a bool: Value.
-const KindValue = core.KindValue
+const KindValue = zpvalue.KindValue
 
 // SyntaxError reports that the input did not match the grammar.
-type SyntaxError = core.SyntaxError
+type SyntaxError = zpvalue.SyntaxError
 
 // SyntaxErrors is a list of syntax errors, including those recovered by error recovery.
-type SyntaxErrors = core.SyntaxErrors
+type SyntaxErrors = zpvalue.SyntaxErrors
 
 // PositionUnit is the unit of positions in the input.
-type PositionUnit = core.PositionUnit
+type PositionUnit = zpinput.PositionUnit
 
 // CodePoints counts positions in Unicode code points. It is the default.
-const CodePoints = core.CodePoints
+const CodePoints = zpinput.CodePoints
 
 // Bytes counts positions in UTF-8 bytes.
-const Bytes = core.Bytes
+const Bytes = zpinput.Bytes
 
 // ParseOption configures an individual parsing invocation. Options apply in order.
 type ParseOption = rt.ParseOption
 
 // WithUnit selects the unit of input positions (CodePoints by default).
-func WithUnit(unit core.PositionUnit) ParseOption { return rt.WithUnit(unit) }
+func WithUnit(unit zpinput.PositionUnit) ParseOption { return rt.WithUnit(unit) }
 
 // WithLimits sets the limits of the invocation field by field: a nonzero field overrides the value
 // of an earlier WithLimits, including the construction defaults of a Document, and a zero field
 // leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
 // Counters are never rolled back.
-func WithLimits(limits core.Limits) ParseOption { return rt.WithLimits(limits) }
+func WithLimits(limits zpruntime.Limits) ParseOption { return rt.WithLimits(limits) }
 
 // Limits bounds one parse invocation. A zero limit selects the default of that limit, and
 // Unlimited disables it.
@@ -100,10 +102,10 @@ func WithLimits(limits core.Limits) ParseOption { return rt.WithLimits(limits) }
 // VM; elsewhere it is an option error, because the goroutine stack would overflow first. A finite
 // Depth above the largest int counts as the largest int. A deeper parse fails with a LimitError
 // of kind LimitDepth.
-type Limits = core.Limits
+type Limits = zpruntime.Limits
 
 // LimitKind identifies the limit that was exhausted.
-type LimitKind = core.LimitKind
+type LimitKind = zpruntime.LimitKind
 
 // LimitError reports a reservation that would exceed a limit. Used is the counter value before
 // the rejected reservation; Requested is the complete atomic reservation that could not be made.
@@ -113,69 +115,71 @@ type LimitKind = core.LimitKind
 // Used is the depth reached (the limit) and Requested is one, the nested call that would exceed
 // it. For LimitMemory, Used is the count of bytes at the check that failed and Requested is zero,
 // since memory is checked at polls rather than reserved.
-type LimitError = core.LimitError
+type LimitError = zpruntime.LimitError
 
 // ErrLimit is matched by errors.Is for any LimitError.
-var ErrLimit = core.ErrLimit
+var ErrLimit = zpruntime.ErrLimit
 
 // LimitCompute is the kind of an exhausted Compute limit.
-const LimitCompute = core.LimitCompute
+const LimitCompute = zpruntime.LimitCompute
 
 // LimitInput is the kind of an input longer than the Input limit.
-const LimitInput = core.LimitInput
+const LimitInput = zpruntime.LimitInput
 
 // LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth
 // limit.
-const LimitDepth = core.LimitDepth
+const LimitDepth = zpruntime.LimitDepth
 
 // LimitMemory is the kind of a parse whose storage passed the Memory limit.
-const LimitMemory = core.LimitMemory
+const LimitMemory = zpruntime.LimitMemory
 
 // Unlimited is the value of a limit that disables it. Every field of Limits is a uint64 and
 // takes it, so one constant serves them all.
-const Unlimited = core.Unlimited
+const Unlimited = zpruntime.Unlimited
 
 // Cursor filters edge-oriented node visits using spans in Unit. Unit must match
 // the parse that populated Root's positions; it is never inferred or converted.
 // Parent spans do not prune traversal. Scalar and list values have no spans.
-type Cursor = core.Cursor
+type Cursor = zpvalue.Cursor
 
 // CycleError describes an active-path back-edge, including the root and failing edge.
-type CycleError = core.CycleError
+type CycleError = zpvalue.CycleError
 
 // WalkAction controls descent after a visit.
-type WalkAction = core.WalkAction
+type WalkAction = zpvalue.WalkAction
 
-const WalkContinue = core.WalkContinue
+const WalkContinue = zpvalue.WalkContinue
 
-const WalkSkip = core.WalkSkip
+const WalkSkip = zpvalue.WalkSkip
 
-const WalkStop = core.WalkStop
+const WalkStop = zpvalue.WalkStop
 
 // WalkVisit describes a live value and its nearest owning node. Depth counts edges.
 // Node is populated only for non-nil *Node values; Value retains typed nil leaves.
-type WalkVisit = core.WalkVisit
+type WalkVisit = zpvalue.WalkVisit
 
 // WalkEdge identifies an incoming edge. Only its Kind's index or name is meaningful.
-type WalkEdge = core.WalkEdge
+type WalkEdge = zpvalue.WalkEdge
 
 // WalkEdgeKind identifies the incoming edge of a value.
-type WalkEdgeKind = core.WalkEdgeKind
+type WalkEdgeKind = zpvalue.WalkEdgeKind
 
-const WalkRoot = core.WalkRoot
+const WalkRoot = zpvalue.WalkRoot
 
-const WalkChild = core.WalkChild
+const WalkChild = zpvalue.WalkChild
 
-const WalkField = core.WalkField
+const WalkField = zpvalue.WalkField
 
-const WalkListElement = core.WalkListElement
+const WalkListElement = zpvalue.WalkListElement
 
 // Walk visits the root, then children in slice order, then fields in sorted name order.
 // Nested []any values are visited in index order. Other containers are leaves. Shared
 // nodes and lists are visited per edge; only cycles on the active path are rejected.
 // Callback errors return unchanged; Stop succeeds; Skip omits the value's descendants.
 // The graph must not be mutated concurrently. Walk does not mutate or retain it.
-func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error { return core.Walk(root, visit) }
+func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error {
+	return zpvalue.Walk(root, visit)
+}
 
 // WithContext selects cooperative cancellation for one invocation.
 // A nil context is equivalent to context.Background.
@@ -185,10 +189,10 @@ func WithContext(ctx context.Context) ParseOption { return rt.WithContext(ctx) }
 // It is single-owner: Next and Close must not overlap, including callbacks.
 // Close releases parser state but never closes or interrupts its reader.
 // The standard library pull coroutine has no independently scheduled producer.
-type StreamIterator = core.StreamIterator
+type StreamIterator = zpruntime.StreamIterator
 
 // ErrStreamClosed is returned after an iterator is abandoned before termination.
-var ErrStreamClosed = core.ErrStreamClosed
+var ErrStreamClosed = zpruntime.ErrStreamClosed
 
 // WithDiagnosticCallback reports each committed #recover error during ParseStream or Iterate,
 // immediately before the corresponding stream element. Recoveries in abandoned alternatives are not
@@ -196,7 +200,7 @@ var ErrStreamClosed = core.ErrStreamClosed
 // that element and is returned unchanged. A nil callback disables delivery. The option is invalid
 // with other entry points. Recoveries after the #stream repetition are reported before the result.
 // With or without this option, recovered errors remain available at the end of the stream.
-func WithDiagnosticCallback(f func(*core.SyntaxError) error) ParseOption {
+func WithDiagnosticCallback(f func(*zpvalue.SyntaxError) error) ParseOption {
 	return rt.WithDiagnosticCallback(f)
 }
 
@@ -209,4 +213,4 @@ func WithDiagnosticLimit(n int) ParseOption { return rt.WithDiagnosticLimit(n) }
 // TruncatedSyntaxErrors is the incomplete result of a stream parsed with a positive diagnostic
 // limit. Errors is the retained tail in occurrence order. Saturated counts are lower bounds;
 // truncation and the tail remain exact.
-type TruncatedSyntaxErrors = core.TruncatedSyntaxErrors
+type TruncatedSyntaxErrors = zpvalue.TruncatedSyntaxErrors

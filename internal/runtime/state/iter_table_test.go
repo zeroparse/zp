@@ -2,10 +2,11 @@ package state
 
 import (
 	"testing"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // TestEngineValueItemAtOpensBoxes holds the primitive the loops of the iterating built-ins read their elements
@@ -15,11 +16,11 @@ import (
 func TestEngineValueItemAtOpensBoxes(t *testing.T) {
 	prog := &SharedProgram{}
 	InitSharedProgram(prog, compiletest.Program(t, "@start\nrule main = \"a\"\n", compile.Options{}).Runtime())
-	p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
+	p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, input.Bytes)}
 	c := &EvalCtx{P: p}
 	one, _ := element(c, "list", 1)
 	two, _ := element(c, "list", 2)
-	items := []*core.Node{one, two}
+	items := []*value.Node{one, two}
 	for _, tc := range []struct {
 		i     int
 		right bool

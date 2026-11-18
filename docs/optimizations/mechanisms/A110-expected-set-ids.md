@@ -35,8 +35,8 @@ Evidence records:
 Source owners: [`record, isolate and
 keep`](../../../internal/runtime/state/runtime.go),
 [`Program.DescTable`](../../../internal/compile/compile.go), [`generated
-expectation IDs`](../../../codegen/go/lib/lib.go), [`TypeScript
-description IDs`](../../../codegen/ts/lib/lib.ts).
+expectation IDs`](../../../pkg/runtime/golib/lib.go), [`TypeScript
+description IDs`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

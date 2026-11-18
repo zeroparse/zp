@@ -5,8 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestDocumentDiagnosticOwnership(t *testing.T) {
@@ -16,7 +17,7 @@ rule item = "a;" @error(message="original") #recover(skip=[^;]+ ";")`, "main")
 		t.Fatal(err)
 	}
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, changes := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/changes=%v", backend, unit, changes), func(t *testing.T) {
 					opts := []engine.ParseOption{engine.WithBackend(backend), engine.WithUnit(unit), engine.WithExpectations()}
@@ -31,7 +32,7 @@ rule item = "a;" @error(message="original") #recover(skip=[^;]+ ";")`, "main")
 					}
 					_, want := p.Parse("?é;", opts...)
 					_, first := d.Parse()
-					list, ok := first.(core.SyntaxErrors)
+					list, ok := first.(value.SyntaxErrors)
 					if !ok || len(list) != 1 || !reflect.DeepEqual(first, want) {
 						t.Fatalf("first diagnostics: %v / %v", first, want)
 					}
@@ -48,7 +49,7 @@ rule item = "a;" @error(message="original") #recover(skip=[^;]+ ";")`, "main")
 						t.Fatalf("caller changed cached diagnostics: %#v / %#v", second, want)
 					}
 					end := 3
-					if unit == core.Bytes {
+					if unit == input.Bytes {
 						end = 4
 					}
 					if err := d.Edit(0, end, "??;"); err != nil {
@@ -64,7 +65,7 @@ rule item = "a;" @error(message="original") #recover(skip=[^;]+ ";")`, "main")
 					}
 					_, want = p.Parse("??", opts...)
 					_, failure := d.Parse()
-					ordinary, ok := failure.(*core.SyntaxError)
+					ordinary, ok := failure.(*value.SyntaxError)
 					if !ok {
 						t.Fatalf("ordinary failure: %T", failure)
 					}

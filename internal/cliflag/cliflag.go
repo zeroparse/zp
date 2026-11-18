@@ -6,8 +6,8 @@ package cliflag
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // ParseBackend returns the backend named closure, bytecode or bytecode-iterative.
@@ -21,8 +21,8 @@ func ParseBackend(name string) (engine.Backend, error) {
 }
 
 // ParseUnit returns the unit named codepoints or bytes.
-func ParseUnit(name string) (core.PositionUnit, error) {
-	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+func ParseUnit(name string) (input.PositionUnit, error) {
+	for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		if u.String() == name {
 			return u, nil
 		}

@@ -31,9 +31,9 @@ Evidence records:
 [010](../010-zero-copy-token-text-reusable-evaluation-context.md).
 
 Source owners: [`parser.useCtx`](../../../internal/runtime/state/alloc.go), [`generated
-useCtx`](../../../codegen/go/lib/lib.go), [`typed
-context`](../../../codegen/go/lib/typed.go),
-[`Parser.useCtx`](../../../codegen/ts/lib/lib.ts).
+useCtx`](../../../pkg/runtime/golib/lib.go), [`typed
+context`](../../../pkg/runtime/golib/typed.go),
+[`Parser.useCtx`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

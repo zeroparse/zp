@@ -7,7 +7,8 @@ import (
 
 	. "zeroparse.dev/zp/internal/runtime/engine"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestDocumentAbortedParse(t *testing.T) {
@@ -28,10 +29,10 @@ rule e = #operators {
 }`, "---x", "x", "nesting too deep", 3},
 	} {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 				t.Run(fmt.Sprintf("%s/%s/%s", c.name, backend, unit), func(t *testing.T) {
 					prog := mustCompile(t, c.src)
-					opts := ParseOptions{Backend: backend, Unit: unit, Limits: core.Limits{Depth: uint64(c.depth)}}
+					opts := ParseOptions{Backend: backend, Unit: unit, Limits: runtime.Limits{Depth: uint64(c.depth)}}
 					doc, err := prog.NewDocumentWith("main", c.text, opts)
 					if err != nil {
 						t.Fatal(err)
@@ -64,7 +65,7 @@ func TestDocumentTracePanicRetry(t *testing.T) {
 	prog := mustCompile(t, `rule main = x $$
 rule x = x "a" / "a"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				opts.Trace = func(e TraceEvent) {

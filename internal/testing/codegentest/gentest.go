@@ -14,13 +14,15 @@ import (
 )
 
 // GoLibSource is the Go library source that tests give to the generator: the live directory
-// codegen/go/lib of this module, so that a test exercises the library as it is being edited. Package
+// pkg/runtime/golib of this module, so that a test exercises the library as it is being edited. Package
 // codegen generates from its embedded files instead.
-func GoLibSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "codegen", "go", "lib")) }
+func GoLibSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "pkg", "runtime", "golib")) }
 
 // TSLibSource is the TypeScript library source that tests give to the generator: the live
-// directory codegen/ts/lib of this module.
-func TSLibSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "codegen", "ts", "lib")) }
+// directory internal/backend/codegen/typescript/lib of this module.
+func TSLibSource() fs.FS {
+	return os.DirFS(filepath.Join(moduleRoot(), "internal", "backend", "codegen", "typescript", "lib"))
+}
 
 // WithLib returns opts with the library sources set to the live library directories.
 func WithLib(opts common.GenOptions) common.GenOptions {

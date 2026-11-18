@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 	prog := mustCompile(t, records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, u := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, outcome := range []string{"success", "syntax", "trace-panic"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, outcome), func(t *testing.T) {
 					text := "#records\na=1\nbc=22\n"
@@ -38,7 +39,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					var n *core.Node
+					var n *zpvalue.Node
 					got := traceLifecycleRecover(func() { n, err = d.Parse() })
 					switch outcome {
 					case "success":
@@ -46,7 +47,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 							t.Fatalf("node=%v err=%v panic=%v", n, err, got)
 						}
 					case "syntax":
-						var se *core.SyntaxError
+						var se *zpvalue.SyntaxError
 						if got != nil || n != nil || !errors.As(err, &se) {
 							t.Fatalf("node=%v err=%v panic=%v", n, err, got)
 						}
@@ -65,7 +66,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 					if e.Kind != TraceEnter || e.Rule != "main" || e.Depth != 1 || e.Pos != 0 {
 						t.Fatal("saved event metadata changed")
 					}
-					var clone *core.Node
+					var clone *zpvalue.Node
 					var before string
 					if n != nil {
 						clone = n.Clone()

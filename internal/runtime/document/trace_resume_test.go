@@ -5,8 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 const traceResumeGrammar = `rule main = lines $$
@@ -17,7 +18,7 @@ rule line = [a-zé]+ #atomic "\n"`
 // skipped by repetition resumption into synthetic calls or memo hits.
 func TestTraceDocumentReusedElements(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, failedRoot := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/failed-root=%t", backend, unit, failedRoot), func(t *testing.T) {
 					src := traceResumeGrammar
@@ -31,10 +32,10 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					var pr core.Profile
+					var pr instrument.Profile
 					var events []TraceEvent
 					tracedOpts := opts
-					tracedOpts.Profiles = []*core.Profile{&pr}
+					tracedOpts.Profiles = []*instrument.Profile{&pr}
 					tracedOpts.Trace = func(e TraceEvent) {
 						events = append(events, e)
 					}
@@ -44,7 +45,7 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 					}
 					check := func(phase string, resumed int, rootMemo bool) {
 						t.Helper()
-						pr, events = core.Profile{}, nil
+						pr, events = instrument.Profile{}, nil
 						n, err := doc.Parse()
 						if (err != nil) != failedRoot {
 							t.Fatalf("%s: error=%v; failed root=%t", phase, err, failedRoot)
@@ -134,7 +135,7 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 
 func TestTraceDocumentReusedElementsPanicRetry(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				prog := mustCompile(t, traceResumeGrammar)
 				opts := ParseOptions{Backend: backend, Unit: unit}
@@ -149,9 +150,9 @@ func TestTraceDocumentReusedElementsPanicRetry(t *testing.T) {
 					t.Fatal(err)
 				}
 				marker := &struct{ name string }{"trace abort"}
-				var pr core.Profile
+				var pr instrument.Profile
 				tracedOpts := opts
-				tracedOpts.Profiles = []*core.Profile{&pr}
+				tracedOpts.Profiles = []*instrument.Profile{&pr}
 				tracedOpts.Trace = func(e TraceEvent) {
 					if e.Kind == TraceExit && e.Rule == "lines" && e.ReusedElements > 0 {
 						panic(marker)
@@ -180,8 +181,8 @@ func TestTraceDocumentReusedElementsPanicRetry(t *testing.T) {
 				if childResumed != 31 || doc.Memo().Len() != 0 || len(doc.Runs()) != 0 {
 					t.Fatalf("child resumed=%d; aborted document retained reusable state", childResumed)
 				}
-				var retry core.Profile
-				tracedOpts.Profiles = []*core.Profile{&retry}
+				var retry instrument.Profile
+				tracedOpts.Profiles = []*instrument.Profile{&retry}
 				tracedOpts.Trace = nil
 				if got, want := resultJSON(doc.ParseWith(tracedOpts)), resultJSON(prog.ParseWith("main", doc.Text(), opts)); got != want {
 					t.Fatalf("retry=%s; fresh=%s", got, want)

@@ -3,9 +3,10 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // TestMemoJoinEvaluations checks that a store never narrows the calls that the entry of a key
@@ -18,13 +19,13 @@ func TestMemoJoinEvaluations(t *testing.T) {
 		for _, run := range c.Runs {
 			prog := mustCompile(t, run.Src)
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, lim := range []core.Limits{{}, {Compute: 1 << 40}} {
+				for _, lim := range []runtime.Limits{{}, {Compute: 1 << 40}} {
 					if lim.Compute != 0 && !state.BudgetControlsEnabled {
 						continue // the reference build rejects a parse with a limit
 					}
 					for _, recognize := range []bool{false, true} {
-						var pr core.Profile
-						if _, err := prog.ParseWith("s", run.Input, ParseOptions{Backend: b, Limits: lim, Recognize: recognize, Profiles: []*core.Profile{&pr}}); err != nil {
+						var pr instrument.Profile
+						if _, err := prog.ParseWith("s", run.Input, ParseOptions{Backend: b, Limits: lim, Recognize: recognize, Profiles: []*instrument.Profile{&pr}}); err != nil {
 							t.Fatalf("%s %q: %v", c.Name, run.Input, err)
 						}
 						evals := -1

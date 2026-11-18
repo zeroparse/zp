@@ -1,5 +1,5 @@
 // Package libprint prints the compositions of internal/ir/code/exec/compose into the Go code that uses them:
-// the library that generated Go parsers use (codegen/go/lib), the parse state of the engine and its
+// the library that generated Go parsers use (pkg/runtime/golib), the parse state of the engine and its
 // backends (internal/runtime/state, closure and vm), and the engine's and the library's conformance
 // bindings. It owns the paths of those files and the receiver and parameter text of the engine's
 // types, so that the compositions stay free of their consumers' layout. The TypeScript library's

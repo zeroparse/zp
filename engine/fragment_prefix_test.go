@@ -8,8 +8,9 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestParsePrefixRuleSemantics(t *testing.T) {
@@ -22,7 +23,7 @@ rule recoveryThenFailure = ("a" #recover(skip="x")) "!"`, "main")
 		t.Fatal(err)
 	}
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			for _, recognize := range []bool{false, true} {
 				opts := []engine.ParseOption{engine.WithBackend(backend), engine.WithUnit(unit)}
 				if recognize {
@@ -52,8 +53,8 @@ rule recoveryThenFailure = ("a" #recover(skip="x")) "!"`, "main")
 					t.Fatalf("nil action: %+v %v", r, err)
 				}
 				r, err = p.ParsePrefix("recoveryThenFailure", "x?tail", opts...)
-				var syntax *core.SyntaxError
-				var recovered core.SyntaxErrors
+				var syntax *value.SyntaxError
+				var recovered value.SyntaxErrors
 				if !errors.As(err, &syntax) || errors.As(err, &recovered) || r != (engine.PrefixResult{}) {
 					t.Fatalf("unrecovered failure after recovery: %+v %v", r, err)
 				}
@@ -119,7 +120,7 @@ rule item = "é😀"`, "main")
 				for range 8 {
 					r, err := p.ParsePrefix("item", "é😀tail", engine.WithBackend(b), engine.WithTrace(func(e engine.TraceEvent) {
 						if e.Kind == engine.TraceEnter && e.Rule == "item" {
-							inner, innerErr := p.ParsePrefix("item", "é😀other", engine.WithBackend(b), engine.WithUnit(core.Bytes))
+							inner, innerErr := p.ParsePrefix("item", "é😀other", engine.WithBackend(b), engine.WithUnit(input.Bytes))
 							if innerErr != nil || inner.Consumed != 6 || inner.ConsumedBytes != 6 {
 								failures <- fmt.Errorf("nested: %+v %v", inner, innerErr)
 							}
@@ -158,7 +159,7 @@ func TestParsePrefixRejectsDiagnosticCallback(t *testing.T) {
 					engine.WithBackend(backend),
 					engine.WithContext(ctx),
 					engine.WithTrace(func(engine.TraceEvent) { traceCalls++ }),
-					engine.WithDiagnosticCallback(func(*core.SyntaxError) error { diagnosticCalls++; return nil }),
+					engine.WithDiagnosticCallback(func(*value.SyntaxError) error { diagnosticCalls++; return nil }),
 				}
 				if recognize {
 					opts = append(opts, engine.RecognizeOnly())
@@ -178,7 +179,7 @@ func TestParsePrefixRejectsDiagnosticCallback(t *testing.T) {
 				opts = append(opts, engine.RecognizeOnly())
 			}
 			result, prefixErr := parser.ParsePrefix("main", "x;tail", opts...)
-			var recovered core.SyntaxErrors
+			var recovered value.SyntaxErrors
 			if !errors.As(prefixErr, &recovered) || len(recovered) != 1 || result.Consumed != 2 || result.ConsumedBytes != 2 {
 				t.Fatalf("nil callback: result=%+v error=%v", result, prefixErr)
 			}

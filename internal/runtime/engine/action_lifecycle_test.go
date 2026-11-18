@@ -6,11 +6,12 @@ import (
 	"runtime"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestActionResultReleasesTracking(t *testing.T) {
@@ -21,21 +22,21 @@ func TestActionResultReleasesTracking(t *testing.T) {
 		err   error
 	}{
 		{"nil", nil, nil},
-		{"typed nil", (*core.Node)(nil), nil},
+		{"typed nil", (*zpvalue.Node)(nil), nil},
 		{"node", nodes.Ptr(nodes.Data{Start: 90, End: 91, Fresh: true}), nil},
 		{"error", nil, errors.New("action failed")},
 		{"boxed value", 1, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			prefix := nodes.Ptr(nodes.Data{Text: "keep"})
-			p := &state.Parser{Created: []*core.Node{prefix}}
+			p := &state.Parser{Created: []*zpvalue.Node{prefix}}
 			ctx := &state.EvalCtx{P: p, Cbase: 1, Start: 3, End: 4}
 			var panicked any
 			func() {
 				defer func() { panicked = recover() }()
 				n := p.ActionResult(ctx, func(*state.EvalCtx) (any, error) {
 					p.Created = append(p.Created, nodes.Ptr(nodes.Data{Text: "temporary"}))
-					if n, ok := c.value.(*core.Node); ok && n != nil {
+					if n, ok := c.value.(*zpvalue.Node); ok && n != nil {
 						p.Created = append(p.Created, n)
 					}
 					return c.value, c.err
@@ -63,12 +64,12 @@ func TestActionResultReleasesTracking(t *testing.T) {
 func TestNilActionStreamMemoryIsBounded(t *testing.T) {
 	prog := mustCompile(t, codegentest.NilActionStream)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				p := state.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
 				var at [2]uint64
 				count := 0
-				p.Emit = func(n *core.Node) error {
+				p.Emit = func(n *zpvalue.Node) error {
 					count++
 					if n != nil || len(p.Created) != 0 {
 						return fmt.Errorf("element %d: node %v, tracking length %d", count, n, len(p.Created))
@@ -117,7 +118,7 @@ func BenchmarkNilActionStream(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				if err := prog.ParseStreamWith("main", &lineReader{line: "a", n: 10000}, func(*core.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
+				if err := prog.ParseStreamWith("main", &lineReader{line: "a", n: 10000}, func(*zpvalue.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
 					b.Fatal(err)
 				}
 			}

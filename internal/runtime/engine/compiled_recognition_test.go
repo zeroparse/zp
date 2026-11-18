@@ -10,11 +10,12 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // moduleRuleNames returns the names of the rules of m in order, each once: value-free twins follow
@@ -82,7 +83,7 @@ func TestCompiledRecognitionRoundTrip(t *testing.T) {
 				}
 				for _, name := range moduleRuleNames(p.Module()) {
 					for _, input := range append(append([]string{}, c.Inputs...), "\xff", "", "trailing") {
-						for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+						for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 							want, werr := p.ParseWith(name, input, ParseOptions{Recognize: true, Unit: unit})
 							for _, backend := range []Backend{Default, Bytecode, BytecodeIterative} {
 								got, gerr := loaded.ParseWith(name, input, ParseOptions{Recognize: true, Unit: unit, Backend: backend})
@@ -164,7 +165,7 @@ rule second = "é"`)
 		input string
 		match bool
 	}{{"a", true}, {"é", true}, {"", false}, {"a?", false}} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 			for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 				got, gotErr := recognizing.ParseWith("main", tc.input, ParseOptions{Backend: backend, Unit: unit, Recognize: true})
 				if got != nil || (gotErr == nil) != tc.match {
@@ -217,7 +218,7 @@ rule other = "é" $$`)
 			if n != nil || !errors.Is(err, context.Canceled) {
 				t.Fatalf("cancel node=%v error=%v", n, err)
 			}
-			n, err = p.ParseWith("main", "abc", ParseOptions{Backend: backend, Recognize: true, Limits: core.Limits{Compute: 1}})
+			n, err = p.ParseWith("main", "abc", ParseOptions{Backend: backend, Recognize: true, Limits: runtime.Limits{Compute: 1}})
 			if n != nil || err == nil {
 				t.Fatalf("budget node=%v error=%v", n, err)
 			}

@@ -1,7 +1,7 @@
 //go:build ignore
 
-// coreapi_generate writes coreapi_gen.go, the index of the declarations of the package core that
-// the Go generator reads (print.CoreAPISource). Run it with go generate in this directory.
+// coreapi_generate writes coreapi_gen.go, the index of the declarations of the runtime packages
+// that the Go generator reads (print.CoreAPISource). Run it with go generate in this directory.
 package main
 
 import (
@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	src, err := print.CoreAPISource(os.DirFS(filepath.Join("..", "..", "..", "..", "..", "core")))
+	src, err := print.CoreAPISource(os.DirFS(filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime")))
 	if err != nil {
 		log.Fatal(err)
 	}

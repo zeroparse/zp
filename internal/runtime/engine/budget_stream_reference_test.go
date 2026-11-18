@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestBudgetStreamReferenceAdmission(t *testing.T) {
@@ -16,12 +17,12 @@ func TestBudgetStreamReferenceAdmission(t *testing.T) {
 	prog := mustCompile(t, codegentest.Records)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	for _, o := range []ParseOptions{{Context: ctx}, {Limits: core.Limits{Compute: 1}}, {Limits: core.Limits{Memory: 1}}} {
+	for _, o := range []ParseOptions{{Context: ctx}, {Limits: runtime.Limits{Compute: 1}}, {Limits: runtime.Limits{Memory: 1}}} {
 		r := &streamCallbackReader{text: "#records\na=1\n"}
 		callbacks := 0
 		r.onRead = func() { callbacks++ }
 		o.Trace = func(TraceEvent) { callbacks++ }
-		err := prog.ParseStreamWith("main", r, func(*core.Node) error { callbacks++; return nil }, o)
+		err := prog.ParseStreamWith("main", r, func(*value.Node) error { callbacks++; return nil }, o)
 		if err == nil || !strings.Contains(err.Error(), "reference build") || callbacks != 0 || r.offset != 0 || r.closed {
 			t.Fatalf("error=%v callbacks=%d offset=%d", err, callbacks, r.offset)
 		}
@@ -38,14 +39,14 @@ func TestMemoryLimitReferenceAdmission(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, codegentest.Records)
 	const text = "#records\na=1\n"
-	o := ParseOptions{Limits: core.Limits{Memory: 1 << 30}}
+	o := ParseOptions{Limits: runtime.Limits{Memory: 1 << 30}}
 	if n, err := prog.ParseWith("main", text, o); n != nil || err == nil || !strings.Contains(err.Error(), "reference build") {
 		t.Fatalf("batch: node=%v error=%v", n, err)
 	}
 	if d, err := prog.NewDocumentWith("main", text, o); d != nil || err == nil || !strings.Contains(err.Error(), "reference build") {
 		t.Fatalf("document: error=%v", err)
 	}
-	if _, err := prog.ParseWith("main", text, ParseOptions{Limits: core.Limits{Memory: core.Unlimited}}); err != nil {
+	if _, err := prog.ParseWith("main", text, ParseOptions{Limits: runtime.Limits{Memory: runtime.Unlimited}}); err != nil {
 		t.Fatal(err)
 	}
 }

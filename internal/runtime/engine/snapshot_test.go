@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	zpruntime "zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // snapshotPhaseContext changes state only while the freezer is on the stack.
@@ -56,9 +57,9 @@ func TestSnapshotUnsupportedLegacyFieldPreservesParseError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nodes.D(legacy).Fields = coreimpl.Fields{{Name: "bad", Value: []int{1}}}
+	nodes.D(legacy).Fields = valueimpl.Fields{{Name: "bad", Value: []int{1}}}
 	s, err := d.SnapshotWith(ParseOptions{})
-	var capture *core.SnapshotCaptureError
+	var capture *zpruntime.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "bad") || capture.ParseError != nil {
 		t.Fatal("unsupported legacy field", s, err)
 	}
@@ -81,15 +82,15 @@ func TestSnapshotUnsupportedBoxIsRejected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nodes.D(legacy).Kind = coreimpl.TupleValueKind
-	nodes.SetNodeElems(legacy, []*core.Node{nodes.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 5)})
+	nodes.D(legacy).Kind = valueimpl.TupleValueKind
+	nodes.SetNodeElems(legacy, []*value.Node{nodes.NewNode(value.KindValue, 0, 0, "", nil, "", nil, 5)})
 	s, err := d.SnapshotWith(ParseOptions{})
 	if err != nil || s.Root().Child(0).Value() != 5 {
 		t.Fatal("boxed int", s, err)
 	}
-	nodes.SetNodeElems(legacy, []*core.Node{nodes.NewNode(core.KindValue, 0, 0, "", nil, "", nil, []int{1})})
+	nodes.SetNodeElems(legacy, []*value.Node{nodes.NewNode(value.KindValue, 0, 0, "", nil, "", nil, []int{1})})
 	s, err = d.SnapshotWith(ParseOptions{})
-	var capture *core.SnapshotCaptureError
+	var capture *zpruntime.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "Children[0]") {
 		t.Fatal("unsupported boxed element", s, err)
 	}

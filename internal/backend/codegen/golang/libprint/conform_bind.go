@@ -162,7 +162,7 @@ func bindingFile(pkg string, names []string, t *print.Target, table string) (str
 	switch pkg {
 	case "state":
 		header += engineImports(b.String(), nil)
-	case "libgo":
+	case "golib":
 		header += libImports(b.String(), nil)
 	}
 	if table != "" {
@@ -179,16 +179,16 @@ func printEngineExpBindings() (string, error) {
 }
 
 // GoExpBindings returns the Go test file of the conformance bindings of the expectation record for
-// package libgo, for the node library's Parser.
+// package golib, for the node library's Parser.
 func GoExpBindings() (string, error) {
-	return bindingFile("libgo", expBindingOps(), goTarget(goSpec{fn: "expect", name: "Expect"}), "")
+	return bindingFile("golib", expBindingOps(), goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }
 
 // GoTypedExpBindings returns the Go test file of the conformance bindings of the operations of the memo
-// that keep the expectations of an entry for package libgo, for the typed library's TParser, whose
+// that keep the expectations of an entry for package golib, for the typed library's TParser, whose
 // entries differ from the node library's; the record itself is the node Parser's (GoExpBindings).
 func GoTypedExpBindings() (string, error) {
-	return bindingFile("libgo", expBindingMemoOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "")
+	return bindingFile("golib", expBindingMemoOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "")
 }
 
 // engineDocBindingsFile is the file of the engine's conformance bindings of the doc operations,
@@ -202,9 +202,9 @@ func printEngineDocBindings() (string, error) {
 }
 
 // GoDocBindings returns the Go test file of the conformance bindings of the doc operations for
-// package libgo, for the node library's Parser.
+// package golib, for the node library's Parser.
 func GoDocBindings() (string, error) {
-	return bindingFile("libgo", docBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
+	return bindingFile("golib", docBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }
 
 // engineOprBindingsFile is the file of the engine's conformance bindings of the Operators Rule
@@ -219,9 +219,9 @@ func printEngineOprBindings() (string, error) {
 }
 
 // GoOprBindings returns the Go test file of the conformance bindings of the Operators Rule operations
-// for package libgo, for the node library's Parser.
+// for package golib, for the node library's Parser.
 func GoOprBindings() (string, error) {
-	return bindingFile("libgo", oprBindingDescriptorOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confOprBindings")
+	return bindingFile("golib", oprBindingDescriptorOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confOprBindings")
 }
 
 // ctxBindingOps are the operations of the dependency memo of left recursion and of the growth outside
@@ -243,9 +243,9 @@ func printEngineCtxBindings() (string, error) {
 }
 
 // GoCtxBindings returns the Go test file of the conformance bindings of the dependency memo for
-// package libgo, for the node library's Parser.
+// package golib, for the node library's Parser.
 func GoCtxBindings() (string, error) {
-	return bindingFile("libgo", ctxBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confCtxBindings")
+	return bindingFile("golib", ctxBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confCtxBindings")
 }
 
 // frameBindingOps are the frame operations that conformance cases cover.
@@ -269,15 +269,15 @@ func printEngineFrameBindings() (string, error) {
 }
 
 // GoFrameBindings returns the Go test file of the conformance bindings of the capture frames for
-// package libgo, for the node library's Parser.
+// package golib, for the node library's Parser.
 func GoFrameBindings() (string, error) {
-	return bindingFile("libgo", frameBindingGoOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confFrameBindings")
+	return bindingFile("golib", frameBindingGoOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confFrameBindings")
 }
 
 // GoTypedFrameBindings returns the Go test file of the conformance bindings of the capture frames for
-// package libgo, for the typed library's TParser.
+// package golib, for the typed library's TParser.
 func GoTypedFrameBindings() (string, error) {
-	return bindingFile("libgo", frameBindingGoOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "confTFrameBindings")
+	return bindingFile("golib", frameBindingGoOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "confTFrameBindings")
 }
 
 // engineRuleBindingsFile is the file of the engine's conformance bindings of the operations of the
@@ -301,16 +301,16 @@ func printEngineRuleBindings() (string, error) {
 }
 
 // GoRuleBindings returns the Go test file of the conformance bindings of the operations of the rules for
-// package libgo, for the node library's Parser.
+// package golib, for the node library's Parser.
 func GoRuleBindings() (string, error) {
-	return bindingFile("libgo", ruleBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
+	return bindingFile("golib", ruleBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }
 
 // GoTypedRuleBindings returns the Go test file of the conformance bindings of the operations of the
-// rules for package libgo, for the typed library's TParser, with rule.run, which runs the invocation
+// rules for package golib, for the typed library's TParser, with rule.run, which runs the invocation
 // that a generated typed call passes.
 func GoTypedRuleBindings() (string, error) {
-	return bindingFile("libgo", append(slices.Clone(ruleBindingOps), "rule.run"), goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "")
+	return bindingFile("golib", append(slices.Clone(ruleBindingOps), "rule.run"), goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "")
 }
 
 // obsBindingOps are the operations of the observation of a parse.
@@ -324,7 +324,7 @@ const GoObsBindingsFile = "obs_bind_exec_test.go"
 // runtime, for the node library's Parser. The engine has no observation of this kind: it traces a call
 // on a path of its own.
 func GoObsBindings() (string, error) {
-	return bindingFile("libgo", obsBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
+	return bindingFile("golib", obsBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }
 
 // engineMissingBindingsFile is the file of the engine's conformance bindings of the missing-token
@@ -355,13 +355,13 @@ func printEngineTermStateBindings() (string, error) {
 }
 
 // GoTermStateBindings returns the Go test file of the conformance bindings of the elements gathered and the
-// values made for package libgo, for the node library's Parser.
+// values made for package golib, for the node library's Parser.
 func GoTermStateBindings() (string, error) {
-	return bindingFile("libgo", termStateBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confTermStateBindings")
+	return bindingFile("golib", termStateBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confTermStateBindings")
 }
 
 // GoTypedTermStateBindings returns the Go test file of the conformance bindings of the elements gathered and
-// the values made for package libgo, for the typed library's TParser.
+// the values made for package golib, for the typed library's TParser.
 func GoTypedTermStateBindings() (string, error) {
-	return bindingFile("libgo", termStateBindingOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "confTTermStateBindings")
+	return bindingFile("golib", termStateBindingOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "confTTermStateBindings")
 }

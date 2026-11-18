@@ -3,13 +3,13 @@ package common_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 )
 
 func TestSourceGroupsExecutableParity(t *testing.T) {
@@ -54,7 +54,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 			t.Fatal(err)
 		}
 		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				for _, source := range []string{"123", "0", "", "x"} {
 					opts := engine.ParseOptions{Expectations: true, Backend: backend, Unit: unit}
 					if got, want := codegentest.ResultJSON(p.ParseWith("main", source, opts)), codegentest.ResultJSON(ref.ParseWith("main", source, opts)); got != want {

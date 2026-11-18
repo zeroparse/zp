@@ -11,21 +11,23 @@ import (
 	"weak"
 	"zeroparse.dev/zp/internal/runtime/program"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	value "zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Snapshot owns an immutable parse outcome for one document revision. Readers
 // may use it concurrently with later edits of its single-owner Document.
 type Snapshot struct {
 	version    DocumentVersion
-	unit       core.PositionUnit
+	unit       input.PositionUnit
 	text       string
 	graph      snapshotGraph
 	parseError error
-	stats      core.ParseStats
+	stats      runtime.ParseStats
 }
 
 type snapshotGraph struct {
@@ -69,11 +71,11 @@ func (g *snapshotGraph) at(i int) *snapshotRecord {
 }
 
 type snapshotRecord struct {
-	kind                          *coreimpl.Kind
+	kind                          *valueimpl.Kind
 	start, end                    int32
 	text                          string
 	children                      []int
-	fields                        coreimpl.Fields
+	fields                        valueimpl.Fields
 	fresh, terminal, childChunked bool
 	gen                           uint32
 }
@@ -130,7 +132,7 @@ type SnapshotField struct {
 func (s *Snapshot) Version() DocumentVersion { return s.version }
 
 // Unit returns the position unit of the captured graph.
-func (s *Snapshot) Unit() core.PositionUnit { return s.unit }
+func (s *Snapshot) Unit() input.PositionUnit { return s.unit }
 
 // Text returns the captured text.
 func (s *Snapshot) Text() string { return s.text }
@@ -139,7 +141,7 @@ func (s *Snapshot) Text() string { return s.text }
 func (s *Snapshot) Root() SnapshotNode { return snapshotHandle(&s.graph, s.graph.root) }
 
 // Stats returns the evaluation and memo counts for this capture's parse.
-func (s *Snapshot) Stats() core.ParseStats { return s.stats }
+func (s *Snapshot) Stats() runtime.ParseStats { return s.stats }
 
 // Error returns a defensive copy of the captured diagnostic.
 func (s *Snapshot) Error() error { return copySnapshotError(nil, s.parseError) }
@@ -201,31 +203,31 @@ func (n SnapshotNode) Child(i int) SnapshotNode {
 
 // fields returns the fields of the node, none for a box, which keeps its value in the one field of
 // its record.
-func (n SnapshotNode) fields() coreimpl.Fields {
-	if r := n.record(); r.kind != coreimpl.BoxKind {
+func (n SnapshotNode) fields() valueimpl.Fields {
+	if r := n.record(); r.kind != valueimpl.BoxKind {
 		return r.fields
 	}
 	return nil
 }
 
 // Kind returns what the node stands for, as Node.Kind does. Like Node.Kind, it panics on a nil node.
-func (n SnapshotNode) Kind() core.NodeKind {
+func (n SnapshotNode) Kind() zpvalue.NodeKind {
 	if !n.Valid() {
 		panic("zp: Kind of a nil snapshot node")
 	}
 	return value.KindOfShape(n.shape())
 }
 
-func (n SnapshotNode) shape() coreimpl.Shape {
+func (n SnapshotNode) shape() valueimpl.Shape {
 	r := n.record()
-	return coreimpl.ShapeOfKind(r.kind, r.terminal)
+	return valueimpl.ShapeOfKind(r.kind, r.terminal)
 }
 
 // Len returns the number of elements of a tuple or a list (KindTuple, KindList, KindTupleValue,
 // KindListValue), counting nil elements, and 0 for other nodes and for nil, as Node.Len does.
 func (n SnapshotNode) Len() int {
 	switch n.shape() {
-	case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
+	case valueimpl.ShapeTuple, valueimpl.ShapeList, valueimpl.ShapeTupleValue, valueimpl.ShapeListValue:
 		return n.ChildCount()
 	}
 	return 0
@@ -238,9 +240,9 @@ func (n SnapshotNode) Value() any {
 		return nil
 	}
 	switch n.shape() {
-	case coreimpl.ShapeBox:
+	case valueimpl.ShapeBox:
 		return n.record().fields[0].Value
-	case coreimpl.ShapeString:
+	case valueimpl.ShapeString:
 		return n.record().text
 	}
 	return nil
@@ -274,17 +276,17 @@ func (n SnapshotNode) Fields() []SnapshotField {
 
 // Materialize makes an independent mutable graph, preserving sharing, cycles,
 // nil child slots, and nil versus allocated-empty slices.
-func (s *Snapshot) Materialize() *core.Node {
+func (s *Snapshot) Materialize() *zpvalue.Node {
 	if s.graph.root == 0 {
 		return nil
 	}
-	nodes := make([]*core.Node, s.graph.count())
+	nodes := make([]*zpvalue.Node, s.graph.count())
 	for i := range nodes {
 		r := s.graph.at(i)
 		pos := s.graph.position(i, r)
 		nodes[i] = value.Ptr(value.Data{Kind: r.kind, Start: pos.start, End: pos.end, Text: r.text, Fresh: r.fresh, Terminal: r.terminal, Mark: pos.gen})
 	}
-	node := func(id int) *core.Node {
+	node := func(id int) *zpvalue.Node {
 		if id == 0 {
 			return nil
 		}
@@ -295,22 +297,22 @@ func (s *Snapshot) Materialize() *core.Node {
 		n := nodes[i]
 		if r.childChunked {
 			chunks := s.graph.childChunks[r]
-			value.D(n).Children = make([]*core.Node, chunks.length)
+			value.D(n).Children = make([]*zpvalue.Node, chunks.length)
 			for part, ids := range chunks.parts {
 				for j, id := range ids {
 					value.D(n).Children[part*snapshotChildChunkSize+j] = node(id)
 				}
 			}
 		} else if r.children != nil {
-			value.D(n).Children = make([]*core.Node, len(r.children))
+			value.D(n).Children = make([]*zpvalue.Node, len(r.children))
 			for j, id := range r.children {
 				value.D(n).Children[j] = node(id)
 			}
 		}
-		if r.kind == coreimpl.BoxKind {
+		if r.kind == valueimpl.BoxKind {
 			value.D(n).Box = r.fields[0].Value
 		} else if r.fields != nil {
-			value.D(n).Fields = make(coreimpl.Fields, len(r.fields))
+			value.D(n).Fields = make(valueimpl.Fields, len(r.fields))
 			for j, f := range r.fields {
 				if id, ok := f.Value.(snapshotRef); ok {
 					f.Value = node(int(id))
@@ -345,11 +347,11 @@ func (d *Document) SnapshotWith(o state.ParseOptions) (*Snapshot, error) {
 // snapshot. The depth limit is not one: a parse nested too deeply is a run-time error of the parse, which
 // a snapshot records as it records the error of an action.
 func interruptsSnapshot(err error) bool {
-	var le *core.LimitError
-	return errors.As(err, &le) && le.Kind != core.LimitDepth
+	var le *runtime.LimitError
+	return errors.As(err, &le) && le.Kind != runtime.LimitDepth
 }
 
-func (d *Document) snapshotWith(o state.ParseOptions, legacy **core.Node) (*Snapshot, error) {
+func (d *Document) snapshotWith(o state.ParseOptions, legacy **zpvalue.Node) (*Snapshot, error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
 		return nil, program.MissingUnsupported("Document parsing")
 	}
@@ -359,8 +361,8 @@ func (d *Document) snapshotWith(o state.ParseOptions, legacy **core.Node) (*Snap
 		o.Context = observed
 	}
 	var result *Snapshot
-	output := core.OutputUnavailable
-	_, err := d.parseWithCapture(o, func(p *state.Parser, root *core.Node, parseErr error) error {
+	output := input.OutputUnavailable
+	_, err := d.parseWithCapture(o, func(p *state.Parser, root *zpvalue.Node, parseErr error) error {
 		if observed != nil && observed.interrupted || interruptsSnapshot(parseErr) {
 			return parseErr
 		}
@@ -398,11 +400,11 @@ func (d *Document) snapshotWith(o state.ParseOptions, legacy **core.Node) (*Snap
 		returnedError := copySnapshotError(p, err)
 		p.Control.Check()
 		candidate := &Snapshot{version: d.Version(), unit: d.Unit(), text: out.String(), graph: graph, parseError: err, stats: p.ReportedStats()}
-		nextOutput := core.OutputMayHaveChanged
+		nextOutput := input.OutputMayHaveChanged
 		if d.changes != nil && d.changes.previous != nil {
-			nextOutput = core.OutputChanged
+			nextOutput = input.OutputChanged
 			if equalChangeSnapshotsControlled(p, d.changes.previous, candidate) {
-				nextOutput = core.OutputUnchanged
+				nextOutput = input.OutputUnchanged
 			}
 		}
 		p.Control.Check()
@@ -433,7 +435,7 @@ func snapshotStrings(p *state.Parser, in []string) []string {
 	return out
 }
 func copySnapshotError(p *state.Parser, err error) error {
-	syntax := func(e *core.SyntaxError) *core.SyntaxError {
+	syntax := func(e *zpvalue.SyntaxError) *zpvalue.SyntaxError {
 		if e == nil {
 			return nil
 		}
@@ -447,20 +449,20 @@ func copySnapshotError(p *state.Parser, err error) error {
 	switch e := err.(type) {
 	case nil:
 		return nil
-	case *core.SyntaxError:
+	case *zpvalue.SyntaxError:
 		return syntax(e)
-	case core.SyntaxErrors:
+	case zpvalue.SyntaxErrors:
 		if e == nil {
-			return core.SyntaxErrors(nil)
+			return zpvalue.SyntaxErrors(nil)
 		}
-		out := make(core.SyntaxErrors, len(e))
+		out := make(zpvalue.SyntaxErrors, len(e))
 		for i, x := range e {
 			out[i] = syntax(x)
 		}
 		return out
-	case *core.LimitError:
+	case *runtime.LimitError:
 		if e == nil {
-			return (*core.LimitError)(nil)
+			return (*runtime.LimitError)(nil)
 		}
 		out := *e
 		return &out
@@ -477,15 +479,15 @@ type snapshotEdge struct {
 	name  string
 }
 type snapshotFrame struct {
-	node     *core.Node
+	node     *zpvalue.Node
 	id, next int
 	edge     snapshotEdge
 }
 
 // unsupportedBox returns the dynamic type of the value of a box node that a snapshot cannot hold, as
 // it cannot hold a field value of that type, and nil for any other node.
-func unsupportedBox(n *core.Node) reflect.Type {
-	if n == nil || value.D(n).Kind != coreimpl.BoxKind {
+func unsupportedBox(n *zpvalue.Node) reflect.Type {
+	if n == nil || value.D(n).Kind != valueimpl.BoxKind {
 		return nil
 	}
 	switch value.D(n).Box.(type) {
@@ -498,13 +500,13 @@ func unsupportedBox(n *core.Node) reflect.Type {
 // freezeSnapshotGraph registers identities before following their edges. The
 // explicit DFS stack gives deterministic child-then-field rejection paths and
 // supports arbitrary depth and caller-created cycles without recursion.
-func freezeSnapshotGraph(p *state.Parser, root *core.Node) (snapshotGraph, *core.SnapshotCaptureError) {
+func freezeSnapshotGraph(p *state.Parser, root *zpvalue.Node) (snapshotGraph, *runtime.SnapshotCaptureError) {
 	var g snapshotGraph
 	if root == nil {
 		return g, nil
 	}
-	seen := make(map[*core.Node]int)
-	register := func(n *core.Node) (int, bool) {
+	seen := make(map[*zpvalue.Node]int)
+	register := func(n *zpvalue.Node) (int, bool) {
 		if n == nil {
 			return 0, false
 		}
@@ -517,12 +519,12 @@ func freezeSnapshotGraph(p *state.Parser, root *core.Node) (snapshotGraph, *core
 			r.children = make([]int, len(value.D(n).Children))
 		}
 		if value.D(n).Fields != nil {
-			r.fields = make(coreimpl.Fields, len(value.D(n).Fields))
+			r.fields = make(valueimpl.Fields, len(value.D(n).Fields))
 		}
-		if r.kind == coreimpl.BoxKind {
+		if r.kind == valueimpl.BoxKind {
 			// A box carries its value in the one field of its record, which no accessor exposes
 			// as a field, so a record stays as small as it was.
-			r.fields = coreimpl.Fields{{Value: value.D(n).Box}}
+			r.fields = valueimpl.Fields{{Value: value.D(n).Box}}
 		}
 		g.nodes = state.GrowSpend(p, g.nodes, 1)
 		g.nodes = append(g.nodes, r)
@@ -531,14 +533,14 @@ func freezeSnapshotGraph(p *state.Parser, root *core.Node) (snapshotGraph, *core
 		return id, true
 	}
 	if t := unsupportedBox(root); t != nil {
-		return snapshotGraph{}, &core.SnapshotCaptureError{Path: "root", ValueType: t}
+		return snapshotGraph{}, &runtime.SnapshotCaptureError{Path: "root", ValueType: t}
 	}
 	g.root, _ = register(root)
 	stack := []snapshotFrame{{node: root, id: g.root}}
 	for len(stack) > 0 {
 		p.Spend()
 		f := &stack[len(stack)-1]
-		var child *core.Node
+		var child *zpvalue.Node
 		var edge snapshotEdge
 		if f.next < len(value.D(f.node).Children) {
 			edge = snapshotEdge{child: true, index: f.next}
@@ -553,22 +555,22 @@ func freezeSnapshotGraph(p *state.Parser, root *core.Node) (snapshotGraph, *core
 			edge = snapshotEdge{index: i, name: field.Name}
 			var val any
 			switch v := field.Value.(type) {
-			case *core.Node:
+			case *zpvalue.Node:
 				child = v
 			case nil, int, string, bool:
 				val = v
 			default:
-				return snapshotGraph{}, &core.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: reflect.TypeOf(v)}
+				return snapshotGraph{}, &runtime.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: reflect.TypeOf(v)}
 			}
-			g.nodes[f.id-1].fields[i] = coreimpl.NodeField{Name: field.Name, Value: val}
+			g.nodes[f.id-1].fields[i] = valueimpl.NodeField{Name: field.Name, Value: val}
 		}
 		if t := unsupportedBox(child); t != nil {
-			return snapshotGraph{}, &core.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: t}
+			return snapshotGraph{}, &runtime.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: t}
 		}
 		id, fresh := register(child)
 		if edge.child {
 			g.nodes[f.id-1].children[edge.index] = id
-		} else if _, ok := value.D(f.node).Fields[edge.index].Value.(*core.Node); ok {
+		} else if _, ok := value.D(f.node).Fields[edge.index].Value.(*zpvalue.Node); ok {
 			g.nodes[f.id-1].fields[edge.index].Value = snapshotRef(id)
 		}
 		f.next++

@@ -3,8 +3,8 @@
 package state
 
 import (
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // EmitStream passes a committed element v of the start rule's #stream repetition to the caller and
@@ -13,7 +13,7 @@ import (
 // once emitted: a caller error ends the parse unchanged.
 //
 // Printed from Exec IR function streamEmit of internal/ir/code/exec/compose, specialized for stream.
-func (p *Parser) EmitStream(v *core.Node, end int) {
+func (p *Parser) EmitStream(v *zpvalue.Node, end int) {
 	if BudgetControlsEnabled {
 		p.Control.Check()
 	}

@@ -6,9 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestCaptures(t *testing.T) {
@@ -168,11 +169,11 @@ rule num = -" "* n:[0-9]+ #atomic => $n`)
 	if nodes.D(n).Start != 0 || nodes.D(n).End != 9 {
 		t.Errorf("root [%d,%d)", nodes.D(n).Start, nodes.D(n).End)
 	}
-	left := n.Field("Left").(*core.Node)
+	left := n.Field("Left").(*value.Node)
 	if nodes.D(left).Start != 1 || nodes.D(left).End != 7 {
 		t.Errorf("left [%d,%d)", nodes.D(left).Start, nodes.D(left).End)
 	}
-	if r := left.Field("Right").(*core.Node); nodes.D(r).Start != 5 || nodes.D(r).End != 7 || nodes.D(r).Text != "22" {
+	if r := left.Field("Right").(*value.Node); nodes.D(r).Start != 5 || nodes.D(r).End != 7 || nodes.D(r).Text != "22" {
 		t.Errorf("22 at [%d,%d) %q", nodes.D(r).Start, nodes.D(r).End, nodes.D(r).Text)
 	}
 }
@@ -337,7 +338,7 @@ rule main = x:"a" => T{N: len("日本"), M: len(text($x) + "é")}`)
 			want string
 		}{
 			{ParseOptions{Backend: b}, `T{M: 2, N: 2}`},
-			{ParseOptions{Backend: b, Unit: core.Bytes}, `T{M: 3, N: 6}`},
+			{ParseOptions{Backend: b, Unit: zpinput.Bytes}, `T{M: 3, N: 6}`},
 		} {
 			if n, err := prog.ParseWith("main", "a", tc.o); err != nil || n.String() != tc.want {
 				t.Errorf("%v %v: got %v, %v, want %s", b, tc.o.Unit, n, err, tc.want)

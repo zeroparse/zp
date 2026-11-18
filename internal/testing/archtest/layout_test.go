@@ -25,11 +25,12 @@ type place struct {
 var layout = []place{
 	// Public packages.
 	{pkg: "codegen", target: "pkg/compiler"},
-	{pkg: "codegen/go/lib", target: "pkg/runtime/golib"},
-	// core splits into pkg/runtime, pkg/runtime/input, pkg/runtime/value and
-	// pkg/runtime/instrument; all four are runtime side and allowed to the library.
-	{pkg: "core", target: "pkg/runtime"},
-	{pkg: "core/impl", target: "pkg/runtime/value/impl"},
+	{pkg: "pkg/runtime/golib", target: "pkg/runtime/golib"},
+	{pkg: "pkg/runtime", target: "pkg/runtime"},
+	{pkg: "pkg/runtime/input", target: "pkg/runtime/input"},
+	{pkg: "pkg/runtime/instrument", target: "pkg/runtime/instrument"},
+	{pkg: "pkg/runtime/value", target: "pkg/runtime/value"},
+	{pkg: "pkg/runtime/value/impl", target: "pkg/runtime/value/impl"},
 	{pkg: "pkg/editfuzz", target: "pkg/editfuzz"},
 	// engine splits into pkg/compiler (compilation), pkg/runtime (the Parser interface),
 	// pkg/runtime/vm and pkg/runtime/instrument. Its compile entry keeps the compiler imports,
@@ -93,6 +94,8 @@ var layout = []place{
 	{pkg: "internal/backend/codegen/common", target: "internal/backend/codegen/common"},
 	{pkg: "internal/backend/codegen/golang/print", target: "internal/backend/codegen/golang/print"},
 	{pkg: "internal/backend/codegen/golang/libprint", target: "internal/backend/codegen/golang/libprint"},
+	{pkg: "internal/backend/codegen/golang/libsrc", target: "internal/backend/codegen/golang/libsrc"},
+	{pkg: "internal/backend/codegen/typescript/lib", target: "internal/backend/codegen/typescript/lib"},
 	{pkg: "internal/backend/codegen/typescript/print", target: "internal/backend/codegen/typescript/print"},
 	{pkg: "internal/backend/codegen/golang/pass", target: "internal/backend/codegen/golang/pass"},
 	{pkg: "internal/backend/codegen/typescript/pass", target: "internal/backend/codegen/typescript/pass"},

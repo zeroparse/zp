@@ -204,17 +204,17 @@ func generatedStorePolicyCounts(t *testing.T, lib string) []storeCounts {
 		if c.Stream {
 			codegentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), common.GenOptions{Start: c.Start, Stream: true, Observability: true})
 			fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
-			fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; _ = %[1]s.ParseStream(strings.NewReader(%[2]s), func(*%[1]s.Node) error { return nil }, zprt.WithProfile(&p)); fmt.Print(evals(p, %[3]q), \" \") }\n\tfmt.Println()\n", pkg, in, c.Rule)
+			fmt.Fprintf(&calls, "\t{ var p zpinstrument.Profile; _ = %[1]s.ParseStream(strings.NewReader(%[2]s), func(*%[1]s.Node) error { return nil }, zprt.WithProfile(&p)); fmt.Print(evals(p, %[3]q), \" \") }\n\tfmt.Println()\n", pkg, in, c.Rule)
 			continue
 		}
 		codegentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), common.GenOptions{Start: c.Start, Types: true, Recognize: true, Observability: true})
 		codegentest.GeneratePackage(t, dir, "d"+pkg, mustParse(c.Src), common.GenOptions{Start: c.Start, Document: true, Observability: true})
 		codegentest.GeneratePackage(t, dir, "t"+pkg, mustParse(c.Src), common.GenOptions{Start: c.Start, Document: true, Types: true, Observability: true})
 		fmt.Fprintf(&imports, "\t%q\n\t%q\n\t%q\n", "codegentest/"+pkg, "codegentest/d"+pkg, "codegentest/t"+pkg)
-		fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; d, _ := d%s.NewDocument(%s); _, _ = d.Parse(zprt.WithProfile(&p)); fmt.Print(evals(p, %q), \" \") }\n", pkg, in, c.Rule)
-		fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; d, _ := t%s.NewDocument(%s); _, _ = d.ParseValue(zprt.WithProfile(&p)); fmt.Print(evals(p, %q), \" \") }\n", pkg, in, c.Rule)
+		fmt.Fprintf(&calls, "\t{ var p zpinstrument.Profile; d, _ := d%s.NewDocument(%s); _, _ = d.Parse(zprt.WithProfile(&p)); fmt.Print(evals(p, %q), \" \") }\n", pkg, in, c.Rule)
+		fmt.Fprintf(&calls, "\t{ var p zpinstrument.Profile; d, _ := t%s.NewDocument(%s); _, _ = d.ParseValue(zprt.WithProfile(&p)); fmt.Print(evals(p, %q), \" \") }\n", pkg, in, c.Rule)
 		for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
-			fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; "+op+"; fmt.Print(evals(p, %q), \" \") }\n", pkg, in, c.Rule)
+			fmt.Fprintf(&calls, "\t{ var p zpinstrument.Profile; "+op+"; fmt.Print(evals(p, %q), \" \") }\n", pkg, in, c.Rule)
 		}
 		calls.WriteString("\tfmt.Println()\n")
 	}
@@ -224,11 +224,11 @@ import (
 	"fmt"
 	"strings"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	zpcore "zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 ` + imports.String() + `)
 
-func evals(p zpcore.Profile, rule string) int {
+func evals(p zpinstrument.Profile, rule string) int {
 	for _, r := range p.Snapshot().Rules {
 		if r.Rule == rule {
 			return r.Evals

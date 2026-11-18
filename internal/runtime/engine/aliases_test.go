@@ -3,10 +3,11 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestAliasNodeIdentity(t *testing.T) {
@@ -15,7 +16,7 @@ func TestAliasNodeIdentity(t *testing.T) {
 		t.Run(c.Name, func(t *testing.T) {
 			for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 				prog := mustCompile(t, c.Src, options)
-				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 					n, err := prog.ParseWith("main", "éé", ParseOptions{Unit: unit})
 					if err != nil {
 						t.Fatal(err)
@@ -32,7 +33,7 @@ func TestAliasNodeIdentity(t *testing.T) {
 					}
 					terminal := n
 					if v, ok := nodes.FieldOf(n, "Value"); ok {
-						terminal, _ = v.(*core.Node)
+						terminal, _ = v.(*value.Node)
 					}
 					if terminal == nil || terminal.Type() != "Num" || nodes.D(terminal).Text != "éé" {
 						t.Errorf("%s: expected a Num terminal, got %s", unit, codegentest.ResultJSON(terminal, nil))
@@ -49,7 +50,7 @@ func TestAliasNodeIdentity(t *testing.T) {
 							wantClosureRefused(t, err)
 							continue
 						}
-						for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+						for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 							for _, input := range c.Inputs {
 								want, wantErr := prog.ParseWith("main", input, ParseOptions{Unit: unit})
 								got, gotErr := loaded.ParseWith("main", input, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))

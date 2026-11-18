@@ -8,9 +8,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 var sparseMemoSynthetic = func() string {
@@ -96,7 +96,7 @@ func BenchmarkSparseMemoTypeScript(b *testing.B) {
 	}
 	for _, source := range sources {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					name := "Parse"
 					if recognize {

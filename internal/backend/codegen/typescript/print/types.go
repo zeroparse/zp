@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // TsReservedTypes are the names types.ts declares itself, or imports. A grammar type with one of
@@ -124,10 +124,10 @@ func (g *Generator) typedTS(start *compile.Rule) (typesSrc, parser string, err e
 		fmt.Fprintf(&b, "  [%s, %d],\n", TsString(n.Name), t.recipe(n))
 	}
 	// Open values: tuple and list nodes become TNode<unknown>, and tuple and list values arrays.
-	for _, name := range []string{coreimpl.TypeTuple, coreimpl.TypeList} {
+	for _, name := range []string{valueimpl.TypeTuple, valueimpl.TypeList} {
 		fmt.Fprintf(&b, "  [%s, %d],\n", TsString(name), openID)
 	}
-	for _, name := range []string{coreimpl.TypeTupleValue, coreimpl.TypeListValue} {
+	for _, name := range []string{valueimpl.TypeTupleValue, valueimpl.TypeListValue} {
 		fmt.Fprintf(&b, "  [%s, %d],\n", TsString(name), elemsID)
 	}
 	for _, name := range t.all {
@@ -409,7 +409,7 @@ func (t *tsTypedGen) recipe(x types.Ty) int {
 		r += ", elems: [" + strings.Join(elems, ", ") + "]"
 	case types.JoinTy:
 		if kind == "union" {
-			members := []string{fmt.Sprintf("[%s, %d]", TsString(coreimpl.TypeError), t.recipe(types.TyError))}
+			members := []string{fmt.Sprintf("[%s, %d]", TsString(valueimpl.TypeError), t.recipe(types.TyError))}
 			for _, m := range a.Alts {
 				if m, ok := m.(types.NamedTy); ok && (m == types.TyMatch || m.Kind == 's') {
 					members = append(members, fmt.Sprintf("[%s, %d]", TsString(m.Name), t.recipe(m)))

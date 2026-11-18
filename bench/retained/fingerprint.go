@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"sort"
 
-	"zeroparse.dev/zp/core"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 
 const fingerprintFormat = "cst-value-graph-v2"
@@ -24,7 +24,7 @@ type field struct {
 // fingerprint visits every public node, field and value without recursively
 // marshaling subtrees. Deterministic node IDs preserve sharing and node cycles.
 // The benchmark corpora produce nodes, acyclic collections and scalar values.
-func fingerprint(root *core.Node) (string, error) {
+func fingerprint(root *zpvalue.Node) (string, error) {
 	h := sha256.New()
 	write := func(data []byte) {
 		var size [binary.MaxVarintLen64]byte
@@ -33,7 +33,7 @@ func fingerprint(root *core.Node) (string, error) {
 		h.Write(data)
 	}
 	write([]byte(fingerprintFormat))
-	seen := map[*core.Node]int{}
+	seen := map[*zpvalue.Node]int{}
 	stack := []any{root}
 	for len(stack) != 0 {
 		i := len(stack) - 1
@@ -44,7 +44,7 @@ func fingerprint(root *core.Node) (string, error) {
 		case frame:
 			write([]byte(x))
 			continue
-		case *core.Node:
+		case *zpvalue.Node:
 			if x == nil {
 				write([]byte("nil-node"))
 				continue
@@ -82,7 +82,7 @@ func fingerprint(root *core.Node) (string, error) {
 			for i := x.Len() - 1; i >= 0; i-- {
 				stack = append(stack, x.Elem(i))
 			}
-			if x.Kind() == core.KindValue {
+			if x.Kind() == zpvalue.KindValue {
 				stack = append(stack, x.Value())
 			}
 			continue

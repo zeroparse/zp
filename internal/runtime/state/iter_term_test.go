@@ -3,7 +3,6 @@ package state_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/actionlower"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
@@ -11,6 +10,9 @@ import (
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // TestEngineValueIterTable runs the iteration table (conform.IterCases) on the engine's compositions itemAt and
@@ -20,9 +22,9 @@ func TestEngineValueIterTable(t *testing.T) {
 		prog := &state.SharedProgram{}
 		cp := compiletest.Program(t, "@start\nrule main = \"a\"\n", compile.Options{})
 		state.InitSharedProgram(prog, cp.Runtime())
-		p := &state.Parser{Prog: prog, Input: state.NewInput(conform.BuiltinInput, core.Bytes)}
+		p := &state.Parser{Prog: prog, Input: state.NewInput(conform.BuiltinInput, input.Bytes)}
 		if controlled {
-			p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
+			p.Control = state.NewBudgetControl(nil, runtime.Limits{Compute: 1 << 62})
 		}
 		c := &state.EvalCtx{P: p}
 		one, _ := state.Element(c, "list", 1)
@@ -33,7 +35,7 @@ func TestEngineValueIterTable(t *testing.T) {
 			conform.BuiltinString: "ab",
 			conform.BuiltinBool:   true,
 			conform.MemberList:    c.ListNode(nil),
-			conform.BuiltinPair:   c.ListNode([]*core.Node{one, two}),
+			conform.BuiltinPair:   c.ListNode([]*value.Node{one, two}),
 		}
 		// The budget-controls reference build charges nothing, so its units are not checked.
 		err := conform.RunIters("engine", false, func(call, v string) (string, int) {

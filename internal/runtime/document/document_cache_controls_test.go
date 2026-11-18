@@ -3,8 +3,8 @@ package document
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 func TestCacheControlsRetiredAndRunAccounting(t *testing.T) {
@@ -22,7 +22,7 @@ func TestCacheControlsRetiredAndRunAccounting(t *testing.T) {
 		t.Fatal("inspection mutated cache")
 	}
 	d.ResetHistory()
-	if got := d.CacheStats(); got != (core.CacheStats{}) {
+	if got := d.CacheStats(); got != (runtime.CacheStats{}) {
 		t.Fatalf("reset: %+v", got)
 	}
 }

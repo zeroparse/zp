@@ -11,8 +11,6 @@ import (
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/backend/closure"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/parser"
@@ -22,6 +20,10 @@ import (
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // parseTest parses ZeroParse source for a test whose subject is not start rules: unless the source
@@ -157,8 +159,8 @@ func mustParse(src string) *ast.Grammar {
 // points, matches the result of parsing in code points.
 func checkUnits(t *testing.T, prog *Program, start, input string, b Backend) {
 	t.Helper()
-	n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: core.CodePoints, Backend: b})
-	n2, err2 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: core.Bytes, Backend: b})
+	n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: zpinput.CodePoints, Backend: b})
+	n2, err2 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: zpinput.Bytes, Backend: b})
 	n2, err2 = toCodePoints(input, n2, err2)
 	if a, b := codegentest.ResultJSON(n1, err1), codegentest.ResultJSON(n2, err2); a != b {
 		t.Errorf("input %q: results differ between units\n codepoints %s\n bytes      %s", input, a, b)
@@ -168,13 +170,13 @@ func checkUnits(t *testing.T, prog *Program, start, input string, b Backend) {
 // checkBackends checks that every backend produces the same result (value, positions, errors).
 func checkBackends(t *testing.T, prog *Program, start, input string) {
 	t.Helper()
-	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, u := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 		n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u})
 		want := codegentest.ResultJSON(n1, err1)
 		checkRecognize(t, prog, start, input, u, err1)
 		// The default budget runs the controlled form; Unlimited runs the uncontrolled one, which must
 		// give the same result on inputs within the default.
-		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: core.Limits{Compute: core.Unlimited}}); !errors.Is(err1, core.ErrLimit) {
+		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: runtime.Limits{Compute: runtime.Unlimited}}); !errors.Is(err1, runtime.ErrLimit) {
 			if got := codegentest.ResultJSON(n0, err0); got != want {
 				t.Errorf("input %q (unit %v): Unlimited differs from the default budget\n default   %s\n unlimited %s", input, u, want, got)
 			}
@@ -192,10 +194,10 @@ func checkBackends(t *testing.T, prog *Program, start, input string) {
 // error as an ordinary parse (or succeeds if it does). Results are not compared when the
 // ordinary parse fails with a runtime error in an action (recognition does not evaluate
 // actions).
-func checkRecognize(t *testing.T, prog *Program, start, input string, u core.PositionUnit, want error) {
+func checkRecognize(t *testing.T, prog *Program, start, input string, u zpinput.PositionUnit, want error) {
 	t.Helper()
 	switch want.(type) {
-	case nil, *core.SyntaxError, core.SyntaxErrors:
+	case nil, *value.SyntaxError, value.SyntaxErrors:
 	default:
 		return
 	}
@@ -208,7 +210,7 @@ func checkRecognize(t *testing.T, prog *Program, start, input string, u core.Pos
 }
 
 // toCodePoints converts the positions in a result parsed in bytes to code points.
-func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
+func toCodePoints(input string, n *value.Node, err error) (*value.Node, error) {
 	// Map byte offsets to code point positions (a byte in the middle of a character maps to that
 	// character's position).
 	cp := make([]int, len(input)+1)
@@ -249,9 +251,9 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 		_, c := lineCol(cp[off+col-1])
 		return fmt.Sprintf("%d:%d%s", line, c, rest)
 	}
-	seen := map[*core.Node]*core.Node{}
-	var conv func(*core.Node) *core.Node
-	conv = func(n *core.Node) *core.Node {
+	seen := map[*value.Node]*value.Node{}
+	var conv func(*value.Node) *value.Node
+	conv = func(n *value.Node) *value.Node {
 		if n == nil {
 			return nil
 		}
@@ -262,19 +264,19 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 		seen[n] = &c
 		nodes.D(&c).Start, nodes.D(&c).End = int32(cp[nodes.D(n).Start]), int32(cp[nodes.D(n).End])
 		if nodes.D(n).Children != nil {
-			nodes.D(&c).Children = make([]*core.Node, len(nodes.D(n).Children))
+			nodes.D(&c).Children = make([]*value.Node, len(nodes.D(n).Children))
 			for i, ch := range nodes.D(n).Children {
 				nodes.D(&c).Children[i] = conv(ch)
 			}
 		}
 		if nodes.D(n).Fields != nil {
-			nodes.D(&c).Fields = make(coreimpl.Fields, len(nodes.D(n).Fields))
+			nodes.D(&c).Fields = make(valueimpl.Fields, len(nodes.D(n).Fields))
 			for i, f := range nodes.D(n).Fields {
 				switch v := f.Value.(type) {
-				case *core.Node:
+				case *value.Node:
 					f.Value = conv(v)
 				case string:
-					if n.Type() == coreimpl.TypeError && f.Name == "message" {
+					if n.Type() == valueimpl.TypeError && f.Name == "message" {
 						f.Value = fixMessage(v)
 					}
 				}
@@ -283,17 +285,17 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 		}
 		return &c
 	}
-	convErr := func(e *core.SyntaxError) *core.SyntaxError {
+	convErr := func(e *value.SyntaxError) *value.SyntaxError {
 		c := *e
 		c.Pos = cp[e.Pos]
 		c.Line, c.Col = lineCol(c.Pos)
 		return &c
 	}
 	switch e := err.(type) {
-	case *core.SyntaxError:
+	case *value.SyntaxError:
 		err = convErr(e)
-	case core.SyntaxErrors:
-		l := make(core.SyntaxErrors, len(e))
+	case value.SyntaxErrors:
+		l := make(value.SyntaxErrors, len(e))
 		for i, x := range e {
 			l[i] = convErr(x)
 		}

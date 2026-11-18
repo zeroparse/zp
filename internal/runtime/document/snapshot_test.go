@@ -9,9 +9,10 @@ import (
 
 	"zeroparse.dev/zp/internal/runtime/document"
 
-	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
@@ -26,15 +27,15 @@ func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
 		}
 		// A memo-hit parse succeeds with this allowance. Capturing its
 		// existing graph and text must still consume the same invocation.
-		o.Limits = core.Limits{Compute: 100}
+		o.Limits = runtime.Limits{Compute: 100}
 		if _, err := d.ParseWith(o); err != nil {
 			t.Fatal("memo-hit fixture", err)
 		}
 		s, err := d.SnapshotWith(o)
-		if s != nil || !errors.Is(err, core.ErrLimit) || d.Memo().Len() != 0 || d.Runs() != nil || d.Kids() != nil || d.Machine() != nil {
+		if s != nil || !errors.Is(err, runtime.ErrLimit) || d.Memo().Len() != 0 || d.Runs() != nil || d.Kids() != nil || d.Machine() != nil {
 			t.Fatal("freeze interruption", s, err)
 		}
-		o.Limits = core.Limits{}
+		o.Limits = runtime.Limits{}
 		s, err = d.SnapshotWith(o)
 		if s == nil || err != nil || s.Text() != d.Text() {
 			t.Fatal("retry", err)
@@ -43,16 +44,16 @@ func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
 			t.Fatal("fresh mismatch")
 		}
 		// A cached parse fits, but copying all 8192 input bytes does not.
-		o.Limits = core.Limits{Compute: 4096}
+		o.Limits = runtime.Limits{Compute: 4096}
 		if _, err := d.ParseWith(o); err != nil {
 			t.Fatal("compute limit memo-hit fixture", err)
 		}
 		s, err = d.SnapshotWith(o)
-		var limit *core.LimitError
-		if s != nil || !errors.As(err, &limit) || limit.Kind != core.LimitCompute {
+		var limit *runtime.LimitError
+		if s != nil || !errors.As(err, &limit) || limit.Kind != runtime.LimitCompute {
 			t.Fatal("text-freeze compute limit", s, err)
 		}
-		o.Limits = core.Limits{}
+		o.Limits = runtime.Limits{}
 		if s, err = d.SnapshotWith(o); s == nil || err != nil {
 			t.Fatal("compute limit retry", err)
 		}
@@ -69,8 +70,8 @@ func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
 }
 
 func TestSnapshotDiagnosticCopyAndNilResult(t *testing.T) {
-	original := core.SyntaxErrors{&core.SyntaxError{Expected: []string{}, Messages: []string{"problem"}}, nil}
-	copy := document.CopySnapshotError(&state.Parser{}, original).(core.SyntaxErrors)
+	original := value.SyntaxErrors{&value.SyntaxError{Expected: []string{}, Messages: []string{"problem"}}, nil}
+	copy := document.CopySnapshotError(&state.Parser{}, original).(value.SyntaxErrors)
 	original[0].Messages[0] = "changed"
 	original[0] = nil
 	if copy[0].Messages[0] != "problem" || copy[0].Expected == nil || copy[1] != nil {
@@ -127,7 +128,7 @@ rule item = [a-zé]`)
 			t.Fatal(err)
 		}
 		failed, err := d.SnapshotWith(o)
-		var syntax *core.SyntaxError
+		var syntax *value.SyntaxError
 		if failed == nil || failed.Root().Valid() || !errors.As(err, &syntax) || failed.Text() != "!é" {
 			t.Fatal("failed revision", err)
 		}
@@ -137,7 +138,7 @@ rule item = [a-zé]`)
 		if failed.Error().Error() != before {
 			t.Fatal("returned error alias")
 		}
-		copy := failed.Error().(*core.SyntaxError)
+		copy := failed.Error().(*value.SyntaxError)
 		copy.Expected[0] = "again"
 		copy.Line = 999
 		if failed.Error().Error() != before {
@@ -212,7 +213,7 @@ rule x = "(" x ")" / "a"`, "((a))", 1, false},
 				t.Fatal("snapshot error outcome", s, err)
 			}
 			if fixture.recovered {
-				var received core.SyntaxErrors
+				var received value.SyntaxErrors
 				if !errors.As(err, &received) || !s.Root().Valid() || len(received) == 0 {
 					t.Fatal("recovered outcome", err)
 				}
@@ -223,7 +224,7 @@ rule x = "(" x ")" / "a"`, "((a))", 1, false},
 				if s.Error().Error() != before {
 					t.Fatal("returned recovered alias")
 				}
-				copy := s.Error().(core.SyntaxErrors)
+				copy := s.Error().(value.SyntaxErrors)
 				copy[0].Pos = 888
 				copy[0].Messages = []string{"other"}
 				if s.Error().Error() != before {

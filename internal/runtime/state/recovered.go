@@ -3,7 +3,7 @@ package state
 import (
 	"unsafe"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // The record of recovered errors (Parser.Recovered) is a sequence of entries: errors that recoveries
@@ -15,7 +15,7 @@ import (
 // RecEntry is an entry of the record of recovered errors, or the errors that a result holds: an
 // error, a shared list, or, as the zero value, no errors.
 type RecEntry struct {
-	err  *core.SyntaxError
+	err  *value.SyntaxError
 	list *ErrList
 }
 
@@ -33,7 +33,7 @@ const recEntryBytes = uint64(unsafe.Sizeof(RecEntry{}))
 const errListBytes = uint64(unsafe.Sizeof(ErrList{}))
 
 // ErrEntry returns the entry of the error e.
-func ErrEntry(e *core.SyntaxError) RecEntry { return RecEntry{err: e} }
+func ErrEntry(e *value.SyntaxError) RecEntry { return RecEntry{err: e} }
 
 // None reports whether the entry holds no errors.
 func (e RecEntry) None() bool { return e.err == nil && e.list == nil }
@@ -50,14 +50,14 @@ func (e RecEntry) Len() int {
 }
 
 // AppendErrors appends the errors of the entry to dst, in order.
-func (e RecEntry) AppendErrors(dst []*core.SyntaxError) []*core.SyntaxError {
+func (e RecEntry) AppendErrors(dst []*value.SyntaxError) []*value.SyntaxError {
 	return appendRecErrors(dst, []RecEntry{e})
 }
 
 // appendRecErrors appends the errors of the entries to dst, in order. It unrolls the lists without
 // recursion, since they nest as deep as the steps of a growth go; listing k errors visits at most 2k
 // entries (Lemma 14).
-func appendRecErrors(dst []*core.SyntaxError, entries []RecEntry) []*core.SyntaxError {
+func appendRecErrors(dst []*value.SyntaxError, entries []RecEntry) []*value.SyntaxError {
 	type frame struct {
 		entries []RecEntry
 		i       int
@@ -85,11 +85,11 @@ func appendRecErrors(dst []*core.SyntaxError, entries []RecEntry) []*core.Syntax
 }
 
 // RecoveredErrors returns the recovered errors of the record, in order.
-func (p *Parser) RecoveredErrors() []*core.SyntaxError {
+func (p *Parser) RecoveredErrors() []*value.SyntaxError {
 	if len(p.Recovered) == 0 {
 		return nil
 	}
-	return appendRecErrors(make([]*core.SyntaxError, 0, len(p.Recovered)), p.Recovered)
+	return appendRecErrors(make([]*value.SyntaxError, 0, len(p.Recovered)), p.Recovered)
 }
 
 // recSince returns the errors recovered after the mark m (rec.since), charging one unit for each
@@ -158,13 +158,13 @@ func (p *Parser) recAdd(e RecEntry) {
 }
 
 // PushRecovered records the error e that a recovery made (rec.push).
-func (p *Parser) PushRecovered(e *core.SyntaxError) {
+func (p *Parser) PushRecovered(e *value.SyntaxError) {
 	p.Recovered = append(p.Recovered, RecEntry{err: e})
 }
 
 // NewErrList returns a list of the errors errs, each an entry of its own, as rec.since makes one. It
 // is exported only as a hook for tests in other packages.
-func NewErrList(errs []*core.SyntaxError) RecEntry {
+func NewErrList(errs []*value.SyntaxError) RecEntry {
 	l := &ErrList{entries: make([]RecEntry, len(errs)), n: len(errs)}
 	for i, e := range errs {
 		l.entries[i] = RecEntry{err: e}
@@ -173,7 +173,7 @@ func NewErrList(errs []*core.SyntaxError) RecEntry {
 }
 
 // Errors returns the errors of the entry, in order.
-func (e RecEntry) Errors() []*core.SyntaxError { return e.AppendErrors(nil) }
+func (e RecEntry) Errors() []*value.SyntaxError { return e.AppendErrors(nil) }
 
 // List returns the list that the entry is, or nil for an error or no errors.
 func (e RecEntry) List() *ErrList { return e.list }

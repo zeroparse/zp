@@ -77,7 +77,7 @@ func testGeneratedSparseMemo(t *testing.T) {
 const sparseMemoGeneratedFixture = `package memofixture
 
 import (
-	zprt "zeroparse.dev/zp/codegen/go/lib"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
     "crypto/sha256"
     "encoding/json"
     "fmt"

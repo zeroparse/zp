@@ -129,7 +129,7 @@ func loadRepoCode(t *testing.T, root string) *repoCode {
 			return nil
 		}
 		// Packages are known by the name of their package clause, which documents qualify names
-		// with; it need not be the name of the directory (codegen/go/lib is package libgo).
+		// with; it need not be the name of the directory (pkg/runtime/golib is package libgo).
 		internal := under(rel, "internal") && !under(rel, "internal/bench") // generated parsers and inputs under internal/bench stand for the files of a reader's project
 		public := !under(rel, "internal") && !strings.HasSuffix(rel, "_test.go")
 		var exports map[string]bool

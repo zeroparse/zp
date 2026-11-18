@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestWithTrace(t *testing.T) {
@@ -128,7 +128,7 @@ rule word = [a-z]+ #atomic ";"?`, "main")
 			return err
 		},
 		"ParseStream": func(opts ...engine.ParseOption) error {
-			return p.ParseStream(strings.NewReader(in), func(*core.Node) error { return nil }, opts...)
+			return p.ParseStream(strings.NewReader(in), func(*value.Node) error { return nil }, opts...)
 		},
 		"Document": func(opts ...engine.ParseOption) error {
 			d, err := p.NewDocument(in, opts...)

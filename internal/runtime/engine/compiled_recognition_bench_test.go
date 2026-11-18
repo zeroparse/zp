@@ -5,15 +5,15 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 var compiledRecognitionLoadSink *Program
 var compiledRecognitionSaveSink []byte
-var compiledRecognitionParseNodeSink *core.Node
+var compiledRecognitionParseNodeSink *value.Node
 var compiledRecognitionParseErrorSink error
 
 // mustMarshal returns the bytes of a save that cannot fail in a benchmark.

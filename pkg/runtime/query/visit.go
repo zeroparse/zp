@@ -3,9 +3,9 @@ package query
 import (
 	"sort"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	value "zeroparse.dev/zp/internal/runtime/nodes"
+	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // graphVisit is the adapter boundary for a future common graph walker. Each event contains a
@@ -15,7 +15,7 @@ import (
 // walker rejects active-path cycles and charges before discovery.
 type graphVisit struct {
 	Value  any
-	parent *core.Node
+	parent *zpvalue.Node
 	path   []Edge
 }
 type visitFrame struct {
@@ -25,15 +25,15 @@ type visitFrame struct {
 
 // visitGraph calls visit for every value reachable from root, in the order graphVisit
 // describes, charging the spend to b.
-func visitGraph(root *core.Node, b *budget, visit func(graphVisit) error) error {
+func visitGraph(root *zpvalue.Node, b *budget, visit func(graphVisit) error) error {
 	frames := []visitFrame{{visit: graphVisit{Value: value.UnboxNode(root)}}}
-	nodes := map[*core.Node]bool{}
+	nodes := map[*zpvalue.Node]bool{}
 	for len(frames) > 0 {
 		f := frames[len(frames)-1]
 		frames = frames[:len(frames)-1]
 		v := f.visit
 		if f.leave {
-			delete(nodes, v.Value.(*core.Node))
+			delete(nodes, v.Value.(*zpvalue.Node))
 			continue
 		}
 		if err := b.charge(uint64(1 + len(v.path))); err != nil {
@@ -42,7 +42,7 @@ func visitGraph(root *core.Node, b *budget, visit func(graphVisit) error) error 
 		if _, err := valueCategory(v.Value); err != nil {
 			return err
 		}
-		x, ok := v.Value.(*core.Node)
+		x, ok := v.Value.(*zpvalue.Node)
 		if ok && x != nil {
 			if nodes[x] {
 				return ErrCycle
@@ -64,22 +64,22 @@ func visitGraph(root *core.Node, b *budget, visit func(graphVisit) error) error 
 			return nil
 		}
 		switch value.ShapeOf(x) {
-		case coreimpl.ShapeStruct:
+		case valueimpl.ShapeStruct:
 			if err := b.charge(uint64(len(value.D(x).Fields))); err != nil {
 				return err
 			}
-			fields := append(coreimpl.Fields(nil), value.D(x).Fields...)
+			fields := append(valueimpl.Fields(nil), value.D(x).Fields...)
 			sort.SliceStable(fields, func(i, j int) bool { return fields[i].Name < fields[j].Name })
 			for i := len(fields) - 1; i >= 0; i-- {
 				if err := push(fields[i].Value, Edge{Kind: "field", Name: fields[i].Name}); err != nil {
 					return err
 				}
 			}
-		case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
+		case valueimpl.ShapeTuple, valueimpl.ShapeList, valueimpl.ShapeTupleValue, valueimpl.ShapeListValue:
 			if err := b.charge(uint64(len(value.D(x).Children) + len(value.D(x).Fields))); err != nil {
 				return err
 			}
-			if value.ShapeOf(x) == coreimpl.ShapeTuple && len(value.D(x).Fields) > 0 {
+			if value.ShapeOf(x) == valueimpl.ShapeTuple && len(value.D(x).Fields) > 0 {
 				locations := value.CaptureLocations(x)
 				for i := len(locations) - 1; i >= 0; i-- {
 					if c := locations[i]; c.Side {

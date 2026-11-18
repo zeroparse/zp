@@ -8,10 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // skipRunGrammars are the grammars with skip-run sites that the tests parse.
@@ -19,17 +20,17 @@ var skipRunGrammars = codegentest.SkipRunGrammars
 
 // skipDump is dump with the expectations and messages of every syntax error, which the message
 // of an error leaves out when it has messages.
-func skipDump(t *testing.T, n *core.Node, err error) string {
+func skipDump(t *testing.T, n *value.Node, err error) string {
 	t.Helper()
 	s := dump(t, n, err)
-	var errs []*core.SyntaxError
-	var list core.SyntaxErrors
-	var one *core.SyntaxError
+	var errs []*value.SyntaxError
+	var list value.SyntaxErrors
+	var one *value.SyntaxError
 	switch {
 	case errors.As(err, &list):
 		errs = list
 	case errors.As(err, &one):
-		errs = []*core.SyntaxError{one}
+		errs = []*value.SyntaxError{one}
 	}
 	for _, e := range errs {
 		s += fmt.Sprintf(" [%d %q %q]", e.Pos, e.Expected, e.Messages)
@@ -152,9 +153,9 @@ func TestSkipRunsBudgetAbort(t *testing.T) {
 		want := skipDump(t, n, err)
 		stopped := 0
 		for budget := uint64(1); ; budget++ {
-			o := ParseOptions{Backend: b, Expectations: true, Limits: core.Limits{Compute: budget}}
+			o := ParseOptions{Backend: b, Expectations: true, Limits: runtime.Limits{Compute: budget}}
 			n, err := prog.ParseWith("main", in, o)
-			if errors.Is(err, core.ErrLimit) {
+			if errors.Is(err, runtime.ErrLimit) {
 				stopped++
 				n, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Expectations: true})
 				if got := skipDump(t, n, err); got != want {
@@ -260,7 +261,7 @@ rule x = ("b" #recover(skip=[ac]+)) "d"`)
 		state.SkipRecordsOff = off
 		defer func() { state.SkipRecordsOff = false }()
 		var out strings.Builder
-		err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *core.Node) error {
+		err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *value.Node) error {
 			out.WriteString(skipDump(t, n, nil) + "\n")
 			return nil
 		}, ParseOptions{Backend: b, Expectations: true})

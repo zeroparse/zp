@@ -4,13 +4,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // TestStreamCommitWindow pins when a commit prunes and what the pruning leaves: it waits for a whole
 // window past the last pruning, and everything from the committed position on stays.
 func TestStreamCommitWindow(t *testing.T) {
-	p := NewControlledStreamParser(&SharedProgram{}, strings.NewReader(strings.Repeat("a", 4096)), core.CodePoints, NewBudgetControl(nil, core.Limits{Compute: 1 << 40}))
+	p := NewControlledStreamParser(&SharedProgram{}, strings.NewReader(strings.Repeat("a", 4096)), input.CodePoints, NewBudgetControl(nil, runtime.Limits{Compute: 1 << 40}))
 	p.Fill(4096)
 	at := func(pos int) bool {
 		_, ok := p.MemoGet(MemoKey{Rule: 1, Pos: pos})
@@ -48,7 +49,7 @@ func TestStreamCommitWindow(t *testing.T) {
 // TestStreamCommitDropsRecordsBeforeItsPosition pins the position of the records a pruning commit
 // drops: a repetition may still resume from a record at the committed position.
 func TestStreamCommitDropsRecordsBeforeItsPosition(t *testing.T) {
-	p := NewControlledStreamParser(&SharedProgram{}, strings.NewReader(strings.Repeat("a", 2048)), core.CodePoints, nil)
+	p := NewControlledStreamParser(&SharedProgram{}, strings.NewReader(strings.Repeat("a", 2048)), input.CodePoints, nil)
 	p.Fill(2048)
 	s := &skipSlots{}
 	p.skipTables = []*skipSlots{s}

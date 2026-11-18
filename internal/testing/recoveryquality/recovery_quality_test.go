@@ -18,8 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/value"
 	"zeroparse.dev/zp/pkg/sample"
 )
 
@@ -124,21 +124,21 @@ func writeCorpus(t *testing.T, name string, cases []testCase) {
 }
 
 // errorRanges collects the ranges of the error values of a tree.
-func errorRanges(n *core.Node, out *[][2]int, seen map[*core.Node]bool) {
+func errorRanges(n *value.Node, out *[][2]int, seen map[*value.Node]bool) {
 	if n == nil || seen[n] {
 		return
 	}
 	seen[n] = true
 	switch n.Kind() {
-	case core.KindError:
+	case value.KindError:
 		*out = append(*out, [2]int{n.Start(), n.End()})
-	case core.KindStruct:
+	case value.KindStruct:
 		for _, v := range n.Fields() {
-			if c, ok := v.(*core.Node); ok {
+			if c, ok := v.(*value.Node); ok {
 				errorRanges(c, out, seen)
 			}
 		}
-	case core.KindTuple, core.KindList, core.KindTupleValue, core.KindListValue:
+	case value.KindTuple, value.KindList, value.KindTupleValue, value.KindListValue:
 		for _, c := range n.Elems() {
 			errorRanges(c, out, seen)
 		}
@@ -156,7 +156,7 @@ type outcome struct {
 
 func measure(p *engine.Parser, c testCase) outcome {
 	node, err := p.Parse(c.Input)
-	var recovered core.SyntaxErrors
+	var recovered value.SyntaxErrors
 	switch {
 	case err == nil:
 		// The mutation is accepted by the recovering grammar too (it is invalid only for the ready-made one):
@@ -164,7 +164,7 @@ func measure(p *engine.Parser, c testCase) outcome {
 		return outcome{}
 	case errors.As(err, &recovered) && node != nil:
 		var rs [][2]int
-		errorRanges(node, &rs, map[*core.Node]bool{})
+		errorRanges(node, &rs, map[*value.Node]bool{})
 		o := outcome{recovered: true, errors: len(recovered), located: len(rs) > 0}
 		covered := 0
 		for _, r := range rs {

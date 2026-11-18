@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // stripActions returns g written without value actions and rule types, which it removes from the
@@ -131,7 +131,7 @@ func TestDefaultValueCorpus(t *testing.T) {
 	}
 }
 
-func render(n *core.Node, err error) string {
+func render(n *value.Node, err error) string {
 	s := ""
 	if n != nil {
 		s = n.String()

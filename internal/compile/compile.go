@@ -3,12 +3,12 @@ package compile
 import (
 	"fmt"
 	"sync"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/program"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/runtime/nodes"
@@ -60,7 +60,7 @@ type Program struct {
 	Bytecode     *bytecode.Module
 	BytecodeErr  error
 	// typeKinds holds the node kinds of the grammar's types (typeKind), made with the program.
-	typeKinds map[string]*coreimpl.Kind
+	typeKinds map[string]*valueimpl.Kind
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
 	NodeKinds map[string]*nodes.NodeTypeKinds
@@ -199,7 +199,7 @@ var ErrSchemaUnavailable = program.ErrSchemaUnavailable
 // Reserved type names.
 var builtinTypes = map[string]bool{
 	"int": true, "string": true, "bool": true, "node": true, "terminal": true,
-	"Match": true, "Seq": true, "List": true, "Operator": true, "Error": true, "Missing": true, coreimpl.TypeMissing: true,
+	"Match": true, "Seq": true, "List": true, "Operator": true, "Error": true, "Missing": true, valueimpl.TypeMissing: true,
 }
 
 // Compiler holds the state of compiling one program: the program being built, its analysis,
@@ -564,7 +564,7 @@ func CheckCanonical(canon *Canonical, opts Options, flags []RuleFlags, names des
 	}
 	prog.NSeen = NumberSeen(prog.RuleList, prog.Twins)
 	NumberLeaders(prog.RuleList)
-	prog.typeKinds = map[string]*coreimpl.Kind{}
+	prog.typeKinds = map[string]*valueimpl.Kind{}
 	prog.NodeKinds = map[string]*nodes.NodeTypeKinds{}
 	for name, spec := range prog.Types {
 		control.Poll()
@@ -582,9 +582,9 @@ func CheckCanonical(canon *Canonical, opts Options, flags []RuleFlags, names des
 			}
 		}
 		if canonical != name {
-			prog.typeKinds[name] = coreimpl.KindOf(canonical, "")
+			prog.typeKinds[name] = valueimpl.KindOf(canonical, "")
 		} else {
-			prog.typeKinds[name] = coreimpl.KindOf(name, "")
+			prog.typeKinds[name] = valueimpl.KindOf(name, "")
 		}
 	}
 	for _, rs := range [][]*Rule{prog.RuleList, prog.Twins} {
@@ -984,11 +984,11 @@ func (c *Compiler) flatRefs(e ast.Expr, out []string) []string {
 }
 
 // TypeKind returns the kind of nodes of the grammar's type typ without a rule.
-func (prog *Program) TypeKind(typ string) *coreimpl.Kind {
+func (prog *Program) TypeKind(typ string) *valueimpl.Kind {
 	if k := prog.typeKinds[typ]; k != nil {
 		return k
 	}
-	return coreimpl.KindOf(typ, "")
+	return valueimpl.KindOf(typ, "")
 }
 
 // NewProgram returns a program of the grammar g with no rules or types yet, for the tests that fill

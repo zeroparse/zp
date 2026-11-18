@@ -3,8 +3,8 @@ package engine
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/pkg/runtime/value"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
@@ -159,7 +159,7 @@ rule main Wrap = #operators {
 		if err != nil {
 			t.Fatal(err)
 		}
-		folded := n.Field("Value").(*core.Node)
+		folded := n.Field("Value").(*value.Node)
 		if nodes.D(n).Start != 0 || nodes.D(n).End != 5 || nodes.D(folded).Start != 2 || nodes.D(folded).End != 5 {
 			t.Errorf("%v: action node %d-%d, folded value %d-%d; want 0-5 and 2-5", b, nodes.D(n).Start, nodes.D(n).End, nodes.D(folded).Start, nodes.D(folded).End)
 		}

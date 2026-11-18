@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // manyVariablesGrammar declares n variables whose names share a long prefix. The start rule
@@ -31,7 +31,7 @@ func manyVariablesGrammar(n int) string {
 func TestManyVariables(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, manyVariablesGrammar(280))
-	var l core.Limits
+	var l runtime.Limits
 	if state.BudgetControlsEnabled {
 		l.Compute = 1 << 40
 	}
@@ -51,14 +51,14 @@ func minBudget(t testing.TB, prog *Program, backend Backend, input string) uint6
 	t.Helper()
 	lo, hi := uint64(1), uint64(1)
 	for {
-		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: core.Limits{Compute: hi}}); err == nil {
+		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: runtime.Limits{Compute: hi}}); err == nil {
 			break
 		}
 		lo, hi = hi, hi*2
 	}
 	for lo < hi {
 		mid := (lo + hi) / 2
-		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: core.Limits{Compute: mid}}); err == nil {
+		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: runtime.Limits{Compute: mid}}); err == nil {
 			hi = mid
 		} else {
 			lo = mid + 1
@@ -93,7 +93,7 @@ func BenchmarkManyVariables(b *testing.B) {
 				opts := ParseOptions{Backend: backend}
 				if controlled {
 					name = fmt.Sprintf("%d/%s/controlled", n, backend)
-					opts.Limits = core.Limits{Compute: 1 << 40}
+					opts.Limits = runtime.Limits{Compute: 1 << 40}
 				}
 				b.Run(name, func(b *testing.B) {
 					b.ReportAllocs()

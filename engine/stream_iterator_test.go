@@ -4,8 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 type publicIteratorReader struct {
@@ -30,7 +31,7 @@ func TestPublicStreamIteratorLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 			r := &publicIteratorReader{Reader: strings.NewReader("éa")}
 			it, err := p.Iterate(r, engine.WithBackend(backend), engine.WithUnit(unit))
 			if err != nil || r.reads != 0 {
@@ -38,7 +39,7 @@ func TestPublicStreamIteratorLifecycle(t *testing.T) {
 			}
 			first, ok, err := it.Next()
 			wantEnd := 1
-			if unit == core.Bytes {
+			if unit == input.Bytes {
 				wantEnd = 2
 			}
 			if err != nil || !ok || first == nil || first.Start() != 0 || first.End() != wantEnd || r.reads == 0 {
@@ -69,7 +70,7 @@ func TestPublicStreamIteratorLifecycle(t *testing.T) {
 	}
 	early.Close()
 	early.Close()
-	if n, ok, err := early.Next(); n != nil || ok || err != core.ErrStreamClosed {
+	if n, ok, err := early.Next(); n != nil || ok || err != runtime.ErrStreamClosed {
 		t.Fatalf("early close: %v %v %v", n, ok, err)
 	}
 

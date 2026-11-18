@@ -41,8 +41,8 @@ Source owners: [`growState and seed
 growth`](../../../internal/runtime/state/runtime.go), [`iterative growth
 frame`](../../../internal/runtime/vm/ivm.go),
 [`memoTable.alloc`](../../../internal/runtime/state/memo.go), [`generated
-growth`](../../../codegen/go/lib/lib.go), [`typed
-growth`](../../../codegen/go/lib/typed.go).
+growth`](../../../pkg/runtime/golib/lib.go), [`typed
+growth`](../../../pkg/runtime/golib/typed.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

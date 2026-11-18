@@ -3,20 +3,20 @@ package document
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 type DocumentChange struct {
-	Kind        core.DocumentChangeKind
+	Kind        input.DocumentChangeKind
 	From, To    DocumentVersion
-	Unit        core.PositionUnit
-	Edits       []core.TextEdit
+	Unit        input.PositionUnit
+	Edits       []input.TextEdit
 	FullRefresh bool
 	// Invalidated is conservative: an accepted edit may affect the whole output.
 	// Reevaluation remains unknown; invalidation is not evidence of execution.
 	Invalidated  bool
 	Reevaluation string
-	Output       core.OutputChange
+	Output       input.OutputChange
 }
 
 // documentChanges retains bounded events and one immutable comparison baseline.
@@ -39,14 +39,14 @@ func (d *Document) EnableChanges(queueLimit int) error {
 	return nil
 }
 
-func (d *Document) recordEdit(from DocumentVersion, edits []core.TextEdit) {
+func (d *Document) recordEdit(from DocumentVersion, edits []input.TextEdit) {
 	if d.changes == nil {
 		return
 	}
-	d.changes.record(DocumentChange{Kind: core.ChangeEdit, From: from, To: d.Version(), Unit: d.Unit(), Edits: append([]core.TextEdit(nil), edits...), Invalidated: true, Reevaluation: "unknown", Output: core.OutputMayHaveChanged})
+	d.changes.record(DocumentChange{Kind: input.ChangeEdit, From: from, To: d.Version(), Unit: d.Unit(), Edits: append([]input.TextEdit(nil), edits...), Invalidated: true, Reevaluation: "unknown", Output: input.OutputMayHaveChanged})
 }
 
-func (d *Document) recordOutcome(s *Snapshot, output core.OutputChange) {
+func (d *Document) recordOutcome(s *Snapshot, output input.OutputChange) {
 	if d.changes == nil {
 		return
 	}
@@ -54,18 +54,18 @@ func (d *Document) recordOutcome(s *Snapshot, output core.OutputChange) {
 	if d.changes.previous != nil {
 		from = d.changes.previous.Version()
 	}
-	d.changes.record(DocumentChange{Kind: core.ChangeOutcome, From: from, To: d.Version(), Unit: d.Unit(), Reevaluation: "unknown", Output: output})
+	d.changes.record(DocumentChange{Kind: input.ChangeOutcome, From: from, To: d.Version(), Unit: d.Unit(), Reevaluation: "unknown", Output: output})
 	d.changes.previous = s
 }
 
 func (d *documentChanges) record(change DocumentChange) {
 	if len(d.queue) != 0 && d.queue[0].FullRefresh {
 		d.queue[0].To = change.To
-		d.queue[0].Output = core.OutputMayHaveChanged
+		d.queue[0].Output = input.OutputMayHaveChanged
 		return
 	}
 	if len(d.queue) >= d.limit {
-		d.queue = []DocumentChange{{Kind: core.ChangeFullRefresh, From: d.queue[0].From, To: change.To, Unit: change.Unit, FullRefresh: true, Invalidated: true, Reevaluation: "unknown", Output: core.OutputMayHaveChanged}}
+		d.queue = []DocumentChange{{Kind: input.ChangeFullRefresh, From: d.queue[0].From, To: change.To, Unit: change.Unit, FullRefresh: true, Invalidated: true, Reevaluation: "unknown", Output: input.OutputMayHaveChanged}}
 		return
 	}
 	d.queue = append(d.queue, change)

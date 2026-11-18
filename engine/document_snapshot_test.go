@@ -5,9 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func TestDocumentSnapshotPublicContract(t *testing.T) {
@@ -15,7 +16,7 @@ func TestDocumentSnapshotPublicContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+	for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 		d, err := p.NewDocument("aa", engine.WithUnit(unit))
 		if err != nil {
 			t.Fatal(err)
@@ -36,7 +37,7 @@ func TestDocumentSnapshotPublicContract(t *testing.T) {
 			t.Fatal(err)
 		}
 		failed, err := d.Snapshot()
-		var syntax *core.SyntaxError
+		var syntax *value.SyntaxError
 		if failed == nil || !errors.As(err, &syntax) || failed.Text() != "ba" || failed.Version() == s.Version() || failed.Root().Valid() || s.Text() != "aa" {
 			t.Fatal("failed version", err)
 		}

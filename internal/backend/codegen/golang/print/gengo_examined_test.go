@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // The examined end of a call in an observed parse is exact: every unit of input that can change the
@@ -34,8 +34,9 @@ import (
 	"io"
 	"os"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 IMPORTS)
 
 type entry struct {
@@ -65,11 +66,11 @@ func main() {
 	}
 	for i := range entries {
 		for j, in := range inputs[i] {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []zpinput.PositionUnit{zpinput.CodePoints, zpinput.Bytes} {
 				for _, e := range entries[i] {
-					var exits []core.TraceEvent
-					err := e.run(string(in), zprt.WithUnit(unit), zprt.WithTrace(func(ev core.TraceEvent) {
-						if ev.Kind == core.TraceExit {
+					var exits []zpinstrument.TraceEvent
+					err := e.run(string(in), zprt.WithUnit(unit), zprt.WithTrace(func(ev zpinstrument.TraceEvent) {
+						if ev.Kind == zpinstrument.TraceExit {
 							exits = append(exits, ev)
 						}
 					}))
@@ -77,9 +78,9 @@ func main() {
 						Case, Input int
 						Bytes       bool
 						Entry       string
-						Exits       []core.TraceEvent
+						Exits       []zpinstrument.TraceEvent
 						Err         string
-					}{i, j, unit == core.Bytes, e.name, exits, fmt.Sprint(err)})
+					}{i, j, unit == zpinput.Bytes, e.name, exits, fmt.Sprint(err)})
 					fmt.Println(string(b))
 				}
 			}
@@ -279,9 +280,9 @@ func examinedMismatches(t *testing.T, cases []codegentest.Case, reports []examin
 				prog = mustCompile(t, c.Src)
 				progs[r.Case] = prog
 			}
-			o := engine.ParseOptions{Expectations: true, Backend: engine.Closure, Unit: core.CodePoints, Recognize: r.Entry == "recognize"}
+			o := engine.ParseOptions{Expectations: true, Backend: engine.Closure, Unit: input.CodePoints, Recognize: r.Entry == "recognize"}
 			if r.Bytes {
-				o.Unit = core.Bytes
+				o.Unit = input.Bytes
 			}
 			o.Trace = func(e engine.TraceEvent) {
 				if e.Kind == engine.TraceExit {

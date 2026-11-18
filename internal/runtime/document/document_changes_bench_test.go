@@ -9,9 +9,9 @@ import (
 
 	"zeroparse.dev/zp/internal/runtime/document"
 
-	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/pkg/runtime/input"
 )
 
 // BenchmarkDocumentChangesSnapshotEdit compares identical same-length middle
@@ -31,7 +31,7 @@ rule item = [a-z]`), compile.Options{})
 		middle := size / 2
 		textB := textA[:middle] + "b" + textA[middle+1:]
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			for _, unit := range []input.PositionUnit{input.CodePoints, input.Bytes} {
 				for _, enabled := range []bool{false, true} {
 					mode := "disabled"
 					if enabled {
@@ -97,7 +97,7 @@ rule item = [a-z]`), compile.Options{})
 							b.Fatal("unexpected final text or version")
 						}
 						if enabled && b.N > 0 {
-							if len(events) != 2 || events[0].Kind != core.ChangeEdit || len(events[0].Edits) != 1 || events[0].Edits[0].Start != middle || events[0].Edits[0].End != middle+1 || events[1].Kind != core.ChangeOutcome || events[1].Output != core.OutputChanged || events[1].To != doc.Version() {
+							if len(events) != 2 || events[0].Kind != input.ChangeEdit || len(events[0].Edits) != 1 || events[0].Edits[0].Start != middle || events[0].Edits[0].End != middle+1 || events[1].Kind != input.ChangeOutcome || events[1].Output != input.OutputChanged || events[1].To != doc.Version() {
 								b.Fatal("unexpected notification events", events)
 							}
 						} else if len(events) != 0 {

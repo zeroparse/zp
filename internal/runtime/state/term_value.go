@@ -3,9 +3,9 @@ package state
 import (
 	"strings"
 
-	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // The value primitives of terms (the component values of exec.Parser) of the engine. The compositions of the operators in
@@ -86,11 +86,11 @@ func valKind(x any) int {
 // unboxed is the operation val.unbox: the value that a node pointer stands for: nil for a nil
 // pointer, the value of a box, and otherwise v.
 func unboxed(v any) any {
-	if n, ok := v.(*core.Node); ok {
+	if n, ok := v.(*value.Node); ok {
 		if n == nil {
 			return nil
 		}
-		if nodes.D(n).Kind == coreimpl.BoxKind {
+		if nodes.D(n).Kind == valueimpl.BoxKind {
 			return unboxed(nodes.D(n).Box)
 		}
 	}
@@ -119,11 +119,11 @@ func intIndex(x any, n int) (int, bool) {
 }
 
 // valItems is the operation seq.items.
-func valItems(x any) ([]*core.Node, bool) {
+func valItems(x any) ([]*value.Node, bool) {
 	switch x := x.(type) {
 	case nil:
 		return nil, true
-	case *core.Node:
+	case *value.Node:
 		if x == nil {
 			return nil, true
 		}
@@ -167,22 +167,22 @@ func (p *Parser) strEq(l, r any) bool {
 }
 
 // nodeOf is the operation node.of: x as a node, list, tuple or struct.
-func nodeOf(x any) (*core.Node, bool) {
-	n, ok := x.(*core.Node)
+func nodeOf(x any) (*value.Node, bool) {
+	n, ok := x.(*value.Node)
 	return n, ok && n != nil
 }
 
 // seqKind is the kind of a tuple value or a list value.
-func seqKind(tuple bool) *coreimpl.Kind {
+func seqKind(tuple bool) *valueimpl.Kind {
 	if tuple {
-		return coreimpl.TupleValueKind
+		return valueimpl.TupleValueKind
 	}
-	return coreimpl.ListValueKind
+	return valueimpl.ListValueKind
 }
 
 // elemSpan is the operation seq.span: an element of a list or a tuple is a node, boxed if it was a scalar,
 // and nil adds no range.
-func elemSpan(it *core.Node) (int, int, bool) {
+func elemSpan(it *value.Node) (int, int, bool) {
 	if it == nil {
 		return 0, 0, false
 	}
@@ -190,14 +190,14 @@ func elemSpan(it *core.Node) (int, int, bool) {
 }
 
 // setSpan is the operation node.setSpan.
-func setSpan(n *core.Node, start, end int) {
+func setSpan(n *value.Node, start, end int) {
 	nodes.D(n).Start, nodes.D(n).End = int32(start), int32(end)
 }
 
 // made is the operation act.made.
-func (c *EvalCtx) made(n *core.Node) { c.P.Created = append(c.P.Created, n) }
+func (c *EvalCtx) made(n *value.Node) { c.P.Created = append(c.P.Created, n) }
 
 // isStruct is the operation node.isStruct.
-func (p *Parser) isStruct(n *core.Node) bool {
+func (p *Parser) isStruct(n *value.Node) bool {
 	return p.Prog.Types[n.Type()] != nil
 }
