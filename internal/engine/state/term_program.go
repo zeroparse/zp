@@ -648,11 +648,11 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		name, err := immArg(e, 3, flowlower.OpTermName)
+		name, err := immArg(e, 3, action.OpTermName)
 		if err != nil {
 			return err
 		}
-		field, err := immArg(e, 4, flowlower.OpTermField)
+		field, err := immArg(e, 4, action.OpTermField)
 		if err != nil {
 			return err
 		}
@@ -660,7 +660,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		c.prog.members = append(c.prog.members, termMember{kind: int(kind), name: name.(string), field: field.(flowlower.TermField).Field})
+		c.prog.members = append(c.prog.members, termMember{kind: int(kind), name: name.(string), field: field.(action.Field).Field})
 		in.op, in.a, in.b = tMember, rs[0], int32(len(c.prog.members)-1)
 	case "unary", "logic":
 		op, err := intImm(e, 0)
@@ -692,7 +692,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		}
 		in.op, in.a = map[string]termOp{"text": tText, "length": tLength, "filterKeep": tFilter}[e.Callee], rs[0]
 	case "convert":
-		nt, err := immArg(e, 0, flowlower.OpTermNodeType)
+		nt, err := immArg(e, 0, action.OpTermNodeType)
 		if err != nil {
 			return err
 		}
@@ -712,7 +712,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if e.Callee == "items" {
 			at, nameAt = 1, 0
 		}
-		name, err := immArg(e, nameAt, flowlower.OpTermName)
+		name, err := immArg(e, nameAt, action.OpTermName)
 		if err != nil {
 			return err
 		}
@@ -733,13 +733,13 @@ func (c *termCompiler) effect(e *code.Call) error {
 	switch e.Callee {
 	case "seq.step":
 		c.emit(termInstr{op: tStep})
-	case flowlower.OpTermKeep:
+	case action.OpTermKeep:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
 		}
 		c.emit(termInstr{op: tKeep, a: rs[0], b: rs[1]})
-	case flowlower.OpTermSetField:
+	case action.OpTermSetField:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
@@ -761,26 +761,26 @@ func (c *termCompiler) effect(e *code.Call) error {
 func (c *termCompiler) call(e *code.Call, dst termReg) error {
 	in := termInstr{dst: dst.r}
 	switch e.Callee {
-	case flowlower.OpTermConst:
-		in.op, in.a = tConst, c.constant(e.Imm.(flowlower.TermConst).Value)
-	case flowlower.OpTermRead:
-		switch x := e.Imm.(flowlower.TermRead).Term.(type) {
-		case *ir.SlotRef:
+	case action.OpTermConst:
+		in.op, in.a = tConst, c.constant(e.Imm.(action.Const).Value)
+	case action.OpTermRead:
+		switch x := e.Imm.(action.Read); x.Kind {
+		case action.ReadCapture:
 			slot, ok := c.env.Scope.Slots[x.Name]
 			if !ok {
 				return fmt.Errorf("capture %s is not in scope", x.Name)
 			}
 			in.op, in.a = tCap, int32(slot)
-		case *ir.Local:
+		case action.ReadLocal:
 			in.op, in.a = tLocal, c.name(x.Name)
-		case *ir.VarRef:
+		case action.ReadVar:
 			slot := c.env.Prog.Vars.Index(x.Name)
 			if slot < 0 {
 				return fmt.Errorf("variable %s is not declared", x.Name)
 			}
 			in.op, in.a = tVar, int32(slot)
 		default:
-			return fmt.Errorf("read of %T", x)
+			return fmt.Errorf("read of kind %d", x.Kind)
 		}
 	case "val.unbox":
 		rs, err := c.args(e, 0)
@@ -794,23 +794,23 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 			return err
 		}
 		in.op, in.a = tFromB, rs[0]
-	case flowlower.OpTermFromStr:
+	case action.OpTermFromStr:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
 		in.op, in.a = tFromT, rs[0]
-	case flowlower.OpTermFromObj:
+	case action.OpTermFromObj:
 		// A struct, list or tuple is held as the value it is.
 		return c.exprInto(e.Args[0], dst)
-	case flowlower.OpTermTextEqual:
+	case action.OpTermTextEqual:
 		rs, err := c.args(e, 0, 1)
 		if err != nil {
 			return err
 		}
 		in.op, in.a, in.b = tTextEq, rs[0], rs[1]
 	case "conforms":
-		ct, err := immArg(e, 0, flowlower.OpTermCastType)
+		ct, err := immArg(e, 0, action.OpTermCastType)
 		if err != nil {
 			return err
 		}
@@ -818,16 +818,16 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		in.op, in.a, in.b = tConforms, rs[0], c.cast(ct.(flowlower.TermCast).Cast)
-	case flowlower.OpTermCastError:
+		in.op, in.a, in.b = tConforms, rs[0], c.cast(ct.(action.Cast))
+	case action.OpTermCastError:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
-		in.op, in.a, in.b = tCastErr, rs[0], c.cast(e.Imm.(flowlower.TermCast).Cast)
+		in.op, in.a, in.b = tCastErr, rs[0], c.cast(e.Imm.(action.Cast))
 	case "term.kids":
 		in.op = tKids
-	case flowlower.OpTermElemsAbove:
+	case action.OpTermElemsAbove:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
@@ -859,15 +859,15 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 			return err
 		}
 		in.op, in.a = tSeqLen, rs[0]
-	case flowlower.OpTermCopyList:
+	case action.OpTermCopyList:
 		rs, err := c.args(e, 0)
 		if err != nil {
 			return err
 		}
 		in.op, in.a = tCopy, rs[0]
-	case flowlower.OpTermStruct:
-		t := e.Imm.(flowlower.TermNew).New
-		c.prog.structs = append(c.prog.structs, termStruct{kind: c.env.Prog.TypeKind(t.Type), fields: len(t.Fields)})
+	case action.OpTermStruct:
+		t := e.Imm.(action.New)
+		c.prog.structs = append(c.prog.structs, termStruct{kind: c.env.Prog.TypeKind(t.Type), fields: t.Fields})
 		in.op, in.a = tStruct, int32(len(c.prog.structs)-1)
 	case "cover":
 		rs, err := c.args(e, 0, 1, 2)
@@ -884,7 +884,7 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 
 // cast returns the index of the cast x in the cast pool, adding it once: the check and the failure
 // of one cast share an entry.
-func (c *termCompiler) cast(x *ir.Cast) int32 {
+func (c *termCompiler) cast(x action.Cast) int32 {
 	tc := termCast{t: c.env.Prog.CastType(x.Key.(*grammar.Cast)), line: x.Line, col: x.Col}
 	for i, y := range c.prog.casts {
 		if y == tc {

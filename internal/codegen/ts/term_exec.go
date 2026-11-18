@@ -70,7 +70,7 @@ func (g *Generator) leaf(name string, variable bool, s *check.Scope, locals map[
 func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target {
 	return &Target{
 		Stmt: func(c *code.Call, a []string, dst []string, decl string) (string, bool) {
-			if c.Callee != flowlower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
+			if c.Callee != action.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
 				return "", false
 			}
 			// One switch over the literals instead of a comparison with each literal in turn.
@@ -89,8 +89,8 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 		Reg:      func(name string) string { panic("tsgen: a lowered term reads the register " + name) },
 		Op: func(c *code.Call, a []string) string {
 			switch c.Callee {
-			case flowlower.OpTermConst:
-				switch v := c.Imm.(flowlower.TermConst).Value.(type) {
+			case action.OpTermConst:
+				switch v := c.Imm.(action.Const).Value.(type) {
 				case nil:
 					return "null"
 				case string:
@@ -100,38 +100,32 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 				default:
 					return fmt.Sprint(v)
 				}
-			case flowlower.OpTermRead:
-				switch x := c.Imm.(flowlower.TermRead).Term.(type) {
-				case *irc.SlotRef:
-					return g.leaf(x.Name, false, s, locals)
-				case *irc.Local:
-					return g.leaf(x.Name, false, s, locals)
-				case *irc.VarRef:
-					return g.leaf(x.Name, true, s, locals)
-				}
-			case flowlower.OpTermName, flowlower.OpTermNodeType:
+			case action.OpTermRead:
+				x := c.Imm.(action.Read)
+				return g.leaf(x.Name, x.Kind == action.ReadVar, s, locals)
+			case action.OpTermName, action.OpTermNodeType:
 				return TsString(c.Imm.(string))
-			case flowlower.OpTermField:
-				return TsString(c.Imm.(flowlower.TermField).Field)
-			case flowlower.OpTermCastType:
-				return g.castTypeVar(c.Imm.(flowlower.TermCast).Cast)
-			case flowlower.OpTermUncontrolled:
+			case action.OpTermField:
+				return TsString(c.Imm.(action.Field).Field)
+			case action.OpTermCastType:
+				return g.castTypeVar(c.Imm.(action.Cast))
+			case action.OpTermUncontrolled:
 				return "c.p.control === null"
-			case flowlower.OpTermTextIn:
+			case action.OpTermTextIn:
 				var eqs []string
 				for _, lit := range c.Imm.([]string) {
 					eqs = append(eqs, a[0]+" === "+TsString(lit))
 				}
 				return "(" + strings.Join(eqs, " || ") + ")"
-			case flowlower.OpTermCastError:
-				x := c.Imm.(flowlower.TermCast).Cast
+			case action.OpTermCastError:
+				x := c.Imm.(action.Cast)
 				return fmt.Sprintf("castFailure(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)
-			case flowlower.OpTermTextEqual:
+			case action.OpTermTextEqual:
 				// == of two strings, which charges as binary does.
 				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", tsTermMethod("binary"), action.BinaryCode("=="), a[0], a[1])
-			case flowlower.OpTermFromStr, flowlower.OpTermFromObj, "val.fromBool":
+			case action.OpTermFromStr, action.OpTermFromObj, "val.fromBool":
 				return a[0]
-			case flowlower.OpTermSpend, "seq.step":
+			case action.OpTermSpend, "seq.step":
 				return "c.spend()"
 			case "term.kids":
 				return "c.p.kidStack.length"
@@ -140,15 +134,15 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 			case "val.unbox":
 				// A parameter may hold a box, which stands for its value.
 				return "unboxValue(" + a[0] + ")"
-			case flowlower.OpTermKeep:
+			case action.OpTermKeep:
 				return fmt.Sprintf("c.p.kidStack.push(%s[%s]!)", a[0], a[1])
-			case flowlower.OpTermCopyList:
+			case action.OpTermCopyList:
 				return "c.newList(" + a[0] + ")"
-			case flowlower.OpTermElemsAbove:
+			case action.OpTermElemsAbove:
 				return "c.p.kids(" + a[0] + ")"
-			case flowlower.OpTermStruct:
-				return "c.termStruct(" + TsString(c.Imm.(flowlower.TermNew).New.Type) + ")"
-			case flowlower.OpTermSetField:
+			case action.OpTermStruct:
+				return "c.termStruct(" + TsString(c.Imm.(action.New).Type) + ")"
+			case action.OpTermSetField:
 				return fmt.Sprintf("c.termSetField(%s, %s, %s)", a[0], TsString(c.Imm.(string)), a[1])
 			}
 			panic("tsgen: term operation " + c.Callee)
@@ -157,7 +151,7 @@ func (g *Generator) termTarget(s *check.Scope, locals map[string]string) *Target
 }
 
 // castTypeVar returns the constant of the checked type of the cast x.
-func (g *Generator) castTypeVar(x *irc.Cast) string {
+func (g *Generator) castTypeVar(x action.Cast) string {
 	return g.FieldTypeVar(x.Key, x.Check.(types.Ty), tsFieldTypeDecl)
 }
 
