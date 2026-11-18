@@ -26,6 +26,7 @@ var enumerationContexts = []string{"rule a = \x00", "rule a = b => \x00", "type 
 // TestCanonicalFrontendEnumeration compares the frontends on every combination of up to
 // enumerationLength tokens of the alphabet after each context, joined by a space and directly.
 func TestCanonicalFrontendEnumeration(t *testing.T) {
+	t.Parallel()
 	acceptedTotal.Store(0)
 	t.Run("contexts", func(t *testing.T) {
 		for _, ctx := range enumerationContexts {

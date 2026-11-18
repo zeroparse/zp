@@ -23,6 +23,7 @@ import (
 // The comparisons with the hand-written parser read the typed values of the checked-in parser; this
 // test holds the generated parser to the engine, which the tests of mutated grammars run.
 func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
