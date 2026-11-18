@@ -109,7 +109,7 @@ rule part = [a-z]`)
 	}
 	// The mutants of the observation tests change the library through codegentest.TSLibPatchEnv.
 	bundle := func(g *grammar.Grammar, o codegen.GenOptions) ([]byte, error) {
-		code, err := codegentest.GenerateTSBundle(g, o)
+		code, err := codegentest.GenerateTSBundle(g, codegentest.MutantOptions(o))
 		if err != nil {
 			return nil, err
 		}

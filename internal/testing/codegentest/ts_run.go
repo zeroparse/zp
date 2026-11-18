@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -539,6 +540,17 @@ func TSOutputsWithin(t *testing.T, node string, cases []Case, bundles [][]byte, 
 // change, so the tests that run generated TypeScript apply the patch to the code they generate
 // (PatchTSLib).
 const TSLibPatchEnv = "ZP_TS_LIB_PATCH"
+
+// MutantOptions returns o for the parsers of a run with a library mutant (TSLibPatchEnv set): without
+// the narrowing of the library to the features a parser uses (codegen.UsedFeatures), so that a mutant
+// finds the library code it changes even where the grammar does not use it. Without a mutant it
+// returns o, and the parsers are the pruned ones that users get.
+func MutantOptions(o codegen.GenOptions) codegen.GenOptions {
+	if os.Getenv(TSLibPatchEnv) != "" {
+		o.NoOpt = append(slices.Clip(o.NoOpt), codegen.UsedFeatures)
+	}
+	return o
+}
 
 // PatchTSLib returns the generated TypeScript code src, which holds the library once, changed as
 // TSLibPatchEnv says if it is set. It fails t unless Old occurs exactly once in src.
