@@ -301,7 +301,7 @@ func Ops() []*code.Op {
 		return o
 	}
 	withImm := func(o *code.Op, doc string, t reflect.Type) *code.Op {
-		o.Imm, o.ImmType = doc, t
+		o.Imm, o.ImmType, o.FormatImm = doc, t, ImmString
 		return o
 	}
 
@@ -538,18 +538,45 @@ code point.`, Laws: []string{"implies flow.matchLit: where it holds, flow.matchL
 // Attrs are the attributes of a function of grammar code at the Flow stage, which code.Func.Attrs
 // holds.
 type Attrs struct {
+	// Rule is the rule whose body, or part of it, the function matches.
 	Rule *core.Rule
 	// Vars are the locals that are variables of the function, in the order they were made; the
 	// other locals are its entry variables Start, Result and Ctx (empty where it has none), which
-	// the caller declares.
+	// the caller declares: the position at which the rule was entered, the rule's value, and the
+	// context of the rule's action. Start is set before the body runs. A framed function has none.
 	Vars               []string
 	Start, Result, Ctx string
-	// Fail is the label of the block that the body leaves on failure.
+	// Fail is the label of the block that the body leaves on failure. Running to the end of the block
+	// is success.
 	Fail string
-	// Cut is the local of a framed function's cut flag, or empty.
+	// Cut is the local of a framed function's cut flag of its outermost scope, or empty. The function
+	// reads it from the Cut register on entry and publishes it to the register again on both returns.
 	Cut string
-	// Binds, Frame, Node, Budget, Document, Traced and Entered are as in Func.
-	Binds, Frame, Node, Budget, Document, Traced, Entered bool
+	// Binds reports that the body may bind variables, which the entry restores.
+	Binds bool
+	// Frame reports a framed function, which returns its value and true on success and the null value
+	// and false on failure.
+	Frame bool
+	// Node reports a function that builds the values of the Node runtime (newTerminalNode,
+	// newBranchNode). A function builds the values of one runtime: a Node function has no typed value
+	// operation, and a typed function has no Node one (VerifyModule).
+	Node bool
+	// Budget reports a function lowered with budget controls; VerifyModule then checks the charging
+	// of the budget.
+	Budget bool
+	// Document reports a function lowered for a build with Documents; VerifyModule then checks that
+	// every in-place read has the recording operation as its alternative.
+	Document bool
+	// Traced reports a function of the traced copies that an observed parse runs. Every read of the
+	// input in it records how far the parse examined, so VerifyModule rejects each operation that reads
+	// in place (hasLit, matchClass, skipTerminal, skipClasses), with or without a recording alternative.
+	Traced bool
+	// Entered reports a function lowered with budget controls, whose entry the generator charges: the
+	// method that holds the function begins with one Spend, for the body of a rule, of a frame and of a
+	// line or the skip of an Operators Rule alike. The function charges nothing for its entry and the
+	// verifier takes the entry as its first charge; TestGeneratedRuleEntryCharge checks the methods of
+	// the checked-in parsers.
+	Entered bool
 }
 
 // AttrsOf returns the Flow attributes of f, or nil.

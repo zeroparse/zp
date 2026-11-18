@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 )
@@ -48,81 +49,93 @@ func TestLower(t *testing.T) {
 		want string
 	}{
 		{"choice of literals", alts(&core.Lit{Text: "ab"}, &core.Lit{Text: "c"}), Options{InlineLiterals: 1}, `
-func r
+func r() {
   var x1 int
   var ok bool
-  x1 = pos
+  var start int
+  var v value
+  var c ctx
+  x1 = $pos
   block L2 {
     block L3 {
-      if _, ok = matchlit("ab"); !ok {
+      if _, ok = flow.matchLit(["ab"]); !ok {
         exit L3
       }
       exit L2
     }
-    pos = x1
+    $pos = x1
     block L4 {
-      if haslit("c") {
-        advance 1
+      if flow.hasLit(["c"]) {
+        flow.advance(1)
       } else {
-        if _, ok = matchlit("c"); !ok {
+        if _, ok = flow.matchLit(["c"]); !ok {
           exit L4
         }
       }
       exit L2
     }
-    pos = x1
+    $pos = x1
     exit fail
   }
-  v = nil
+  v = null(value)
+}
 `},
 		{"repetition with work and recovery", &core.Repeat{Min: 1, Max: -1, Body: &core.Lit{Text: "a"}}, Options{Budget: true, Recovers: true}, `
-func r
+func r() {
   var x1 int
   var x2 int
   var x3 int
   var ok bool
+  var start int
+  var v value
+  var c ctx
   x1 = 0
-  loop loop1 {
-    step
-    x2, x3 = pos, reclen
+  loop loop.1 {
+    flow.step()
+    x2, x3 = $pos, flow.recLen()
     block L4 {
-      if _, ok = matchlit("a"); !ok {
+      if _, ok = flow.matchLit(["a"]); !ok {
         exit L4
       }
-      x1++
-      if pos == x2 {
-        exit loop1
+      x1 = (x1 + 1)
+      if ($pos == x2) {
+        break loop.1
       }
-      continue loop1
+      continue loop.1
     }
-    restore x2, x3
-    exit loop1
+    flow.restore(x2, x3)
+    break loop.1
   }
-  if x1 < 1 {
+  if (x1 < 1) {
     exit fail
   }
-  v = nil
+  v = null(value)
+}
 `},
 		{"alternatives after one that cannot fail", alts(&core.Lit{Text: "a"}, &core.Succeed{}, &core.Lit{Text: "b"}), Options{}, `
-func r
+func r() {
   var x1 int
   var ok bool
-  x1 = pos
+  var start int
+  var v value
+  var c ctx
+  x1 = $pos
   block L2 {
     block L3 {
-      if _, ok = matchlit("a"); !ok {
+      if _, ok = flow.matchLit(["a"]); !ok {
         exit L3
       }
       exit L2
     }
-    pos = x1
+    $pos = x1
     block L4 {
       exit L2
     }
-    pos = x1
+    $pos = x1
     exit fail
   }
-  v = nil
+  v = null(value)
+}
 `},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -131,14 +144,10 @@ func r
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := flow.Verify(f); err != nil {
+			if err := flow.VerifyModule(f); err != nil {
 				t.Fatal(err)
 			}
-			// The function is written at the Flow stage of Code IR, which verifies.
-			if _, _, err := Emit(f); err != nil {
-				t.Fatal(err)
-			}
-			if got := flow.String(f); got != strings.TrimPrefix(c.want, "\n") {
+			if got := dump(f); got != strings.TrimPrefix(c.want, "\n") {
 				t.Errorf("got\n%s\nwant\n%s", got, strings.TrimPrefix(c.want, "\n"))
 			}
 		})
@@ -157,7 +166,7 @@ func TestLowerFrame(t *testing.T) {
 			Body: &core.Repeat{Min: 1, Max: -1, Scope: []core.Slot{{Name: "x"}},
 				Body: &core.Capture{Slot: 0, Name: "x", Body: &core.Lit{Text: "a"}}},
 			Skip: &core.Any{}}, nil, `
-func r framed
+func r() (value, bool) {
   var x1 mark
   var x2 expmark
   var x3 int
@@ -173,91 +182,100 @@ func r framed
   var v15 value
   var size int
   var x17 error
-  // Recovery inlined under the runtime-owned frame.
-  x1 = mark
-  x2 = isolate
-  block L6 {
-    block L5 {
-      x9 = 0
-      loop loop1 {
-        x10 = mark
-        x8 = frame
-        x7 = newframe([x])
-        frame = x7
-        block L11 {
-          x12 = pos
-          x13 = pos
-          if _, ok = matchlit("a"); !ok {
-            exit L11
+  block fail {
+    // Recovery inlined under the runtime-owned frame.
+    x1 = flow.markState([state pos trail rec])
+    x2 = flow.isolate()
+    block L6 {
+      block L5 {
+        x9 = 0
+        loop loop.1 {
+          x10 = flow.markState([state pos trail])
+          x8 = flow.frame()
+          x7 = flow.newFrame([[x] declared])
+          flow.setFrame(x7)
+          block L11 {
+            x12 = $pos
+            x13 = $pos
+            if _, ok = flow.matchLit(["a"]); !ok {
+              exit L11
+            }
+            v14 = flow.newMatch(x13, flow.str(["a"]))
+            v15 = flow.shapeCapture([{Elems:false K:0 Mode:0 Tuple:false Shared:false}], v14, x12)
+            flow.setCapture([slot 0], v15)
+            flow.setFrame(x8)
+            flow.declareNames([[x] declared])
+            flow.dropTrail(x10)
+            flow.freeFrame(x7)
+            x9 = (x9 + 1)
+            if ($pos == flow.markPos(x10)) {
+              break loop.1
+            }
+            continue loop.1
           }
-          v14 = match(x13, "a")
-          v15 = capture(v14, x12)
-          setcapture 0, v15
-          frame = x8
-          names [x]
-          droptrail x10
-          free x7
-          x9++
-          if pos == x10.pos {
-            exit loop1
-          }
-          continue loop1
+          flow.setFrame(x8)
+          flow.reset(x10)
+          break loop.1
         }
-        frame = x8
-        reset x10
-        exit loop1
+        if (x9 < 1) {
+          exit L5
+        }
+        x3, x4 = flow.unisolate(x2)
+        flow.mergeExpected(x3, x4)
+        exit L6
       }
-      if x9 < 1 {
-        exit L5
+      x3, x4 = flow.unisolate(x2)
+      x4 = flow.keep(x4)
+      flow.reset(x1)
+      block L16 {
+        _, size, ok = flow.peek()
+        if !ok {
+          flow.expect([exp 0], $pos)
+          exit L16
+        }
+        flow.advance(size)
+        if ($pos == flow.markPos(x1)) {
+          exit L16
+        }
+        x17 = flow.makeError(x3, x4)
+        flow.appendError(x17)
+        exit L6
       }
-      x3, x4 = unisolate(x2)
-      merge x4 at x3
-      exit L6
+      flow.reset(x1)
+      flow.mergeExpected(x3, x4)
+      exit fail
     }
-    x3, x4 = unisolate(x2)
-    x4 = keep(x4)
-    reset x1
-    block L16 {
-      peek _, size, ok
-      if !ok {
-        expect #0 at pos
-        exit L16
-      }
-      advance size
-      if pos == x1.pos {
-        exit L16
-      }
-      x17 = error(x3, x4)
-      recovered x17
-      exit L6
-    }
-    reset x1
-    merge x4 at x3
-    exit fail
+    return null(value), true
   }
-  return nil
+  return null(value), false
+}
 `},
 		{"cut at the top", &core.Seq{Items: []core.Node{&core.Capture{Slot: 0, Name: "y", Body: &core.Lit{Text: "a"}}, &core.Cut{}}},
 			[]core.Slot{{Name: "y"}}, `
-func r framed
+func r() (value, bool) {
   var cut1 bool
   var x2 int
   var x3 int
   var ok bool
   var v4 value
   var v5 value
-  cut1 = cut
-  x2 = pos
-  x3 = pos
-  if _, ok = matchlit("a"); !ok {
-    exit fail
+  block fail {
+    cut1 = $cut
+    x2 = $pos
+    x3 = $pos
+    if _, ok = flow.matchLit(["a"]); !ok {
+      exit fail
+    }
+    v4 = flow.newMatch(x3, flow.str(["a"]))
+    v5 = flow.shapeCapture([{Elems:false K:0 Mode:0 Tuple:false Shared:false}], v4, x2)
+    flow.setCapture([slot 0], v5)
+    cut1 = true
+    $cut = cut1
+    return null(value), true
   }
-  v4 = match(x3, "a")
-  v5 = capture(v4, x2)
-  setcapture 0, v5
-  cut1 = true
-  cut = cut1
-  return nil
+  $cut = cut1
+  return null(value), false
+}
 `},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -266,10 +284,10 @@ func r framed
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := flow.Verify(f); err != nil {
+			if err := flow.VerifyModule(f); err != nil {
 				t.Fatal(err)
 			}
-			if got := flow.String(f); got != strings.TrimPrefix(c.want, "\n") {
+			if got := dump(f); got != strings.TrimPrefix(c.want, "\n") {
 				t.Errorf("got\n%s\nwant\n%s", got, strings.TrimPrefix(c.want, "\n"))
 			}
 		})
@@ -285,34 +303,34 @@ func TestLowerNodeValues(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := flow.Verify(f); err != nil {
+		if err := flow.VerifyModule(f); err != nil {
 			t.Fatalf("node %v: %v", node, err)
 		}
-		got := flow.String(f)
-		hasNode := strings.Contains(got, "branchlist(") || strings.Contains(got, "terminal(")
-		hasTyped := strings.Contains(got, "list(") && !strings.Contains(got, "branchlist(") || strings.Contains(got, "match(") && !strings.Contains(got, "terminal(")
-		if f.Node != node || hasNode != node || hasTyped == node {
-			t.Errorf("node %v: Func.Node %v, Node operations %v, typed operations %v in\n%s", node, f.Node, hasNode, hasTyped, got)
+		got := code.FuncStringIn(f, flow.FuncOf(f))
+		hasNode := strings.Contains(got, flow.OpNewBranchNode+"(") || strings.Contains(got, flow.OpNewTerminalNode+"(")
+		hasTyped := strings.Contains(got, flow.OpNewNode+"(") || strings.Contains(got, flow.OpNewMatch+"(")
+		if a := flow.AttrsOf(flow.FuncOf(f)); a.Node != node || hasNode != node || hasTyped == node {
+			t.Errorf("node %v: Attrs.Node %v, Node operations %v, typed operations %v in\n%s", node, a.Node, hasNode, hasTyped, got)
 		}
 	}
 }
 
-// TestLowerVerifies checks that lowering returns an error, rather than a function, when Verify rejects
-// the function it built: a Node function that holds a typed value operation is not printed.
+// TestLowerVerifies checks that lowering returns an error, rather than a function, when the Flow
+// verifier rejects the function it built: a Node function that holds a typed value operation is not
+// printed.
 func TestLowerVerifies(t *testing.T) {
-	newFunc := func(body ...flow.Stmt) *flow.Func {
-		return &flow.Func{Name: "f", Body: body, Fail: &flow.Label{Name: "fail"},
-			Start: &flow.Var{Name: "start", Type: flow.TypeInt, Entry: true}, Result: &flow.Var{Name: "v", Type: flow.TypeValue, Entry: true},
-			Ctx: &flow.Var{Name: "c", Type: flow.TypeCtx, Entry: true}}
+	newLowerer := func() *lowerer {
+		m, _ := valueFree(&core.Succeed{})
+		return newLowerer(m, Options{}, "f", &flow.Attrs{Start: "start", Result: "v", Ctx: "c"})
 	}
-	f := newFunc(&flow.Set{Dst: []flow.LValue{flow.RegPos}, X: []flow.Expr{&flow.NewMatch{Start: &flow.Int{}, Text: &flow.Str{}}}})
-	f.Node = true
-	if g, err := verified(f); err == nil || g != nil || !strings.Contains(err.Error(), "typed match in a Node function") {
-		t.Errorf("verified: got %v, %v", g, err)
+	l := newLowerer()
+	l.at.Node = true
+	l.set(l.decl("v", flow.TypeValue), call(flow.OpNewMatch, nil, num(0), call(flow.OpStr, flow.Chars(""))))
+	if g, err := l.module(nil); err == nil || g != nil || !strings.Contains(err.Error(), "typed match in a Node function") {
+		t.Errorf("module: got %v, %v", g, err)
 	}
-	good := newFunc()
-	if g, err := verified(good); err != nil || g != good {
-		t.Errorf("verified of a valid function: got %v, %v", g, err)
+	if g, err := newLowerer().module(nil); err != nil || g == nil {
+		t.Errorf("module of a valid function: got %v, %v", g, err)
 	}
 }
 
@@ -330,13 +348,13 @@ func TestLowerStream(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := flow.Verify(f); err != nil {
+		if err := flow.VerifyModule(f); err != nil {
 			t.Fatal(err)
 		}
-		return flow.String(f)
+		return code.FuncStringIn(f, flow.FuncOf(f))
 	}
 	batch, stream := lower(false), lower(true)
-	for _, op := range []string{"stream start", "emit ", "streaming"} {
+	for _, op := range []string{flow.OpStreamStart + "(", flow.OpEmitStream + "(", flow.OpStreamOn + "("} {
 		if strings.Contains(batch, op) {
 			t.Errorf("the batch lowering has %q:\n%s", op, batch)
 		}
@@ -344,7 +362,7 @@ func TestLowerStream(t *testing.T) {
 			t.Errorf("the stream lowering lacks %q:\n%s", op, stream)
 		}
 	}
-	if strings.Count(stream, "push ") != strings.Count(batch, "push ") {
+	if strings.Count(stream, flow.OpPushKid+"(") != strings.Count(batch, flow.OpPushKid+"(") {
 		t.Errorf("the stream lowering keeps the gathering of elements for the parses that do not stream:\n%s", stream)
 	}
 }
@@ -355,7 +373,7 @@ func TestLowerStream(t *testing.T) {
 func TestVerifyDocumentReads(t *testing.T) {
 	lit := &core.Lit{Text: "ab"}
 	m, r := valueFree(lit)
-	build := func(document bool) *flow.Func {
+	build := func(document bool) *code.Module {
 		f, err := Lower(m, r, "r", Options{InlineLiterals: 4, Document: document})
 		if err != nil {
 			t.Fatal(err)
@@ -363,44 +381,29 @@ func TestVerifyDocumentReads(t *testing.T) {
 		return f
 	}
 	f := build(true)
-	if err := flow.Verify(f); err != nil {
+	if err := flow.VerifyModule(f); err != nil {
 		t.Fatalf("a Document function with the primitive as the alternative of its in-place read: %v", err)
 	}
 	// find returns the If whose condition is the in-place read.
-	var find func(ss []flow.Stmt) *flow.If
-	find = func(ss []flow.Stmt) *flow.If {
-		for _, s := range ss {
-			switch s := s.(type) {
-			case *flow.If:
-				if _, ok := s.Cond.(*flow.HasLit); ok {
-					return s
-				}
-				if x := find(s.Then); x != nil {
-					return x
-				}
-				if x := find(s.Else); x != nil {
-					return x
-				}
-			case *flow.Block:
-				if x := find(s.Body); x != nil {
-					return x
-				}
-			case *flow.Loop:
-				if x := find(s.Body); x != nil {
-					return x
+	find := func(m *code.Module) *code.If {
+		var read *code.If
+		code.Walk(flow.FuncOf(m).Body, func(s code.Stmt) {
+			if s, ok := s.(*code.If); ok && read == nil {
+				if c, ok := s.Cond.(*code.Call); ok && c.Callee == flow.OpHasLit {
+					read = s
 				}
 			}
-		}
-		return nil
+		}, nil)
+		return read
 	}
-	read := find(f.Body)
+	read := find(f)
 	if read == nil {
-		t.Fatalf("no in-place read in:\n%s", flow.String(f))
+		t.Fatalf("no in-place read in:\n%s", code.FuncStringIn(f, flow.FuncOf(f)))
 	}
 	saved := *read
 	check := func(name, want string) {
 		t.Run(name, func(t *testing.T) {
-			err := flow.Verify(f)
+			err := flow.VerifyModule(f)
 			if err == nil || !strings.Contains(err.Error(), want) {
 				t.Errorf("got %v, want an error containing %q", err, want)
 			}
@@ -409,19 +412,22 @@ func TestVerifyDocumentReads(t *testing.T) {
 	}
 	read.Else = nil
 	check("no primitive", "without the recording primitive")
-	read.Cond = &flow.Or{X: saved.Cond, Y: &flow.Not{X: saved.Cond}}
+	read.Cond = code.Bin("||", saved.Cond, code.Not(saved.Cond))
 	check("larger condition", "part of a larger condition")
-	if err := flow.Verify(f); err != nil {
+	if err := flow.VerifyModule(f); err != nil {
 		t.Fatalf("restored: %v", err)
 	}
 	// Outside a Document function the same read stands alone.
 	g := build(false)
-	if read := find(g.Body); read == nil {
-		t.Fatalf("no in-place read in:\n%s", flow.String(g))
+	if read := find(g); read == nil {
+		t.Fatalf("no in-place read in:\n%s", code.FuncStringIn(g, flow.FuncOf(g)))
 	} else {
 		read.Else = nil
-		if err := flow.Verify(g); err != nil && strings.Contains(err.Error(), "recording primitive") {
+		if err := flow.VerifyModule(g); err != nil && strings.Contains(err.Error(), "recording primitive") {
 			t.Errorf("a function that is not a Document function: %v", err)
 		}
 	}
 }
+
+// dump returns the listing of the function of the module m.
+func dump(m *code.Module) string { return code.FuncStringIn(m, flow.FuncOf(m)) }

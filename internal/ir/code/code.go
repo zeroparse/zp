@@ -186,6 +186,9 @@ type Op struct {
 	// ImmType, if not nil, is the Go type of the immediate operand: Verify checks that Call.Imm has
 	// it (or implements it, for an interface type).
 	ImmType reflect.Type
+	// FormatImm, if not nil, returns the immediate operand of a call as listings of the module print
+	// it (FuncStringIn); otherwise they print it with %v.
+	FormatImm func(imm any) string
 }
 
 // OpKind is how the behavior of an operation is specified and checked.

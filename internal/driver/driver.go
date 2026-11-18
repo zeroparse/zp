@@ -89,7 +89,7 @@ func (d *Driver) RunFlow(table string, m *code.Module, observe bool) error {
 		dump = func(pass string, m *code.Module) {
 			if d.prints(pass) {
 				f := flow.FuncOf(m)
-				fmt.Fprintf(d.PrintTo, "-- Flow IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, code.FuncString(f))
+				fmt.Fprintf(d.PrintTo, "-- Flow IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, code.FuncStringIn(m, f))
 			}
 		}
 	}
@@ -120,7 +120,7 @@ func (d *Driver) RunExec(table string, m *code.Module, observe bool) error {
 				return
 			}
 			for _, f := range m.Funcs {
-				fmt.Fprintf(d.PrintTo, "-- Exec IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, code.FuncString(f))
+				fmt.Fprintf(d.PrintTo, "-- Exec IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, code.FuncStringIn(m, f))
 			}
 		}
 	}

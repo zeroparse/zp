@@ -107,7 +107,7 @@ func (g *Generator) flowFrameBody(r *compile.Rule, scope *check.Scope) string {
 // its frame body, or returns "" if r takes another route. The rule is eligible
 // (common.Generator.FlowNodeFrameOK) when its Core body is a framed body and its action reads only
 // captures of the frame; the library owns depth, memo, frame, action and finish. With budget controls
-// (Options.Budget) the method that holds the body charges one step on entry (Func.Entered) and the
+// (Options.Budget) the method that holds the body charges one step on entry (flow.Attrs.Entered) and the
 // body charges one on each iteration of a repetition, plus the input spend of each Peek; the limits
 // of a parse hold at these charges.
 func (g *Generator) flowNodeFrameBody(r *compile.Rule, scope *check.Scope) string {
@@ -226,7 +226,7 @@ func (p *flowPrinter) goType(t flow.Type) string {
 type flowPrinter struct {
 	g     *Generator
 	frame bool
-	// document reports that the function is lowered for Documents (flow.Func.Document): its in-place reads
+	// document reports that the function is lowered for Documents (flow.Attrs.Document): its in-place reads
 	// are guarded by p.Document == nil, so that a Document parse reads through the recording primitives.
 	document bool
 	b        strings.Builder

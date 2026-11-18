@@ -6,7 +6,6 @@ import (
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
-	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
 
 // TestFlowExecPrintsStepRunAsUnits checks that charges in a row, which the printer joins into one
@@ -14,8 +13,8 @@ import (
 // the unit that does not, as the charges in a row would, and reports one unit requested.
 func TestFlowExecPrintsStepRunAsUnits(t *testing.T) {
 	t.Parallel()
-	f := &flow.Func{Name: "steps", Fail: &flow.Label{Name: "fail"}, Frame: true, Body: []flow.Stmt{&flow.Step{}, &flow.Step{}, &flow.Step{}}}
-	text, _, _ := (&Generator{}).printTSFlowExec(emitted(t, f))
+	f := framed(t, "steps", nil, &code.Do{Call: &code.Call{Callee: flow.OpStep}}, &code.Do{Call: &code.Call{Callee: flow.OpStep}}, &code.Do{Call: &code.Call{Callee: flow.OpStep}})
+	text, _, _ := (&Generator{}).printTSFlowExec(f)
 	if !strings.Contains(text, "p.spendUnits(3);") || strings.Contains(text, "p.spend(3)") {
 		t.Errorf("three charges in a row do not print as a run of three units:\n%s", text)
 	}
@@ -24,11 +23,21 @@ func TestFlowExecPrintsStepRunAsUnits(t *testing.T) {
 	}
 }
 
-// emitted returns the lowered function f at the Flow stage of Code IR.
-func emitted(t *testing.T, f *flow.Func) *code.Module {
+// framed returns a module at the Flow stage of Code IR of one framed function name with the
+// variables vars and the body, as the lowering writes it: the body is the block of failure, which ends
+// by returning the null value and true, and the function returns the null value and false after it.
+func framed(t *testing.T, name string, vars []code.Param, body ...code.Stmt) *code.Module {
 	t.Helper()
-	m, _, err := flowlower.Emit(f)
-	if err != nil {
+	value := code.THandle(flow.TValue)
+	at := &flow.Attrs{Frame: true, Fail: "fail"}
+	for _, v := range vars {
+		at.Vars = append(at.Vars, v.Name)
+	}
+	fail := &code.Block{Label: at.Fail, Stmts: append(body, &code.Return{Values: []code.Expr{code.Null(value), code.BoolC(true)}})}
+	m := flow.NewModule("flow " + name)
+	m.Funcs = []*code.Func{{Name: name, Locals: vars, Results: []code.Type{value, code.TBool}, Attrs: at,
+		Body: &code.Block{Stmts: []code.Stmt{fail, &code.Return{Values: []code.Expr{code.Null(value), code.BoolC(false)}}}}}}
+	if err := flow.VerifyModule(m); err != nil {
 		t.Fatal(err)
 	}
 	return m

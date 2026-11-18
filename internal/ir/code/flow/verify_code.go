@@ -15,7 +15,8 @@ import (
 //   - its attributes (Attrs) are set; a local function has the entry variables Start, Result and
 //     Ctx, a framed one none and no other local function has a cut flag; the locals are the entry
 //     variables and the variables (Attrs.Vars), each once;
-//   - every block statement has a label; a loop is left (break) or continued only from its own body,
+//   - every block statement has a label, and no two blocks or loops of a function have the same one,
+//     because the printers name them in one scope of labels; a loop is left (break) or continued only from its own body,
 //     outside nested loops, as a printed break or continue without a label does; a loop without a
 //     condition breaks to itself;
 //   - a peek assigns the variable for whether there is a character;
@@ -87,7 +88,8 @@ func verifyFunc(fn *code.Func) error {
 			return fmt.Errorf("local %s is neither a variable nor an entry variable", l.Name)
 		}
 	}
-	v := &flowVerifier{a: a}
+	v := &flowVerifier{a: a, labels: map[string]bool{}}
+	v.label(fn.Body.Label)
 	v.block(fn.Body)
 	if v.err == nil {
 		code.Walk(fn.Body, nil, func(x code.Expr) {
@@ -105,7 +107,9 @@ func verifyFunc(fn *code.Func) error {
 type flowVerifier struct {
 	a     *Attrs
 	loops []*code.Loop // the enclosing loops, innermost last
-	err   error
+	// labels holds the labels of the blocks and loops seen so far.
+	labels map[string]bool
+	err    error
 }
 
 func (v *flowVerifier) fail(format string, args ...any) {
@@ -121,6 +125,14 @@ func (v *flowVerifier) block(b *code.Block) {
 	for _, s := range b.Stmts {
 		v.stmt(s)
 	}
+}
+
+// label records the label of a block or a loop, which no other block or loop of the function has.
+func (v *flowVerifier) label(l string) {
+	if l != "" && v.labels[l] {
+		v.fail("label %s of more than one block or loop", l)
+	}
+	v.labels[l] = true
 }
 
 // innermost reports whether the label names the innermost enclosing loop, and outer whether it
@@ -140,8 +152,10 @@ func (v *flowVerifier) stmt(s code.Stmt) {
 		if s.Label == "" {
 			v.fail("block without a label of its own")
 		}
+		v.label(s.Label)
 		v.block(s)
 	case *code.Loop:
+		v.label(s.Label)
 		if s.Cond == nil && !breaks(s.Body, s.Label) {
 			v.fail("unbounded loop that never exits")
 		}

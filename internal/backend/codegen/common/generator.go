@@ -231,23 +231,18 @@ func (g *Generator) FlowNodeFrameOK(r *compile.Rule) (*core.Rule, bool) {
 	return cr, true
 }
 
-// FlowPasses writes the function f that the lowering returned with err at the Flow stage of Code IR
-// (flowlower.Emit), runs the pipeline of Flow passes on its module and returns the module. Every
-// function that a generator prints goes through it, labeled with the table being generated ("typed"
-// for the typed rules, as in the dumps of Core IR). An error of the lowering is returned; a failure of
-// the passes is kept as the first internal error of the generation (FlowErr), which fails it, and the
-// module is returned for the printing to go on.
-func (g *Generator) FlowPasses(f *flow.Func, err error) (*code.Module, error) {
+// FlowPasses runs the pipeline of Flow passes on the module m of one function that the lowering
+// returned with err, at the Flow stage of Code IR, and returns the module. Every function that a
+// generator prints goes through it, labeled with the table being generated ("typed" for the typed
+// rules, as in the dumps of Core IR). An error of the lowering is returned; a failure of the passes is
+// kept as the first internal error of the generation (FlowErr), which fails it, and the module is
+// returned for the printing to go on.
+func (g *Generator) FlowPasses(m *code.Module, err error) (*code.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	m, _, err := flowlower.Emit(f)
-	if err != nil {
-		// The lowering verified f: a function that its Code IR form breaks is an internal error.
-		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, g.IRTable(), err))
-	}
 	if err := g.RunFlow(g.IRTable(), m, g.Observability); err != nil && g.FlowErr == nil {
-		g.FlowErr = fmt.Errorf("function %s of table %s: %w", f.Name, g.IRTable(), err)
+		g.FlowErr = fmt.Errorf("function %s of table %s: %w", flow.FuncOf(m).Name, g.IRTable(), err)
 	}
 	return m, nil
 }
