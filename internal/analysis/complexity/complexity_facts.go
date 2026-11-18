@@ -33,6 +33,11 @@ func classifierFacts(g *grammar.Grammar, rules []*grammar.RuleDef, control *canc
 	if err != nil {
 		return nil, err
 	}
+	return sourceFacts(src, rules, control), nil
+}
+
+// sourceFacts returns the rule facts of rules, the rules of the module of src in order.
+func sourceFacts(src *Source, rules []*grammar.RuleDef, control *cancel.Control) *ruleFacts {
 	f := src.Facts
 	an := newRuleAnalysis(control)
 	rf := &ruleFacts{source: src, an: an, memo: map[string]bool{}, members: map[string]bool{}, vars: map[string][]string{},
@@ -65,5 +70,5 @@ func classifierFacts(g *grammar.Grammar, rules []*grammar.RuleDef, control *canc
 		rf.memo[name] = r.Leader || !r.Cyclic() && !r.Transient && !r.Missing
 		rf.members[name] = r.Member && !r.Transient && !r.Missing
 	}
-	return rf, nil
+	return rf
 }

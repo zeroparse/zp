@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // A fact error of the untyped module that the compiler does not report is added to its errors
@@ -29,8 +30,10 @@ type Result struct {
 	Module *core.Module
 	// Origin maps the nodes of Module to the expressions they were built from.
 	Origin map[core.Node]grammar.Expr
-	// Facts are the grammar facts of Module.
+	// Facts are the grammar facts of Module, which Analyses holds.
 	Facts *corepass.Facts
+	// Analyses is the manager of the analyses of Module, which the tools read them through.
+	Analyses *pass.AnalysisManager[*core.Module]
 }
 
 // Run checks g with the compiler's options opts. A non-nil control polls for cancellation. The
@@ -38,11 +41,11 @@ type Result struct {
 // generate shown as written.
 func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Result, error) {
 	names := desugar.InlineNames{}
-	prog, err := Check(g, opts, nil, names, control)
+	prog, st, err := CheckStructural(g, opts, nil, names, control)
 	if err != nil {
 		// The facts of a grammar that checks have no error (the compiler reports the same ones),
-		// so they are looked for only when checking fails.
-		return nil, mergeErrors(names.Rewrite(err), structuralErrors(g, opts, names, control))
+		// so they are looked for only when checking fails, in the module the check built.
+		return nil, mergeErrors(names.Rewrite(err), st.errors(opts, names))
 	}
 	return FromProgram(prog, control)
 }
@@ -55,5 +58,6 @@ func FromProgram(prog *compile.Program, control *cancel.Control) (*Result, error
 	if err != nil {
 		return nil, err
 	}
-	return &Result{Program: prog, Module: m, Origin: origin, Facts: corepass.Compute(m, control)}, nil
+	am := corepass.NewAnalyses(control)
+	return &Result{Program: prog, Module: m, Origin: origin, Facts: corepass.FactsOf(am, m), Analyses: am}, nil
 }

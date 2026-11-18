@@ -7,6 +7,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // rejected are grammars that the compiler rejects for the errors that depend on the facts and on
@@ -139,5 +141,33 @@ func TestRunRejectsFactErrors(t *testing.T) {
 		if got := structuralErrors(g, compile.Options{}, desugar.InlineNames{}, nil); got.Error() != tc.want {
 			t.Errorf("structural errors %v, want %s", got, tc.want)
 		}
+	}
+}
+
+// TestRunComputesFactsOnce measures the rule-fact computations of Run: a grammar that the
+// compiler rejects takes its structural errors from the facts that the check took, where
+// checking and then building the module again for those errors computes them twice.
+func TestRunComputesFactsOnce(t *testing.T) {
+	g, err := parseMarked(rejected[0].src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := func(f func()) int {
+		before := pass.Computations(corepass.FactsKey.Name())
+		f()
+		return pass.Computations(corepass.FactsKey.Name()) - before
+	}
+	separate := count(func() {
+		Check(g, compile.Options{}, nil, desugar.InlineNames{}, nil)
+		structuralErrors(g, compile.Options{}, desugar.InlineNames{}, nil)
+	})
+	shared := count(func() {
+		if _, err := Run(g, compile.Options{}, nil); err == nil {
+			t.Fatal("the grammar checks")
+		}
+	})
+	t.Logf("rule-fact computations: %d checking and building again, %d shared", separate, shared)
+	if separate != 2 || shared != 1 {
+		t.Errorf("computations %d separate and %d shared, want 2 and 1", separate, shared)
 	}
 }

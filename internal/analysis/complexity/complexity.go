@@ -179,18 +179,17 @@ func GrowingBindingsControlled(g *grammar.Grammar, start string, control *cancel
 func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames) {
 	control.Check()
 	names := desugar.InlineNames{}
-	prog, err := frontend.Check(g, compile.Options{}, nil, names, control)
+	prog, st, err := frontend.CheckStructural(g, compile.Options{}, nil, names, control)
 	if err != nil {
 		return nil, nil
 	}
 	if start == "" {
 		start = prog.DefaultStartRule
 	}
-	rules := control.Rules(prog.Grammar)
-	rf, err := classifierFacts(prog.Grammar, rules, control)
-	if err != nil {
-		return nil, nil
-	}
+	// The facts are those the check took, of the module of the same rules: they are not computed
+	// again.
+	rules := st.Rules
+	rf := sourceFacts(&Source{Module: st.Module, Origin: st.Origin, Facts: st.Facts()}, rules, control)
 	k := newViewClassifier(prog.Grammar, rules, rf, start, control)
 	k.types = prog.ValueRecord()
 	return k, names
