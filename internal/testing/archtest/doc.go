@@ -22,7 +22,8 @@
 //     dialect, code/flow imports only code and ir/core, code/action and code/exec import only
 //     code, and the packages of a dialect's subtree also each other and, under code/exec,
 //     code/action. Only the conversions (flowlower, execlower, vmlower) and test support import
-//     more than one dialect; a package under code/exec importing code/action counts as one.
+//     the dialects of more than one stage: the dialects of one stage (Flow and Action, or Exec
+//     and Action) count as one.
 //
 // The rules are stated on the paths of the release layout. The test places every package of the
 // module at its path in that layout (layout_test.go), so it checks the rules while the packages

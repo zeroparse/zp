@@ -183,15 +183,11 @@ func check(graphs []*graph, gens []generatedParser) *report {
 					add("2", rel(a), rel(b), fmt.Sprintf("%s (%s -> %s)", why, pa.target, pb.target), edge)
 				}
 			}
-			// Rule 2: only conversions and test support import more than one dialect.
+			// Rule 2: only conversions and test support import the dialects of more than one stage.
 			var dialects []string
 			for _, b := range g.pkgs[a].Imports {
 				if pb, ok := places[b]; ok && inModule(b) {
-					d := dialectOf(pb.target)
-					if d == "action" && under(pa.target, "internal/ir/code/exec") {
-						continue // the Exec dialect builds on the Action dialect (the dialect clause checks which packages may)
-					}
-					if d != "" && d != dialectOf(pa.target) && !slices.Contains(dialects, d) {
+					if d := dialectOf(pb.target); d != "" && d != dialectOf(pa.target) && !slices.Contains(dialects, d) {
 						dialects = append(dialects, d)
 					}
 				}
@@ -199,9 +195,9 @@ func check(graphs []*graph, gens []generatedParser) *report {
 			if d := dialectOf(pa.target); d != "" && len(dialects) > 0 {
 				dialects = append(dialects, d)
 			}
-			if len(dialects) > 1 && !multiDialect(pa.target) {
+			if !oneStage(dialects) && !multiDialect(pa.target) {
 				slices.Sort(dialects)
-				add("2", rel(a), "dialects "+strings.Join(dialects, ", "), fmt.Sprintf("only the conversions of the middle end and the back end and test support import more than one dialect (%s)", pa.target), []string{rel(a)})
+				add("2", rel(a), "dialects "+strings.Join(dialects, ", "), fmt.Sprintf("only the conversions of the middle end and the back end and test support import the dialects of more than one stage (%s)", pa.target), []string{rel(a)})
 			}
 			if importsGolib && !pa.generated && !runtimeSide(pa.target) {
 				if !placeErr[a] {
