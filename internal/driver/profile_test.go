@@ -4,8 +4,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 
-	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/pass"
@@ -34,7 +34,7 @@ func TestEveryCorePassIsAFlag(t *testing.T) {
 // Every pass of the Flow pipeline is an optimization that can be turned off, under its own name, and
 // no Flow pass has the name of a Core pass.
 func TestEveryFlowPassIsAFlag(t *testing.T) {
-	for _, name := range flow.Pipeline.Names() {
+	for _, name := range flowpass.Pipeline.Names() {
 		if f, ok := pass.Lookup(name); !ok || f.Kind != pass.KindFlowPass {
 			t.Errorf("pass %s is not a registered optimization of kind flow pass", name)
 		}
@@ -42,7 +42,7 @@ func TestEveryFlowPassIsAFlag(t *testing.T) {
 			t.Errorf("pass %s is both a Core and a Flow pass", name)
 		}
 	}
-	if err := flow.Pipeline.Validate(); err != nil {
+	if err := flowpass.Pipeline.Validate(); err != nil {
 		t.Error(err)
 	}
 }
@@ -54,7 +54,7 @@ func TestEveryExecPassIsAFlag(t *testing.T) {
 		if f, ok := pass.Lookup(name); !ok || f.Kind != pass.KindExecPass {
 			t.Errorf("pass %s is not a registered optimization of kind exec pass", name)
 		}
-		if slices.Contains(corepass.Pipeline.Names(), name) || slices.Contains(flow.Pipeline.Names(), name) {
+		if slices.Contains(corepass.Pipeline.Names(), name) || slices.Contains(flowpass.Pipeline.Names(), name) {
 			t.Errorf("pass %s is also a Core or Flow pass", name)
 		}
 	}
@@ -122,7 +122,7 @@ func TestParsePrintAfter(t *testing.T) {
 	// The names follow the order the steps run in: the Core IR as built and the Core passes, then the Flow lowering
 	// and passes, then the Exec lowering and passes.
 	want := append([]string{"core"}, corepass.Pipeline.Names()...)
-	want = append(append(want, "flow"), flow.Pipeline.Names()...)
+	want = append(append(want, "flow"), flowpass.Pipeline.Names()...)
 	want = append(append(want, "exec"), codepass.Pipeline.Names()...)
 	want = append(want, "all")
 	if got := PrintNames(); !slices.Equal(got, want) {

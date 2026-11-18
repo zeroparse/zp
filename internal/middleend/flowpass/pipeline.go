@@ -1,7 +1,10 @@
-package flow
+// Package flowpass holds the passes of the Flow dialect of Code IR: the control-level decisions that
+// choose the form of lowered grammar code (design 063).
+package flowpass
 
 import (
 	"zeroparse.dev/zp/internal/ir/code"
+	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/pass"
 )
 
@@ -9,12 +12,8 @@ import (
 // its behavior and that every backend printing from Flow IR then prints. A pass has the name of the
 // flag that turns it off, and that name is distinct from the names of the Core passes, so that one
 // name selects one pass in the flags and in the dumps. The unit is a module at the Flow stage that
-// holds one function (FuncOf): a rule, a framed body, a line of an Operators Rule or an outlined node,
+// holds one function (flow.FuncOf): a rule, a framed body, a line of an Operators Rule or an outlined node,
 // as the lowering made it.
-
-// Stage is the name of a Flow function as the lowering from Core IR made it, before the first Flow
-// pass: the dumps and -print-after name it so.
-const Stage = "flow"
 
 // Env is the context of a run of the Flow pipeline. The attributes of the function record the rest of
 // how it was lowered (Attrs.Budget, Node, Document, Frame).
@@ -34,7 +33,7 @@ func (e *Env) On(name string) bool { return e.Flag == nil || e.Flag(name) }
 // verifier after it.
 var Pipeline = &pass.Pipeline[*code.Module, *Env]{
 	Analyses: map[pass.Analysis]func(*code.Module){},
-	Verify:   VerifyModule,
+	Verify:   flow.VerifyModule,
 }
 
 // RunOptions selects what a run of Pipeline does besides running the passes.
@@ -55,5 +54,5 @@ func Run(m *code.Module, e *Env, o RunOptions) ([]string, error) {
 // Options returns the options of the generic pipeline for a run under e, for a caller that runs a
 // pipeline of its own (tests).
 func (o RunOptions) Options(e *Env) pass.Options[*code.Module] {
-	return pass.Options[*code.Module]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, Stage: Stage, BuiltVerified: true}
+	return pass.Options[*code.Module]{Enabled: e.On, VerifyEach: o.VerifyEach, Dump: o.Dump, Stage: flow.Stage, BuiltVerified: true}
 }

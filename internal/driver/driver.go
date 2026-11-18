@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -36,9 +37,9 @@ type Driver struct {
 	// CoreRun, if set, runs the Core passes in place of corepass.Run, for tests that run a pipeline of
 	// their own.
 	CoreRun func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error)
-	// FlowRun, if set, runs the Flow passes in place of flow.Run, for tests that run a pipeline of
+	// FlowRun, if set, runs the Flow passes in place of flowpass.Run, for tests that run a pipeline of
 	// their own; table names the table of the function, as in the dumps.
-	FlowRun func(table string, m *code.Module, env *flow.Env, o flow.RunOptions) ([]string, error)
+	FlowRun func(table string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error)
 	// ExecRun, if set, runs the Exec passes in place of codepass.RunPasses, for tests that run a pipeline
 	// of their own; table names the table of the module, as in the dumps.
 	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)
@@ -79,11 +80,11 @@ func (d *Driver) RunCore(table string, m *core.Module, mode corepass.Mode, local
 
 // RunFlow runs the pipeline of Flow passes on the module m of one lowered function (flow.FuncOf),
 // which the lowering has verified, with the optimizations of the driver; observe says that the parser
-// reports its rules and skipped alternatives (flow.Env). The function belongs to the table named
+// reports its rules and skipped alternatives (flowpass.Env). The function belongs to the table named
 // table, which the printed Flow IR is labeled with, as the dump of "flow" before the first pass. A
 // failure is an internal error that names the pass.
 func (d *Driver) RunFlow(table string, m *code.Module, observe bool) error {
-	env := &flow.Env{Observe: observe, Flag: d.Opt.On}
+	env := &flowpass.Env{Observe: observe, Flag: d.Opt.On}
 	var dump func(pass string, m *code.Module)
 	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
 		dump = func(pass string, m *code.Module) {
@@ -93,12 +94,12 @@ func (d *Driver) RunFlow(table string, m *code.Module, observe bool) error {
 			}
 		}
 	}
-	o := flow.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}
+	o := flowpass.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}
 	var err error
 	if d.FlowRun != nil {
 		_, err = d.FlowRun(table, m, env, o)
 	} else {
-		_, err = flow.Run(m, env, o)
+		_, err = flowpass.Run(m, env, o)
 	}
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
