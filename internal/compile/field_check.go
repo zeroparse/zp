@@ -4,32 +4,15 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-// ValidateModule checks the module m (bytecode.ValidateModule), with the field types parsed against
-// the types that m declares.
-func ValidateModule(m *bytecode.Module) error {
-	var typeNames map[string]bool
-	return bytecode.ValidateModule(m, func(text string) error {
-		if typeNames == nil {
-			typeNames = ModuleTypeNames(m)
-		}
-		_, err := types.ParseFieldType(text, typeNames)
-		return err
-	})
-}
+// ValidateModule is program.ValidateModule.
+func ValidateModule(m *bytecode.Module) error { return program.ValidateModule(m) }
 
-// ModuleTypeNames returns the set of the names of a module's declared types.
-func ModuleTypeNames(m *bytecode.Module) map[string]bool {
-	names := make(map[string]bool, len(m.Types))
-	for _, t := range m.Types {
-		if t.Name >= 0 && t.Name < len(m.Strings) {
-			names[m.Strings[t.Name]] = true
-		}
-	}
-	return names
-}
+// ModuleTypeNames is program.ModuleTypeNames.
+func ModuleTypeNames(m *bytecode.Module) map[string]bool { return program.ModuleTypeNames(m) }
 
 // ResolveCheck resolves a type for a cast, as a value type. It returns nil for _, which every
 // value fits.

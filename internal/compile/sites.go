@@ -67,15 +67,6 @@ func (prog *Program) RunKey(site int) RunKey { return prog.sites.RunKeys[site] }
 // RunKeys returns the keys of the run sites that are not free of the environment, by site.
 func (prog *Program) RunKeys() map[int]RunKey { return prog.sites.RunKeys }
 
-// SetRunKey sets the key of the run site: a program built from a compiled grammar has the keys of
-// its module.
-func (prog *Program) SetRunKey(site int, k RunKey) {
-	if prog.sites.RunKeys == nil {
-		prog.sites.RunKeys = map[int]RunKey{}
-	}
-	prog.sites.RunKeys[site] = k
-}
-
 // DeclaredBeyondScan reports whether the declaration of rd keeps it from being a pure scan rule
 // (corepass.SiteRule.Declared): it has a type, an action, or an attribute or pragma other than
 // @start and @linear, which only add checks.

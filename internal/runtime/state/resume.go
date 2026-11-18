@@ -2,10 +2,10 @@ package state
 
 import (
 	"slices"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
@@ -33,7 +33,7 @@ import (
 type RunSite struct {
 	Id              int
 	M               Matcher
-	Scope           *compile.Scope
+	Scope           *program.Scope
 	OwnScope, Build bool
 	Min, Max        int
 	Shiftable       bool // the elements' values contain no position values

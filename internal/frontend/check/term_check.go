@@ -3,6 +3,7 @@ package check
 import (
 	"slices"
 	"strings"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"fmt"
 	"zeroparse.dev/zp/internal/cancel"
@@ -39,7 +40,7 @@ type TermChecker struct {
 
 // OperatorsRuleValue is the local name of the final folded value of an Operators Rule in its
 // whole-rule action.
-const OperatorsRuleValue = "value"
+const OperatorsRuleValue = program.OperatorsRuleValue
 
 func (c *TermChecker) errorf(pos ast.Pos, format string, args ...any) {
 	*c.Errs = append(*c.Errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})

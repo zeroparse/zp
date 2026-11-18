@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"slices"
 	"sync"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 )
 
@@ -24,11 +24,11 @@ type SharedProgram struct {
 	// envLevels is the depth of the environment trie (EnvLevels of the variable count).
 	envLevels int
 	// runKeys holds, by site, the slots of the variables that key the records of a run site that is
-	// not free of the environment (compile.Program.RunKey), nil for the other sites.
+	// not free of the environment (program.Program.RunKeys), nil for the other sites.
 	runKeys []*runKeySlots
 }
 
-// runKeySlots are the slots of the variables of a compile.RunKey.
+// runKeySlots are the slots of the variables of a program.RunKey.
 type runKeySlots struct {
 	vars, bind []int
 }
@@ -53,7 +53,7 @@ func InitSharedProgram(s *SharedProgram, sp *staticProgram) {
 	s.envLevels = EnvLevels(len(vals))
 	s.initEnv = NewEnv(vals, s.envLevels)
 	s.runKeys = nil
-	for site, k := range sp.RunKeys() {
+	for site, k := range sp.RunKeys {
 		for len(s.runKeys) <= site {
 			s.runKeys = append(s.runKeys, nil)
 		}
@@ -989,7 +989,7 @@ func (p *Parser) Finish(r *Rule, f *Frame, v *core.Node, start int) *core.Node {
 		var locals *Local
 		if r.OperatorsRule != nil {
 			// The whole-rule action of an Operators Rule sees the folded value as $value.
-			p.oplocals[0] = Local{Name: compile.OperatorsRuleValue, Val: NodeOrNil(v)}
+			p.oplocals[0] = Local{Name: program.OperatorsRuleValue, Val: NodeOrNil(v)}
 			locals = &p.oplocals[0]
 		}
 		v = p.runAction(r, f, locals, start, p.Pos)
@@ -1036,7 +1036,7 @@ func (p *Parser) convertResult(r *Rule, v *core.Node) *core.Node {
 
 // AttachCaptures attaches captures to the node as fields. Captures that did not match (nil) are
 // not attached. If the node belongs to another rule, it is wrapped in a tuple node first.
-func (p *Parser) AttachCaptures(v *core.Node, s *compile.Scope, f *Frame, start, end int) *core.Node {
+func (p *Parser) AttachCaptures(v *core.Node, s *program.Scope, f *Frame, start, end int) *core.Node {
 	found := false
 	wrap := v == nil || !nodes.D(v).Fresh
 	for _, c := range f.Vals {

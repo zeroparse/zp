@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/analysis/lint"
 	"zeroparse.dev/zp/internal/frontend"
@@ -81,7 +82,7 @@ func (a *analysis) lintFindingsContext(ctx context.Context) ([]lint.Finding, err
 // frontResult returns the front-end result of the compiled grammar, built from the program that
 // the analysis already has, so that the grammar is not compiled again.
 func (a *analysis) frontResult() (*frontend.Result, error) {
-	a.front.once.Do(func() { a.front.res, a.front.err = frontend.FromProgram(a.prog.Static(), nil) })
+	a.front.once.Do(func() { a.front.res, a.front.err = frontend.FromProgram(entry.Checked(a.prog), nil) })
 	return a.front.res, a.front.err
 }
 

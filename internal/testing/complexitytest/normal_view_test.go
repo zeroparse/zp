@@ -10,6 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -39,7 +40,7 @@ func TestNormalViewMatches(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			prog, err := engine.Compile(g, engine.Options{DefaultValue: true})
+			prog, err := entry.Compile(g, entry.Options{DefaultValue: true})
 			if err != nil {
 				t.Fatalf("the grammar without actions does not compile: %v", err)
 			}
@@ -85,7 +86,7 @@ func TestNormalViewMatchesShapes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			prog, err := engine.Compile(g, engine.Options{DefaultValue: true})
+			prog, err := entry.Compile(g, entry.Options{DefaultValue: true})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -111,7 +112,7 @@ func checkViewMatches(t *testing.T, g *ast.Grammar, prog *engine.Program, inputs
 		if err != nil {
 			t.Fatal(err)
 		}
-		vprog, err := engine.Compile(vg, engine.Options{DefaultValue: true})
+		vprog, err := entry.Compile(vg, entry.Options{DefaultValue: true})
 		if err != nil && matching {
 			// Inlining changes the values of the rules that predicates read, whose types
 			// default values keep; the view for analyses of matching is not a grammar
@@ -231,7 +232,7 @@ func TestNormalViewCompiles(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := engine.Compile(vg, engine.Options{DefaultValue: true}); err != nil {
+			if _, err := entry.Compile(vg, entry.Options{DefaultValue: true}); err != nil {
 				t.Fatalf("the view does not compile: %v", err)
 			}
 		})

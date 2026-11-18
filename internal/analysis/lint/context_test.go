@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -41,7 +41,7 @@ func lintContextGrammar(t *testing.T, source string) *ast.Grammar {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := engine.Compile(starttest.MarkAll(g), engine.Options{}); err != nil {
+	if _, err := entry.Compile(starttest.MarkAll(g), entry.Options{}); err != nil {
 		t.Fatal(err)
 	}
 	return g

@@ -294,9 +294,9 @@ type skipVisit struct {
 // one is the one in use.
 type skipWalk struct {
 	on bool
-	// key holds the slots of the variables that key the records of the site (compile.RunKey), nil
+	// key holds the slots of the variables that key the records of the site (program.RunKey), nil
 	// for a site whose element reads or binds no variable, directly or in the rules it calls
-	// (compile.Program.EnvFree): its records hold for every environment, which a walk keeps. A
+	// (program.Program.EnvFree): its records hold for every environment, which a walk keeps. A
 	// walk that reuses the record of a keyed site binds the variables of the key's Bind to the
 	// values the walk of the record left in them. The program says which sites are free (the
 	// closure backend asks compile.Program, a module marks them in its instructions), and the

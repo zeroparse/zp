@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/syntax/fmt"
@@ -53,11 +54,11 @@ func TestRepetitionPragmaBounds(t *testing.T) {
 				t.Fatal(err)
 			}
 			assertBounds(reparsed)
-			p, err := engine.Compile(g, engine.Options{})
+			p, err := entry.Compile(g, entry.Options{})
 			if err != nil {
 				t.Fatal(err)
 			}
-			rep := p.Grammar.Rules()[0].Expr.(*ast.Repeat)
+			rep := entry.Checked(p).Grammar.Rules()[0].Expr.(*ast.Repeat)
 			if rep.Min != tc.min || rep.Max != tc.max {
 				t.Fatalf("normalized bounds %d,%d", rep.Min, rep.Max)
 			}
@@ -112,7 +113,7 @@ func TestAttributeArgumentBinding(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := engine.Compile(starttest.MarkAll(g), engine.Options{}); err != nil {
+		if _, err := entry.Compile(starttest.MarkAll(g), entry.Options{}); err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
 	}
@@ -131,7 +132,7 @@ func TestAttributeArgumentBinding(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if _, err := engine.Compile(starttest.MarkAll(g), engine.Options{}); err == nil {
+		if _, err := entry.Compile(starttest.MarkAll(g), entry.Options{}); err == nil {
 			t.Fatalf("accepted %s", src)
 		}
 	}

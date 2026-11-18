@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -41,7 +42,7 @@ func testOperatorsRuleExplicitDefaultAction(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		explicit, err := engine.Compile(g, opts)
+		explicit, err := entry.Compile(g, opts)
 		if err != nil {
 			t.Fatal(err)
 		}

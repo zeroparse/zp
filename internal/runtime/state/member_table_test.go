@@ -54,7 +54,7 @@ func engineMemberFixture(t *testing.T, controlled bool) (*EvalCtx, map[string]an
 	}
 	src.WriteString("@start\nrule main = \"a\"\n")
 	prog := &SharedProgram{}
-	InitSharedProgram(prog, compiletest.Program(t, src.String(), compile.Options{}))
+	InitSharedProgram(prog, compiletest.Program(t, src.String(), compile.Options{}).Runtime())
 	for _, s := range conform.MemberStructs {
 		for _, f := range s.Fields {
 			if got := prog.StructZeroOf(s.Name).Zeros[f[0]]; got != f[1] {

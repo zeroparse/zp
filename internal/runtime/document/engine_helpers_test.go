@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -284,7 +285,7 @@ func compileBare(t *testing.T, src string, opts ...compile.Options) *Program {
 	if len(opts) > 0 {
 		o = opts[0]
 	}
-	prog, err := Compile(g, o)
+	prog, err := entry.Compile(g, o)
 	if err != nil {
 		t.Fatalf("compile error: %v\n%s", err, src)
 	}

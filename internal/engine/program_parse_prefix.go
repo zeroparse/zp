@@ -1,10 +1,10 @@
 package engine
 
 import (
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/compile"
 )
 
 // PrefixResult records the successful cursor independently of the rule's value.
@@ -23,7 +23,7 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 		return PrefixResult{}, err
 	}
 	if prog.HasMissing || o.MissingTokens > 0 {
-		return PrefixResult{}, compile.MissingUnsupported("prefix parsing")
+		return PrefixResult{}, program.MissingUnsupported("prefix parsing")
 	}
 	defer func() {
 		if x := recover(); x != nil {

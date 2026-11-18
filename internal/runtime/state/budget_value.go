@@ -5,11 +5,10 @@ import (
 	"strings"
 	"unicode/utf8"
 	"unsafe"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Value spend is charged like any other spend, though strings and collections can
@@ -221,13 +220,15 @@ func (p *Parser) SetValueField(fs *coreimpl.Fields, name string, v any) {
 	*fs = append(*fs, coreimpl.NodeField{Name: name, Value: v})
 }
 
-func (p *Parser) HasValueField(st *ast.TypeDef, name string) bool {
+// HasValueField reports whether the declared type t has the field name. Under budget controls it
+// charges for the declared fields it scans.
+func (p *Parser) HasValueField(t *program.Type, name string) bool {
 	if !BudgetControlsEnabled || p.Control == nil {
-		return compile.FieldOf(st, name) != nil
+		return t.HasField(name)
 	}
-	for _, f := range compile.DefFields(st) {
+	for _, f := range t.Fields {
 		p.Spend()
-		if p.ValueEqual(f.Name, name) {
+		if p.ValueEqual(f, name) {
 			return true
 		}
 	}
@@ -243,23 +244,4 @@ func (p *Parser) VarValue(slot int) any {
 		}
 	}
 	return p.Env.Get(slot, p.envLevels)
-}
-
-// Fusable is also called at runtime by closure actions, unlike the bytecode
-// compiler's setup-time analysis. Charge that runtime grammar walk as steps.
-func (p *Parser) Fusable(t *ast.Call) bool {
-	if !BudgetControlsEnabled || p.Control == nil {
-		return compile.Fusable(t)
-	}
-	for _, a := range t.Args {
-		p.Spend()
-		call, ok := a.(*ast.Call)
-		switch {
-		case ok && call.Func == "list", ok && call.Func == "map" && len(call.Args) == 2:
-		case ok && call.Func == "concat" && p.Fusable(call):
-		default:
-			return false
-		}
-	}
-	return true
 }

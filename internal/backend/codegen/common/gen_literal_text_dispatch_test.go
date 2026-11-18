@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -118,7 +119,7 @@ func TestGeneratedLiteralDispatchWorkload(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", workload.name, err)
 		}
-		prog, err := engine.Compile(g, compile.Options{})
+		prog, err := entry.Compile(g, compile.Options{})
 		if err != nil {
 			t.Fatalf("%s compile engine reference: %v", workload.name, err)
 		}

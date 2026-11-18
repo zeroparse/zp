@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	fcheck "zeroparse.dev/zp/internal/frontend/check"
 	corebuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
@@ -125,7 +126,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 					elem = &ast.ListType{Elem: elem}
 				}
 				c := &compile.Compiler{Prog: p.Static(), Control: control}
-				c.CheckTerm(&ast.ListConstructor{Elem: elem}, compile.NewScope(), nil)
+				c.CheckTerm(&ast.ListConstructor{Elem: elem}, fcheck.NewScope(), nil)
 			case "core-build":
 				_, _ = corebuild.CoreControlled(p.Static(), control)
 			case "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify":

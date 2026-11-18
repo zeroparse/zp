@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
@@ -80,7 +80,7 @@ func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser
 		r.Memo, r.Transient = s.Memo || s.DocMemo, !s.Memo
 		r.Leader, r.Plain, r.Positional, r.Rec = s.Leader, s.DocPlain, s.Positional, s.Rec
 		r.Seen = int(ref.SeenIndex(cfg.RuleSpecs, int64(i)))
-		r.Scope = &compile.Scope{}
+		r.Scope = &program.Scope{}
 		for k := range s.Captures {
 			r.Scope.Names = append(r.Scope.Names, ref.CaptureName(k))
 		}
@@ -89,7 +89,7 @@ func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser
 		r.Value = func(p *Parser, v *core.Node, start int) *core.Node { return v }
 		if i%2 == 1 {
 			r.Value = func(p *Parser, v *core.Node, start int) *core.Node {
-				return ShapeTuple(p, compile.Shaper{K: 1}, v, start)
+				return ShapeTuple(p, program.Shaper{K: 1}, v, start)
 			}
 		}
 		index := int64(i)

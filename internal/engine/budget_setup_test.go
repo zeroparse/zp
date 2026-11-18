@@ -196,7 +196,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 				t.Run(setupProgramLabel(moduleOnly)+"/"+backend.String()+"/recognize="+map[bool]string{true: "yes", false: "no"}[recognize], func(t *testing.T) {
 					p := setupProgram(t, `rule main = [a-z]* #atomic $$`, moduleOnly)
 					assertSetupBackendState(t, p, backend, false)
-					if !moduleOnly && p.Bytecode != nil {
+					if !moduleOnly && lazyModule(p) != nil {
 						t.Fatal("pre-cancelled parse compiled its lazy Module")
 					}
 					ctx, cancel := context.WithCancel(context.Background())
@@ -219,7 +219,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 						t.Fatalf("NewDocumentWith document=%v err=%v", d, err)
 					}
 					assertSetupBackendState(t, docProg, backend, false)
-					if !moduleOnly && docProg.Bytecode != nil {
+					if !moduleOnly && lazyModule(docProg) != nil {
 						t.Fatal("pre-cancelled Document construction compiled its lazy Module")
 					}
 
@@ -233,7 +233,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 						t.Fatalf("ParseStreamWith err=%v reads=%d emits=%d traces=%d", err, reader.reads, emits, traces)
 					}
 					assertSetupBackendState(t, streamProg, backend, false)
-					if !moduleOnly && streamProg.Bytecode != nil {
+					if !moduleOnly && lazyModule(streamProg) != nil {
 						t.Fatal("pre-cancelled stream setup compiled its lazy Module")
 					}
 				})
@@ -292,17 +292,17 @@ func TestBudgetSetupPostBackendChecksStopBeforePublication(t *testing.T) {
 func TestBudgetSetupChecksAfterModuleBeforeVM(t *testing.T) {
 	t.Parallel()
 	prog := setupProgram(t, `rule main = "a" $$`, false)
-	if prog.Bytecode != nil || prog.preparedVM(Bytecode) != nil {
-		t.Fatalf("program was not cold: module=%p vm=%p", prog.Bytecode, prog.preparedVM(Bytecode))
+	if lazyModule(prog) != nil || prog.preparedVM(Bytecode) != nil {
+		t.Fatalf("program was not cold: module=%p vm=%p", lazyModule(prog), prog.preparedVM(Bytecode))
 	}
-	gate := newSetupPhaseContext(func() bool { return prog.Bytecode != nil && prog.preparedVM(Bytecode) == nil })
+	gate := newSetupPhaseContext(func() bool { return lazyModule(prog) != nil && prog.preparedVM(Bytecode) == nil })
 	traceCalls := 0
 	n, err := prog.ParseWith("main", "a", ParseOptions{Backend: Bytecode, Context: gate, Trace: func(TraceEvent) { traceCalls++ }})
 	if n != nil || !errors.Is(err, context.Canceled) || !gate.triggered || traceCalls != 0 {
 		t.Fatalf("ParseWith node=%v err=%v gate=%t traces=%d", n, err, gate.triggered, traceCalls)
 	}
-	if prog.Bytecode == nil || prog.preparedVM(Bytecode) != nil || prog.preparedVM(BytecodeIterative) != nil {
-		t.Fatalf("post-module boundary state module=%p vm=%p ivm=%p", prog.Bytecode, prog.preparedVM(Bytecode), prog.preparedVM(BytecodeIterative))
+	if lazyModule(prog) == nil || prog.preparedVM(Bytecode) != nil || prog.preparedVM(BytecodeIterative) != nil {
+		t.Fatalf("post-module boundary state module=%p vm=%p ivm=%p", lazyModule(prog), prog.preparedVM(Bytecode), prog.preparedVM(BytecodeIterative))
 	}
 	if n, err := prog.ParseWith("main", "a", ParseOptions{Backend: Bytecode}); n == nil || err != nil {
 		t.Fatalf("post-module retry node=%v err=%v", n, err)

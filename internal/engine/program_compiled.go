@@ -6,11 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/vm"
-	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The compiled grammar format (.zpc), specified in the File format section of
@@ -81,10 +80,6 @@ func unsupportedISA(isa int) error {
 // grammar.
 var errClosureNeedsSource = errors.New("the closure backend needs the grammar source; a compiled grammar runs on the bytecode backends")
 
-// errSchemaNeedsSource is the error of a schema export from a program loaded from a compiled
-// grammar.
-var errSchemaNeedsSource = fmt.Errorf("%w: a compiled grammar holds no schema; export the schema from the grammar source", compile.ErrSchemaUnavailable)
-
 // ErrNotCompiled reports that the data is not a compiled grammar.
 var ErrNotCompiled = errors.New("not a compiled ZeroParse grammar")
 
@@ -141,7 +136,7 @@ func (prog *Program) Marshal(start string, mode CompiledMode) ([]byte, error) {
 		return nil, fmt.Errorf("unknown compiled grammar mode %d", mode)
 	}
 	if prog.HasMissing {
-		return nil, compile.MissingUnsupported("compiled grammar serialization")
+		return nil, program.MissingUnsupported("compiled grammar serialization")
 	}
 	if start != "" {
 		if err := prog.CheckStart(start); err != nil {
@@ -214,7 +209,7 @@ func LoadProgram(data []byte) (*Program, string, error) {
 	if r.Err != nil {
 		return nil, "", r.Err
 	}
-	if err := compile.ValidateModule(m); err != nil {
+	if err := program.ValidateModule(m); err != nil {
 		return nil, "", fmt.Errorf("invalid compiled grammar: %w", err)
 	}
 	terms, err := vm.LoadTerms(m)
@@ -259,30 +254,41 @@ func moduleDefaultStart(m *bytecode.Module) string { return m.Strings[m.Rules[m.
 // moduleProgram builds a program from a module alone, without the grammar; only the bytecode
 // backends run it.
 func moduleProgram(m *bytecode.Module) *Program {
-	prog := compile.NewProgram(nil)
-	prog.RecordsSourceInfo, prog.MakesDefaultValue = m.SourceInfo, m.DefaultValue
+	rt := &program.Program{
+		ByName:            map[string]*program.Rule{},
+		RecordsSourceInfo: m.SourceInfo,
+		MakesDefaultValue: m.DefaultValue,
+		Types:             map[string]*program.Type{},
+		Vars:              program.ModuleVarTable(m),
+		StartRules:        moduleStarts(m),
+		DefaultStartRule:  moduleDefaultStart(m),
+		Bytecode:          m,
+	}
+	zeros := map[string]*program.StructZero{}
 	for _, t := range m.Types {
+		name := m.Strings[t.Name]
 		if t.Node >= 0 {
 			// The run time needs only that the type is a node type.
-			prog.Types[m.Strings[t.Name]] = &ast.TypeDef{Name: m.Strings[t.Name], Type: &ast.TypeApp{Name: "node", Args: []ast.TypeExpr{&ast.TypeRef{Name: "_"}}}}
+			rt.Types[name] = &program.Type{Name: name}
 			continue
 		}
-		st := &ast.StructType{}
-		z := &compile.StructZero{Zeros: map[string]string{}}
+		st := &program.Type{Name: name}
+		z := &program.StructZero{Zeros: map[string]string{}}
 		for i, f := range t.Fields {
-			name := m.Strings[f]
-			st.Fields = append(st.Fields, &ast.Field{Name: name})
-			z.Names = append(z.Names, name)
-			z.Zeros[name] = m.Strings[t.Zeros[i]]
+			field := m.Strings[f]
+			st.Fields = append(st.Fields, field)
+			z.Names = append(z.Names, field)
+			z.Zeros[field] = m.Strings[t.Zeros[i]]
 		}
-		prog.SetStructZero(m.Strings[t.Name], z)
-		prog.Types[m.Strings[t.Name]] = &ast.TypeDef{Name: m.Strings[t.Name], Type: st}
+		zeros[name] = z
+		rt.Types[name] = st
 	}
-	prog.Vars = compile.ModuleVarTable(m)
 	for _, k := range m.RunKeys {
-		prog.SetRunKey(k.Site, compile.RunKey{Vars: moduleNames(m, k.Vars), Bind: moduleNames(m, k.Bind)})
+		if rt.RunKeys == nil {
+			rt.RunKeys = map[int]program.RunKey{}
+		}
+		rt.RunKeys[k.Site] = program.RunKey{Vars: moduleNames(m, k.Vars), Bind: moduleNames(m, k.Bind)}
 	}
-	prog.StartRules, prog.DefaultStartRule = moduleStarts(m), moduleDefaultStart(m)
-	prog.BytecodeOnce.Do(func() { prog.Bytecode = m })
-	return newProgram(prog, nil, nil)
+	rt.StructZero = func(name string) *program.StructZero { return zeros[name] }
+	return newProgram(rt, nil)
 }

@@ -103,7 +103,7 @@ func coreGenerate(src string, opts common.GenOptions) (*print.Generator, bool) {
 // recognizerOf returns the recognizer of the program that the generator g prints, compiled as
 // Program.Recognizer compiles it.
 func recognizerOf(g *print.Generator) (*compile.Program, error) {
-	rec, err := newProgram(g.Prog, nil, nil).Recognizer()
+	rec, err := checkedProgram(g.Prog).Recognizer()
 	if err != nil {
 		return nil, err
 	}

@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/lsp/protocol"
 
 	"zeroparse.dev/zp/internal/analysis/lint"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/parser"
@@ -243,7 +244,7 @@ func compileContextSafely(ctx context.Context, g *ast.Grammar) (prog *engine.Pro
 			prog, err = nil, fmt.Errorf("internal error while compiling the grammar: %v", x)
 		}
 	}()
-	return engine.CompileContext(ctx, g, engine.Options{})
+	return entry.CompileContext(ctx, g, entry.Options{})
 }
 
 // errorRange returns the range to report an error at pos at: the token at pos, or else the

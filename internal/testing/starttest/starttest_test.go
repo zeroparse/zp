@@ -3,7 +3,7 @@ package starttest_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
@@ -13,7 +13,7 @@ func TestMarkAllSkipsHiddenRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	prog, err := engine.Compile(starttest.MarkAll(g), engine.Options{})
+	prog, err := entry.Compile(starttest.MarkAll(g), entry.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestMarkAllKeepsAttributes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	prog, err := engine.Compile(starttest.MarkAll(g), engine.Options{})
+	prog, err := entry.Compile(starttest.MarkAll(g), entry.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

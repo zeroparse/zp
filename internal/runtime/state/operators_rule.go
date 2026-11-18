@@ -3,9 +3,8 @@ package state
 import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
-	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/internal/runtime/program"
 )
 
 // OperatorsRule is a compiled Operators Rule expression. Binding levels are numbered from 1 in declaration
@@ -20,14 +19,14 @@ type OperatorsRule struct {
 
 // OperatorsRuleLine is an operand line or an operator line. Each has its own capture scope.
 type OperatorsRuleLine struct {
-	Scope *compile.Scope
+	Scope *program.Scope
 	M     Matcher
 	Act   Evaluator // action (nil if none)
 	// Value makes the value of an operand line without an action, and single that of an operator
 	// line's operator, from the value of the line's expression.
 	Value  func(p *Parser, v *core.Node, start int) *core.Node
-	Single compile.SingleMode
-	Shape  compile.Shaper
+	Single program.SingleMode
+	Shape  program.Shaper
 	Entry  int // start of the bytecode (bytecode backend only)
 	// Key is the line's *ast.OperatorsRuleOperand or *ast.OperatorsRuleOperator.
 	Key any
@@ -143,7 +142,7 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	if lhs != nil {
 		start = int(nodes.D(lhs).Start)
 	}
-	if a.Op.Kind == ast.Postfix {
+	if a.Op.Kind == program.OpPostfix {
 		end = a.End
 	}
 	l := a.Op.Line
@@ -153,7 +152,7 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	if !ok {
 		opv = p.NewNode(nodes.Data{Kind: coreimpl.SeqKind, Start: int32(a.Start), End: int32(a.End)})
 	}
-	if l.Single == compile.SingleTuple && len(l.Scope.Names) > 0 {
+	if l.Single == program.SingleTuple && len(l.Scope.Names) > 0 {
 		opv = p.AttachCaptures(opv, l.Scope, a.Frame, a.Start, a.End)
 	}
 	if opv != nil {
@@ -164,11 +163,11 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 		ls := &p.oplocals
 		ls[0] = Local{Name: "op", Val: NodeOrNil(opv)}
 		locals := &ls[0]
-		if a.Op.Kind != ast.Prefix {
+		if a.Op.Kind != program.OpPrefix {
 			ls[1] = Local{Name: "lhs", Val: NodeOrNil(lhs), Next: locals}
 			locals = &ls[1]
 		}
-		if a.Op.Kind != ast.Postfix {
+		if a.Op.Kind != program.OpPostfix {
 			ls[2] = Local{Name: "rhs", Val: NodeOrNil(rhs), Next: locals}
 			locals = &ls[2]
 		}
@@ -184,11 +183,11 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	var kids []*core.Node
 	var fields coreimpl.Fields
 	switch a.Op.Kind {
-	case ast.Prefix:
+	case program.OpPrefix:
 		kids = p.Nodes(2)
 		kids[0], kids[1] = opv, rhs
 		fields = coreimpl.Fields{{Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
-	case ast.Postfix:
+	case program.OpPostfix:
 		kids = p.Nodes(2)
 		kids[0], kids[1] = lhs, opv
 		fields = coreimpl.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}}

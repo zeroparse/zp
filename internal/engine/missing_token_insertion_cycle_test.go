@@ -22,8 +22,8 @@ rule a = "(" #missing a "x" / "y"`
 func TestMissingTokensInsertionOnlyLeftRecursion(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, insertionCycle)
-	if prog.InsertionFlags == nil || prog.ByName["a"].Leader {
-		t.Fatalf("flags: insertion %v, leader without insertion %v", prog.InsertionFlags, prog.ByName["a"].Leader)
+	if prog.Static().InsertionFlags == nil || prog.ByName["a"].Leader {
+		t.Fatalf("flags: insertion %v, leader without insertion %v", prog.Static().InsertionFlags, prog.ByName["a"].Leader)
 	}
 	for input, ok := range map[string]bool{"y": true, "(yx": true, "((yxx": true, "yx": false, "": false} {
 		n, err := prog.ParseWith("main", input, ParseOptions{})

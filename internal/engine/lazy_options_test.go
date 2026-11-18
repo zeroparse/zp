@@ -79,9 +79,9 @@ func TestLazyProgramsCarryEveryOption(t *testing.T) {
 				from, got compile.Options
 				pick      func(lazyOverride) any
 			}{
-				{"controlled graph", prog.Opts, prog.budgetProgram.Opts, func(s lazyOverride) any { return s.controlled }},
-				{"recognizer", prog.Opts, rec.Opts, func(s lazyOverride) any { return s.recognizer }},
-				{"insertion program", withIns.Opts, withIns.ins.Opts, func(s lazyOverride) any { return s.insertion }},
+				{"controlled graph", prog.Static().Opts, prog.budgetProgram.Static().Opts, func(s lazyOverride) any { return s.controlled }},
+				{"recognizer", prog.Static().Opts, rec.Static().Opts, func(s lazyOverride) any { return s.recognizer }},
+				{"insertion program", withIns.Static().Opts, withIns.ins.Static().Opts, func(s lazyOverride) any { return s.insertion }},
 			} {
 				got, want := reflect.ValueOf(c.got), reflect.ValueOf(c.from)
 				for j := 0; j < typ.NumField(); j++ {

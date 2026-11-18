@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
@@ -34,7 +35,7 @@ func testGeneratedNegativeMaximum(t *testing.T) {
 		maximum = -2
 	}
 	g := codegentest.GrammarWithNegativeMaximum(t, `rule main []node[string] = v1:"é"* $$ => $v1.Value`, maximum)
-	p, err := engine.Compile(g, compile.Options{})
+	p, err := entry.Compile(g, compile.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,10 +3,10 @@ package vm
 import (
 	"context"
 	"testing"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/runtime/state"
 )
@@ -34,7 +34,7 @@ func catchStreamPanic(f func()) (val any) { defer func() { val = recover() }(); 
 
 func stateBudgetParser(lim core.Limits) *state.Parser {
 	prog := &state.SharedProgram{}
-	state.InitSharedProgram(prog, compile.NewProgram(nil))
+	state.InitSharedProgram(prog, &program.Program{})
 	return &state.Parser{Prog: prog, Input: state.Input{Control: state.NewBudgetControl(nil, lim)}}
 }
 

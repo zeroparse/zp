@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
@@ -33,16 +34,16 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 	}
 	// The generator and the comparison compile with the engine, as the tests of the generator do.
 	codegentest.Compile = func(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
-		prog, err := engine.Compile(g, opts)
+		prog, err := entry.Compile(g, opts)
 		if err != nil {
 			return nil, nil, err
 		}
-		return prog.Static(), func() (*compile.Program, error) {
+		return entry.Checked(prog), func() (*compile.Program, error) {
 			rec, err := prog.Recognizer()
 			if err != nil {
 				return nil, err
 			}
-			return rec.Static(), nil
+			return entry.Checked(rec), nil
 		}, nil
 	}
 	codegentest.Reference = func(t *testing.T, src string, opts compile.Options) codegentest.ReferenceParse {
@@ -50,7 +51,7 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		prog, err := engine.Compile(g, opts)
+		prog, err := entry.Compile(g, opts)
 		if err != nil {
 			t.Fatal(err)
 		}

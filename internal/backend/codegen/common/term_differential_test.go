@@ -18,6 +18,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
 	"zeroparse.dev/zp/internal/runtime/state"
@@ -65,7 +66,7 @@ func wellTypedCases(t *testing.T, all []codegentest.TermCase) (cases []codegente
 	for _, c := range all {
 		g, err := parseTest(c.Src)
 		if err == nil {
-			_, err = engine.Compile(g, compile.Options{})
+			_, err = entry.Compile(g, compile.Options{})
 		}
 		if err != nil {
 			// The generator makes terms that are well typed by construction: a rejection is a fault of it,
@@ -108,7 +109,7 @@ func TestTermEngineBackends(t *testing.T) {
 		cases, _ := termSeedCases(t, seed, termBackendSeeds, true)
 		for _, c := range cases {
 			g, _ := parseTest(c.Src)
-			prog, err := engine.Compile(g, compile.Options{})
+			prog, err := entry.Compile(g, compile.Options{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -705,7 +706,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 		cases, _ := termSeedCases(t, seed, termProcessSeeds, true)
 		for _, c := range cases {
 			g, _ := parseTest(c.Src)
-			prog, err := engine.Compile(g, compile.Options{})
+			prog, err := entry.Compile(g, compile.Options{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -716,7 +717,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 					w = len(c.Lit)
 				}
 				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == core.Bytes,
-					Start: 0, End: w, Line: 1, Col: 1, Zeros: referenceZeros(t, prog.Static(), "R", "Inner", "Leaf")}
+					Start: 0, End: w, Line: 1, Col: 1, Zeros: referenceZeros(t, entry.Checked(prog), "R", "Inner", "Leaf")}
 				in := c.Lit
 				if c.Kind == codegentest.TermPredicate {
 					in += "b"
@@ -803,7 +804,7 @@ func TestTermFixedReference(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		prog, err := engine.Compile(g, compile.Options{})
+		prog, err := entry.Compile(g, compile.Options{})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -815,7 +816,7 @@ func TestTermFixedReference(t *testing.T) {
 				}
 			}
 		}
-		zeros := referenceZeros(t, prog.Static(), structs...)
+		zeros := referenceZeros(t, entry.Checked(prog), structs...)
 		term := referenceTerm(t, c)
 		recording := []bool{false}
 		if c.Recovers {

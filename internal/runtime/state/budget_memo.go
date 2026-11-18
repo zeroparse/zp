@@ -1,7 +1,5 @@
 package state
 
-import "zeroparse.dev/zp/internal/ir/code/exec"
-
 // rawValueEqual preserves the interface equality of memo keys and bindings.
 // In particular, a typed nil pointer differs from a nil interface. Action
 // ValueEqual has different nil semantics and must not be used for these keys.
@@ -64,12 +62,12 @@ func (p *Parser) current(e *MemoEntry) bool {
 	return e.Seen == p.Gen
 }
 
-// lagged reports whether a lookup treats e as a miss because it lags behind more than exec.PendingEditLimit
+// lagged reports whether a lookup treats e as a miss because it lags behind more than PendingEditLimit
 // edits (AdvanceEntry). A Document drops such an entry where a walk meets it (unlinkLagged): the entries of
 // earlier texts that it retains, and so the work of a walk that compares them, stay bounded by that many
 // edits.
 func (p *Parser) lagged(e *MemoEntry) bool {
-	return !e.Growing && p.Gen-e.Vgen > exec.PendingEditLimit
+	return !e.Growing && p.Gen-e.Vgen > PendingEditLimit
 }
 
 // unlinkLagged removes from the chain at pos, starting at the link, the entries that lag behind (lagged)
@@ -377,3 +375,7 @@ func (p *Parser) memoFirstCall(pos, r int) bool {
 	}
 	return t.firstCall(pos, r)
 }
+
+// PendingEditLimit is the number of edits that a memo entry may lag behind when a lookup finds it
+// (exec.PendingEditLimit, which the generated parsers use).
+const PendingEditLimit = 128

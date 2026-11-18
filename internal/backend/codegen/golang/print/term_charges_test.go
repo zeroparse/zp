@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -33,7 +34,7 @@ func termChargeCases(t *testing.T, all []codegentest.TermCase) []codegentest.Ter
 	for _, c := range all {
 		g, err := parseTest(c.Src)
 		if err == nil {
-			_, err = engine.Compile(g, compile.Options{})
+			_, err = entry.Compile(g, compile.Options{})
 		}
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
@@ -146,7 +147,7 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []co
 	// The engine.
 	for i, c := range terms {
 		g, _ := parseTest(c.Src)
-		prog, err := engine.Compile(g, compile.Options{})
+		prog, err := entry.Compile(g, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
 		}

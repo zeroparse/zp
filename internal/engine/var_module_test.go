@@ -3,6 +3,8 @@ package engine
 import (
 	"fmt"
 	"testing"
+	fcheck "zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
@@ -72,7 +74,7 @@ func TestLoadedVariablesMatch(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := sameVars(loaded.Vars, compile.ModuleVarTable(m)); err != nil {
+				if err := sameVars(loaded.Vars, fcheck.ModuleVarTable(m)); err != nil {
 					t.Fatalf("the loaded variables differ from the module: %v", err)
 				}
 			})
@@ -82,15 +84,15 @@ func TestLoadedVariablesMatch(t *testing.T) {
 
 // sameVars reports the first difference between the variables of two tables: their number, names,
 // types and initial values.
-func sameVars(a, b *compile.VarTable) error {
+func sameVars(a *program.VarTable, b *fcheck.VarTable) error {
 	x, y := a.All(), b.All()
 	if len(x) != len(y) {
 		return fmt.Errorf("%d variables in one table and %d in the other", len(x), len(y))
 	}
 	for i := range x {
-		if x[i].Name != y[i].Name || x[i].Typ != y[i].Typ || x[i].Init != y[i].Init {
-			return fmt.Errorf("variable %s (%s = %v) differs from variable %s (%s = %v)",
-				x[i].Name, x[i].Typ, x[i].Init, y[i].Name, y[i].Typ, y[i].Init)
+		if x[i].Name != y[i].Name || x[i].Init != y[i].Init {
+			return fmt.Errorf("variable %s (= %v) differs from variable %s (%s = %v)",
+				x[i].Name, x[i].Init, y[i].Name, y[i].Typ, y[i].Init)
 		}
 	}
 	return nil

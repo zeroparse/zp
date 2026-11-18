@@ -63,8 +63,8 @@ func checkCompiledRoundTrip(t *testing.T, prog *Program, inputs []string) {
 		if got, ok := loaded.Mode(); !ok || got != mode {
 			t.Errorf("loaded mode %v %v, want %s", got, ok, mode)
 		}
-		if loaded.Grammar != nil || strings.Join(loaded.Rules(), ",") != strings.Join(prog.Rules(), ",") {
-			t.Errorf("%s mode: grammar %v, rules %v", mode, loaded.Grammar, loaded.Rules())
+		if loaded.Static() != nil || strings.Join(loaded.Rules(), ",") != strings.Join(prog.Rules(), ",") {
+			t.Errorf("%s mode: checked program %v, rules %v", mode, loaded.Static() != nil, loaded.Rules())
 		}
 		// Saving the loaded program again produces the same bytes.
 		again, err := loaded.Marshal("main", mode)
@@ -316,8 +316,8 @@ rule pair node[(string)] = [a-z]`
 	if again, err := loaded.MarshalBinary("main"); err != nil || !bytes.Equal(data, again) {
 		t.Errorf("re-marshaled data differs (%v)", err)
 	}
-	if loaded.Grammar != nil || bytes.Contains(data, []byte("node[")) {
-		t.Errorf("compiled grammar keeps the types: grammar %v", loaded.Grammar)
+	if loaded.Static() != nil || bytes.Contains(data, []byte("node[")) {
+		t.Errorf("compiled grammar keeps the types: checked program %v", loaded.Static() != nil)
 	}
 	if grammarTypes(prog) == "" {
 		t.Error("source grammar has no types")
@@ -337,7 +337,7 @@ rule pair node[(string)] = [a-z]`
 // layout, which compiled grammars do not keep.
 func grammarTypes(prog *Program) string {
 	var b strings.Builder
-	for _, s := range prog.Grammar.File.Decls {
+	for _, s := range prog.Static().Grammar.File.Decls {
 		switch s := s.(type) {
 		case ast.TypeDecl:
 			fmt.Fprintf(&b, "type %s", s.DeclName())

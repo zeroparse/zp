@@ -3,9 +3,9 @@ package document
 import (
 	"fmt"
 	"weak"
+	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 )
 
@@ -106,7 +106,7 @@ func (d *Document) ParseWith(o state.ParseOptions) (*core.Node, error) {
 // cleanup boundary. capture uses the same controller as the parser.
 func (d *Document) parseWithCapture(o state.ParseOptions, capture func(*state.Parser, *core.Node, error) error) (n *core.Node, err error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
-		return nil, compile.MissingUnsupported("Document parsing")
+		return nil, program.MissingUnsupported("Document parsing")
 	}
 	if err := state.ValidateStreamDiagnostics(o, false); err != nil {
 		return nil, err

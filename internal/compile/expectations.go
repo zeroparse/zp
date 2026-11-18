@@ -1,27 +1,25 @@
 package compile
 
-import "zeroparse.dev/zp/internal/ir/core"
-
-// ExpID is an expectation (an index into descs). If MsgBit is set, it is an @error message.
-type ExpID int32
-
-// MsgBit marks an ExpID that is an @error message rather than an expectation.
-const MsgBit ExpID = 1 << 30
-
-// ExpFar is the only entry of an expectation record in a parse that does not record
-// expectations. It marks that a failure happened at the position of the record and describes
-// nothing.
-const ExpFar ExpID = 1 << 29
-
-// Expectations placed at the start of descs regardless of backend
-const (
-	IDAny ExpID = iota
-	IDBeginInput
-	IDEndInput
-	IDBeginLine
-	IDEndLine
-	NumFixedDescs
+import (
+	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/runtime/program"
 )
 
-// FixedDescs are the descriptions of the fixed expectations, in ExpID order.
+// ExpID is an expectation (an index into descs); see program.ExpID.
+type ExpID = program.ExpID
+
+// MsgBit, ExpFar and the fixed expectations are those of the run-time program.
+const (
+	MsgBit        = program.MsgBit
+	ExpFar        = program.ExpFar
+	IDAny         = program.IDAny
+	IDBeginInput  = program.IDBeginInput
+	IDEndInput    = program.IDEndInput
+	IDBeginLine   = program.IDBeginLine
+	IDEndLine     = program.IDEndLine
+	NumFixedDescs = program.NumFixedDescs
+)
+
+// FixedDescs are the descriptions of the fixed expectations, in ExpID order: the Core IR's table,
+// which the run-time program's (program.FixedDescs) equals.
 var FixedDescs = core.FixedDescs

@@ -93,8 +93,8 @@ func TestInlineActionsCompiledRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := prog.SourceGrammar(); len(got.Rules()) != len(written.Rules()) || len(prog.Grammar.Rules()) <= len(written.Rules()) {
-				t.Fatalf("the source grammar has %d rules, the lowered grammar %d, the written one %d", len(got.Rules()), len(prog.Grammar.Rules()), len(written.Rules()))
+			if got := prog.SourceGrammar(); len(got.Rules()) != len(written.Rules()) || len(prog.Static().Grammar.Rules()) <= len(written.Rules()) {
+				t.Fatalf("the source grammar has %d rules, the lowered grammar %d, the written one %d", len(got.Rules()), len(prog.Static().Grammar.Rules()), len(written.Rules()))
 			}
 			for _, mode := range valueModes {
 				loaded := saveLoad(t, prog, "main", mode)

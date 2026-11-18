@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
@@ -90,7 +91,7 @@ func TestDocumentLeftRecursionMemberReparseRandom(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if _, err := Compile(g, compile.Options{}); err != nil {
+		if _, err := entry.Compile(g, compile.Options{}); err != nil {
 			continue
 		}
 		compiled++

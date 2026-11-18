@@ -20,7 +20,7 @@ var ErrUnavailable = compile.ErrSchemaUnavailable
 
 // Export exports the schema of the checked program p for the start rule start: the rule, the rules
 // it calls or whose values its values contain, and the struct types they refer to; or every rule
-// and type with allRules. engine.Program.SchemaProgram checks the start rule first.
+// and type with allRules. entry.SchemaProgram checks the start rule first.
 func Export(p *compile.Program, start string, allRules bool) (*schema.Output, error) {
 	if p.Grammar == nil || p.Typed == nil {
 		return nil, ErrUnavailable
