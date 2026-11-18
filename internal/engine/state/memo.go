@@ -228,9 +228,9 @@ func (t *MemoTable) Put(k MemoKey, e *MemoEntry) {
 	t.put(k, e, nil)
 }
 
-// put sets the entry for key k to e, replacing any existing entry for the same key unless join, if
+// put sets the entry for key k to e, replacing any existing entry for the same key unless p, if
 // not nil, keeps that entry (Parser.joinStored), and returns the entry it keeps.
-func (t *MemoTable) put(k MemoKey, e *MemoEntry, join func(x, e *MemoEntry) *MemoEntry) *MemoEntry {
+func (t *MemoTable) put(k MemoKey, e *MemoEntry, p *Parser) *MemoEntry {
 	i := k.Pos - t.Base
 	if i < 0 {
 		return e // discarded position
@@ -256,7 +256,7 @@ func (t *MemoTable) put(k MemoKey, e *MemoEntry, join func(x, e *MemoEntry) *Mem
 	}
 	for n := 0; *link != nil && n < memoScan; link, n = &(*link).Next, n+1 {
 		if x := *link; same(x) {
-			if join != nil && join(x, e) == x {
+			if p != nil && p.joinStored(x, e) == x {
 				return x
 			}
 			setKey(e, k)
@@ -276,7 +276,7 @@ func (t *MemoTable) put(k MemoKey, e *MemoEntry, join func(x, e *MemoEntry) *Mem
 		ix := t.indexAt(k.Pos, t.Slots[i], nil)
 		h, _ := memoKeyHash(int32(k.Rule), int32(k.Min), k.MissingSilent, k.Env)
 		slot, x := ix.probe(h, same)
-		if x != nil && join != nil && join(x, e) == x {
+		if x != nil && p != nil && p.joinStored(x, e) == x {
 			return x
 		}
 		setKey(e, k)
