@@ -3,7 +3,6 @@ package complexity
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/compile"
 )
 
 // ruleFacts are the rule facts that the classifier reads, by rule name. They are the facts of the
@@ -12,7 +11,7 @@ import (
 type ruleFacts struct {
 	// an holds the nullable and always-succeeding rules, the left-recursion cycles and their
 	// leaders, the rules that read positions and the rules whose values can hold a recovered error.
-	an *compile.Analysis
+	an *ruleAnalysis
 	// memo are the rules whose results every parse memoizes (memoized), by name of every rule;
 	// members, the rules of left-recursion cycles that are memoized outside the growths of their
 	// cycle.
@@ -35,9 +34,7 @@ func classifierFacts(g *grammar.Grammar, rules []*grammar.RuleDef, control *canc
 		return nil, err
 	}
 	f := src.Facts
-	an := &compile.Analysis{Control: control, Nullable: map[string]bool{}, Succeeding: map[string]bool{},
-		Leaders: map[string]bool{}, Cyclic: map[string]bool{}, Cycle: map[string]int{},
-		Positional: map[string]bool{}, Recovering: map[string]string{}}
+	an := newRuleAnalysis(control)
 	rf := &ruleFacts{source: src, an: an, memo: map[string]bool{}, members: map[string]bool{}, vars: map[string][]string{},
 		nullable: map[string]bool{}}
 	set := func(m map[string]bool, name string, v bool) {

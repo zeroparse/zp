@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 )
 
-// TestSkipSites checks which repetitions are skip-run sites: each condition of skip_sites.go
+// TestSkipSites checks which repetitions are skip-run sites: each condition of the site analysis (internal/middleend/corepass/sites.go)
 // excludes a repetition that the case beside it, which differs only in that condition, marks.
 func TestSkipSites(t *testing.T) {
 	for _, tc := range []struct {

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
+	"zeroparse.dev/zp/internal/frontend"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -294,7 +295,7 @@ func build(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 
 func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, control *cancel.Control) (*Program, error) {
 	names := desugar.InlineNames{}
-	prog, err := compile.Check(g, opts, flags, names, control)
+	prog, err := frontend.Check(g, opts, flags, names, control)
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}

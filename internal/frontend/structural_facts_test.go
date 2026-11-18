@@ -11,7 +11,6 @@ import (
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/middleend/corepass"
-	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
@@ -42,13 +41,13 @@ func TestStructuralInputFacts(t *testing.T) {
 // number of rules on a left-recursion cycle it saw.
 func structuralInputFacts(t *testing.T, path string) int {
 	cyclic := 0
-	g, err := compiletest.Parse(factstest.Read(t, path))
+	g, err := parseMarked(factstest.Read(t, path))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, opts := range []compile.Options{{}, {Recognition: compile.RecognizeKeepStreamValues}, {NoProjections: true}, {DefaultValue: true}} {
 		name := fmt.Sprintf("%+v", opts)
-		prog, err := compiletest.Compile(g, opts)
+		prog, err := compileGrammar(g, opts)
 		if err != nil {
 			continue
 		}

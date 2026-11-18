@@ -9,7 +9,7 @@ import (
 )
 
 // Scan sites: the records of the walks of the single-character repetitions in pure rules
-// (compile/scan_sites.go; see "Scan Sites" in spec/runtime/parsing.md).
+// (middleend/corepass/sites.go; see "Scan Sites" in spec/runtime/parsing.md).
 //
 // The walk of a scan site from a position ends at a position and examines input up to a position that
 // depend on the position and the input alone. A scan site keeps at most one record for each walk, at

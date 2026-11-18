@@ -5,12 +5,13 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // TestRunSitesNeedRecordedReach checks that a repetition is no run site when its element or a rule
 // that its element calls holds a repetition without an upper bound that keeps no records, and that
 // repetitions of a single character, skip-run sites and other run sites do not count; without the
-// condition (NoRecordedReach), the negative control, the first grammars have a site.
+// condition (corepass.NoRecordedReach), the negative control, the first grammars have a site.
 func TestRunSitesNeedRecordedReach(t *testing.T) {
 	const head = "@start\nrule main = (x \"!\" / [a-z;!,])* $$\n"
 	for _, tc := range []struct {
@@ -24,7 +25,7 @@ func TestRunSitesNeedRecordedReach(t *testing.T) {
 		{"nested run sites", head + "rule x = (y \";\")*\nrule y = (\"ab\" \",\"?)*\n", 2, 2},
 	} {
 		for _, without := range []bool{false, true} {
-			NoRecordedReach = without
+			corepass.NoRecordedReach = without
 			g, err := parser.Parse(tc.src)
 			if err != nil {
 				t.Fatalf("%s: %v", tc.name, err)
@@ -42,5 +43,5 @@ func TestRunSitesNeedRecordedReach(t *testing.T) {
 			}
 		}
 	}
-	NoRecordedReach = false
+	corepass.NoRecordedReach = false
 }

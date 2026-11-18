@@ -15,6 +15,9 @@ var allowlist = []string{
 	"rule 1: internal/engine -> internal/compile",
 	"rule 1: internal/engine -> internal/analysis/complexity",
 	"rule 1: internal/engine -> internal/frontend/desugar",
+	// The runtime checks a grammar through the front end's entry (frontend.Check), which takes
+	// the rule facts and the site numbers from the Core IR; S5 moves it to the driver with the rest.
+	"rule 1: internal/engine -> internal/frontend",
 	"rule 1: internal/engine -> internal/diagnostic",
 	"rule 1: internal/engine -> internal/engine/closure",
 	"rule 1: internal/engine -> internal/ir/core",

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 	"testing/iotest"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -366,7 +367,7 @@ rule r = [ab] #repeat(5000000000,)`,
 // compileWithoutScanSites compiles src with the marking of scan sites off (see compileWithout).
 func compileWithoutScanSites(t *testing.T, src string) *Program {
 	t.Helper()
-	return compileWithout(t, src, &compile.NoScanSites)
+	return compileWithout(t, src, &corepass.NoScanSites)
 }
 
 // compileWithout compiles src with the marking switched off by the flag. A parse under a limit builds

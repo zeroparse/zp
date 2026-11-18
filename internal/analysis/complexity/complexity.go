@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/check"
 
 	"zeroparse.dev/zp/grammar"
@@ -178,7 +179,7 @@ func GrowingBindingsControlled(g *grammar.Grammar, start string, control *cancel
 func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames) {
 	control.Check()
 	names := desugar.InlineNames{}
-	prog, err := compile.Check(g, compile.Options{}, nil, names, control)
+	prog, err := frontend.Check(g, compile.Options{}, nil, names, control)
 	if err != nil {
 		return nil, nil
 	}
@@ -299,7 +300,7 @@ type classifier struct {
 	rules   []*grammar.RuleDef
 	byName  map[string]*grammar.RuleDef
 	start   string
-	an      *compile.Analysis
+	an      *ruleAnalysis
 	facts   *ruleFacts         // the rule facts of the grammar, of which an is part
 	types   *check.ValueRecord // the value types of the terms, or nil if they are unknown
 	// combinations is the product of the sizes of the value sets of the variables with finite
@@ -424,7 +425,7 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, rf *rul
 	for _, r := range rules {
 		k.calls[r.Name] = compile.AllCallsControlled(r.Expr, nil, control)
 	}
-	for i, comp := range compile.Tarjan(rules, k.calls, control) {
+	for i, comp := range tarjan(rules, k.calls, control) {
 		for _, n := range comp {
 			k.scc[n] = i
 			if len(comp) > 1 || slices.Contains(k.calls[n], n) {

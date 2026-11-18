@@ -5,6 +5,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 )
 
 // scanOnly reports whether a call of the rule name pays at most a constant when it is evaluated
@@ -36,7 +37,7 @@ func (k *classifier) computeScanOnly() {
 }
 
 func (k *classifier) scanOnlyRule(name string) bool {
-	if compile.NoScanSites || compile.NoRunSites {
+	if corepass.NoScanSites || corepass.NoRunSites {
 		return false
 	}
 	var def *grammar.RuleDef
@@ -61,12 +62,12 @@ func (k *classifier) scanOnlyRule(name string) bool {
 			ok = ok && !check.IsStream(x)
 		}
 	}, k.control.Poll)
-	compile.ScanSiteRepeats(def.Expr, k.control, func(_ *grammar.Repeat, site bool) { ok = ok && site })
+	scanSiteRepeats(def.Expr, k.control, func(_ *grammar.Repeat, site bool) { ok = ok && site })
 	if !ok {
 		return false
 	}
 	for _, s := range k.walked[name] {
-		if (s.scan == nil || k.srcExprs[s.scan]) && (s.scan == nil || !compile.IsScan(s.scan)) {
+		if (s.scan == nil || k.srcExprs[s.scan]) && (s.scan == nil || !isScan(s.scan)) {
 			return false
 		}
 	}

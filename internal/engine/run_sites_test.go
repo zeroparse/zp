@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -54,7 +55,7 @@ func runSitesMatchPlainRepetitions(t *testing.T) {
 		if prog.NumRunSites == 0 {
 			t.Errorf("%s: no run sites", g.Name)
 		}
-		plain := compileWithout(t, g.Src, &compile.NoRunSites)
+		plain := compileWithout(t, g.Src, &corepass.NoRunSites)
 		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rng), codegentest.RunValueInputs[g.Name]...)
 		turns := state.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -85,7 +86,7 @@ func TestRunSitesOfLoadedPrograms(t *testing.T) { atHotSpans(t, runSitesOfLoaded
 func runSitesOfLoadedPrograms(t *testing.T) {
 	rng := rand.New(rand.NewSource(115))
 	for _, g := range codegentest.RunValueGrammars {
-		plain := compileWithout(t, g.Src, &compile.NoRunSites)
+		plain := compileWithout(t, g.Src, &corepass.NoRunSites)
 		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rng), codegentest.RunValueInputs[g.Name]...)
 		turns := state.RunHotTurns.Load()
 		for _, mode := range []CompiledMode{CompiledParse, CompiledDocument} {
@@ -233,7 +234,7 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.Src)
-		plain := compileWithout(t, c.Src, &compile.NoRunSites)
+		plain := compileWithout(t, c.Src, &corepass.NoRunSites)
 		// A loaded program keeps which sites are free of the environment.
 		data, err := prog.Marshal("", CompiledParse)
 		if err != nil {
@@ -293,21 +294,21 @@ func TestRunSitesNegativeControls(t *testing.T) {
 	// The sites that the compiler keys by the environment must be keyed by it: a program compiled
 	// with every site free of it, or with the variables of called rules left out, gives other
 	// results than a parse without records.
-	defer func() { compile.EnvFreeMutation = 0 }()
+	defer func() { corepass.EnvFreeMutation = 0 }()
 	for _, tc := range []struct {
 		mutation int
 		grammar  string
 	}{
-		{compile.EnvFreeAll, "two environments at one position"},
-		{compile.EnvFreeAll, "bindings that a record restores"},
-		{compile.EnvFreeCalleesIgnore, "a called rule that reads a variable"},
+		{corepass.EnvFreeAll, "two environments at one position"},
+		{corepass.EnvFreeAll, "bindings that a record restores"},
+		{corepass.EnvFreeCalleesIgnore, "a called rule that reads a variable"},
 	} {
 		for _, g := range codegentest.RunValueGrammars {
 			if g.Name != tc.grammar {
 				continue
 			}
 			// (The mutation stays on while the backends build their programs.)
-			compile.EnvFreeMutation = tc.mutation
+			corepass.EnvFreeMutation = tc.mutation
 			prog := mustCompile(t, g.Src)
 			inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(114))), codegentest.RunValueInputs[g.Name]...)
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -315,17 +316,17 @@ func TestRunSitesNegativeControls(t *testing.T) {
 					t.Errorf("compile mutation %d, %s: no difference on the inputs of %s", tc.mutation, b, g.Name)
 				}
 			}
-			compile.EnvFreeMutation = 0
+			corepass.EnvFreeMutation = 0
 		}
 	}
 	// The variables that the called rules read key the records of a site whose own predicates keep
 	// it from being free: a program that leaves them out of the key gives other results.
-	defer func() { compile.RunKeyMutation = 0 }()
+	defer func() { corepass.RunKeyMutation = 0 }()
 	for _, g := range codegentest.RunValueGrammars {
 		if g.Name != "a binding and a called rule that reads" {
 			continue
 		}
-		compile.RunKeyMutation = compile.RunKeyNoCallees
+		corepass.RunKeyMutation = corepass.RunKeyNoCallees
 		prog := mustCompile(t, g.Src)
 		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(116))), codegentest.RunValueInputs[g.Name]...)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -333,7 +334,7 @@ func TestRunSitesNegativeControls(t *testing.T) {
 				t.Errorf("run key mutation, %s: no difference on the inputs of %s", b, g.Name)
 			}
 		}
-		compile.RunKeyMutation = 0
+		corepass.RunKeyMutation = 0
 	}
 }
 
@@ -384,7 +385,7 @@ func TestRunSitesTurnHotAtTheEngineThreshold(t *testing.T) {
 	in := strings.Repeat("x", 300) + "z" + strings.Repeat("x", 200) + "!"
 	for _, g := range append(codegentest.RunSiteGrammars[:2:2], codegentest.RunValueGrammars[0]) {
 		prog := mustCompile(t, g.Src)
-		plain := compileWithout(t, g.Src, &compile.NoRunSites)
+		plain := compileWithout(t, g.Src, &corepass.NoRunSites)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, exp := range []bool{true, false} {
 				o := ParseOptions{Backend: b, Expectations: exp}
@@ -408,7 +409,7 @@ func TestRunSitesDepthLimit(t *testing.T) {
 	src := "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n"
 	in := strings.Repeat("(", 300)
 	prog := mustCompile(t, src)
-	plain := compileWithout(t, src, &compile.NoRunSites)
+	plain := compileWithout(t, src, &corepass.NoRunSites)
 	turns := state.RunHotTurns.Load()
 	for _, depth := range []int{2, 5, 50, 299, 300, 301, 1000} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {

@@ -6,11 +6,12 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	corebuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
@@ -78,7 +79,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify"} {
+	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "site-numbering", "type-checking", "type-inference", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify"} {
 		t.Run(phase, func(t *testing.T) {
 			ctx := compileTestContext(t, 1)
 			control := &cancel.Control{Ctx: ctx}
@@ -91,7 +92,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 			}()
 			switch phase {
 			case "static-analysis":
-				compile.AnalyzeControlled(g.Rules(), control)
+				corepass.Compute(structuralModule(t, g), control)
 			case "success-proof", "failure-proof", "cut-proof":
 				items := make([]grammar.Expr, 1024)
 				for i := range items {
@@ -108,14 +109,9 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				}
 				// Only the shared proof traversal can reach the first context
 				// checkpoint; no outer analysis loop contributes polling here.
-				a := &compile.Analysis{Control: control}
-				a.AlwaysSucceeds(expr)
-			case "dependency-graph":
-				edges := map[string][]string{}
-				for _, rd := range g.Rules() {
-					edges[rd.Name] = compile.AllCalls(rd.Expr, nil)
-				}
-				compile.Tarjan(g.Rules(), edges, control)
+				astfacts.AlwaysSucceedsWithPoll(expr, nil, control.Poll)
+			case "site-numbering":
+				corepass.ComputeSites(structuralModule(t, g), make([]corepass.SiteRule, len(g.Rules())), control)
 			case "type-checking":
 				var diagnostics diagnostic.ErrorList
 				compile.CheckTypesControlled(p.Static(), &diagnostics, control)
@@ -211,4 +207,15 @@ func TestCompileContextOrdinaryParity(t *testing.T) {
 			t.Fatal("parse value mismatch")
 		}
 	}
+}
+
+// structuralModule returns the untyped Core IR module of the rules of g, from which the front end
+// takes the rule facts and the site numbers.
+func structuralModule(t *testing.T, g *grammar.Grammar) *ir.Module {
+	t.Helper()
+	m, err := corebuild.Structural(compile.StructuralInput(g, g.Rules(), nil), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return m
 }

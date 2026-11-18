@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"zeroparse.dev/zp/internal/frontend"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
@@ -352,7 +353,7 @@ func compileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Pro
 // inline actions in errors as written.
 func check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) (*compile.Program, error) {
 	names := desugar.InlineNames{}
-	prog, err := compile.Check(g, opts, flags, names, nil)
+	prog, err := frontend.Check(g, opts, flags, names, nil)
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}

@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
@@ -236,8 +236,8 @@ func TestNestingGrowths(t *testing.T) {
 // withoutScanSites makes the test compile and classify without scan sites, as if the repetitions
 // of its grammars were scanning sources that no record answers.
 func withoutScanSites(t *testing.T) {
-	compile.NoScanSites = true
-	t.Cleanup(func() { compile.NoScanSites = false })
+	corepass.NoScanSites = true
+	t.Cleanup(func() { corepass.NoScanSites = false })
 }
 
 // scanOnlyNestingRejected are the grammars of nestingRestarts and nestingGrowths that stay rejected
