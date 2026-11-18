@@ -119,7 +119,7 @@ func runTSAgreeProbes(t *testing.T, node string, cases []codegentest.Case) []agr
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true, Observability: true, Document: true})
+		code, err := codegentest.GenerateTSBundle(g, codegentest.MutantOptions(codegen.GenOptions{Start: "main", Recognize: true, Observability: true, Document: true}))
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
