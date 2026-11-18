@@ -185,7 +185,7 @@ func (l *lowerer) opTyped(x any, args []code.Expr, types, results []code.Type) *
 		l.shapes[key] = name
 		l.m.AddOp(&code.Op{Name: name, Component: Component, Params: params, Results: results,
 			Reads: []string{Component, Pos, Cut}, Writes: []string{Component, Pos, Cut},
-			NoReturn: true, Transitional: true, Imm: "the Flow IR primitive",
+			NoReturn: true, Kind: code.OpTransitional, Imm: "the Flow IR primitive",
 			Contract: "Does what the Flow IR primitive " + strings.TrimPrefix(kind, "flow.") + " in Imm does."})
 	}
 	return &code.Call{Callee: name, Args: args, Imm: x}

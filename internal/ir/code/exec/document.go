@@ -48,7 +48,7 @@ func documentMove(m *code.Module) {
 	entry := code.THandle(Entry)
 	m.AddOp(&code.Op{Name: "doc.move", Component: Memo, Params: []code.Param{code.P("e", entry)},
 		Results: []code.Type{code.TBool}, Reads: []string{Memo, Host}, Writes: []string{Memo},
-		Features: []string{Document}, Host: true, NoReturn: true,
+		Features: []string{Document}, Kind: code.OpHost, NoReturn: true,
 		Cost: code.Cost{Terms: []code.CostTerm{{Coef: 2, Quantity: QMoved}, {Coef: 1, Quantity: QMoveEdits}}},
 		Contract: `Makes the value of entry e valid at the position of e, after memo.splice moved e: moves the
 positions in the value by as much as the edits moved e since the value was made. A target that may
@@ -73,7 +73,7 @@ func documentEdits(m *code.Module) {
 	entry := code.THandle(Entry)
 	log := m.AddHandle(EditLog, Memo, "The edits of a Document, in order.")
 	host := func(o *code.Op) {
-		o.Host = true
+		o.Kind = code.OpHost
 		o.Features = []string{Document}
 		m.AddOp(o)
 	}
@@ -119,7 +119,7 @@ resume, the positions, the examined input, the value and the expectations of its
 	elem := m.AddHandle(RunElem, Runs, "An element of an old run that the parse reuses, or none.")
 	site := m.AddHandle(Site, Runs, "A repetition that a Document parse can resume.")
 	host := func(o *code.Op) {
-		o.Host = true
+		o.Kind = code.OpHost
 		o.Component = Runs
 		o.Reads = []string{Runs}
 		o.Writes = []string{Runs}

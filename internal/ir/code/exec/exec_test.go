@@ -77,7 +77,7 @@ func TestTermCodeGolden(t *testing.T) {
 		t.Fatalf("handle Term = %+v, want code of an Act with a Datum and a Fail", h)
 	}
 	for _, o := range m.Ops {
-		if o.Name == "term.ctx" && (!o.Host || o.Transitional || o.NoReturn || len(o.Cost.Terms) != 0 || o.Cost.Const != 0) {
+		if o.Name == "term.ctx" && (o.Kind != code.OpHost || o.NoReturn || len(o.Cost.Terms) != 0 || o.Cost.Const != 0) {
 			t.Errorf("term.ctx = %+v, want a host operation that charges nothing and does not end the parse", o)
 		}
 	}

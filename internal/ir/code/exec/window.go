@@ -13,7 +13,7 @@ elements of the #stream repetition, the recovered errors delivered so far, and t
 delivered elements held.`)
 	stream := []string{Stream}
 	host := func(o *code.Op) {
-		o.Host = true
+		o.Kind = code.OpHost
 		m.AddOp(o)
 	}
 	host(&code.Op{Name: "stream.emits", Component: Win, Results: []code.Type{code.TBool}, Reads: []string{Win},

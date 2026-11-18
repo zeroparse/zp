@@ -25,7 +25,10 @@
 // conformance cases against reference models and bound implementations.
 package code
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 // Kind is the kind of a Type.
 type Kind uint8
@@ -86,6 +89,13 @@ func (t Type) integer() bool { return t.Kind >= KInt && t.Kind <= KU64 }
 // Module is a parser VM declaration with its compositions.
 type Module struct {
 	Name string
+	// Stage names the stage of Code IR that the module is at ("flow", "exec"), or is empty for a
+	// module of no stage (the declarations of a dialect, a conformance case). Dialects are the
+	// dialects whose operations are legal at the stage: Verify rejects a module of a stage that
+	// declares an operation of another dialect, so that a conversion's postcondition (no operation
+	// of the dialect it converts from remains) is checked by verifying its result.
+	Stage    string
+	Dialects []string
 	// Features are the boolean constants that a function can be specialized for (budget,
 	// document, ...).
 	Features   []string
@@ -141,9 +151,9 @@ type Op struct {
 	Params    []Param
 	Results   []Type
 	// Reads and Writes are the components and registers the operation reads and writes. An operation
-	// may write only its own component and registers; a transitional one, which stands for a runtime
-	// function that does the work of several components until its mechanism migrates, may write
-	// theirs too, so that passes see every state it changes.
+	// may write only its own component and registers; a transitional or primitive one, which stands
+	// for the work of several components of the runtime, may write theirs too, so that passes see
+	// every state it changes.
 	Reads, Writes []string
 	// Features are the features the operation exists in; a function may call it only if it is
 	// specialized for all of them. Empty means every build.
@@ -159,21 +169,44 @@ type Op struct {
 	Cost Cost
 	// Laws are facts about the operation that passes may use.
 	Laws []string
-	// Transitional reports an operation that stands for an existing runtime function with its
-	// current behavior and no conformance cases, until its mechanism migrates.
-	Transitional bool
-	// Host reports an operation that has a contract and a cost bound but no reference model,
-	// because its effect lies outside the parser VM's state or is not observable in the parse
-	// result: input buffers, memory the parse lets go of, callbacks and cancellation. It has no
-	// conformance cases; the bound is checked against the target's charges. An operation is not
-	// both Host and Transitional.
-	Host bool
+	// Kind is how the operation's behavior is specified and checked.
+	Kind OpKind
+	// Dialect is the dialect that declares the operation ("flow", "action", "exec"), or empty for an
+	// operation that a module declares for itself (a conformance case's helpers). A module of a
+	// stage (Module.Stage) declares only operations of the dialects legal at it.
+	Dialect string
 	// Imm describes the immediate operand of the operation, a static datum of the call that is not
-	// a value of Exec IR (a literal, a character class, an expectation, a term of the grammar), or
+	// a value of Code IR (a literal, a character class, an expectation, a term of the grammar), or
 	// is empty when the operation takes none. A call of the operation holds it in Call.Imm, which
 	// backends read and passes keep.
 	Imm string
+	// ImmType, if not nil, is the Go type of the immediate operand: Verify checks that Call.Imm has
+	// it (or implements it, for an interface type).
+	ImmType reflect.Type
 }
+
+// OpKind is how the behavior of an operation is specified and checked.
+type OpKind uint8
+
+const (
+	// OpModeled is an operation with a reference model and conformance cases.
+	OpModeled OpKind = iota
+	// OpHost is an operation with a contract and a cost bound but no reference model, because its
+	// effect lies outside the abstract machine's state or is not observable in the parse result:
+	// input buffers, memory the parse lets go of, callbacks and cancellation. It has no conformance
+	// cases; the bound is checked against the target's charges.
+	OpHost
+	// OpPrimitive is a leaf of grammar code that each target prints in place, in its own form: it
+	// has a contract and a cost bound, and the conformance and printed tests bind it per target.
+	OpPrimitive
+	// OpTransitional is an operation that stands for an existing runtime function with its current
+	// behavior and no conformance cases, until its mechanism migrates.
+	OpTransitional
+)
+
+var opKindNames = [...]string{"op", "host op", "primitive op", "transitional op"}
+
+func (k OpKind) String() string { return opKindNames[k] }
 
 // Cost bounds the units of budget that one call of an operation charges: at most Const plus, for
 // each term, Coef times the value of its Quantity. A quantity is an abstract measure of the state
@@ -216,6 +249,9 @@ type Func struct {
 	// NoInline asks backends that can to keep the function out of its callers' bodies, so that a
 	// caller's guard stays small enough to inline and the function runs only when the guard fails.
 	NoInline bool
+	// Attrs holds the attributes that a dialect gives the function (the Flow dialect's function
+	// attributes); the base keeps them and does not read them.
+	Attrs any
 }
 
 // Stmt is a statement.

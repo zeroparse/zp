@@ -102,14 +102,7 @@ func results(ts []Type) string {
 }
 
 func (p *printer) op(o *Op) {
-	kind := "op"
-	switch {
-	case o.Transitional:
-		kind = "transitional op"
-	case o.Host:
-		kind = "host op"
-	}
-	p.line(0, "%s %s(%s)%s", kind, o.Name, params(o.Params), results(o.Results))
+	p.line(0, "%s %s(%s)%s", o.Kind, o.Name, params(o.Params), results(o.Results))
 	p.line(1, "component %s", o.Component)
 	if len(o.Reads) > 0 {
 		p.line(1, "reads %s", strings.Join(o.Reads, ", "))
