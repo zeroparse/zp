@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // applyRewrite applies r to src, whose characters are all single bytes.
 func applyRewrite(src string, r Rewrite) string {
 	lines := strings.SplitAfter(src, "\n")
-	offset := func(p grammar.Pos) int {
+	offset := func(p ast.Pos) int {
 		n := 0
 		for _, l := range lines[:p.Line-1] {
 			n += len(l)
@@ -81,19 +81,19 @@ func TestRewrites(t *testing.T) {
 }
 
 func TestSameCodePoints(t *testing.T) {
-	r := func(lo, hi rune) grammar.CharRange { return grammar.CharRange{Lo: lo, Hi: hi} }
+	r := func(lo, hi rune) ast.CharRange { return ast.CharRange{Lo: lo, Hi: hi} }
 	for _, tc := range []struct {
 		name string
-		x, y []grammar.CharRange
+		x, y []ast.CharRange
 		want bool
 	}{
-		{"merged overlap", []grammar.CharRange{r('a', 'c'), r('b', 'z')}, []grammar.CharRange{r('a', 'z')}, true},
-		{"adjacent ranges", []grammar.CharRange{r('a', 'c'), r('d', 'f')}, []grammar.CharRange{r('a', 'f')}, true},
-		{"a gap closed", []grammar.CharRange{r('a', 'c'), r('e', 'f')}, []grammar.CharRange{r('a', 'f')}, false},
-		{"a range cut short", []grammar.CharRange{r('a', 'z')}, []grammar.CharRange{r('a', 'y')}, false},
-		{"a range grown", []grammar.CharRange{r('b', 'y')}, []grammar.CharRange{r('a', 'y')}, false},
-		{"a hole inside", []grammar.CharRange{r('a', 'z')}, []grammar.CharRange{r('a', 'f'), r('h', 'z')}, false},
-		{"a single code point added", []grammar.CharRange{r('a', 'c')}, []grammar.CharRange{r('a', 'c'), r('x', 'x')}, false},
+		{"merged overlap", []ast.CharRange{r('a', 'c'), r('b', 'z')}, []ast.CharRange{r('a', 'z')}, true},
+		{"adjacent ranges", []ast.CharRange{r('a', 'c'), r('d', 'f')}, []ast.CharRange{r('a', 'f')}, true},
+		{"a gap closed", []ast.CharRange{r('a', 'c'), r('e', 'f')}, []ast.CharRange{r('a', 'f')}, false},
+		{"a range cut short", []ast.CharRange{r('a', 'z')}, []ast.CharRange{r('a', 'y')}, false},
+		{"a range grown", []ast.CharRange{r('b', 'y')}, []ast.CharRange{r('a', 'y')}, false},
+		{"a hole inside", []ast.CharRange{r('a', 'z')}, []ast.CharRange{r('a', 'f'), r('h', 'z')}, false},
+		{"a single code point added", []ast.CharRange{r('a', 'c')}, []ast.CharRange{r('a', 'c'), r('x', 'x')}, false},
 	} {
 		if got := sameCodePoints(tc.x, tc.y, nil); got != tc.want {
 			t.Errorf("%s: %v, want %v", tc.name, got, tc.want)

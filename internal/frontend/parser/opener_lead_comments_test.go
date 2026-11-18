@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The comments on the line of an opening brace lead the first item, as if they were on lines
@@ -15,8 +15,8 @@ func TestCommentsAfterAnOpeningBraceLeadTheFirstItem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fields := func(i int) []*grammar.Field {
-		return g.File.Decls[i].(*grammar.TypeDef).Type.(*grammar.StructType).Fields
+	fields := func(i int) []*ast.Field {
+		return g.File.Decls[i].(*ast.TypeDef).Type.(*ast.StructType).Fields
 	}
 	a := fields(0)[0]
 	if a.LeadingComments != " c\n" || !slices.Equal(a.LeadingDetachedComments, []string{"a", "b"}) || len(a.TrailingComments) != 0 {
@@ -47,15 +47,15 @@ func TestCommentsAfterAnOpeningBraceFormatAndJSON(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			data, err := grammar.MarshalJSON(g)
+			data, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			back, err := grammar.UnmarshalJSON(data)
+			back, err := ast.UnmarshalJSON(data)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := grammar.Format(back); got != c.wantJSON {
+			if got := ast.Format(back); got != c.wantJSON {
 				t.Fatalf("formatted JSON:\n%q\nwant:\n%q", got, c.wantJSON)
 			}
 			if n := strings.Count(c.src, "//") + strings.Count(c.src, "/*"); n != strings.Count(c.wantJSON, "//")+strings.Count(c.wantJSON, "/*") {

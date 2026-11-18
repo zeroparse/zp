@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestRawInvalidASTLiterals(t *testing.T) {
@@ -26,7 +26,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 				}
 				// Share the raw string with an action constant/string-table entry. VM
 				// preparation must normalize matching data without changing action values.
-				g.Rules()[0].Action.(*grammar.New).Fields[1].Value.(*grammar.StringLit).Value = raw
+				g.Rules()[0].Action.(*ast.New).Fields[1].Value.(*ast.StringLit).Value = raw
 				p, err := Compile(g, compile.Options{})
 				if err != nil {
 					t.Fatal(err)
@@ -36,7 +36,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 				}
 				canonical := mustParse(src)
 				codegentest.ReplaceFirstLiteral(canonical.Rules()[0].Expr, string([]rune(raw)))
-				canonical.Rules()[0].Action.(*grammar.New).Fields[1].Value.(*grammar.StringLit).Value = raw
+				canonical.Rules()[0].Action.(*ast.New).Fields[1].Value.(*ast.StringLit).Value = raw
 				want, err := Compile(canonical, compile.Options{})
 				if err != nil {
 					t.Fatal(err)

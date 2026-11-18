@@ -5,50 +5,50 @@ import (
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // markMissingRules records transitive insertion dependencies before matchers or
 // value-free twins are compiled. Unrelated rules retain completed memo reuse.
 func (prog *Program) markMissingRules(control *cancel.Control) {
-	var usesMissingType func(grammar.TypeExpr) bool
-	usesMissingType = func(t grammar.TypeExpr) bool {
+	var usesMissingType func(ast.TypeExpr) bool
+	usesMissingType = func(t ast.TypeExpr) bool {
 		control.Poll()
 		switch t := t.(type) {
-		case *grammar.TypeRef:
+		case *ast.TypeRef:
 			return t.Name == coreimpl.TypeMissing
-		case *grammar.ListType:
+		case *ast.ListType:
 			return usesMissingType(t.Elem)
-		case *grammar.OptionalType:
+		case *ast.OptionalType:
 			return usesMissingType(t.Elem)
-		case *grammar.TypeGroup:
+		case *ast.TypeGroup:
 			return usesMissingType(t.Type)
-		case *grammar.JoinType:
+		case *ast.JoinType:
 			for _, t := range t.Types {
 				if usesMissingType(t) {
 					return true
 				}
 			}
-		case *grammar.MeetType:
+		case *ast.MeetType:
 			for _, t := range t.Types {
 				if usesMissingType(t) {
 					return true
 				}
 			}
-		case *grammar.TupleType:
+		case *ast.TupleType:
 			for _, t := range t.Types {
 				if usesMissingType(t) {
 					return true
 				}
 			}
-		case *grammar.TypeApp:
+		case *ast.TypeApp:
 			for _, t := range t.Args {
 				if usesMissingType(t) {
 					return true
 				}
 			}
-		case *grammar.StructType:
+		case *ast.StructType:
 			for _, f := range t.Fields {
 				if usesMissingType(f.Type) {
 					return true
@@ -59,13 +59,13 @@ func (prog *Program) markMissingRules(control *cancel.Control) {
 	}
 	for _, td := range control.Types(prog.Grammar) {
 		switch t := td.(type) {
-		case *grammar.TypeDef:
+		case *ast.TypeDef:
 			for _, f := range check.DefFields(t) {
 				if usesMissingType(f.Type) {
 					prog.HasMissing = true
 				}
 			}
-		case *grammar.TypeAlias:
+		case *ast.TypeAlias:
 			if usesMissingType(t.Type) {
 				prog.HasMissing = true
 			}
@@ -76,17 +76,17 @@ func (prog *Program) markMissingRules(control *cancel.Control) {
 		if usesMissingType(r.Def.Type) {
 			prog.HasMissing = true
 		}
-		walkExprControlled(r.Def.Expr, func(e grammar.Expr) {
+		walkExprControlled(r.Def.Expr, func(e ast.Expr) {
 			control.Poll()
 			switch e := e.(type) {
-			case *grammar.Attributed:
+			case *ast.Attributed:
 				for _, a := range e.Attrs {
 					if a.Name == "missing" {
 						r.Missing = true
 						prog.HasMissing = true
 					}
 				}
-			case *grammar.Ref:
+			case *ast.Ref:
 				refs[r] = append(refs[r], e.Name)
 			}
 		}, control)

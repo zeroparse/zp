@@ -1,6 +1,6 @@
 package complexity
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // leftMode says what may come before a left call of the unit that starts with it: in leftExamine,
 // nothing that examines the input, and in leftConsume, nothing that consumes input.
@@ -17,14 +17,14 @@ const (
 // consuming input; for leftConsume also parts that can match without consuming input, as an
 // option does, and lookaheads. The decision errs toward the call: a part that might go on
 // without examining or consuming input is looked through.
-func (k *classifier) startsWithLeftCall(rule string, e grammar.Expr, mode leftMode) bool {
+func (k *classifier) startsWithLeftCall(rule string, e ast.Expr, mode leftMode) bool {
 	found, _ := k.leftScan(rule, e, mode, 0)
 	return found
 }
 
 // leftScan returns whether e can evaluate such a call, and whether e can complete before it
 // examines (leftExamine) or consumes (leftConsume) input, so that what follows e is reached too.
-func (k *classifier) leftScan(rule string, e grammar.Expr, mode leftMode, depth int) (found, through bool) {
+func (k *classifier) leftScan(rule string, e ast.Expr, mode leftMode, depth int) (found, through bool) {
 	k.control.Poll()
 	if depth > 64 {
 		return false, false
@@ -32,22 +32,22 @@ func (k *classifier) leftScan(rule string, e grammar.Expr, mode leftMode, depth 
 	switch e := e.(type) {
 	case nil:
 		return false, true
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.an.Cyclic[e.Name] && k.sameCycle(rule, e.Name) && e.Level == "" {
 			return true, false
 		}
 		return false, k.passesBefore(e, mode)
-	case *grammar.Group:
+	case *ast.Group:
 		return k.leftScan(rule, e.Expr, mode, depth+1)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.leftScan(rule, e.Expr, mode, depth+1)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.leftScan(rule, e.Expr, mode, depth+1)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.leftScan(rule, e.Expr, mode, depth+1)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return k.leftScan(rule, e.Expr, mode, depth+1)
-	case *grammar.Seq:
+	case *ast.Seq:
 		through = true
 		for _, it := range e.Items {
 			f, t := k.leftScan(rule, it, mode, depth+1)
@@ -57,24 +57,24 @@ func (k *classifier) leftScan(rule string, e grammar.Expr, mode leftMode, depth 
 			}
 		}
 		return found, through
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			f, t := k.leftScan(rule, alt, mode, depth+1)
 			found, through = found || f, through || t
 		}
 		return found, through
-	case *grammar.Optional:
+	case *ast.Optional:
 		f, _ := k.leftScan(rule, e.Expr, mode, depth+1)
 		return f, mode == leftConsume
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		f, t := k.leftScan(rule, e.Expr, mode, depth+1)
 		return f, mode == leftConsume && (e.Min == 0 || e.Max == 0 || t)
-	case *grammar.And, *grammar.Not:
+	case *ast.And, *ast.Not:
 		return false, mode == leftConsume
-	case *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.EndInput,
-		*grammar.BeginLine, *grammar.EndLine:
+	case *ast.Predicate, *ast.Cut, *ast.Top, *ast.BeginInput, *ast.EndInput,
+		*ast.BeginLine, *ast.EndLine:
 		return false, true
-	case *grammar.Literal:
+	case *ast.Literal:
 		return false, e.Value == ""
 	}
 	return false, false
@@ -82,7 +82,7 @@ func (k *classifier) leftScan(rule string, e grammar.Expr, mode leftMode, depth 
 
 // passesBefore reports whether a call of a rule that is not on the cycle can match without
 // examining the input (leftExamine) or consuming input (leftConsume).
-func (k *classifier) passesBefore(e *grammar.Ref, mode leftMode) bool {
+func (k *classifier) passesBefore(e *ast.Ref, mode leftMode) bool {
 	if e.Level != "" || k.byName[e.Name] == nil {
 		return false
 	}
@@ -102,39 +102,39 @@ func (k *classifier) examinesNothing(name string, seen map[string]bool, every bo
 	}
 	seen[name] = true
 	defer delete(seen, name)
-	var nothing func(e grammar.Expr) bool
-	nothing = func(e grammar.Expr) bool {
+	var nothing func(e ast.Expr) bool
+	nothing = func(e ast.Expr) bool {
 		switch e := e.(type) {
 		case nil:
 			return true
-		case *grammar.Ref:
+		case *ast.Ref:
 			return e.Level == "" && k.examinesNothing(e.Name, seen, every)
-		case *grammar.Group:
+		case *ast.Group:
 			return nothing(e.Expr)
-		case *grammar.Capture:
+		case *ast.Capture:
 			return nothing(e.Expr)
-		case *grammar.Discard:
+		case *ast.Discard:
 			return nothing(e.Expr)
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			return nothing(e.Expr)
-		case *grammar.Seq:
+		case *ast.Seq:
 			for _, it := range e.Items {
 				if !nothing(it) {
 					return false
 				}
 			}
 			return true
-		case *grammar.Choice:
+		case *ast.Choice:
 			for _, alt := range e.Alts {
 				if nothing(alt) != every {
 					return !every
 				}
 			}
 			return every
-		case *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.EndInput,
-			*grammar.BeginLine, *grammar.EndLine:
+		case *ast.Predicate, *ast.Cut, *ast.Top, *ast.BeginInput, *ast.EndInput,
+			*ast.BeginLine, *ast.EndLine:
 			return true
-		case *grammar.Literal:
+		case *ast.Literal:
 			return e.Value == ""
 		}
 		return false

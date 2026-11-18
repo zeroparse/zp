@@ -12,8 +12,8 @@ package lint
 import (
 	"context"
 
-	"zeroparse.dev/zp/grammar"
 	impl "zeroparse.dev/zp/internal/analysis/lint"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Severity tells how likely a finding is to be a mistake.
@@ -48,7 +48,7 @@ func (s *Severity) UnmarshalText(text []byte) error {
 type Finding struct {
 	// Pos is where the problem is in the source. It is the zero Pos for a grammar without
 	// positions (decoded from JSON, or loaded from a compiled grammar).
-	Pos      grammar.Pos
+	Pos      ast.Pos
 	Severity Severity
 	// Check is the name of the check that reported the finding (see Checks).
 	Check string
@@ -120,7 +120,7 @@ type Config struct {
 // An empty start selects the default start rule. Run returns an error, and no findings, if g does
 // not compile, if start is not a start rule of g, if c.Disable names an unknown check, or if ctx
 // ends; cancellation stops both the compilation and the checks and discards all findings.
-func (c Config) Run(ctx context.Context, g *grammar.Grammar, start string) ([]Finding, error) {
+func (c Config) Run(ctx context.Context, g *ast.Grammar, start string) ([]Finding, error) {
 	in, err := impl.Config(c).Run(ctx, g, start)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (c Config) Run(ctx context.Context, g *grammar.Grammar, start string) ([]Fi
 // Start and End delimit the source to replace by NewText, with End exclusive. For a rule the span is
 // the whole definition including its attributes.
 type Rewrite struct {
-	Start, End grammar.Pos
+	Start, End ast.Pos
 	NewText    string
 }
 
@@ -160,7 +160,7 @@ func (r Rewrite) IsValid() bool { return impl.Rewrite(r).IsValid() }
 // Rewrite. The findings must come from Config.Run on the same g and start. Rewrites returns an
 // error, and no rewrites, if g does not compile or start is not a start rule of g. Cancellation
 // discards the result.
-func Rewrites(ctx context.Context, g *grammar.Grammar, start string, findings []Finding) ([]Rewrite, error) {
+func Rewrites(ctx context.Context, g *ast.Grammar, start string, findings []Finding) ([]Rewrite, error) {
 	in := make([]impl.Finding, len(findings))
 	for i, f := range findings {
 		in[i] = findingToImpl(f)

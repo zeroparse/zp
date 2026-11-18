@@ -1,51 +1,51 @@
 package astfacts
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // WalkTerm visits the value expression and its subexpressions in preorder.
-func WalkTerm(t grammar.Term, f func(grammar.Term)) {
+func WalkTerm(t ast.Term, f func(ast.Term)) {
 	if t == nil {
 		return
 	}
 	f(t)
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		WalkTerm(t.Term, f)
-	case *grammar.Block:
+	case *ast.Block:
 		for _, stmt := range t.Statements {
 			WalkTerm(stmt, f)
 		}
-	case *grammar.Member:
+	case *ast.Member:
 		WalkTerm(t.X, f)
-	case *grammar.New:
+	case *ast.New:
 		for _, fi := range t.Fields {
 			WalkTerm(fi.Value, f)
 		}
 		for _, x := range t.Args {
 			WalkTerm(x, f)
 		}
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		for _, x := range t.Elems {
 			WalkTerm(x, f)
 		}
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		for _, item := range t.Items {
 			WalkTerm(item, f)
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		for _, a := range t.Args {
 			WalkTerm(a, f)
 		}
-	case *grammar.Lambda:
+	case *ast.Lambda:
 		WalkTerm(t.Body, f)
-	case *grammar.Binary:
+	case *ast.Binary:
 		WalkTerm(t.L, f)
 		WalkTerm(t.R, f)
-	case *grammar.Unary:
+	case *ast.Unary:
 		WalkTerm(t.X, f)
-	case *grammar.Cast:
+	case *ast.Cast:
 		WalkTerm(t.X, f)
-	case *grammar.Bind:
+	case *ast.Bind:
 		WalkTerm(t.Value, f)
 	}
 }

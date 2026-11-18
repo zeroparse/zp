@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/types"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // This file checks actions in the value model: a capture has the value type of what it captured,
@@ -37,7 +37,7 @@ func (e *valueEnv) with(names []string, ts []Ty) *valueEnv {
 	return &n
 }
 
-func (v *ValueInference) errorf(pos grammar.Pos, format string, args ...any) {
+func (v *ValueInference) errorf(pos ast.Pos, format string, args ...any) {
 	if v.Quiet {
 		return
 	}
@@ -80,7 +80,7 @@ func (v *ValueInference) shownSeen(t Ty, seen map[string]bool) Ty {
 }
 
 // resolve maps a type expression of the grammar to the value model.
-func (v *ValueInference) resolve(t grammar.TypeExpr) Ty {
+func (v *ValueInference) resolve(t ast.TypeExpr) Ty {
 	k := &TypeResolver{Prog: v.Prog}
 	return k.Resolve(t)
 }
@@ -159,7 +159,7 @@ func (v *ValueInference) containsBasic(t Ty, depth int, top, deep bool) bool {
 // checkResult rejects a value of type t that a rule or Operators Rule line (key) of rule rd
 // produces when t is not known well enough to prove it fits the rule's declared type: the value
 // must be converted explicitly.
-func (v *ValueInference) checkResult(key any, rd *grammar.RuleDef, t Ty) {
+func (v *ValueInference) checkResult(key any, rd *ast.RuleDef, t Ty) {
 	if rd.Type == nil || !v.uncertain(t) {
 		return
 	}
@@ -170,8 +170,8 @@ func (v *ValueInference) checkResult(key any, rd *grammar.RuleDef, t Ty) {
 	if NewFieldType(d) == nil || !v.needsCast(t, d) {
 		return // every value fits
 	}
-	var pos grammar.Pos
-	if k, ok := key.(interface{ Diagnostic() grammar.Pos }); ok {
+	var pos ast.Pos
+	if k, ok := key.(interface{ Diagnostic() ast.Pos }); ok {
 		pos = k.Diagnostic()
 	}
 	v.errorf(pos, "cannot use %s as %s in result of rule %s: the type of the value is not known; convert it with a cast, as in value.(%s)", v.display(t), d, rd.Name, d)
@@ -179,7 +179,7 @@ func (v *ValueInference) checkResult(key any, rd *grammar.RuleDef, t Ty) {
 
 // declared checks the value t of the rule rd against its declared type, which is then the rule's
 // type. A declared node[T] keeps the inferred captures, which a type expression cannot write.
-func (v *ValueInference) declared(rd *grammar.RuleDef, t Ty) Ty {
+func (v *ValueInference) declared(rd *ast.RuleDef, t Ty) Ty {
 	if rd.Type == nil {
 		return t
 	}
@@ -197,7 +197,7 @@ func (v *ValueInference) declared(rd *grammar.RuleDef, t Ty) Ty {
 		v.errorf(rd.Diagnostic(), "rule %s produces %s, which is not assignable to %s%s", rd.Name, v.display(t), d, v.castHint(t, d))
 		return d
 	}
-	if _, ok := rd.Expr.(*grammar.OperatorsRule); !ok || rd.Action != nil {
+	if _, ok := rd.Expr.(*ast.OperatorsRule); !ok || rd.Action != nil {
 		v.checkResult(rd, rd, t)
 	}
 	if dn, ok := d.(NodeTy); ok && dn.Name == "" && !anyNode(d) && len(dn.Caps) == 0 {
@@ -361,7 +361,7 @@ func anyNode(t Ty) bool {
 
 // convertTerm returns the type of the node type constructor t, N{x}, which converts x to the
 // named node type n.
-func (v *ValueInference) convertTerm(t *grammar.New, n NodeTy, env *valueEnv) Ty {
+func (v *ValueInference) convertTerm(t *ast.New, n NodeTy, env *valueEnv) Ty {
 	for _, fi := range t.Fields {
 		v.term(fi.Value, env)
 	}
@@ -432,7 +432,7 @@ func (prog *Checker) nodeValueOf(n NodeTy) Ty {
 // resolved once and cached.
 func (prog *Checker) NodeTypeOf(name string) (NodeTy, bool) {
 	switch prog.TypeDecls()[name].(type) {
-	case *grammar.TypeDef, *grammar.TypeAlias:
+	case *ast.TypeDef, *ast.TypeAlias:
 	default:
 		return NodeTy{}, false
 	}
@@ -441,7 +441,7 @@ func (prog *Checker) NodeTypeOf(name string) (NodeTy, bool) {
 		return n, ok
 	}
 	k := &TypeResolver{Prog: prog}
-	n, ok := k.ResolveNamed(name, grammar.Pos{}).(NodeTy)
+	n, ok := k.ResolveNamed(name, ast.Pos{}).(NodeTy)
 	if !ok || n.Name == "" {
 		prog.nodeTypeCache.Store(name, false)
 		return NodeTy{}, false
@@ -454,8 +454,8 @@ func (prog *Checker) NodeTypeOf(name string) (NodeTy, bool) {
 // type, through aliases, when that is exactly a named node type. An Operators Rule without a
 // whole-rule action converts the nodes of its operators instead (OperatorsNodeType), never its
 // value as a whole; with one, it converts the action's result, as an ordinary rule does.
-func (prog *Checker) RuleNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
-	if _, ok := rd.Expr.(*grammar.OperatorsRule); ok && rd.Action == nil {
+func (prog *Checker) RuleNodeType(rd *ast.RuleDef) (NodeTy, bool) {
+	if _, ok := rd.Expr.(*ast.OperatorsRule); ok && rd.Action == nil {
 		return NodeTy{}, false
 	}
 	return prog.declaredNodeType(rd)
@@ -465,8 +465,8 @@ func (prog *Checker) RuleNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 // rd is converted to: the rule's declared type, through aliases, when that is exactly a named node
 // type and the rule has no whole-rule action, whose result the declared type describes instead.
 // The values of its operand lines are not converted.
-func (prog *Checker) OperatorsNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
-	if _, ok := rd.Expr.(*grammar.OperatorsRule); !ok || rd.Action != nil {
+func (prog *Checker) OperatorsNodeType(rd *ast.RuleDef) (NodeTy, bool) {
+	if _, ok := rd.Expr.(*ast.OperatorsRule); !ok || rd.Action != nil {
 		return NodeTy{}, false
 	}
 	return prog.declaredNodeType(rd)
@@ -474,7 +474,7 @@ func (prog *Checker) OperatorsNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 
 // declaredNodeType returns the named node type that is the declared type of rule rd, through
 // aliases.
-func (prog *Checker) declaredNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
+func (prog *Checker) declaredNodeType(rd *ast.RuleDef) (NodeTy, bool) {
 	if rd.Type == nil {
 		return NodeTy{}, false
 	}
@@ -486,20 +486,20 @@ func (prog *Checker) declaredNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 // convertsResult reports whether the value that key produces (see checkInfo.results) is converted
 // to a named node type, which its run-time check then sees converted: a rule's value, or the value
 // of an operator of an Operators Rule.
-func (prog *Checker) convertsResult(key any, rd *grammar.RuleDef) (NodeTy, bool) {
+func (prog *Checker) convertsResult(key any, rd *ast.RuleDef) (NodeTy, bool) {
 	switch key.(type) {
-	case *grammar.RuleDef:
+	case *ast.RuleDef:
 		if key == any(rd) {
 			return prog.RuleNodeType(rd)
 		}
-	case *grammar.OperatorsRuleOperator:
+	case *ast.OperatorsRuleOperator:
 		return prog.OperatorsNodeType(rd)
 	}
 	return NodeTy{}, false
 }
 
 // term returns the type of the value expression t.
-func (v *ValueInference) term(t grammar.Term, env *valueEnv) Ty {
+func (v *ValueInference) term(t ast.Term, env *valueEnv) Ty {
 	r := v.termType(t, env)
 	if v.rec != nil && !v.Quiet {
 		v.rec.Terms[t] = r
@@ -507,20 +507,20 @@ func (v *ValueInference) term(t grammar.Term, env *valueEnv) Ty {
 	return r
 }
 
-func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
+func (v *ValueInference) termType(t ast.Term, env *valueEnv) Ty {
 	v.control.Poll()
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return v.term(t.Term, env)
-	case *grammar.IntLit:
+	case *ast.IntLit:
 		return TyInt
-	case *grammar.StringLit:
+	case *ast.StringLit:
 		return TyString
-	case *grammar.BoolLit:
+	case *ast.BoolLit:
 		return TyBool
-	case *grammar.NilLit:
+	case *ast.NilLit:
 		return TyNil
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if lt, ok := env.locals[t.Name]; ok {
 			return lt
 		}
@@ -530,14 +530,14 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 		// Undefined captures were reported when names were resolved; this one has no value.
 		v.errorf(t.Diagnostic(), "$%s has no value in its scope", t.Name)
 		return TyAny
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		if d := v.Prog.Vars().Lookup(t.Name); d != nil {
 			return d.Typ
 		}
 		return TyAny // an undeclared variable was reported when names were resolved
-	case *grammar.Member:
+	case *ast.Member:
 		return v.member(v.term(t.X, env), t)
-	case *grammar.New:
+	case *ast.New:
 		if nt, ok := v.Prog.NodeTypeOf(t.Type); ok {
 			return v.convertTerm(t, nt, env)
 		}
@@ -565,13 +565,13 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 		}
 		v.unsetFields(t, st)
 		return NamedTy{Name: name, Kind: 's'}
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		elems := make([]Ty, len(t.Elems))
 		for i, x := range t.Elems {
 			elems[i] = v.term(x, env)
 		}
 		return TupleTy{Elems: elems}
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		elem := v.resolve(t.Elem)
 		for _, item := range t.Items {
 			it := v.term(item, env)
@@ -580,18 +580,18 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 			}
 		}
 		return ListTy{Elem: elem}
-	case *grammar.Call:
+	case *ast.Call:
 		return v.call(t, env)
-	case *grammar.Cast:
+	case *ast.Cast:
 		x, to := v.term(t.X, env), v.resolve(t.Type)
 		if to != TyBottom && !v.overlaps(x, to, 0) { // a cast to _|_ is reported where names are resolved
 			v.errorf(t.Diagnostic(), "cannot cast %s to %s", v.display(x), to)
 		}
 		return to
-	case *grammar.Lambda:
-		v.errorf(grammar.Pos{}, "functions can only be passed to filter, foldl, foldr, or map")
+	case *ast.Lambda:
+		v.errorf(ast.Pos{}, "functions can only be passed to filter, foldl, foldr, or map")
 		return TyAny
-	case *grammar.Unary:
+	case *ast.Unary:
 		x := v.term(t.X, env)
 		want := TyInt
 		if t.Op == "!" {
@@ -601,7 +601,7 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 			v.errorf(t.Diagnostic(), "invalid operand %s for unary %s", v.display(x), t.Op)
 		}
 		return want
-	case *grammar.Binary:
+	case *ast.Binary:
 		return v.binary(t, env)
 	}
 	// Bindings are checked with the predicates that make them, and statement blocks are rejected
@@ -609,7 +609,7 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 	return TyAny
 }
 
-func (v *ValueInference) binary(t *grammar.Binary, env *valueEnv) Ty {
+func (v *ValueInference) binary(t *ast.Binary, env *valueEnv) Ty {
 	l, r := v.term(t.L, env), v.term(t.R, env)
 	both := func(want Ty) bool { return v.assignable(l, want) && v.assignable(r, want) }
 	bad := func() Ty {
@@ -697,7 +697,7 @@ func (v *ValueInference) kindsOf(t Ty, k *valueKinds, depth int) {
 // checkComparison reports the operands of == or != that can never be compared: == and != compare
 // ints, strings and bools of one type, and any value with nil. An operand whose type is not
 // known statically, or that may be nil, is checked at run time.
-func (v *ValueInference) checkComparison(t *grammar.Binary, l, r Ty) {
+func (v *ValueInference) checkComparison(t *ast.Binary, l, r Ty) {
 	lk, rk := valueKinds{scalars: map[BasicTy]bool{}}, valueKinds{scalars: map[BasicTy]bool{}}
 	v.kindsOf(l, &lk, 0)
 	v.kindsOf(r, &rk, 0)
@@ -721,7 +721,7 @@ func (v *ValueInference) checkComparison(t *grammar.Binary, l, r Ty) {
 
 // index returns the type of x[i]: an element of a list or of a tuple. A node is indexed through
 // its Value.
-func (v *ValueInference) index(x, i Ty, t *grammar.Binary) Ty {
+func (v *ValueInference) index(x, i Ty, t *ast.Binary) Ty {
 	if !v.assignable(i, TyInt) {
 		v.errorf(t.Diagnostic(), "index must be int, got %s", i)
 	}
@@ -733,7 +733,7 @@ func (v *ValueInference) index(x, i Ty, t *grammar.Binary) Ty {
 			out = append(out, a.Elem)
 			return true
 		case TupleTy:
-			if lit, ok := UngroupTerm(t.R).(*grammar.IntLit); ok {
+			if lit, ok := UngroupTerm(t.R).(*ast.IntLit); ok {
 				if lit.Value < 0 || lit.Value >= len(a.Elems) {
 					v.errorf(t.Diagnostic(), "index %d is out of range for %s", lit.Value, a)
 					return false
@@ -779,9 +779,9 @@ func (v *ValueInference) index(x, i Ty, t *grammar.Binary) Ty {
 	return Vjoin(out...)
 }
 
-func UngroupTerm(t grammar.Term) grammar.Term {
+func UngroupTerm(t ast.Term) ast.Term {
 	for {
-		g, ok := t.(*grammar.TermGroup)
+		g, ok := t.(*ast.TermGroup)
 		if !ok {
 			return t
 		}
@@ -791,7 +791,7 @@ func UngroupTerm(t grammar.Term) grammar.Term {
 
 // member returns the type of x.Name. On a join every argument must have the member, and the
 // result is the join of their types (optional if a recovered value may be read); .$y needs every argument to capture y.
-func (v *ValueInference) member(x Ty, m *grammar.Member) Ty {
+func (v *ValueInference) member(x Ty, m *ast.Member) Ty {
 	x = v.Expand(x)
 	if x == TyAny || x == TyBottom {
 		v.noteMember(m, x == TyBottom)
@@ -843,7 +843,7 @@ func (v *ValueInference) member(x Ty, m *grammar.Member) Ty {
 			if a == TyMissing {
 				found = append(found, recoveredMember(m.Name, true)...)
 			}
-			if st, ok := v.Prog.TypeDecls()[a.Name].(*grammar.TypeDef); ok {
+			if st, ok := v.Prog.TypeDecls()[a.Name].(*ast.TypeDef); ok {
 				if f := FieldOf(st, m.Name); f != nil {
 					found = append(found, v.resolve(f.Type))
 				}
@@ -902,7 +902,7 @@ func recoveredMember(name string, missing bool) []Ty {
 // (.Start, .End and .Value, and the fields expected and message of missing), never a struct field,
 // which holds when every type its receiver may have is a node, a recovered value or _|_: an access
 // typed several times (in a lambda body) must read such members every time.
-func (v *ValueInference) noteMember(m *grammar.Member, nodeOnly bool) {
+func (v *ValueInference) noteMember(m *ast.Member, nodeOnly bool) {
 	if v.nodeMembers == nil || v.Quiet {
 		return
 	}
@@ -914,7 +914,7 @@ func (v *ValueInference) noteMember(m *grammar.Member, nodeOnly bool) {
 
 // captureAccess returns the type of x.$name: every argument of x must be a node that captures
 // name, and the type is the join of their capture types.
-func (v *ValueInference) captureAccess(x Ty, name string, m *grammar.Member) Ty {
+func (v *ValueInference) captureAccess(x Ty, name string, m *ast.Member) Ty {
 	var found []Ty
 	for _, a := range v.alts(x) {
 		if a == TyAny {
@@ -958,7 +958,7 @@ func CapType(caps []CapIndex, name string) (Ty, bool) {
 
 // elemOf returns the type of the elements that list functions read from x: the elements of a
 // list, or of the list a node holds, as for the node of a repetition. nil has no elements.
-func (v *ValueInference) elemOf(fn string, x Ty, pos grammar.Pos) Ty {
+func (v *ValueInference) elemOf(fn string, x Ty, pos ast.Pos) Ty {
 	t, ok := v.elemsOf(x)
 	if !ok {
 		v.errorf(pos, "%s: expected a list, got %s", fn, v.display(x))
@@ -999,8 +999,8 @@ func (v *ValueInference) elemsOf(x Ty) (Ty, bool) {
 }
 
 // lambda returns the function argument of the call t with n parameters.
-func (v *ValueInference) lambda(t *grammar.Call, arg, n int) (*grammar.Lambda, bool) {
-	l, ok := t.Args[arg].(*grammar.Lambda)
+func (v *ValueInference) lambda(t *ast.Call, arg, n int) (*ast.Lambda, bool) {
+	l, ok := t.Args[arg].(*ast.Lambda)
 	if !ok || len(l.Params) != n {
 		v.errorf(t.Diagnostic(), "%s: expected a function of %d parameters", t.Func, n)
 		return nil, false
@@ -1075,7 +1075,7 @@ func (v *ValueInference) overlaps(a, b Ty, depth int) bool {
 	return false
 }
 
-func (v *ValueInference) call(t *grammar.Call, env *valueEnv) Ty {
+func (v *ValueInference) call(t *ast.Call, env *valueEnv) Ty {
 	if n, ok := builtins[t.Func]; !ok || n >= 0 && n != len(t.Args) {
 		return TyAny // reported when the action is compiled
 	}

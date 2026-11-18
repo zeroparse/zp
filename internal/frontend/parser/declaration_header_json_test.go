@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestDeclarationHeaderCommentsJSON checks that comments inside a declaration
@@ -32,21 +32,21 @@ func TestDeclarationHeaderCommentsJSON(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			data, err := grammar.MarshalJSON(g)
+			data, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, err := grammar.UnmarshalJSON(data)
+			decoded, err := ast.UnmarshalJSON(data)
 			if err != nil {
 				t.Fatal(err)
 			}
-			out := grammar.Format(decoded)
+			out := ast.Format(decoded)
 			for _, c := range tt.want {
 				if !strings.Contains(out, c) {
 					t.Errorf("comment %s lost through JSON\njson: %s\nout:\n%s", c, data, out)
 				}
 			}
-			if again := grammar.Format(decoded); again != out {
+			if again := ast.Format(decoded); again != out {
 				t.Errorf("Format is not stable")
 			}
 			// Formatting source moves a comment between a field name and its
@@ -56,12 +56,12 @@ func TestDeclarationHeaderCommentsJSON(t *testing.T) {
 			if err != nil {
 				t.Fatalf("output does not parse: %v\n%s", err, out)
 			}
-			once := grammar.Format(reparsed)
+			once := ast.Format(reparsed)
 			reparsed, err = Parse(once)
 			if err != nil {
 				t.Fatalf("formatted output does not parse: %v\n%s", err, once)
 			}
-			if twice := grammar.Format(reparsed); twice != once {
+			if twice := ast.Format(reparsed); twice != once {
 				t.Errorf("Format is not idempotent\nfirst:\n%s\nsecond:\n%s", once, twice)
 			}
 			for _, c := range tt.want {

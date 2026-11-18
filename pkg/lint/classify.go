@@ -3,9 +3,9 @@ package lint
 import (
 	"context"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	impl "zeroparse.dev/zp/internal/analysis/lint"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Class is the class of the cost of a parse from a start rule (see "Classification" in the parsing
@@ -69,7 +69,7 @@ type Cause struct {
 	Degree int
 	// Rule is the rule that holds Pos.
 	Rule string
-	Pos  grammar.Pos
+	Pos  ast.Pos
 	// Message names the class and the witness (or, for the class Unknown, the reason).
 	Message string
 }
@@ -101,7 +101,7 @@ type Classification struct {
 // classification that Config.Classify asks a lint run for. An empty start selects the default
 // start rule. Classify returns an error if g does not compile, if start is not a start rule of g,
 // or if ctx ends.
-func Classify(ctx context.Context, g *grammar.Grammar, start string) (*Classification, error) {
+func Classify(ctx context.Context, g *ast.Grammar, start string) (*Classification, error) {
 	c, err := impl.Classify(ctx, g, start)
 	if err != nil {
 		return nil, err

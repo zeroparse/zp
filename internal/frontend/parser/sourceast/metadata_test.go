@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestPositionsAndOwnership(t *testing.T) {
@@ -16,7 +16,7 @@ func TestPositionsAndOwnership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.Pos != (grammar.Pos{Line: 4, Col: 1}) || s.End != (grammar.Pos{Line: 4, Col: 10}) {
+	if s.Pos != (ast.Pos{Line: 4, Col: 1}) || s.End != (ast.Pos{Line: 4, Col: 10}) {
 		t.Fatalf("positions: %+v", s)
 	}
 	if s.LeadingComments != m.Leading || !slices.Equal(s.TrailingComments, m.Trailing) || !reflect.DeepEqual(s.LeadingDetachedComments, m.Detached) {
@@ -34,12 +34,12 @@ func TestPositionsAndOwnership(t *testing.T) {
 }
 
 func TestPackageClause(t *testing.T) {
-	g := &grammar.Grammar{}
+	g := &ast.Grammar{}
 	p := NewPositions("package p")
 	if err := p.PackageClause(g, "p", Metadata{End: 9}); err != nil {
 		t.Fatal(err)
 	}
-	if g.File.Pkg.Name != "p" || g.File.Pkg.SourceInfo.Pos != (grammar.Pos{Line: 1, Col: 1}) || g.File.Pkg.SourceInfo.End != (grammar.Pos{Line: 1, Col: 10}) {
+	if g.File.Pkg.Name != "p" || g.File.Pkg.SourceInfo.Pos != (ast.Pos{Line: 1, Col: 1}) || g.File.Pkg.SourceInfo.End != (ast.Pos{Line: 1, Col: 10}) {
 		t.Fatalf("package: %+v", g)
 	}
 	if err := p.PackageClause(g, "other", Metadata{End: 100}); err == nil || g.File.Pkg.Name != "p" {
@@ -49,18 +49,18 @@ func TestPackageClause(t *testing.T) {
 
 func TestSetSpanPreservesOwnership(t *testing.T) {
 	p := NewPositions("// 😀\r\ntype T = { Text string } // trailing")
-	dst := grammar.SourceInfo{
+	dst := ast.SourceInfo{
 		LeadingComments: " leading\r\n", TrailingComments: []string{" trailing"},
 		LeadingDetachedComments: []string{"", " detached\n"},
-		DiagnosticPos:           grammar.Pos{Line: 2, Col: 6},
+		DiagnosticPos:           ast.Pos{Line: 2, Col: 6},
 	}
 	if err := p.SetSpan(&dst, 6, 21); err != nil {
 		t.Fatal(err)
 	}
-	if dst.Pos != (grammar.Pos{Line: 2, Col: 1}) || dst.End != (grammar.Pos{Line: 2, Col: 16}) {
+	if dst.Pos != (ast.Pos{Line: 2, Col: 1}) || dst.End != (ast.Pos{Line: 2, Col: 16}) {
 		t.Fatalf("span: %+v", dst)
 	}
-	if dst.LeadingComments != " leading\r\n" || !slices.Equal(dst.TrailingComments, []string{" trailing"}) || !reflect.DeepEqual(dst.LeadingDetachedComments, []string{"", " detached\n"}) || dst.DiagnosticPos != (grammar.Pos{Line: 2, Col: 6}) {
+	if dst.LeadingComments != " leading\r\n" || !slices.Equal(dst.TrailingComments, []string{" trailing"}) || !reflect.DeepEqual(dst.LeadingDetachedComments, []string{"", " detached\n"}) || dst.DiagnosticPos != (ast.Pos{Line: 2, Col: 6}) {
 		t.Fatalf("span update replaced ownership or diagnostic position: %+v", dst)
 	}
 	before := dst

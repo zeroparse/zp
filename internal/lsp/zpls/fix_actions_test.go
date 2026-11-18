@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/lint"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // fixActions opens src with a client that takes versioned edits and returns, for each lint
@@ -218,8 +218,8 @@ func lookaheadSpanFor(text string) func(*lint.Rewrite, *analysis) {
 	return func(r *lint.Rewrite, a *analysis) {
 		line := strings.Split(a.text, "\n")[1]
 		col := strings.Index(line, text)
-		r.Start = grammar.Pos{Line: 2, Col: col + 1}
-		r.End = grammar.Pos{Line: 2, Col: col + 1 + len(text)}
+		r.Start = ast.Pos{Line: 2, Col: col + 1}
+		r.End = ast.Pos{Line: 2, Col: col + 1 + len(text)}
 		r.NewText = ""
 	}
 }

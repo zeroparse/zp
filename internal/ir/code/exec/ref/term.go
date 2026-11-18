@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TermEnv is what a term reads: the captures of the rule, the unit of positions and the place of the
@@ -35,7 +35,7 @@ type TermEnv struct {
 	Vars map[string]V
 	// Aliases are the type aliases of the grammar by name: a cast or a constructor that names one
 	// means the type that it stands for (spec/language/types.md#type-aliases).
-	Aliases map[string]grammar.TypeExpr
+	Aliases map[string]ast.TypeExpr
 }
 
 // failure is the panic value of an evaluation error.
@@ -43,7 +43,7 @@ type failure string
 
 // Eval evaluates the term t and returns its value and the text of the error that stopped it, "" if
 // none did.
-func (e *TermEnv) Eval(t grammar.Term) (v V, err string) {
+func (e *TermEnv) Eval(t ast.Term) (v V, err string) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, ok := x.(unknownSignal); ok {
@@ -75,32 +75,32 @@ func (p params) with(names []string, vals ...V) params {
 
 func fail(format string, args ...any) { panic(failure(fmt.Sprintf(format, args...))) }
 
-func (e *TermEnv) eval(t grammar.Term, p params) V {
+func (e *TermEnv) eval(t ast.Term, p params) V {
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return e.eval(t.Term, p)
-	case *grammar.IntLit:
+	case *ast.IntLit:
 		return Int(int64(t.Value))
-	case *grammar.StringLit:
+	case *ast.StringLit:
 		return Str(t.Value)
-	case *grammar.BoolLit:
+	case *ast.BoolLit:
 		return Bool(t.Value)
-	case *grammar.NilLit:
+	case *ast.NilLit:
 		return Nil
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if t.Param {
 			return p[t.Name]
 		}
 		return e.Captures[t.Name]
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		v, ok := e.Vars[t.Name]
 		if !ok {
 			fail("undefined variable %s", t.Name)
 		}
 		return v
-	case *grammar.Member:
+	case *ast.Member:
 		return e.member(e.eval(t.X, p), t.Name)
-	case *grammar.New:
+	case *ast.New:
 		if len(t.Args) > 0 {
 			// N{x} converts the node x to the named node type N: it keeps the range and the content
 			// of x and carries the name N (types.md, Named Node Types). The conversion type-checks only
@@ -119,13 +119,13 @@ func (e *TermEnv) eval(t grammar.Term, p params) V {
 			s.Fields[f.Name] = e.eval(f.Value, p)
 		}
 		return s
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		return Tuple(e.terms(t.Elems, p)...)
-	case *grammar.Call:
+	case *ast.Call:
 		return e.call(t, p)
-	case *grammar.Binary:
+	case *ast.Binary:
 		return e.binary(t, p)
-	case *grammar.Unary:
+	case *ast.Unary:
 		x := e.eval(t.X, p)
 		need(x)
 		v, msg := Unary(t.Op, x)
@@ -133,13 +133,13 @@ func (e *TermEnv) eval(t grammar.Term, p params) V {
 			fail("%s", msg)
 		}
 		return v
-	case *grammar.Cast:
+	case *ast.Cast:
 		return e.cast(t, e.eval(t.X, p))
 	}
 	panic(fmt.Sprintf("ref: unsupported term %T", t))
 }
 
-func (e *TermEnv) terms(ts []grammar.Term, p params) []V {
+func (e *TermEnv) terms(ts []ast.Term, p params) []V {
 	out := make([]V, len(ts))
 	for i, t := range ts {
 		out[i] = e.eval(t, p)
@@ -193,7 +193,7 @@ func (e *TermEnv) member(x V, name string) V {
 	return Nil
 }
 
-func (e *TermEnv) binary(t *grammar.Binary, p params) V {
+func (e *TermEnv) binary(t *ast.Binary, p params) V {
 	if t.Op == "&&" || t.Op == "||" {
 		return e.logic(t, p)
 	}
@@ -209,7 +209,7 @@ func (e *TermEnv) binary(t *grammar.Binary, p params) V {
 
 // strictLogic applies && or || as the language does: the left operand first, and the right one only
 // if the left one does not decide.
-func (e *TermEnv) strictLogic(t *grammar.Binary, p params) V {
+func (e *TermEnv) strictLogic(t *ast.Binary, p params) V {
 	lv := e.eval(t.L, p)
 	need(lv)
 	l, msg := Truth(t.Op, lv)
@@ -248,9 +248,9 @@ func (e *TermEnv) items(fn string, v V) []V {
 	return nil
 }
 
-func (e *TermEnv) call(c *grammar.Call, p params) V {
-	lambda := func(i int) *grammar.Lambda { return c.Args[i].(*grammar.Lambda) }
-	apply := func(f *grammar.Lambda, args ...V) V { return e.eval(f.Body, p.with(f.Params, args...)) }
+func (e *TermEnv) call(c *ast.Call, p params) V {
+	lambda := func(i int) *ast.Lambda { return c.Args[i].(*ast.Lambda) }
+	apply := func(f *ast.Lambda, args ...V) V { return e.eval(f.Body, p.with(f.Params, args...)) }
 	switch c.Func {
 	case "len":
 		x := e.eval(c.Args[0], p)
@@ -324,7 +324,7 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 	panic("ref: unsupported built-in " + c.Func)
 }
 
-func (e *TermEnv) cast(c *grammar.Cast, x V) V {
+func (e *TermEnv) cast(c *ast.Cast, x V) V {
 	if !e.admits(c.Type, x) {
 		fail("cannot cast %s to %s at input position %d (line %d, column %d)", x.TypeName(), castName(c.Type), e.Pos, e.Line, e.Col)
 	}
@@ -333,11 +333,11 @@ func (e *TermEnv) cast(c *grammar.Cast, x V) V {
 
 // castName is the type of a cast as an error message shows it: as written, without the parentheses
 // that group the whole type.
-func castName(t grammar.TypeExpr) string {
+func castName(t ast.TypeExpr) string {
 	for {
-		g, ok := t.(*grammar.TypeGroup)
+		g, ok := t.(*ast.TypeGroup)
 		if !ok {
-			return grammar.FormatType(t)
+			return ast.FormatType(t)
 		}
 		t = g.Type
 	}
@@ -352,13 +352,13 @@ func (e *TermEnv) typeName(n string) string {
 			return n
 		}
 		for {
-			g, ok := t.(*grammar.TypeGroup)
+			g, ok := t.(*ast.TypeGroup)
 			if !ok {
 				break
 			}
 			t = g.Type
 		}
-		r, ok := t.(*grammar.TypeRef)
+		r, ok := t.(*ast.TypeRef)
 		if !ok {
 			return n
 		}
@@ -370,12 +370,12 @@ func (e *TermEnv) typeName(n string) string {
 // other than a built-in one or an alias is a declared struct type or named node type, which admits
 // only its own values. error admits every error value and missing the missing tokens among them; no other
 // type admits one but _.
-func (e *TermEnv) admits(t grammar.TypeExpr, x V) bool {
+func (e *TermEnv) admits(t ast.TypeExpr, x V) bool {
 	need(x)
 	switch t := t.(type) {
-	case *grammar.TypeGroup:
+	case *ast.TypeGroup:
 		return e.admits(t.Type, x)
-	case *grammar.TypeRef:
+	case *ast.TypeRef:
 		if a, ok := e.Aliases[t.Name]; ok {
 			return e.admits(a, x)
 		}
@@ -397,36 +397,36 @@ func (e *TermEnv) admits(t grammar.TypeExpr, x V) bool {
 			need(Unknown) // the type of the node is unknown
 		}
 		return (x.Kind == KStruct || x.Kind == KNode) && x.Type == t.Name
-	case *grammar.OptionalType:
+	case *ast.OptionalType:
 		return x.Kind == KNil || e.admits(t.Elem, x)
-	case *grammar.JoinType:
+	case *ast.JoinType:
 		for _, m := range t.Types {
 			if e.admits(m, x) {
 				return true
 			}
 		}
 		return false
-	case *grammar.MeetType:
+	case *ast.MeetType:
 		for _, m := range t.Types {
 			if !e.admits(m, x) {
 				return false
 			}
 		}
 		return true
-	case *grammar.ListType:
+	case *ast.ListType:
 		return x.Kind == KList && e.all(x.Items, t.Elem)
-	case *grammar.TupleType:
+	case *ast.TupleType:
 		return x.Kind == KTuple && len(x.Items) == len(t.Types) && e.each(x.Items, t.Types)
-	case *grammar.TypeApp:
+	case *ast.TypeApp:
 		// node[U] admits a node, named or not, whose value U admits.
 		if t.Name == "node" && len(t.Args) == 1 {
 			return x.Kind == KNode && e.admits(t.Args[0], x.nodeValue())
 		}
 	}
-	panic(fmt.Sprintf("ref: unsupported cast type %s", grammar.FormatType(t)))
+	panic(fmt.Sprintf("ref: unsupported cast type %s", ast.FormatType(t)))
 }
 
-func (e *TermEnv) all(xs []V, t grammar.TypeExpr) bool {
+func (e *TermEnv) all(xs []V, t ast.TypeExpr) bool {
 	for _, x := range xs {
 		if !e.admits(t, x) {
 			return false
@@ -435,7 +435,7 @@ func (e *TermEnv) all(xs []V, t grammar.TypeExpr) bool {
 	return true
 }
 
-func (e *TermEnv) each(xs []V, ts []grammar.TypeExpr) bool {
+func (e *TermEnv) each(xs []V, ts []ast.TypeExpr) bool {
 	for i, x := range xs {
 		if !e.admits(ts[i], x) {
 			return false

@@ -3,16 +3,16 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func jsonActionBlockGrammar(t *testing.T, g *grammar.Grammar) *grammar.Grammar {
+func jsonActionBlockGrammar(t *testing.T, g *ast.Grammar) *ast.Grammar {
 	t.Helper()
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := grammar.UnmarshalJSON(data)
+	result, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}

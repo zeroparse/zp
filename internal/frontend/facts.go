@@ -3,7 +3,6 @@ package frontend
 import (
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
@@ -12,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/pass"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Check checks g into its static program (compile.CheckCanonical) with the rule facts and the site
@@ -20,7 +20,7 @@ import (
 // inline actions generates. If flags is not nil, the rules take the flags of a compiled grammar
 // (compile.Program.Flags), and the sites are numbered with them. A non-nil control polls for
 // cancellation.
-func Check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*compile.Program, error) {
+func Check(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*compile.Program, error) {
 	prog, _, err := CheckStructural(g, opts, flags, names, control)
 	return prog, err
 }
@@ -31,11 +31,11 @@ type Structural struct {
 	// Canonical is the grammar as the compiler canonicalized it; Rules are its unique rules, in
 	// the order of the rules of Module.
 	Canonical *compile.Canonical
-	Rules     []*grammar.RuleDef
+	Rules     []*ast.RuleDef
 	// Module is nil if the grammar has an error that keeps it from being built.
 	Module *core.Module
 	// Origin maps the nodes of Module to the expressions they were built from.
-	Origin   map[core.Node]grammar.Expr
+	Origin   map[core.Node]ast.Expr
 	Analyses *pass.AnalysisManager[*core.Module]
 	// failure is why Module is nil: an error or the value of a panic.
 	failure any
@@ -47,7 +47,7 @@ func (s *Structural) Facts() *corepass.Facts { return corepass.FactsOf(s.Analyse
 // CheckStructural is Check that also returns the structural module the facts were taken from, so
 // that a caller reads them without building the module and computing them again. The module is
 // returned with an error too, unless canonicalization failed.
-func CheckStructural(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*compile.Program, *Structural, error) {
+func CheckStructural(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*compile.Program, *Structural, error) {
 	s, err := buildStructural(g, opts, names, control)
 	if err != nil {
 		return nil, nil, err
@@ -81,13 +81,13 @@ func CheckStructural(g *grammar.Grammar, opts compile.Options, flags []compile.R
 // grammar the compiler rejects may fail to build: the failure, an error or the value of a panic,
 // is kept for CheckStructural to report only if the compiler accepts the grammar. A cancellation
 // is not a failure and unwinds.
-func buildStructural(g *grammar.Grammar, opts compile.Options, names desugar.InlineNames, control *cancel.Control) (*Structural, error) {
+func buildStructural(g *ast.Grammar, opts compile.Options, names desugar.InlineNames, control *cancel.Control) (*Structural, error) {
 	canon, err := compile.Canonicalize(g, opts, names, control)
 	if err != nil {
 		return nil, err
 	}
 	defs, _ := desugar.UniqueRules(canon.Grammar, control)
-	s := &Structural{Canonical: canon, Rules: defs, Origin: map[core.Node]grammar.Expr{}, Analyses: corepass.NewAnalyses(control)}
+	s := &Structural{Canonical: canon, Rules: defs, Origin: map[core.Node]ast.Expr{}, Analyses: corepass.NewAnalyses(control)}
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -109,7 +109,7 @@ func buildStructural(g *grammar.Grammar, opts compile.Options, names desugar.Inl
 
 // ruleFacts returns the facts that the compiler reads, of the module m of the rules defs, whose
 // facts are f.
-func ruleFacts(m *core.Module, f *corepass.Facts, origin map[core.Node]grammar.Expr, defs []*grammar.RuleDef) *compile.RuleFacts {
+func ruleFacts(m *core.Module, f *corepass.Facts, origin map[core.Node]ast.Expr, defs []*ast.RuleDef) *compile.RuleFacts {
 	out := &compile.RuleFacts{Rules: make([]compile.RuleFact, len(defs))}
 	for i := range defs {
 		r := &f.Rules[i]
@@ -128,7 +128,7 @@ func ruleFacts(m *core.Module, f *corepass.Facts, origin map[core.Node]grammar.E
 		out.Rules[i] = rf
 	}
 	for _, e := range f.BindingErrors(m) {
-		pos := origin[e.Node].(*grammar.Predicate).Term.(*grammar.Bind).Diagnostic()
+		pos := origin[e.Node].(*ast.Predicate).Term.(*ast.Bind).Diagnostic()
 		out.BindingErrors = append(out.BindingErrors, &diagnostic.Error{Pos: pos, Msg: e.Msg})
 	}
 	return out
@@ -136,16 +136,16 @@ func ruleFacts(m *core.Module, f *corepass.Facts, origin map[core.Node]grammar.E
 
 // sites numbers the sites of the module m of prog's rules with the rule flags of prog, keyed by
 // the repetitions of the grammar that the module's repetitions were built from.
-func sites(m *core.Module, prog *compile.Program, origin map[core.Node]grammar.Expr, control *cancel.Control) compile.Sites {
+func sites(m *core.Module, prog *compile.Program, origin map[core.Node]ast.Expr, control *cancel.Control) compile.Sites {
 	rules := make([]corepass.SiteRule, len(prog.RuleList))
 	for i, r := range prog.RuleList {
 		rules[i] = corepass.SiteRule{LeftRec: r.Leader || r.Member, ReadsVars: len(r.Vars) > 0, Declared: compile.DeclaredBeyondScan(r.Def)}
 	}
 	s := corepass.ComputeSites(m, rules, control)
-	key := func(in map[*core.Repeat]int) map[*grammar.Repeat]int {
-		out := make(map[*grammar.Repeat]int, len(in))
+	key := func(in map[*core.Repeat]int) map[*ast.Repeat]int {
+		out := make(map[*ast.Repeat]int, len(in))
 		for n, site := range in {
-			out[origin[n].(*grammar.Repeat)] = site
+			out[origin[n].(*ast.Repeat)] = site
 		}
 		return out
 	}

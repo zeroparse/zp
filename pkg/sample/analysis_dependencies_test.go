@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func analysisChain(n int, leafFirst bool) string {
@@ -67,7 +67,7 @@ func sweepReference(got *info) *info {
 	return &ref
 }
 
-func checkAnalysisSweeps(t *testing.T, g *grammar.Grammar) *info {
+func checkAnalysisSweeps(t *testing.T, g *ast.Grammar) *info {
 	t.Helper()
 	got := analyze(g, "main")
 	ref := sweepReference(got)

@@ -1,6 +1,6 @@
 package complexity
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // --- Growth that carries a growing result ---
 
@@ -95,29 +95,29 @@ func (k *classifier) carryPaths(r, s string, cycle int) (paths []*cont, ok bool)
 			}
 			rest := p.rest()
 			switch e := p.items[0].(type) {
-			case *grammar.Group:
+			case *ast.Group:
 				p = rest.then(e.Expr)
-			case *grammar.Capture:
+			case *ast.Capture:
 				p = rest.then(e.Expr)
-			case *grammar.Discard:
+			case *ast.Discard:
 				p = rest.then(e.Expr)
-			case *grammar.Atomic:
+			case *ast.Atomic:
 				p = rest.then(e.Expr)
-			case *grammar.Stream:
+			case *ast.Stream:
 				p = rest.then(e.Expr)
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				p = rest.then(e.Expr)
-			case *grammar.Optional:
+			case *ast.Optional:
 				visit(rest.then(e.Expr), depth)
 				p = rest
-			case *grammar.Seq:
+			case *ast.Seq:
 				p = rest.then(e.Items...)
-			case *grammar.Choice:
+			case *ast.Choice:
 				for _, alt := range e.Alts {
 					visit(rest.then(alt), depth)
 				}
 				return
-			case *grammar.Ref:
+			case *ast.Ref:
 				if !k.an.Cyclic[e.Name] || k.an.Cycle[e.Name] != cycle || e.Level != "" {
 					return
 				}
@@ -139,7 +139,7 @@ func (k *classifier) carryPaths(r, s string, cycle int) (paths []*cont, ok bool)
 			}
 		}
 	}
-	visit(&cont{items: []grammar.Expr{k.byName[r].Expr}, end: endRule, rule: r}, 0)
+	visit(&cont{items: []ast.Expr{k.byName[r].Expr}, end: endRule, rule: r}, 0)
 	return paths, ok
 }
 

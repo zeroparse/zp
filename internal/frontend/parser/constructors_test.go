@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Typed list and struct constructors parse and format; a positional constructor keeps its
@@ -27,42 +27,42 @@ rule grouped = "x" => (
 	if err != nil {
 		t.Fatal(err)
 	}
-	rules := make(map[string]*grammar.RuleDef)
+	rules := make(map[string]*ast.RuleDef)
 	for _, stmt := range g.File.Decls {
-		if r, ok := stmt.(*grammar.RuleDef); ok {
+		if r, ok := stmt.(*ast.RuleDef); ok {
 			rules[r.Name] = r
 		}
 	}
-	list := func(name string) *grammar.ListConstructor {
+	list := func(name string) *ast.ListConstructor {
 		t.Helper()
-		n, ok := rules[name].Action.(*grammar.ListConstructor)
+		n, ok := rules[name].Action.(*ast.ListConstructor)
 		if !ok {
-			t.Fatalf("%s action is %T, want *grammar.ListConstructor", name, rules[name].Action)
+			t.Fatalf("%s action is %T, want *ast.ListConstructor", name, rules[name].Action)
 		}
 		return n
 	}
-	if got := list("empty"); got.Elem.(*grammar.TypeRef).Name != "Foo" || got.Items == nil || len(got.Items) != 0 {
+	if got := list("empty"); got.Elem.(*ast.TypeRef).Name != "Foo" || got.Items == nil || len(got.Items) != 0 {
 		t.Fatalf("empty list constructor lost its element type or empty items: %#v", got)
 	}
-	nested, ok := list("nested").Elem.(*grammar.ListType)
-	if !ok || nested.Elem.(*grammar.TypeRef).Name != "Foo" {
+	nested, ok := list("nested").Elem.(*ast.ListType)
+	if !ok || nested.Elem.(*ast.TypeRef).Name != "Foo" {
 		t.Fatalf("nested list element type: %#v", list("nested").Elem)
 	}
-	inner, ok := list("nested").Items[0].(*grammar.ListConstructor)
-	if !ok || inner.Elem.(*grammar.TypeRef).Name != "Foo" || len(inner.Items) != 1 {
+	inner, ok := list("nested").Items[0].(*ast.ListConstructor)
+	if !ok || inner.Elem.(*ast.TypeRef).Name != "Foo" || len(inner.Items) != 1 {
 		t.Fatalf("nested list items: %#v", list("nested").Items)
 	}
-	if _, ok := list("pointers").Elem.(*grammar.OptionalType); !ok {
+	if _, ok := list("pointers").Elem.(*ast.OptionalType); !ok {
 		t.Fatalf("pointer list element type: %#v", list("pointers").Elem)
 	}
-	if _, ok := list("pointers").Items[0].(*grammar.NilLit); !ok {
+	if _, ok := list("pointers").Items[0].(*ast.NilLit); !ok {
 		t.Fatalf("pointer list nil item: %#v", list("pointers").Items[0])
 	}
-	terminal, ok := rules["terminal"].Action.(*grammar.New)
+	terminal, ok := rules["terminal"].Action.(*ast.New)
 	if !ok || terminal.Type != "Int" || len(terminal.Fields) != 0 || len(terminal.Args) != 1 {
 		t.Fatalf("positional constructor: %#v", rules["terminal"].Action)
 	}
-	emptyTerminal, ok := rules["terminal_empty"].Action.(*grammar.New)
+	emptyTerminal, ok := rules["terminal_empty"].Action.(*ast.New)
 	if !ok || emptyTerminal.Type != "Int" || len(emptyTerminal.Fields) != 0 || len(emptyTerminal.Args) != 0 {
 		t.Fatalf("empty constructor source was not preserved: %#v", rules["terminal_empty"].Action)
 	}
@@ -71,14 +71,14 @@ rule grouped = "x" => (
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := g2.File.Decls[1].(*grammar.RuleDef).Action.(*grammar.New); len(n.Args) != 2 || len(n.Fields) != 0 {
+	if n := g2.File.Decls[1].(*ast.RuleDef).Action.(*ast.New); len(n.Args) != 2 || len(n.Fields) != 0 {
 		t.Fatalf("positional constructor of two arguments: %#v", n)
 	}
-	if _, ok := rules["fields"].Action.(*grammar.New); !ok {
+	if _, ok := rules["fields"].Action.(*ast.New); !ok {
 		t.Fatalf("named-field constructor became %T", rules["fields"].Action)
 	}
 
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	for _, want := range []string{
 		"type Pair = { Left []Foo; Right []Foo }",
 		"Pair{Left: []Foo{Foo{}}, Right: []Foo{Foo{}}}",
@@ -91,7 +91,7 @@ rule grouped = "x" => (
 	}
 	if again, err := Parse(formatted); err != nil {
 		t.Fatalf("formatted source does not parse: %v\n%s", err, formatted)
-	} else if out := grammar.Format(again); out != formatted {
+	} else if out := ast.Format(again); out != formatted {
 		t.Fatalf("format is not stable:\n%s\n%s", formatted, out)
 	}
 }

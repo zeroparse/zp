@@ -5,7 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // commentBoundary is lexer-owned syntax trivia. The parser claims each side
@@ -19,11 +19,11 @@ type commentBoundary struct {
 	run           int
 	hasTrailing   bool
 	hasNext       bool
-	leadingOwner  *grammar.SourceInfo
-	trailingOwner *grammar.SourceInfo
+	leadingOwner  *ast.SourceInfo
+	trailingOwner *ast.SourceInfo
 }
 
-func collectComments(previous grammar.Pos, opens, opener bool, next token, comments []*grammar.Comment) *commentBoundary {
+func collectComments(previous ast.Pos, opens, opener bool, next token, comments []*ast.Comment) *commentBoundary {
 	return collectCommentsWithCheck(previous, opens, opener, next, comments, nil)
 }
 
@@ -32,12 +32,12 @@ func collectComments(previous grammar.Pos, opens, opener bool, next token, comme
 // opener that it is an opening delimiter. An opening delimiter is not a node, so
 // the comments on its line lead the next token as if they were on lines of their
 // own, unless a closing delimiter follows them.
-func collectCommentsWithCheck(previous grammar.Pos, opens, opener bool, next token, comments []*grammar.Comment, check func()) *commentBoundary {
+func collectCommentsWithCheck(previous ast.Pos, opens, opener bool, next token, comments []*ast.Comment, check func()) *commentBoundary {
 	b := &commentBoundary{}
 	canPrevious := previous.IsValid() && !(opener && !next.endsScope())
 	inlineEnd := 0
 	groups := 0
-	var pending []*grammar.Comment
+	var pending []*ast.Comment
 	inRun := false // flushing the comments of the line of the previous token
 	flush := func() {
 		if pending == nil {
@@ -73,7 +73,7 @@ func collectCommentsWithCheck(previous grammar.Pos, opens, opener bool, next tok
 		} else {
 			inRun = true
 			for _, c := range comments[:n] {
-				pending = []*grammar.Comment{c}
+				pending = []*ast.Comment{c}
 				flush() // Inline comments never absorb following comment-only lines.
 			}
 			inRun = false
@@ -134,7 +134,7 @@ func collectCommentsWithCheck(previous grammar.Pos, opens, opener bool, next tok
 	return b
 }
 
-func joinCommentContent(comments []*grammar.Comment, check func()) string {
+func joinCommentContent(comments []*ast.Comment, check func()) string {
 	if len(comments) == 1 {
 		if check != nil {
 			check()
@@ -258,19 +258,19 @@ func writeCommentContent(out *strings.Builder, s string, check func()) {
 // to the enclosing production when source boundaries are shared. Diagnostic
 // token positions remain independent of the complete syntax span.
 func (p *parser) sourceNode(node any, start int) {
-	if n, ok := node.(grammar.SourceNode); ok {
+	if n, ok := node.(ast.SourceNode); ok {
 		p.source(n, start)
 	}
 }
 
-func (p *parser) source(node grammar.SourceNode, start int) {
+func (p *parser) source(node ast.SourceNode, start int) {
 	s := node.Source()
 	pos := p.toks[start].pos
 	old := s.Diagnostic()
 	if old.IsValid() && old != pos {
 		s.DiagnosticPos = old
 	} else {
-		s.DiagnosticPos = grammar.Pos{}
+		s.DiagnosticPos = ast.Pos{}
 	}
 	s.Pos = pos
 	s.End = pos
@@ -290,7 +290,7 @@ func (p *parser) source(node grammar.SourceNode, start int) {
 	p.sourceTrailing(s)
 }
 
-func (p *parser) sourceTrailing(s *grammar.SourceInfo) {
+func (p *parser) sourceTrailing(s *ast.SourceInfo) {
 	if b := p.toks[p.i].source; b != nil && b.hasTrailing && b.trailingOwner != s {
 		if old := b.trailingOwner; old != nil {
 			old.TrailingComments = nil
@@ -312,14 +312,14 @@ func (p *parser) sourceTrailing(s *grammar.SourceInfo) {
 // one when they are all block comments and no line break separates the two
 // tokens and the comments but the lines inside the comments. The formatter
 // writes them in the same place, so their owners do not change.
-func (p *parser) takeInlineGap() []*grammar.Comment {
+func (p *parser) takeInlineGap() []*ast.Comment {
 	if !p.inlineGap() {
 		return nil
 	}
 	t := &p.toks[p.i]
 	cs := t.comments
 	if t.lineComment != nil {
-		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
+		cs = p.appendComments([]*ast.Comment{t.lineComment}, cs)
 	}
 	t.lineComment, t.comments = nil, nil
 	p.inlined = p.i + 1
@@ -337,7 +337,7 @@ func (p *parser) inlineGap() bool {
 		return false
 	}
 	line := p.toks[p.i-1].end.Line
-	step := func(c *grammar.Comment) bool {
+	step := func(c *ast.Comment) bool {
 		if !strings.HasPrefix(c.Text, "/*") || c.Pos.Line != line {
 			return false
 		}
@@ -359,7 +359,7 @@ func (p *parser) inlineGap() bool {
 // whatever their kind and place. It is for places inside delimiters or after an
 // operator, where a comment may stand on a line of its own: the Gap keeps the
 // lines of the tokens and the comments for the formatter.
-func (p *parser) takeCommentGap() *grammar.Gap {
+func (p *parser) takeCommentGap() *ast.Gap {
 	if p.header || p.i == 0 {
 		return nil
 	}
@@ -369,14 +369,14 @@ func (p *parser) takeCommentGap() *grammar.Gap {
 	}
 	cs := t.comments
 	if t.lineComment != nil {
-		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
+		cs = p.appendComments([]*ast.Comment{t.lineComment}, cs)
 	}
 	t.lineComment, t.comments = nil, nil
-	return &grammar.Gap{Comments: cs, PreviousLine: p.toks[p.i-1].end.Line, NextLine: t.pos.Line}
+	return &ast.Gap{Comments: cs, PreviousLine: p.toks[p.i-1].end.Line, NextLine: t.pos.Line}
 }
 
 // leadOf keeps the gap before the first token of e, if there is one.
-func (p *parser) leadOf(e grammar.Expr, gap *grammar.Gap) {
+func (p *parser) leadOf(e ast.Expr, gap *ast.Gap) {
 	if gap != nil {
 		layoutOf(e).Lead = gap
 	}
@@ -391,37 +391,37 @@ func (p *parser) atLineStart() bool {
 
 // afterGap keeps the inline comments before the current token, "/" or "=>", as
 // the comments after e.
-func (p *parser) afterGap(e grammar.Expr) {
+func (p *parser) afterGap(e ast.Expr) {
 	if gap := p.takeInlineGap(); gap != nil {
 		layoutOf(e).After = gap
 	}
 }
 
 // layoutOf returns the layout of the rule expression e, which it creates.
-func layoutOf(e any) *grammar.SourceLayout {
-	s := e.(grammar.SourceNode).Source()
+func layoutOf(e any) *ast.SourceLayout {
+	s := e.(ast.SourceNode).Source()
 	if s.Layout == nil {
-		s.Layout = &grammar.SourceLayout{}
+		s.Layout = &ast.SourceLayout{}
 	}
 	return s.Layout
 }
 
 // takeGap takes the comments before the current token, which lie between it
 // and the token before it, for a #repeat pragma.
-func (p *parser) takeGap() grammar.RepeatGap {
+func (p *parser) takeGap() ast.RepeatGap {
 	t := &p.toks[p.i]
 	cs := t.comments
 	if t.lineComment != nil {
-		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
+		cs = p.appendComments([]*ast.Comment{t.lineComment}, cs)
 	}
-	g := grammar.RepeatGap{Comments: cs, PrevLine: p.toks[p.i-1].end.Line, NextLine: t.pos.Line}
+	g := ast.RepeatGap{Comments: cs, PrevLine: p.toks[p.i-1].end.Line, NextLine: t.pos.Line}
 	t.lineComment, t.comments = nil, nil
 	return g
 }
 
 // takeTermLayout keeps trivia at an expression boundary rather than promoting
 // it to the current statement's line break. Normalized ownership is independent.
-func (p *parser) takeTermLayout() *grammar.SourceLayout {
+func (p *parser) takeTermLayout() *ast.SourceLayout {
 	if p.header {
 		return nil
 	}
@@ -431,13 +431,13 @@ func (p *parser) takeTermLayout() *grammar.SourceLayout {
 	}
 	cs := t.comments
 	if t.lineComment != nil {
-		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
+		cs = p.appendComments([]*ast.Comment{t.lineComment}, cs)
 	}
 	previous := 0
 	if p.i > 0 {
 		previous = p.toks[p.i-1].end.Line
 	}
-	layout := &grammar.SourceLayout{Before: cs, PreviousLine: previous, NextLine: t.pos.Line}
+	layout := &ast.SourceLayout{Before: cs, PreviousLine: previous, NextLine: t.pos.Line}
 	t.lineComment, t.comments = nil, nil
 	return layout
 }

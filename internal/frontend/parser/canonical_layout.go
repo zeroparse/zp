@@ -3,11 +3,11 @@ package parser
 import (
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The raw formatter state of a grammar (the comment tokens and line breaks
-// that LineBreak and SourceLayout values keep, see grammar.LineBreak) depends
+// that LineBreak and SourceLayout values keep, see ast.LineBreak) depends
 // on where the hand-written parser records them: at which token it starts a
 // line break, takes the comments of a gap for a node, or leaves them to the
 // line break before. Every comment of the source goes to exactly one of them.
@@ -22,13 +22,13 @@ type layoutReplay struct {
 	p *parser
 	// starts and ends give the index of the token that starts or ends at a
 	// position.
-	starts, ends map[grammar.Pos]int
+	starts, ends map[ast.Pos]int
 }
 
 // replayLayout sets the raw formatter state of g, which the canonical
 // frontend built from the source of the tokens toks, as Parse sets it.
-func replayLayout(toks []token, g *grammar.Grammar) {
-	r := &layoutReplay{p: &parser{toks: toks, errs: &errorList{}}, starts: make(map[grammar.Pos]int, len(toks)), ends: make(map[grammar.Pos]int, len(toks))}
+func replayLayout(toks []token, g *ast.Grammar) {
+	r := &layoutReplay{p: &parser{toks: toks, errs: &errorList{}}, starts: make(map[ast.Pos]int, len(toks)), ends: make(map[ast.Pos]int, len(toks))}
 	for i, t := range r.p.toks {
 		r.starts[t.pos] = i
 		r.ends[t.end] = i
@@ -44,7 +44,7 @@ func (r *layoutReplay) seek(i int) {
 }
 
 // seekStart consumes the tokens before the token at pos.
-func (r *layoutReplay) seekStart(pos grammar.Pos) {
+func (r *layoutReplay) seekStart(pos ast.Pos) {
 	if i, ok := r.starts[pos]; ok {
 		r.seek(i)
 	}
@@ -76,7 +76,7 @@ func (r *layoutReplay) seekText(text string) {
 
 // header runs read with the parser in a statement header at the token at pos:
 // the comments it consumes are header comments.
-func (r *layoutReplay) header(pos grammar.Pos, read func()) {
+func (r *layoutReplay) header(pos ast.Pos, read func()) {
 	p := r.p
 	header, headerPos := p.header, p.headerPos
 	p.header, p.headerPos = true, pos
@@ -84,7 +84,7 @@ func (r *layoutReplay) header(pos grammar.Pos, read func()) {
 	p.header, p.headerPos = header, headerPos
 }
 
-func (r *layoutReplay) file(g *grammar.Grammar) {
+func (r *layoutReplay) file(g *ast.Grammar) {
 	p := r.p
 	if pkg := &g.File.Pkg; len(pkg.Attrs) > 0 || p.is("package") {
 		pkg.Break = p.statementBreak()
@@ -95,13 +95,13 @@ func (r *layoutReplay) file(g *grammar.Grammar) {
 	}
 	for _, d := range g.File.Decls {
 		switch d := d.(type) {
-		case *grammar.TypeDef:
+		case *ast.TypeDef:
 			r.typeDef(d)
-		case *grammar.TypeAlias:
+		case *ast.TypeAlias:
 			r.typeAlias(d)
-		case *grammar.VarDef:
+		case *ast.VarDef:
 			r.varDef(d)
-		case *grammar.RuleDef:
+		case *ast.RuleDef:
 			r.ruleDef(d)
 		}
 		r.separator()
@@ -118,7 +118,7 @@ func (r *layoutReplay) separator() {
 	}
 }
 
-func (r *layoutReplay) typeDef(d *grammar.TypeDef) {
+func (r *layoutReplay) typeDef(d *ast.TypeDef) {
 	p := r.p
 	r.seekStart(d.Pos)
 	d.Break = p.statementBreak()
@@ -126,11 +126,11 @@ func (r *layoutReplay) typeDef(d *grammar.TypeDef) {
 	r.header(d.Pos, func() {
 		p.next() // the name
 		switch t := d.Type.(type) {
-		case *grammar.StructType:
+		case *ast.StructType:
 			p.next() // =
 			p.header = false
 			t.CloseBreak, t.OneLine = r.structFields(t)
-		case *grammar.TypeApp:
+		case *ast.TypeApp:
 			p.next() // =
 			p.header = false
 			r.typ(t)
@@ -138,7 +138,7 @@ func (r *layoutReplay) typeDef(d *grammar.TypeDef) {
 	})
 }
 
-func (r *layoutReplay) typeAlias(d *grammar.TypeAlias) {
+func (r *layoutReplay) typeAlias(d *ast.TypeAlias) {
 	p := r.p
 	r.seekStart(d.Pos)
 	d.Break = p.statementBreak()
@@ -151,7 +151,7 @@ func (r *layoutReplay) typeAlias(d *grammar.TypeAlias) {
 	})
 }
 
-func (r *layoutReplay) varDef(d *grammar.VarDef) {
+func (r *layoutReplay) varDef(d *ast.VarDef) {
 	p := r.p
 	r.seekStart(d.Pos)
 	d.Break = p.statementBreak()
@@ -166,7 +166,7 @@ func (r *layoutReplay) varDef(d *grammar.VarDef) {
 	}
 }
 
-func (r *layoutReplay) ruleDef(d *grammar.RuleDef) {
+func (r *layoutReplay) ruleDef(d *ast.RuleDef) {
 	p := r.p
 	if len(d.Attrs) > 0 {
 		r.seekStart(d.Attrs[0].Pos)
@@ -209,14 +209,14 @@ func (r *layoutReplay) ruleDef(d *grammar.RuleDef) {
 // attributes replays the declaration attributes of a rule or the package
 // clause, and returns their line breaks and the line break before the
 // keyword that follows them.
-func (r *layoutReplay) attributes(attrs []*grammar.Attribute) (breaks []*grammar.LineBreak, keywordBreak *grammar.LineBreak) {
+func (r *layoutReplay) attributes(attrs []*ast.Attribute) (breaks []*ast.LineBreak, keywordBreak *ast.LineBreak) {
 	p := r.p
 	if len(attrs) == 0 {
 		return nil, nil
 	}
 	for i, a := range attrs {
-		var b *grammar.LineBreak
-		var gap []*grammar.Comment
+		var b *ast.LineBreak
+		var gap []*ast.Comment
 		if i > 0 {
 			if p.atLineStart() {
 				b = p.lineBreak()
@@ -233,7 +233,7 @@ func (r *layoutReplay) attributes(attrs []*grammar.Attribute) (breaks []*grammar
 		r.attribute(a)
 		if gap != nil {
 			if a.Layout == nil {
-				a.Layout = &grammar.SourceLayout{}
+				a.Layout = &ast.SourceLayout{}
 			}
 			a.Layout.Before = gap
 		}
@@ -241,7 +241,7 @@ func (r *layoutReplay) attributes(attrs []*grammar.Attribute) (breaks []*grammar
 	return breaks, p.lineBreak()
 }
 
-func (r *layoutReplay) attribute(a *grammar.Attribute) {
+func (r *layoutReplay) attribute(a *ast.Attribute) {
 	p := r.p
 	p.next() // @
 	p.next() // the name
@@ -250,7 +250,7 @@ func (r *layoutReplay) attribute(a *grammar.Attribute) {
 	}
 	p.next()
 	defer p.restoreBreak()()
-	list := &grammar.ListLayout{}
+	list := &ast.ListLayout{}
 	list.OpenBreak, list.BodyBreak = p.openList()
 	a.ArgsLayout = list
 	if p.is(")") {
@@ -263,7 +263,7 @@ func (r *layoutReplay) attribute(a *grammar.Attribute) {
 		values = append(values, a.KwArgs[k])
 	}
 	for i, v := range values {
-		var layout *grammar.SourceLayout
+		var layout *ast.SourceLayout
 		if len(list.Elems) > 0 {
 			layout = p.takeTermLayout()
 		}
@@ -290,70 +290,70 @@ func (r *layoutReplay) attribute(a *grammar.Attribute) {
 }
 
 // typ replays the type t, which starts at the current token.
-func (r *layoutReplay) typ(t grammar.TypeExpr) {
+func (r *layoutReplay) typ(t ast.TypeExpr) {
 	p := r.p
 	switch t := t.(type) {
-	case *grammar.JoinType:
+	case *ast.JoinType:
 		for i, u := range t.Types {
 			if i > 0 {
 				p.next() // |
 			}
 			r.typ(u)
 		}
-	case *grammar.MeetType:
+	case *ast.MeetType:
 		for i, u := range t.Types {
 			if i > 0 {
 				p.next() // &
 			}
 			r.typ(u)
 		}
-	case *grammar.ListType:
+	case *ast.ListType:
 		p.next() // []
 		r.typ(t.Elem)
-	case *grammar.OptionalType:
+	case *ast.OptionalType:
 		p.next() // *
 		r.typ(t.Elem)
-	case *grammar.TypeGroup:
+	case *ast.TypeGroup:
 		open := p.i
 		p.next() // (
 		outer, header := p.cur, p.header
 		defer func() { p.cur, p.header = outer, header }()
 		p.header = false
-		t.OpenBreak = &grammar.LineBreak{}
+		t.OpenBreak = &ast.LineBreak{}
 		p.cur = t.OpenBreak
 		t.BodyBreak = p.lineBreak()
 		r.typ(t.Type)
 		t.CloseBreak = p.lineBreak()
 		t.OneLine = !p.multiline(open, p.i)
 		p.next() // )
-	case *grammar.TupleType:
+	case *ast.TupleType:
 		p.next() // (
 		outer, header := p.cur, p.header
 		defer func() { p.cur, p.header = outer, header }()
 		p.header = false
-		t.OpenBreak = &grammar.LineBreak{}
+		t.OpenBreak = &ast.LineBreak{}
 		p.cur = t.OpenBreak
 		t.BodyBreak = p.lineBreak()
 		for i, u := range t.Types {
 			if i > 0 {
-				u.(grammar.SourceNode).Source().Layout = p.takeTermLayout()
+				u.(ast.SourceNode).Source().Layout = p.takeTermLayout()
 			}
 			r.typ(u)
 			p.takeAfterLayout(u)
 			if p.is(",") {
 				p.next()
-				p.afterCommaLayout(&u.(grammar.SourceNode).Source().Layout, ")")
+				p.afterCommaLayout(&u.(ast.SourceNode).Source().Layout, ")")
 				t.TrailingComma = p.is(")")
 			}
 		}
 		t.CloseBreak = p.lineBreak()
 		p.next() // )
-	case *grammar.StructType:
+	case *ast.StructType:
 		outer, header := p.cur, p.header
 		defer func() { p.cur, p.header = outer, header }()
 		p.header = false
 		t.CloseBreak, t.OneLine = r.structFields(t)
-	case *grammar.TypeApp:
+	case *ast.TypeApp:
 		p.next() // the name
 		p.next() // [
 		outer, header := p.cur, p.header
@@ -364,12 +364,12 @@ func (r *layoutReplay) typ(t grammar.TypeExpr) {
 			layout := p.takeTermLayout()
 			r.typ(u)
 			if layout != nil {
-				u.(grammar.SourceNode).Source().Layout = layout
+				u.(ast.SourceNode).Source().Layout = layout
 			}
 			p.takeAfterLayout(u)
 			if p.is(",") {
 				p.next()
-				p.afterCommaLayout(&u.(grammar.SourceNode).Source().Layout, "]")
+				p.afterCommaLayout(&u.(ast.SourceNode).Source().Layout, "]")
 				t.TrailingComma = p.is("]")
 			}
 		}
@@ -381,7 +381,7 @@ func (r *layoutReplay) typ(t grammar.TypeExpr) {
 }
 
 // structFields replays the braces and fields of the struct type t.
-func (r *layoutReplay) structFields(t *grammar.StructType) (closeBreak *grammar.LineBreak, oneLine bool) {
+func (r *layoutReplay) structFields(t *ast.StructType) (closeBreak *ast.LineBreak, oneLine bool) {
 	p := r.p
 	open := p.i
 	p.next() // {
@@ -404,18 +404,18 @@ func (r *layoutReplay) structFields(t *grammar.StructType) (closeBreak *grammar.
 
 // operatorsBody replays the Operators Rule that e is, or that e holds with the
 // #ignorecase pragmas after it, from its #operators.
-func (r *layoutReplay) operatorsBody(e grammar.Expr) {
+func (r *layoutReplay) operatorsBody(e ast.Expr) {
 	p := r.p
-	var pragmas []*grammar.Attribute
+	var pragmas []*ast.Attribute
 	for {
-		a, ok := e.(*grammar.Attributed)
+		a, ok := e.(*ast.Attributed)
 		if !ok {
 			break
 		}
 		pragmas = append(a.Attrs, pragmas...)
 		e = a.Expr
 	}
-	pr, ok := e.(*grammar.OperatorsRule)
+	pr, ok := e.(*ast.OperatorsRule)
 	if !ok {
 		return
 	}
@@ -427,7 +427,7 @@ func (r *layoutReplay) operatorsBody(e grammar.Expr) {
 			break
 		}
 		if gap := p.takeInlineGap(); gap != nil {
-			attr.Layout = &grammar.SourceLayout{Before: gap}
+			attr.Layout = &ast.SourceLayout{Before: gap}
 		}
 		p.next() // #
 		p.next() // ignorecase
@@ -435,22 +435,22 @@ func (r *layoutReplay) operatorsBody(e grammar.Expr) {
 }
 
 // operatorsRule replays the braces and items of pr, from its "{".
-func (r *layoutReplay) operatorsRule(pr *grammar.OperatorsRule) {
+func (r *layoutReplay) operatorsRule(pr *ast.OperatorsRule) {
 	p := r.p
 	type item struct {
-		pos  grammar.Pos
-		read func(b *grammar.LineBreak)
+		pos  ast.Pos
+		read func(b *ast.LineBreak)
 	}
 	var items []item
 	if pr.Skip != nil {
-		items = append(items, item{pr.SkipSource.Pos, func(b *grammar.LineBreak) {
+		items = append(items, item{pr.SkipSource.Pos, func(b *ast.LineBreak) {
 			pr.SkipBreak = b
 			p.next() // skip
 			r.choice(pr.Skip)
 		}})
 	}
 	for _, o := range pr.Operands {
-		items = append(items, item{o.Pos, func(b *grammar.LineBreak) {
+		items = append(items, item{o.Pos, func(b *ast.LineBreak) {
 			o.Break = b
 			p.next() // operand
 			r.choice(o.Expr)
@@ -461,7 +461,7 @@ func (r *layoutReplay) operatorsRule(pr *grammar.OperatorsRule) {
 		}})
 	}
 	for _, l := range pr.Levels {
-		items = append(items, item{l.Pos, func(b *grammar.LineBreak) {
+		items = append(items, item{l.Pos, func(b *ast.LineBreak) {
 			l.Break = b
 			r.level(l)
 		}})
@@ -484,7 +484,7 @@ func (r *layoutReplay) operatorsRule(pr *grammar.OperatorsRule) {
 }
 
 // level replays a level of an Operators Rule, from its keyword.
-func (r *layoutReplay) level(l *grammar.OperatorsRuleLevel) {
+func (r *layoutReplay) level(l *ast.OperatorsRuleLevel) {
 	p := r.p
 	pos := p.next().pos // level
 	open := 0

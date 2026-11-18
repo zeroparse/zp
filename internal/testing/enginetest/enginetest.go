@@ -11,13 +11,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
@@ -51,10 +51,10 @@ func Main(m *testing.M) {
 }
 
 // Parse parses ZeroParse source for a test whose subject is not start rules (compiletest.Parse).
-func Parse(src string) (*grammar.Grammar, error) { return compiletest.Parse(src) }
+func Parse(src string) (*ast.Grammar, error) { return compiletest.Parse(src) }
 
 // MustParse is Parse that panics on a syntax error.
-func MustParse(src string) *grammar.Grammar {
+func MustParse(src string) *ast.Grammar {
 	g, err := Parse(src)
 	if err != nil {
 		panic(err)
@@ -137,7 +137,7 @@ func Reference(t *testing.T, src string, opts compile.Options) codegentest.Refer
 
 // CompileForGenerator compiles g for the generators, as the compileForGenerator of package
 // codegen does.
-func CompileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
+func CompileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 	prog, err := engine.Compile(g, opts)
 	if err != nil {
 		return nil, nil, err

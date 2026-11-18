@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	tsprint "zeroparse.dev/zp/internal/backend/codegen/typescript/print"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Compile compiles grammars for the generators, as the compiler of package codegen does. The
@@ -34,7 +34,7 @@ func OmitExpectations(t testing.TB) {
 
 // Generate generates a Go parser for g, as common.Go.Generate does, with the hooks of the generator
 // that t set (SetGenHooks). The parser records expectations unless t called OmitExpectations.
-func Generate(t testing.TB, g *grammar.Grammar, opts common.GenOptions) ([]common.GeneratedFile, error) {
+func Generate(t testing.TB, g *ast.Grammar, opts common.GenOptions) ([]common.GeneratedFile, error) {
 	if _, off := byTest(&expectationsOff, t); off {
 		return GenerateRaw(t, g, opts)
 	}
@@ -69,7 +69,7 @@ func askExpectations(files []common.GeneratedFile) []common.GeneratedFile {
 }
 
 // GenerateRaw is Generate with the options as given.
-func GenerateRaw(t testing.TB, g *grammar.Grammar, opts common.GenOptions) ([]common.GeneratedFile, error) {
+func GenerateRaw(t testing.TB, g *ast.Grammar, opts common.GenOptions) ([]common.GeneratedFile, error) {
 	if Compile == nil {
 		t.Fatal("codegentest.Compile is not set: the test package must set it before generating")
 	}
@@ -84,7 +84,7 @@ func GenerateRaw(t testing.TB, g *grammar.Grammar, opts common.GenOptions) ([]co
 
 // GenerateTS generates a TypeScript parser for g that records expectations, as
 // common.TypeScript.Generate does with Expectations.
-func GenerateTS(g *grammar.Grammar, opts common.GenOptions) ([]common.GeneratedFile, error) {
+func GenerateTS(g *ast.Grammar, opts common.GenOptions) ([]common.GeneratedFile, error) {
 	opts.Expectations = true
 	files, err := GenerateTSRaw(g, opts)
 	if err != nil {
@@ -106,7 +106,7 @@ func askTSExpectations(files []common.GeneratedFile) []common.GeneratedFile {
 }
 
 // GenerateTSRaw is GenerateTS with the options as given.
-func GenerateTSRaw(g *grammar.Grammar, opts common.GenOptions) ([]common.GeneratedFile, error) {
+func GenerateTSRaw(g *ast.Grammar, opts common.GenOptions) ([]common.GeneratedFile, error) {
 	if Compile == nil {
 		panic("codegentest.Compile is not set: the test package must set it before generating")
 	}

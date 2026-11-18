@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
@@ -16,6 +15,7 @@ import (
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Cancel at a deterministic poll, without timing or global compiler hooks.
@@ -40,7 +40,7 @@ func compileTestContext(t *testing.T, polls int) *compilePollContext {
 	return &compilePollContext{Context: ctx, cancel: cancel, left: polls}
 }
 
-func compileTestGrammar(t *testing.T) *grammar.Grammar {
+func compileTestGrammar(t *testing.T) *ast.Grammar {
 	t.Helper()
 	g, err := parseTest(codegentest.InferredChain(1024, false, ""))
 	if err != nil {
@@ -94,18 +94,18 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 			case "static-analysis":
 				corepass.Compute(structuralModule(t, g), control)
 			case "success-proof", "failure-proof", "cut-proof":
-				items := make([]grammar.Expr, 1024)
+				items := make([]ast.Expr, 1024)
 				for i := range items {
-					items[i] = &grammar.Top{}
+					items[i] = &ast.Top{}
 					if phase == "failure-proof" {
-						items[i] = &grammar.Bottom{}
+						items[i] = &ast.Bottom{}
 					}
 				}
-				var expr grammar.Expr = &grammar.Seq{Items: items}
+				var expr ast.Expr = &ast.Seq{Items: items}
 				if phase == "failure-proof" {
-					expr = &grammar.Not{Expr: &grammar.Choice{Alts: items}}
+					expr = &ast.Not{Expr: &ast.Choice{Alts: items}}
 				} else if phase == "cut-proof" {
-					expr = &grammar.Optional{Expr: expr}
+					expr = &ast.Optional{Expr: expr}
 				}
 				// Only the shared proof traversal can reach the first context
 				// checkpoint; no outer analysis loop contributes polling here.
@@ -120,12 +120,12 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 			case "list-constructor-type":
 				// The entry poll alone cannot cancel: cancellation must be
 				// observed inside the temporary checker resolving Elem.
-				var elem grammar.TypeExpr = &grammar.TypeRef{Name: "Match"}
+				var elem ast.TypeExpr = &ast.TypeRef{Name: "Match"}
 				for range 1024 {
-					elem = &grammar.ListType{Elem: elem}
+					elem = &ast.ListType{Elem: elem}
 				}
 				c := &compile.Compiler{Prog: p.Static(), Control: control}
-				c.CheckTerm(&grammar.ListConstructor{Elem: elem}, compile.NewScope(), nil)
+				c.CheckTerm(&ast.ListConstructor{Elem: elem}, compile.NewScope(), nil)
 			case "core-build":
 				_, _ = corebuild.CoreControlled(p.Static(), control)
 			case "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify":
@@ -211,7 +211,7 @@ func TestCompileContextOrdinaryParity(t *testing.T) {
 
 // structuralModule returns the untyped Core IR module of the rules of g, from which the front end
 // takes the rule facts and the site numbers.
-func structuralModule(t *testing.T, g *grammar.Grammar) *ir.Module {
+func structuralModule(t *testing.T, g *ast.Grammar) *ir.Module {
 	t.Helper()
 	m, err := corebuild.Structural(compile.StructuralInput(g, g.Rules(), nil), nil)
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A comma-separated list in brackets stays on one line, unless it has a
@@ -149,16 +149,16 @@ func TestTrailingCommaNotSerialized(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bare, err := grammar.UnmarshalJSON(data)
+	bare, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	const flat = "rule r = \"a\" => f(1, (2, 3), []int{4})\n"
-	if got := grammar.Format(bare); got != flat {
+	if got := ast.Format(bare); got != flat {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, flat)
 	}
 }
@@ -184,16 +184,16 @@ func TestListCommaCommentTrailsElement(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var args []grammar.Term
-			switch x := g.File.Decls[0].(*grammar.RuleDef).Action.(type) {
-			case *grammar.Call:
+			var args []ast.Term
+			switch x := g.File.Decls[0].(*ast.RuleDef).Action.(type) {
+			case *ast.Call:
 				args = x.Args
-			case *grammar.ListConstructor:
+			case *ast.ListConstructor:
 				args = x.Items
-			case *grammar.TupleLit:
+			case *ast.TupleLit:
 				args = x.Elems
 			}
-			if got := strings.Join(args[0].(grammar.SourceNode).Source().TrailingComments, ""); got != tc.want {
+			if got := strings.Join(args[0].(ast.SourceNode).Source().TrailingComments, ""); got != tc.want {
 				t.Fatalf("the trailing comment of the first element is %q, want %q", got, tc.want)
 			}
 		})
@@ -240,11 +240,11 @@ func TestRepeatPragmaCommaIsNotTrailing(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			rep := g.Rules()[0].Expr.(*grammar.Seq).Items[0].(*grammar.Repeat)
+			rep := g.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.Repeat)
 			if rep.Min != tc.min || rep.Max != tc.max {
 				t.Fatalf("bounds %d,%d, want %d,%d", rep.Min, rep.Max, tc.min, tc.max)
 			}
-			out := grammar.Format(g)
+			out := ast.Format(g)
 			if strings.Contains(out, "\n    ") {
 				t.Fatalf("broken into lines:\n%s", out)
 			}
@@ -252,7 +252,7 @@ func TestRepeatPragmaCommaIsNotTrailing(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%v\n%s", err, out)
 			}
-			rep = again.Rules()[0].Expr.(*grammar.Seq).Items[0].(*grammar.Repeat)
+			rep = again.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.Repeat)
 			if rep.Min != tc.min || rep.Max != tc.max {
 				t.Fatalf("formatted bounds %d,%d, want %d,%d\n%s", rep.Min, rep.Max, tc.min, tc.max, out)
 			}

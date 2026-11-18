@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A detached paragraph is separated from the node before it and the node after
@@ -45,15 +45,15 @@ func TestFormatJSONKeepsDetachedParagraphs(t *testing.T) {
 			if problem := jsonRoundTripProblem(g); problem != "" {
 				t.Fatal(problem)
 			}
-			data, err := grammar.MarshalJSON(g)
+			data, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, err := grammar.UnmarshalJSON(data)
+			decoded, err := ast.UnmarshalJSON(data)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := grammar.Format(decoded); got != tc.src && tc.name != "trailing over lines" {
+			if got := ast.Format(decoded); got != tc.src && tc.name != "trailing over lines" {
 				t.Fatalf("got:\n%s\nwant:\n%s", got, tc.src)
 			}
 		})

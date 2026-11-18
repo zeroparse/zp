@@ -1,24 +1,24 @@
 package parser
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // This file replays the layout inside rule expressions and actions (see
 // layoutReplay). Each method mirrors the parser method of the same name and
 // starts at the first token of the node it replays.
 
 // bodyChoice replays the top-level choice of a rule body or a group.
-func (r *layoutReplay) bodyChoice(e grammar.Expr) {
+func (r *layoutReplay) bodyChoice(e ast.Expr) {
 	p := r.p
-	c, ok := e.(*grammar.Choice)
+	c, ok := e.(*ast.Choice)
 	if !ok {
 		r.bodySequence(e)
 		return
 	}
 	r.bodySequence(c.Alts[0])
-	breaks := []*grammar.LineBreak{nil}
+	breaks := []*ast.LineBreak{nil}
 	broken := false
 	for i, alt := range c.Alts[1:] {
-		var b *grammar.LineBreak
+		var b *ast.LineBreak
 		if p.atLineStart() {
 			b = p.lineBreak()
 			broken = true
@@ -43,17 +43,17 @@ func (r *layoutReplay) bodyChoice(e grammar.Expr) {
 
 // bodySequence replays a sequence of a rule body or a group, with its line
 // breaks.
-func (r *layoutReplay) bodySequence(e grammar.Expr) {
+func (r *layoutReplay) bodySequence(e ast.Expr) {
 	p := r.p
-	s, ok := e.(*grammar.Seq)
+	s, ok := e.(*ast.Seq)
 	if !ok {
 		r.prefixed(e)
 		return
 	}
-	breaks := make([]*grammar.LineBreak, 0, len(s.Items))
+	breaks := make([]*ast.LineBreak, 0, len(s.Items))
 	broken := false
 	for i, item := range s.Items {
-		var b *grammar.LineBreak
+		var b *ast.LineBreak
 		if i > 0 && p.atLineStart() {
 			b = p.lineBreak()
 			broken = true
@@ -69,11 +69,11 @@ func (r *layoutReplay) bodySequence(e grammar.Expr) {
 
 // choice replays a choice inside a pragma, an attribute argument or an item of
 // an Operators Rule.
-func (r *layoutReplay) choice(e grammar.Expr) {
+func (r *layoutReplay) choice(e ast.Expr) {
 	p := r.p
 	p.nest++
 	defer func() { p.nest-- }()
-	c, ok := e.(*grammar.Choice)
+	c, ok := e.(*ast.Choice)
 	if !ok {
 		r.sequence(e)
 		return
@@ -91,8 +91,8 @@ func (r *layoutReplay) choice(e grammar.Expr) {
 	}
 }
 
-func (r *layoutReplay) sequence(e grammar.Expr) {
-	if s, ok := e.(*grammar.Seq); ok {
+func (r *layoutReplay) sequence(e ast.Expr) {
+	if s, ok := e.(*ast.Seq); ok {
 		for _, item := range s.Items {
 			r.prefixed(item)
 		}
@@ -101,21 +101,21 @@ func (r *layoutReplay) sequence(e grammar.Expr) {
 	r.prefixed(e)
 }
 
-func (r *layoutReplay) prefixed(e grammar.Expr) {
+func (r *layoutReplay) prefixed(e ast.Expr) {
 	p := r.p
 	gap := p.takeInlineGap()
 	switch x := e.(type) {
-	case *grammar.Capture:
+	case *ast.Capture:
 		p.next() // the label
 		p.next() // :
 		r.operand(x.Expr)
-	case *grammar.And:
+	case *ast.And:
 		p.next()
 		r.operand(x.Expr)
-	case *grammar.Not:
+	case *ast.Not:
 		p.next()
 		r.operand(x.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		p.next()
 		r.operand(x.Expr)
 	default:
@@ -126,7 +126,7 @@ func (r *layoutReplay) prefixed(e grammar.Expr) {
 	}
 }
 
-func (r *layoutReplay) operand(e grammar.Expr) {
+func (r *layoutReplay) operand(e ast.Expr) {
 	p := r.p
 	lead := p.takeCommentGap()
 	r.prefixed(e)
@@ -135,23 +135,23 @@ func (r *layoutReplay) operand(e grammar.Expr) {
 
 // suffixed replays a primary expression and the suffixes, pragmas and
 // attributes after it, from the innermost out.
-func (r *layoutReplay) suffixed(e grammar.Expr) {
+func (r *layoutReplay) suffixed(e ast.Expr) {
 	p := r.p
-	var chain []grammar.Expr
+	var chain []ast.Expr
 	for inner := e; ; {
-		var next grammar.Expr
+		var next ast.Expr
 		switch x := inner.(type) {
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			next = x.Expr
-		case *grammar.Optional:
+		case *ast.Optional:
 			next = x.Expr
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			next = x.Expr
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			next = x.Expr
-		case *grammar.Stream:
+		case *ast.Stream:
 			next = x.Expr
-		case *grammar.Recovery:
+		case *ast.Recovery:
 			next = x.Expr
 		}
 		if next == nil {
@@ -163,14 +163,14 @@ func (r *layoutReplay) suffixed(e grammar.Expr) {
 	}
 	for i := len(chain) - 1; i >= 0; i-- {
 		switch x := chain[i].(type) {
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			r.attributed(x)
-		case *grammar.Optional:
+		case *ast.Optional:
 			if gap := p.takeCommentGap(); gap != nil {
 				layoutOf(x).OpGap = gap
 			}
 			p.next() // ?
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			if !p.is("#") {
 				if gap := p.takeCommentGap(); gap != nil {
 					layoutOf(x).OpGap = gap
@@ -187,23 +187,23 @@ func (r *layoutReplay) suffixed(e grammar.Expr) {
 
 // pragma replays a pragma that wraps the expression before it, from the
 // comments before its "#".
-func (r *layoutReplay) pragma(e grammar.Expr) {
+func (r *layoutReplay) pragma(e ast.Expr) {
 	p := r.p
 	operator := p.takeInlineGap()
-	var br *grammar.LineBreak
+	var br *ast.LineBreak
 	if p.nest == 0 && p.atLineStart() {
 		br = p.lineBreak()
 	}
 	p.next() // #
 	p.next() // the name
 	switch x := e.(type) {
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		x.Break = br
 		r.emptyArguments()
-	case *grammar.Stream:
+	case *ast.Stream:
 		x.Break = br
 		r.emptyArguments()
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		x.Break = br
 		p.next() // (
 		open := p.takeCommentGap()
@@ -219,7 +219,7 @@ func (r *layoutReplay) pragma(e grammar.Expr) {
 			l := layoutOf(x)
 			l.Open, l.Eq, l.Close = open, eq, closing
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		x.PragmaBreak = br
 		x.Spelling = r.repeatSpelling()
 	}
@@ -238,12 +238,12 @@ func (r *layoutReplay) emptyArguments() {
 }
 
 // repeatSpelling replays the arguments of #repeat, from its "(".
-func (r *layoutReplay) repeatSpelling() *grammar.RepeatSpelling {
+func (r *layoutReplay) repeatSpelling() *ast.RepeatSpelling {
 	p := r.p
 	p.next() // (
-	outer, stray := p.cur, &grammar.LineBreak{}
+	outer, stray := p.cur, &ast.LineBreak{}
 	p.cur = stray
-	sp := &grammar.RepeatSpelling{}
+	sp := &ast.RepeatSpelling{}
 	gap := func() { sp.Gaps = append(sp.Gaps, p.takeGap()) }
 	count := func() {
 		if p.is("-") {
@@ -279,15 +279,15 @@ func (r *layoutReplay) repeatSpelling() *grammar.RepeatSpelling {
 
 // attributed replays the attributes and the #ignorecase and #missing pragmas
 // of a, which follow its expression.
-func (r *layoutReplay) attributed(a *grammar.Attributed) {
+func (r *layoutReplay) attributed(a *ast.Attributed) {
 	p := r.p
 	a.Breaks = nil
 	for i, attr := range a.Attrs {
-		var gap []*grammar.Comment
+		var gap []*ast.Comment
 		if attr.Pragma {
 			gap = p.takeInlineGap()
 		}
-		var b *grammar.LineBreak
+		var b *ast.LineBreak
 		if p.nest == 0 && p.atLineStart() {
 			b = p.lineBreak()
 		}
@@ -307,20 +307,20 @@ func (r *layoutReplay) attributed(a *grammar.Attributed) {
 			r.attribute(attr)
 		}
 		if gap != nil {
-			attr.Layout = &grammar.SourceLayout{Before: gap}
+			attr.Layout = &ast.SourceLayout{Before: gap}
 		}
 	}
 }
 
-func (r *layoutReplay) primary(e grammar.Expr) {
+func (r *layoutReplay) primary(e ast.Expr) {
 	p := r.p
 	switch x := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		p.next()
 		if x.IgnoreCase {
 			p.next() // i
 		}
-	case *grammar.Ref:
+	case *ast.Ref:
 		if x.Level != "" {
 			for range 6 { // level ( rule , name )
 				p.next()
@@ -328,14 +328,14 @@ func (r *layoutReplay) primary(e grammar.Expr) {
 			return
 		}
 		p.next()
-	case *grammar.Cut:
+	case *ast.Cut:
 		p.next() // #
 		p.next() // cut
-	case *grammar.Group:
+	case *ast.Group:
 		r.group(x)
-	case *grammar.Predicate:
+	case *ast.Predicate:
 		x.OpenBreak, x.Breaks, x.CloseBreak, x.OneLine = r.actionBlock(x.Term)
-		if b, ok := x.Term.(*grammar.Block); ok {
+		if b, ok := x.Term.(*ast.Block); ok {
 			b.OpenBreak, b.Breaks, b.CloseBreak, b.OneLine = x.OpenBreak, x.Breaks, x.CloseBreak, x.OneLine
 		}
 	default:
@@ -343,14 +343,14 @@ func (r *layoutReplay) primary(e grammar.Expr) {
 	}
 }
 
-func (r *layoutReplay) group(g *grammar.Group) {
+func (r *layoutReplay) group(g *ast.Group) {
 	p := r.p
 	open := p.i
 	p.next() // (
 	lead := p.openLead()
 	g.BodyBreak = p.lineBreak()
 	p.leadBreak(g.BodyBreak, lead)
-	if a, ok := g.Expr.(*grammar.InlineAction); ok {
+	if a, ok := g.Expr.(*ast.InlineAction); ok {
 		r.bodyChoice(a.Expr)
 		gap := p.takeCommentGap()
 		p.next() // =>
@@ -376,7 +376,7 @@ func (r *layoutReplay) group(g *grammar.Group) {
 func (r *layoutReplay) attributeValue(v any) {
 	p := r.p
 	switch v := v.(type) {
-	case grammar.Expr:
+	case ast.Expr:
 		r.choice(v)
 	case string:
 		// A literal, which choice reads as an expression.
@@ -397,9 +397,9 @@ func (r *layoutReplay) attributeValue(v any) {
 
 // actionTerm replays the action of a rule, an inline action or an item of an
 // Operators Rule, from its first token.
-func (r *layoutReplay) actionTerm(t grammar.Term, defaultAction bool) {
+func (r *layoutReplay) actionTerm(t ast.Term, defaultAction bool) {
 	p := r.p
-	b, block := t.(*grammar.Block)
+	b, block := t.(*ast.Block)
 	switch {
 	case defaultAction:
 		p.next() // ...
@@ -413,10 +413,10 @@ func (r *layoutReplay) actionTerm(t grammar.Term, defaultAction bool) {
 // actionBlock replays the braces and statements of a block. t is the block, or
 // its one statement, which a predicate holds instead (a statement never starts
 // with "{", so a Block is always the block itself).
-func (r *layoutReplay) actionBlock(t grammar.Term) (openBreak *grammar.LineBreak, breaks []*grammar.LineBreak, closeBreak *grammar.LineBreak, oneLine bool) {
+func (r *layoutReplay) actionBlock(t ast.Term) (openBreak *ast.LineBreak, breaks []*ast.LineBreak, closeBreak *ast.LineBreak, oneLine bool) {
 	p := r.p
-	statements := []grammar.Term{t}
-	if b, ok := t.(*grammar.Block); ok {
+	statements := []ast.Term{t}
+	if b, ok := t.(*ast.Block); ok {
 		statements = b.Statements
 	}
 	open := p.i
@@ -424,11 +424,11 @@ func (r *layoutReplay) actionBlock(t grammar.Term) (openBreak *grammar.LineBreak
 	defer func() { p.cur = outer }()
 	p.next() // {
 	lead := p.openLead()
-	openBreak = &grammar.LineBreak{}
+	openBreak = &ast.LineBreak{}
 	p.cur = openBreak
 	joined := false
 	for i := 0; ; i++ {
-		var gap []*grammar.Comment
+		var gap []*ast.Comment
 		var gapLine int
 		if joined && !p.is("}") {
 			if gap = p.takeInlineGap(); gap != nil {
@@ -444,7 +444,7 @@ func (r *layoutReplay) actionBlock(t grammar.Term) (openBreak *grammar.LineBreak
 			return openBreak, breaks, br, oneLine
 		}
 		term := statements[i]
-		if b, ok := term.(*grammar.Bind); ok {
+		if b, ok := term.(*ast.Bind); ok {
 			p.next() // the name
 			p.next() // :=
 			r.term(b.Value)
@@ -465,23 +465,23 @@ func (r *layoutReplay) actionBlock(t grammar.Term) (openBreak *grammar.LineBreak
 	}
 }
 
-func (r *layoutReplay) term(t grammar.Term) {
-	if l, ok := t.(*grammar.Lambda); ok {
+func (r *layoutReplay) term(t ast.Term) {
+	if l, ok := t.(*ast.Lambda); ok {
 		r.lambda(l)
 		return
 	}
 	r.binary(0, t)
 }
 
-func (r *layoutReplay) lambda(l *grammar.Lambda) {
+func (r *layoutReplay) lambda(l *ast.Lambda) {
 	p := r.p
 	layout := p.takeTermLayout()
 	p.next() // (
 	cur := p.cur
-	list := &grammar.ListLayout{}
+	list := &ast.ListLayout{}
 	list.OpenBreak, list.BodyBreak = p.openList()
 	for i := range l.Params {
-		var elem *grammar.SourceLayout
+		var elem *ast.SourceLayout
 		if i > 0 {
 			elem = p.takeTermLayout()
 		}
@@ -501,7 +501,7 @@ func (r *layoutReplay) lambda(l *grammar.Lambda) {
 	p.cur = cur
 	if gap := p.takeCommentGap(); gap != nil {
 		if layout == nil {
-			layout = &grammar.SourceLayout{}
+			layout = &ast.SourceLayout{}
 		}
 		layout.OpGap = gap
 	}
@@ -514,16 +514,16 @@ func (r *layoutReplay) lambda(l *grammar.Lambda) {
 }
 
 // binary replays t as an operand of the operators of level and above.
-func (r *layoutReplay) binary(level int, t grammar.Term) {
+func (r *layoutReplay) binary(level int, t ast.Term) {
 	p := r.p
 	if level == len(binaryLevels) {
 		r.unary(t)
 		return
 	}
-	var chain []*grammar.Binary
+	var chain []*ast.Binary
 	left := t
 	for {
-		b, ok := left.(*grammar.Binary)
+		b, ok := left.(*ast.Binary)
 		if !ok || !contains(binaryLevels[level], b.Op) {
 			break
 		}
@@ -542,25 +542,25 @@ func (r *layoutReplay) binary(level int, t grammar.Term) {
 	}
 }
 
-func (r *layoutReplay) unary(t grammar.Term) {
+func (r *layoutReplay) unary(t ast.Term) {
 	p := r.p
 	layout := p.takeTermLayout()
-	if u, ok := t.(*grammar.Unary); ok {
+	if u, ok := t.(*ast.Unary); ok {
 		p.next() // - or !
 		r.unary(u.X)
 	} else {
-		var chain []grammar.Term
+		var chain []ast.Term
 		inner := t
 		for {
-			var x grammar.Term
+			var x ast.Term
 			switch n := inner.(type) {
-			case *grammar.Binary:
+			case *ast.Binary:
 				if n.Op == "[]" {
 					x = n.L
 				}
-			case *grammar.Cast:
+			case *ast.Cast:
 				x = n.X
-			case *grammar.Member:
+			case *ast.Member:
 				x = n.X
 			}
 			if x == nil {
@@ -573,26 +573,26 @@ func (r *layoutReplay) unary(t grammar.Term) {
 		for i := len(chain) - 1; i >= 0; i-- {
 			p.next() // . or [
 			switch n := chain[i].(type) {
-			case *grammar.Binary:
+			case *ast.Binary:
 				outer := p.cur
-				n.OpenBreak = &grammar.LineBreak{}
+				n.OpenBreak = &ast.LineBreak{}
 				p.cur = n.OpenBreak
 				n.BodyBreak = p.lineBreak()
 				r.term(n.R)
 				n.CloseBreak = p.lineBreak()
 				p.next() // ]
 				p.cur = outer
-			case *grammar.Cast:
+			case *ast.Cast:
 				p.next() // (
 				r.typ(n.Type)
 				p.next() // )
-			case *grammar.Member:
+			case *ast.Member:
 				p.next() // the name
 			}
 		}
 	}
 	if layout != nil {
-		s := t.(grammar.SourceNode).Source()
+		s := t.(ast.SourceNode).Source()
 		if old := s.Layout; old != nil {
 			old.Before, old.PreviousLine, old.NextLine = layout.Before, layout.PreviousLine, layout.NextLine
 			layout = old
@@ -601,12 +601,12 @@ func (r *layoutReplay) unary(t grammar.Term) {
 	}
 }
 
-func (r *layoutReplay) termPrimary(t grammar.Term) {
+func (r *layoutReplay) termPrimary(t ast.Term) {
 	p := r.p
 	switch x := t.(type) {
-	case *grammar.New:
+	case *ast.New:
 		r.newTerm(x)
-	case *grammar.Call:
+	case *ast.Call:
 		p.next() // the name
 		p.next() // (
 		defer p.restoreBreak()()
@@ -614,7 +614,7 @@ func (r *layoutReplay) termPrimary(t grammar.Term) {
 		x.TrailingComma = r.listItems(x.Args, ")")
 		x.CloseBreak = p.lineBreak()
 		p.next() // )
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		p.next() // []
 		r.typ(x.Elem)
 		p.next() // {
@@ -623,23 +623,23 @@ func (r *layoutReplay) termPrimary(t grammar.Term) {
 		x.TrailingComma = r.listItems(x.Items, "}")
 		x.CloseBreak = p.lineBreak()
 		p.next() // }
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		open := p.i
 		p.next() // (
 		outer := p.cur
 		defer func() { p.cur = outer }()
-		x.OpenBreak = &grammar.LineBreak{}
+		x.OpenBreak = &ast.LineBreak{}
 		p.cur = x.OpenBreak
 		x.BodyBreak = p.lineBreak()
 		r.term(x.Term)
 		x.CloseBreak = p.lineBreak()
 		x.OneLine = !p.multiline(open, p.i)
 		p.next() // )
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		p.next() // (
 		outer := p.cur
 		defer func() { p.cur = outer }()
-		x.OpenBreak = &grammar.LineBreak{}
+		x.OpenBreak = &ast.LineBreak{}
 		p.cur = x.OpenBreak
 		x.BodyBreak = p.lineBreak()
 		r.tupleLit(x)
@@ -649,7 +649,7 @@ func (r *layoutReplay) termPrimary(t grammar.Term) {
 }
 
 // tupleLit replays the elements and closing parenthesis of t.
-func (r *layoutReplay) tupleLit(t *grammar.TupleLit) {
+func (r *layoutReplay) tupleLit(t *ast.TupleLit) {
 	p := r.p
 	t.TrailingComma = false
 	if len(t.Elems) > 0 {
@@ -657,7 +657,7 @@ func (r *layoutReplay) tupleLit(t *grammar.TupleLit) {
 		p.takeAfterLayout(t.Elems[0])
 		for i := 1; p.is(","); i++ {
 			p.next()
-			p.afterCommaLayout(&t.Elems[i-1].(grammar.SourceNode).Source().Layout, ")")
+			p.afterCommaLayout(&t.Elems[i-1].(ast.SourceNode).Source().Layout, ")")
 			if p.is(")") {
 				t.TrailingComma = true
 				break
@@ -670,7 +670,7 @@ func (r *layoutReplay) tupleLit(t *grammar.TupleLit) {
 	p.next() // )
 }
 
-func (r *layoutReplay) newTerm(n *grammar.New) {
+func (r *layoutReplay) newTerm(n *ast.New) {
 	p := r.p
 	p.next() // the type
 	p.next() // {
@@ -701,7 +701,7 @@ func (r *layoutReplay) newTerm(n *grammar.New) {
 
 // listItems replays the comma-separated items up to closer, and reports
 // whether a trailing comma follows them.
-func (r *layoutReplay) listItems(items []grammar.Term, closer string) (trailing bool) {
+func (r *layoutReplay) listItems(items []ast.Term, closer string) (trailing bool) {
 	p := r.p
 	for _, item := range items {
 		r.term(item)
@@ -709,7 +709,7 @@ func (r *layoutReplay) listItems(items []grammar.Term, closer string) (trailing 
 		trailing = false
 		if !p.is(closer) {
 			p.next() // ,
-			p.afterCommaLayout(&item.(grammar.SourceNode).Source().Layout, closer)
+			p.afterCommaLayout(&item.(ast.SourceNode).Source().Layout, closer)
 			trailing = p.is(closer)
 		}
 	}

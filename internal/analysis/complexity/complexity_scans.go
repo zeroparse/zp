@@ -5,8 +5,8 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/compile"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Bounded scans (see "Conditions for Linear Cost" in spec/runtime/parsing.md and Lemma 13 of
@@ -90,11 +90,11 @@ type runAnalysis struct {
 	k     *classifier
 	x     charset
 	rule  map[string]runFlow
-	exprs map[grammar.Expr]runFlow
-	fixed map[grammar.Expr]runFlow // the transfer functions that depend on no rule
-	sure  map[grammar.Expr]bool    // what clears has found
+	exprs map[ast.Expr]runFlow
+	fixed map[ast.Expr]runFlow // the transfer functions that depend on no rule
+	sure  map[ast.Expr]bool    // what clears has found
 	pre   map[string]int
-	at    map[*grammar.Repeat]int // the longest run before each repetition
+	at    map[*ast.Repeat]int // the longest run before each repetition
 }
 
 func (k *classifier) subset(a, b charset) bool {
@@ -112,7 +112,7 @@ func (r *runAnalysis) charFlow(s charset) runFlow {
 	return runFlow{0, 1}
 }
 
-func (r *runAnalysis) flow(e grammar.Expr) runFlow {
+func (r *runAnalysis) flow(e ast.Expr) runFlow {
 	if e == nil {
 		return runID
 	}
@@ -124,7 +124,7 @@ func (r *runAnalysis) flow(e grammar.Expr) runFlow {
 	}
 	f := r.compute(e)
 	switch e.(type) {
-	case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.And, *grammar.Not:
+	case *ast.Literal, *ast.CharClass, *ast.Any, *ast.And, *ast.Not:
 		r.fixed[e] = f
 	default:
 		r.exprs[e] = f
@@ -133,7 +133,7 @@ func (r *runAnalysis) flow(e grammar.Expr) runFlow {
 }
 
 // clears reports whether the next character is outside the alphabet where e fails to consume one.
-func (r *runAnalysis) clears(e grammar.Expr) bool {
+func (r *runAnalysis) clears(e ast.Expr) bool {
 	v, ok := r.sure[e]
 	if !ok {
 		v = r.k.subset(r.x, r.k.sureOf(e))
@@ -142,18 +142,18 @@ func (r *runAnalysis) clears(e grammar.Expr) bool {
 	return v
 }
 
-func (r *runAnalysis) compute(e grammar.Expr) runFlow {
+func (r *runAnalysis) compute(e ast.Expr) runFlow {
 	k := r.k
 	k.control.Poll()
 	switch e := e.(type) {
 	case nil:
 		return runID
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.byName[e.Name] == nil {
 			return runID
 		}
 		return r.rule[e.Name]
-	case *grammar.Literal:
+	case *ast.Literal:
 		f := runID
 		for s := e.Value; s != ""; {
 			c, n := utf8.DecodeRuneInString(s)
@@ -165,23 +165,23 @@ func (r *runAnalysis) compute(e grammar.Expr) runFlow {
 			f = f.then(r.charFlow(cs))
 		}
 		return f
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return r.charFlow(classChars(e))
-	case *grammar.Any:
+	case *ast.Any:
 		return r.charFlow(allChars)
-	case *grammar.Seq:
+	case *ast.Seq:
 		f := runID
 		for _, it := range e.Items {
 			f = f.then(r.flow(it))
 		}
 		return f
-	case *grammar.Choice:
+	case *ast.Choice:
 		f := runBottom
 		for _, alt := range e.Alts {
 			f = f.join(r.flow(alt))
 		}
 		return f
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return runID
 		}
@@ -201,27 +201,27 @@ func (r *runAnalysis) compute(e grammar.Expr) runFlow {
 			return f
 		}
 		return body.star()
-	case *grammar.Optional:
+	case *ast.Optional:
 		return runID.join(r.flow(e.Expr))
-	case *grammar.And:
+	case *ast.And:
 		if !k.nullable(e.Expr) && !k.first(e.Expr).intersects(r.x) {
 			return runFlow{runClear, runNone}
 		}
 		return runID
-	case *grammar.Not:
+	case *ast.Not:
 		if r.clears(e.Expr) {
 			return runFlow{runClear, runNone}
 		}
 		return runID
-	case *grammar.Group:
+	case *ast.Group:
 		return r.flow(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return r.flow(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return r.flow(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return r.flow(e.Expr)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		f := r.flow(e.Expr)
 		if skip := compile.RecoverSkip(e); skip != nil {
 			f = f.join(r.flow(skip))
@@ -230,11 +230,11 @@ func (r *runAnalysis) compute(e grammar.Expr) runFlow {
 			f = f.join(runID)
 		}
 		return f
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		return r.operators(e).star()
-	case *grammar.EndInput:
+	case *ast.EndInput:
 		return runFlow{runClear, runNone}
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		return runBottom
 	}
 	// Predicates, anchors, cuts and the top expression consume nothing.
@@ -244,7 +244,7 @@ func (r *runAnalysis) compute(e grammar.Expr) runFlow {
 // operators is the transfer function of one step of an Operators Rule: its skip, an operand or an
 // operator part. Steps follow one another in any order, which over-approximates the order that the
 // rule evaluates them in.
-func (r *runAnalysis) operators(e *grammar.OperatorsRule) runFlow {
+func (r *runAnalysis) operators(e *ast.OperatorsRule) runFlow {
 	f := runID
 	if e.Skip != nil {
 		f = f.join(r.flow(e.Skip))
@@ -293,11 +293,11 @@ func (r *runAnalysis) solve() {
 }
 
 // visit carries the run before e into e, recording it at calls and repetitions.
-func (r *runAnalysis) visit(e grammar.Expr, in int, changed *bool) {
+func (r *runAnalysis) visit(e ast.Expr, in int, changed *bool) {
 	k := r.k
 	k.control.Poll()
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.byName[e.Name] == nil {
 			return
 		}
@@ -305,16 +305,16 @@ func (r *runAnalysis) visit(e grammar.Expr, in int, changed *bool) {
 			r.pre[e.Name] = in
 			*changed = true
 		}
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			r.visit(it, in, changed)
 			in = r.flow(it).apply(in)
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			r.visit(alt, in, changed)
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return
 		}
@@ -323,26 +323,26 @@ func (r *runAnalysis) visit(e grammar.Expr, in int, changed *bool) {
 			*changed = true
 		}
 		r.visit(e.Expr, r.flow(e.Expr).star().apply(in), changed)
-	case *grammar.Optional:
+	case *ast.Optional:
 		r.visit(e.Expr, in, changed)
-	case *grammar.And:
+	case *ast.And:
 		r.visit(e.Expr, in, changed)
-	case *grammar.Not:
+	case *ast.Not:
 		r.visit(e.Expr, in, changed)
-	case *grammar.Group:
+	case *ast.Group:
 		r.visit(e.Expr, in, changed)
-	case *grammar.Capture:
+	case *ast.Capture:
 		r.visit(e.Expr, in, changed)
-	case *grammar.Discard:
+	case *ast.Discard:
 		r.visit(e.Expr, in, changed)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		r.visit(e.Expr, in, changed)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		r.visit(e.Expr, in, changed)
 		if skip := compile.RecoverSkip(e); skip != nil {
 			r.visit(skip, in, changed)
 		}
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		in = r.operators(e).star().apply(in)
 		if e.Skip != nil {
 			r.visit(e.Skip, in, changed)
@@ -360,7 +360,7 @@ func (r *runAnalysis) visit(e grammar.Expr, in int, changed *bool) {
 
 // sureOf returns what sure returns for e, once for each expression: the analysis of each alphabet
 // asks again in each pass.
-func (k *classifier) sureOf(e grammar.Expr) charset {
+func (k *classifier) sureOf(e ast.Expr) charset {
 	s, ok := k.sureMemo[e]
 	if !ok {
 		s = k.sure(e)
@@ -370,7 +370,7 @@ func (k *classifier) sureOf(e grammar.Expr) charset {
 }
 
 // looseCut reports whether e has a cut that commits the choice, option or repetition around it.
-func (k *classifier) looseCut(e grammar.Expr) bool {
+func (k *classifier) looseCut(e ast.Expr) bool {
 	return astfacts.HasLooseCutWithPoll(e, k.control.Poll)
 }
 
@@ -383,26 +383,26 @@ func (k *classifier) looseCut(e grammar.Expr) bool {
 // under-approximation allows. Variables reach matching only through predicates, which sure
 // answers nothing for and AlwaysSucceeds does not prove, so the answer holds whatever the variables
 // that a rule reads hold, as it does for the input.
-func (k *classifier) sure(e grammar.Expr) charset {
+func (k *classifier) sure(e ast.Expr) charset {
 	k.control.Poll()
 	switch e := e.(type) {
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return classChars(e)
-	case *grammar.Any:
+	case *ast.Any:
 		return allChars
-	case *grammar.Literal:
+	case *ast.Literal:
 		if utf8.RuneCountInString(e.Value) == 1 {
 			return literalFirst(e)
 		}
-	case *grammar.Group:
+	case *ast.Group:
 		return k.sure(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.sure(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.sure(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.sure(e.Expr)
-	case *grammar.Choice:
+	case *ast.Choice:
 		var s charset
 		for _, alt := range e.Alts {
 			if k.nullable(alt) {
@@ -414,11 +414,11 @@ func (k *classifier) sure(e grammar.Expr) charset {
 			}
 		}
 		return s
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Min == 1 && e.Max != 0 {
 			return k.sure(e.Expr)
 		}
-	case *grammar.Ref:
+	case *ast.Ref:
 		if e.Level != "" || k.byName[e.Name] == nil || k.an.Cyclic[e.Name] {
 			return nil
 		}
@@ -429,17 +429,17 @@ func (k *classifier) sure(e grammar.Expr) charset {
 			k.sureRule[e.Name] = s
 		}
 		return s
-	case *grammar.Seq:
+	case *ast.Seq:
 		var away charset // first characters of what the sequence tries before the part that decides
 		for i, it := range e.Items {
 			switch x := ungroup(it).(type) {
-			case *grammar.Optional:
+			case *ast.Optional:
 				if k.looseCut(x.Expr) {
 					return nil
 				}
 				away = away.union(k.first(x.Expr))
 				continue
-			case *grammar.Repeat:
+			case *ast.Repeat:
 				if x.Min == 0 {
 					if k.looseCut(x.Expr) {
 						return nil
@@ -447,7 +447,7 @@ func (k *classifier) sure(e grammar.Expr) charset {
 					away = away.union(k.first(x.Expr))
 					continue
 				}
-			case *grammar.Not:
+			case *ast.Not:
 				away = away.union(k.first(x.Expr))
 				if k.nullable(x.Expr) {
 					return nil
@@ -473,14 +473,14 @@ func intersect(a, b charset) charset {
 
 // consumed returns the characters that an evaluation of e can consume, through calls, outside
 // lookaheads.
-func (k *classifier) consumed(e grammar.Expr, rules map[string]charset) charset {
+func (k *classifier) consumed(e ast.Expr, rules map[string]charset) charset {
 	var s charset
-	var walk func(e grammar.Expr)
-	walk = func(e grammar.Expr) {
+	var walk func(e ast.Expr)
+	walk = func(e ast.Expr) {
 		switch e := e.(type) {
-		case *grammar.Ref:
+		case *ast.Ref:
 			s = s.union(rules[e.Name])
-		case *grammar.Literal:
+		case *ast.Literal:
 			for _, c := range e.Value {
 				if e.IgnoreCase {
 					s = s.union(asciiFold(c))
@@ -488,38 +488,38 @@ func (k *classifier) consumed(e grammar.Expr, rules map[string]charset) charset 
 					s = s.union(charOf(c))
 				}
 			}
-		case *grammar.CharClass:
+		case *ast.CharClass:
 			s = s.union(classChars(e))
-		case *grammar.Any:
+		case *ast.Any:
 			s = allChars
-		case *grammar.Seq:
+		case *ast.Seq:
 			for _, it := range e.Items {
 				walk(it)
 			}
-		case *grammar.Choice:
+		case *ast.Choice:
 			for _, alt := range e.Alts {
 				walk(alt)
 			}
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			if e.Max != 0 {
 				walk(e.Expr)
 			}
-		case *grammar.Optional:
+		case *ast.Optional:
 			walk(e.Expr)
-		case *grammar.Group:
+		case *ast.Group:
 			walk(e.Expr)
-		case *grammar.Capture:
+		case *ast.Capture:
 			walk(e.Expr)
-		case *grammar.Discard:
+		case *ast.Discard:
 			walk(e.Expr)
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			walk(e.Expr)
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			walk(e.Expr)
 			if skip := compile.RecoverSkip(e); skip != nil {
 				walk(skip)
 			}
-		case *grammar.OperatorsRule:
+		case *ast.OperatorsRule:
 			if e.Skip != nil {
 				walk(e.Skip)
 			}
@@ -556,12 +556,12 @@ func (k *classifier) computeBoundedScans() {
 			}
 		}
 	}
-	k.sureMemo = map[grammar.Expr]charset{}
+	k.sureMemo = map[ast.Expr]charset{}
 	k.sureRule = map[string]charset{}
 	runs := map[string]*runAnalysis{}
-	k.scanRun = map[*grammar.Repeat]int{}
+	k.scanRun = map[*ast.Repeat]int{}
 	for e := range k.srcExprs {
-		rep, ok := e.(*grammar.Repeat)
+		rep, ok := e.(*ast.Repeat)
 		if !ok || k.again[rep] == nil {
 			continue
 		}
@@ -569,8 +569,8 @@ func (k *classifier) computeBoundedScans() {
 		key := fmt.Sprint(x)
 		r := runs[key]
 		if r == nil {
-			r = &runAnalysis{k: k, x: x, rule: map[string]runFlow{}, exprs: map[grammar.Expr]runFlow{},
-				fixed: map[grammar.Expr]runFlow{}, sure: map[grammar.Expr]bool{}, pre: map[string]int{}, at: map[*grammar.Repeat]int{}}
+			r = &runAnalysis{k: k, x: x, rule: map[string]runFlow{}, exprs: map[ast.Expr]runFlow{},
+				fixed: map[ast.Expr]runFlow{}, sure: map[ast.Expr]bool{}, pre: map[string]int{}, at: map[*ast.Repeat]int{}}
 			r.solve()
 			runs[key] = r
 		}
@@ -590,7 +590,7 @@ func (k *classifier) computeBoundedScans() {
 		}
 	}
 	k.rigidRule = map[string]bool{}
-	k.scanCounted = map[*grammar.Repeat]bool{}
+	k.scanCounted = map[*ast.Repeat]bool{}
 	for changed := true; changed; {
 		changed = false
 		clear(k.scanCounted)
@@ -602,7 +602,7 @@ func (k *classifier) computeBoundedScans() {
 		}
 	}
 	for e := range k.srcExprs {
-		rep, ok := e.(*grammar.Repeat)
+		rep, ok := e.(*ast.Repeat)
 		if !ok {
 			continue
 		}
@@ -616,17 +616,17 @@ func (k *classifier) computeBoundedScans() {
 // firstBound reports whether a constant bounds the positions from which the evaluations of rep
 // that reach a position start: the run bound, at most runMax characters of its alphabet before it,
 // or the region bound of the body of a trivia rule (complexity_regions.go).
-func (k *classifier) firstBound(rep *grammar.Repeat) bool {
+func (k *classifier) firstBound(rep *ast.Repeat) bool {
 	d, ok := k.scanRun[rep]
 	return ok && d < runOpen && d != runNone || k.regionScan[rep]
 }
 
 // rigid reports whether a constant bounds the positions from which e can match up to any one
 // position. A rule takes one answer, found once: only rules that are not recursive have one to find.
-func (k *classifier) rigid(e grammar.Expr) bool {
+func (k *classifier) rigid(e ast.Expr) bool {
 	k.control.Poll()
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		if e.Level == rhsLevel || k.byName[e.Name] == nil || k.recursive[e.Name] {
 			return false
 		}
@@ -636,38 +636,38 @@ func (k *classifier) rigid(e grammar.Expr) bool {
 			k.rigidRule[e.Name] = v
 		}
 		return v
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !k.rigid(it) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			if !k.rigid(alt) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max >= 0 {
 			return k.rigid(e.Expr)
 		}
 		// A repetition that no path reaches (runNone) is rigid as well: it has no evaluations.
 		d, ok := k.scanRun[e]
 		return ok && d < runOpen || k.regionScan[e]
-	case *grammar.Optional:
+	case *ast.Optional:
 		return k.rigid(e.Expr)
-	case *grammar.Group:
+	case *ast.Group:
 		return k.rigid(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.rigid(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.rigid(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.rigid(e.Expr)
-	case *grammar.Attributed, *grammar.OperatorsRule:
+	case *ast.Attributed, *ast.OperatorsRule:
 		// The classifier reads the lowered and normalized grammar, where #recover and #stream are
 		// attributes and inline actions are calls of hidden rules.
 		return false
@@ -678,24 +678,24 @@ func (k *classifier) rigid(e grammar.Expr) bool {
 // countedWalk walks e with ok saying that an evaluation of e at a position is one of a constant
 // number there, marks the repetitions for which that holds, and clears the rules called where it
 // does not hold.
-func (k *classifier) countedWalk(e grammar.Expr, ok bool, counted map[string]bool, changed *bool) {
+func (k *classifier) countedWalk(e ast.Expr, ok bool, counted map[string]bool, changed *bool) {
 	k.control.Poll()
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		if !ok && counted[e.Name] && !k.memo[e.Name] {
 			counted[e.Name] = false
 			*changed = true
 		}
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			k.countedWalk(it, ok, counted, changed)
 			ok = ok && k.rigid(it)
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			k.countedWalk(alt, ok, counted, changed)
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return
 		}
@@ -703,26 +703,26 @@ func (k *classifier) countedWalk(e grammar.Expr, ok bool, counted map[string]boo
 			k.scanCounted[e] = true
 		}
 		k.countedWalk(e.Expr, ok && k.rigid(e), counted, changed)
-	case *grammar.Optional:
+	case *ast.Optional:
 		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.And:
+	case *ast.And:
 		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.Not:
+	case *ast.Not:
 		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.Group:
+	case *ast.Group:
 		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.Capture:
+	case *ast.Capture:
 		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.Discard:
+	case *ast.Discard:
 		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		k.countedWalk(e.Expr, ok, counted, changed)
 		if skip := compile.RecoverSkip(e); skip != nil {
 			k.countedWalk(skip, ok, counted, changed)
 		}
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		if e.Skip != nil {
 			k.countedWalk(e.Skip, false, counted, changed)
 		}

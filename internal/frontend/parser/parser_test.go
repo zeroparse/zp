@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestParseExpr(t *testing.T) {
@@ -37,7 +37,7 @@ func TestParseExpr(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := grammar.FormatExpr(e); got != tc.want {
+			if got := ast.FormatExpr(e); got != tc.want {
 				t.Errorf("got  %s\nwant %s", got, tc.want)
 			}
 		})
@@ -49,20 +49,20 @@ func TestParseExprStructure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seq := e.(*grammar.Seq)
-	if c := seq.Items[0].(*grammar.Capture); c.Name != "l" {
+	seq := e.(*ast.Seq)
+	if c := seq.Items[0].(*ast.Capture); c.Name != "l" {
 		t.Errorf("first capture %s", c.Name)
 	}
-	rest := seq.Items[1].(*grammar.Capture)
-	rep := rest.Expr.(*grammar.Repeat)
+	rest := seq.Items[1].(*ast.Capture)
+	rep := rest.Expr.(*ast.Repeat)
 	if rep.Min != 0 || rep.Max != -1 {
 		t.Errorf("repeat %d,%d", rep.Min, rep.Max)
 	}
-	group, ok := rep.Expr.(*grammar.Group)
+	group, ok := rep.Expr.(*ast.Group)
 	if !ok {
 		t.Fatalf("repeat body %T", rep.Expr)
 	}
-	if _, ok := group.Expr.(*grammar.Seq); !ok {
+	if _, ok := group.Expr.(*ast.Seq); !ok {
 		t.Errorf("group body %T", group.Expr)
 	}
 }
@@ -119,17 +119,17 @@ func TestParseFile(t *testing.T) {
 		t.Errorf("%d rules", n)
 	}
 	expr := g.Rules()[0]
-	if expr.Pos != (grammar.Pos{Line: 16, Col: 1}) {
+	if expr.Pos != (ast.Pos{Line: 16, Col: 1}) {
 		t.Errorf("pos %v", expr.Pos)
 	}
-	if lam, ok := expr.Action.(*grammar.Call).Args[2].(*grammar.Lambda); !ok || !reflect.DeepEqual(lam.Params, []string{"acc", "i"}) {
+	if lam, ok := expr.Action.(*ast.Call).Args[2].(*ast.Lambda); !ok || !reflect.DeepEqual(lam.Params, []string{"acc", "i"}) {
 		t.Errorf("lambda %#v", expr.Action)
 	}
-	pr := g.Rules()[5].Expr.(*grammar.OperatorsRule)
+	pr := g.Rules()[5].Expr.(*ast.OperatorsRule)
 	if len(pr.Operands) != 1 || len(pr.Levels) != 4 || pr.Levels[1].Name != "assignment" {
 		t.Errorf("operatorsRule %#v", pr)
 	}
-	if op := pr.Levels[0].Operators[0]; op.Kind != grammar.Infix || op.Assoc != grammar.AssocRight || op.Action == nil {
+	if op := pr.Levels[0].Operators[0]; op.Kind != ast.Infix || op.Assoc != ast.AssocRight || op.Action == nil {
 		t.Errorf("operator %#v", op)
 	}
 	if n := len(pr.Levels[3].Operators); n != 2 {
@@ -143,12 +143,12 @@ func TestFormatRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	src := grammar.Format(g)
+	src := ast.Format(g)
 	g2, err := Parse(src)
 	if err != nil {
 		t.Fatalf("%v\n%s", err, src)
 	}
-	if src2 := grammar.Format(g2); src != src2 {
+	if src2 := ast.Format(g2); src != src2 {
 		t.Errorf("not stable:\n%s\n---\n%s", src, src2)
 	}
 }
@@ -199,11 +199,11 @@ func TestEscapes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seq := g.Rules()[0].Expr.(*grammar.Seq)
-	if lit := seq.Items[0].(*grammar.Literal); lit.Value != "\f\v\a\b" {
+	seq := g.Rules()[0].Expr.(*ast.Seq)
+	if lit := seq.Items[0].(*ast.Literal); lit.Value != "\f\v\a\b" {
 		t.Errorf("literal %q", lit.Value)
 	}
-	if cc := seq.Items[1].(*grammar.CharClass); cc.Ranges[0].Lo != '\f' {
+	if cc := seq.Items[1].(*ast.CharClass); cc.Ranges[0].Lo != '\f' {
 		t.Errorf("class %v", cc.Ranges)
 	}
 	for _, src := range []string{`rule main = "\q"`, `rule main = [\x41]`, `rule main = "\1"`} {
@@ -221,41 +221,41 @@ func TestExprPositions(t *testing.T) {
 		t.Fatal(err)
 	}
 	var got []string
-	for _, it := range e.(*grammar.Seq).Items {
-		var pos grammar.Pos
+	for _, it := range e.(*ast.Seq).Items {
+		var pos ast.Pos
 		switch it := it.(type) {
-		case *grammar.And:
+		case *ast.And:
 			pos = it.Diagnostic()
-		case *grammar.Not:
+		case *ast.Not:
 			pos = it.Diagnostic()
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			pos = it.Diagnostic()
-		case *grammar.Discard:
+		case *ast.Discard:
 			pos = it.Diagnostic()
-		case *grammar.Top:
+		case *ast.Top:
 			pos = it.Diagnostic()
-		case *grammar.Bottom:
+		case *ast.Bottom:
 			pos = it.Diagnostic()
-		case *grammar.Cut:
+		case *ast.Cut:
 			pos = it.Diagnostic()
-		case *grammar.BeginInput:
+		case *ast.BeginInput:
 			pos = it.Diagnostic()
-		case *grammar.BeginLine:
+		case *ast.BeginLine:
 			pos = it.Diagnostic()
-		case *grammar.EndLine:
+		case *ast.EndLine:
 			pos = it.Diagnostic()
-		case *grammar.EndInput:
+		case *ast.EndInput:
 			pos = it.Diagnostic()
-		case *grammar.Any:
+		case *ast.Any:
 			pos = it.Diagnostic()
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			pos = it.Diagnostic()
-		case *grammar.Optional:
+		case *ast.Optional:
 			pos = it.Diagnostic()
 		default:
 			t.Fatalf("unexpected %T", it)
 		}
-		got = append(got, fmt.Sprintf("%s@%d", grammar.FormatExpr(it), pos.Col-len(ExprPrefix)))
+		got = append(got, fmt.Sprintf("%s@%d", ast.FormatExpr(it), pos.Col-len(ExprPrefix)))
 	}
 	want := "&a@1 !b@4 c #atomic@9 -d@17 _@20 _|_@22 #cut@26 ^^@31 ^@34 $@36 $$@38 .@41 (x y)*@43 z+@50 (w)?@53 v #repeat(2)@58"
 	if s := strings.Join(got, " "); s != want {
@@ -271,7 +271,7 @@ func TestParseRejectsTerminalType(t *testing.T) {
 		t.Fatalf("got %v, want exactly one error", err)
 	}
 	const want = "a terminal type is the struct type T = { Text string }"
-	if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: 8}) {
+	if list[0].Msg != want || list[0].Pos != (ast.Pos{Line: 1, Col: 8}) {
 		t.Errorf("got %v, want 1:8: %s", err, want)
 	}
 }
@@ -283,8 +283,8 @@ func TestParsePositionalConstructor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n, ok := g.File.Decls[1].(*grammar.RuleDef).Action.(*grammar.New); !ok || len(n.Args) != 1 || len(n.Fields) != 0 {
-		t.Errorf("action is %#v, want a constructor with one argument", g.File.Decls[1].(*grammar.RuleDef).Action)
+	if n, ok := g.File.Decls[1].(*ast.RuleDef).Action.(*ast.New); !ok || len(n.Args) != 1 || len(n.Fields) != 0 {
+		t.Errorf("action is %#v, want a constructor with one argument", g.File.Decls[1].(*ast.RuleDef).Action)
 	}
 }
 
@@ -294,7 +294,7 @@ func TestParsePositionalConstructorArity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := g.File.Decls[1].(*grammar.RuleDef).Action.(*grammar.New); len(n.Args) != 2 {
+	if n := g.File.Decls[1].(*ast.RuleDef).Action.(*ast.New); len(n.Args) != 2 {
 		t.Errorf("got %d arguments, want 2", len(n.Args))
 	}
 	for _, src := range []string{
@@ -331,7 +331,7 @@ func TestParseRejectsRetiredTypeNames(t *testing.T) {
 				}
 				col := strings.Index(src, name) + 1
 				want := fmt.Sprintf("%s is not a type; write %s", name, valueTypeNames[name])
-				if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: col}) {
+				if list[0].Msg != want || list[0].Pos != (ast.Pos{Line: 1, Col: col}) {
 					t.Errorf("got %v, want 1:%d: %s", err, col, want)
 				}
 			})

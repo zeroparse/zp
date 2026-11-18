@@ -4,9 +4,9 @@ import (
 	"context"
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A Rewrite is a change to the source of a grammar that fixes a finding without changing what the
@@ -30,7 +30,7 @@ import (
 // Start and End delimit the source to replace by NewText, with End exclusive. For a rule the span is
 // the whole definition including its attributes.
 type Rewrite struct {
-	Start, End grammar.Pos
+	Start, End ast.Pos
 	NewText    string
 }
 
@@ -41,7 +41,7 @@ func (r Rewrite) IsValid() bool { return r.Start.IsValid() && r.End.IsValid() }
 // Rewrite. The findings must come from Config.Run on the same g and start. Rewrites returns an
 // error, and no rewrites, if g does not compile or start is not a start rule of g. Cancellation
 // discards the result.
-func Rewrites(ctx context.Context, g *grammar.Grammar, start string, findings []Finding) ([]Rewrite, error) {
+func Rewrites(ctx context.Context, g *ast.Grammar, start string, findings []Finding) ([]Rewrite, error) {
 	res, err := checkGrammar(ctx, g)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func Rewrites(ctx context.Context, g *grammar.Grammar, start string, findings []
 }
 
 // rewritesOf is Rewrites for a grammar the front end checked to the result res.
-func rewritesOf(ctx context.Context, res *frontend.Result, g *grammar.Grammar, findings []Finding) (out []Rewrite, err error) {
+func rewritesOf(ctx context.Context, res *frontend.Result, g *ast.Grammar, findings []Finding) (out []Rewrite, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -94,14 +94,14 @@ func rewritesOf(ctx context.Context, res *frontend.Result, g *grammar.Grammar, f
 }
 
 // find returns the expression of the rules at pos for which match holds.
-func (l *linter) find(pos grammar.Pos, match func(grammar.Expr) bool) grammar.Expr {
+func (l *linter) find(pos ast.Pos, match func(ast.Expr) bool) ast.Expr {
 	control := l.control
-	var found grammar.Expr
+	var found ast.Expr
 	for _, r := range l.an.order {
 		control.poll()
-		walkExprControlled(r.Expr, func(e grammar.Expr) {
+		walkExprControlled(r.Expr, func(e ast.Expr) {
 			control.poll()
-			if n, ok := e.(grammar.SourceNode); ok && found == nil && n.Source().Diagnostic() == pos && match(e) {
+			if n, ok := e.(ast.SourceNode); ok && found == nil && n.Source().Diagnostic() == pos && match(e) {
 				found = e
 			}
 		}, control)
@@ -114,7 +114,7 @@ func (l *linter) find(pos grammar.Pos, match func(grammar.Expr) bool) grammar.Ex
 
 func (l *linter) classRewrite(f Finding) Rewrite {
 	control := l.control
-	c, _ := l.find(f.Pos, func(e grammar.Expr) bool { _, ok := e.(*grammar.CharClass); return ok }).(*grammar.CharClass)
+	c, _ := l.find(f.Pos, func(e ast.Expr) bool { _, ok := e.(*ast.CharClass); return ok }).(*ast.CharClass)
 	if c == nil || !c.End.IsValid() {
 		return Rewrite{}
 	}
@@ -129,7 +129,7 @@ func (l *linter) classRewrite(f Finding) Rewrite {
 	if !overlaps {
 		return Rewrite{}
 	}
-	merged := &grammar.CharClass{Negated: c.Negated, Ranges: normalizeControlled(c.Ranges, control)}
+	merged := &ast.CharClass{Negated: c.Negated, Ranges: normalizeControlled(c.Ranges, control)}
 	if !sameCodePoints(c.Ranges, merged.Ranges, control) {
 		return Rewrite{}
 	}
@@ -139,8 +139,8 @@ func (l *linter) classRewrite(f Finding) Rewrite {
 // sameCodePoints reports whether the ranges x and y contain the same code points. Two unions of
 // intervals are equal when they agree on every end of every range and on the code point on each
 // side of it, since they can differ only next to such a point.
-func sameCodePoints(x, y []grammar.CharRange, control *lintControl) bool {
-	in := func(rs []grammar.CharRange, r rune) bool {
+func sameCodePoints(x, y []ast.CharRange, control *lintControl) bool {
+	in := func(rs []ast.CharRange, r rune) bool {
 		for _, rg := range rs {
 			control.poll()
 			if rg.Lo <= r && r <= rg.Hi {
@@ -149,7 +149,7 @@ func sameCodePoints(x, y []grammar.CharRange, control *lintControl) bool {
 		}
 		return false
 	}
-	for _, rs := range [][]grammar.CharRange{x, y} {
+	for _, rs := range [][]ast.CharRange{x, y} {
 		for _, rg := range rs {
 			for _, p := range []rune{rg.Lo - 1, rg.Lo, rg.Hi, rg.Hi + 1} {
 				control.poll()
@@ -166,9 +166,9 @@ func (l *linter) lookaheadRewrite(f Finding) Rewrite {
 	control := l.control
 	a := l.an
 	// The lookahead itself, not a node that wraps it and starts at the same place.
-	e := l.find(f.Pos, func(e grammar.Expr) bool {
+	e := l.find(f.Pos, func(e ast.Expr) bool {
 		switch e.(type) {
-		case *grammar.And, *grammar.Not:
+		case *ast.And, *ast.Not:
 			return true
 		}
 		return false
@@ -176,18 +176,18 @@ func (l *linter) lookaheadRewrite(f Finding) Rewrite {
 	if e == nil || !l.seqItem(e) {
 		return Rewrite{}
 	}
-	var body grammar.Expr
+	var body ast.Expr
 	switch x := e.(type) {
-	case *grammar.And:
+	case *ast.And:
 		if !hasCaptures(x.Expr, control) && a.succeeds(x.Expr) {
 			body = x.Expr
 		}
-	case *grammar.Not:
+	case *ast.Not:
 		if !a.succeeds(x.Expr) && !a.mayMatch(x.Expr) {
 			body = x.Expr
 		}
 	}
-	node, ok := e.(grammar.SourceNode)
+	node, ok := e.(ast.SourceNode)
 	if !ok || body == nil || !pureMatcher(body, control) {
 		return Rewrite{}
 	}
@@ -202,15 +202,15 @@ func (l *linter) lookaheadRewrite(f Finding) Rewrite {
 // least two remain and the sequence stays a tuple. A lookahead that
 // another construct holds is not: under a discard "-", deleting it would move the "-" onto the next
 // item, and a label, an operator or a repetition would be left without its operand.
-func (l *linter) seqItem(e grammar.Expr) bool {
+func (l *linter) seqItem(e ast.Expr) bool {
 	control := l.control
 	found := false
 	for _, r := range l.an.order {
 		control.poll()
-		walkExprControlled(r.Expr, func(x grammar.Expr) {
+		walkExprControlled(r.Expr, func(x ast.Expr) {
 			control.poll()
-			if seq, ok := x.(*grammar.Seq); ok && len(seq.Items) >= 3 {
-				found = found || slices.ContainsFunc(seq.Items, func(it grammar.Expr) bool { control.poll(); return it == e })
+			if seq, ok := x.(*ast.Seq); ok && len(seq.Items) >= 3 {
+				found = found || slices.ContainsFunc(seq.Items, func(it ast.Expr) bool { control.poll(); return it == e })
 			}
 		}, control)
 	}
@@ -219,13 +219,13 @@ func (l *linter) seqItem(e grammar.Expr) bool {
 
 // pureMatcher reports whether e is made only of literals, character classes, any-character, groups,
 // sequences, choices, options and repetitions.
-func pureMatcher(e grammar.Expr, control *lintControl) bool {
+func pureMatcher(e ast.Expr, control *lintControl) bool {
 	pure := true
-	walkExprControlled(e, func(x grammar.Expr) {
+	walkExprControlled(e, func(x ast.Expr) {
 		control.poll()
 		switch x.(type) {
-		case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Group, *grammar.Seq,
-			*grammar.Choice, *grammar.Optional, *grammar.Repeat:
+		case *ast.Literal, *ast.CharClass, *ast.Any, *ast.Group, *ast.Seq,
+			*ast.Choice, *ast.Optional, *ast.Repeat:
 		default:
 			pure = false
 		}
@@ -235,7 +235,7 @@ func pureMatcher(e grammar.Expr, control *lintControl) bool {
 
 func (l *linter) ruleRewrite(f Finding) Rewrite {
 	control := l.control
-	i := slices.IndexFunc(l.an.order, func(r *grammar.RuleDef) bool { control.poll(); return r.Name == f.Rule })
+	i := slices.IndexFunc(l.an.order, func(r *ast.RuleDef) bool { control.poll(); return r.Name == f.Rule })
 	if i < 0 || len(l.an.order) < 2 {
 		return Rewrite{}
 	}

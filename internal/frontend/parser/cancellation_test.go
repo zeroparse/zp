@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // neverDone is the Done channel of cancelOnCheck. It is not nil, because a parser does not poll a
@@ -204,16 +204,16 @@ func TestCancellableCommentPostScanBudget(t *testing.T) {
 
 func TestCancellableCommentCollection(t *testing.T) {
 	const count = 8192
-	comments := make([]*grammar.Comment, count)
+	comments := make([]*ast.Comment, count)
 	for i := range comments {
-		comments[i] = &grammar.Comment{Pos: grammar.Pos{Line: i + 1, Col: 1}, End: grammar.Pos{Line: i + 1, Col: 4}, Text: "//x", Content: "x\n"}
+		comments[i] = &ast.Comment{Pos: ast.Pos{Line: i + 1, Col: 1}, End: ast.Pos{Line: i + 1, Col: 4}, Text: "//x", Content: "x\n"}
 	}
 	// Poll in both the collection scan and the length pass, then stop
 	// while copying the joined comment contents.
 	ctx := &cancelOnCheck{cancelAt: 2*(count/256) + 2}
-	next := token{kind: tEOF, pos: grammar.Pos{Line: count + 1, Col: 1}}
+	next := token{kind: tEOF, pos: ast.Pos{Line: count + 1, Col: 1}}
 	expectLexCancelled(t, func() {
-		collectCommentsWithCheck(grammar.Pos{}, false, false, next, comments, func() {
+		collectCommentsWithCheck(ast.Pos{}, false, false, next, comments, func() {
 			if err := ctx.Err(); err != nil {
 				panic(lexCancelled{err})
 			}

@@ -6,42 +6,42 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Replace a source-valid placeholder with a public-AST value. Only matching
 // expressions are visited: string constants in actions have separate semantics.
-func FirstLiteral(e grammar.Expr) *grammar.Literal {
+func FirstLiteral(e ast.Expr) *ast.Literal {
 	switch e := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		return FirstLiteral(e.Expr)
-	case *grammar.Literal:
+	case *ast.Literal:
 		return e
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, item := range e.Items {
 			if lit := FirstLiteral(item); lit != nil {
 				return lit
 			}
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, item := range e.Alts {
 			if lit := FirstLiteral(item); lit != nil {
 				return lit
 			}
 		}
-	case *grammar.Capture:
+	case *ast.Capture:
 		return FirstLiteral(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return FirstLiteral(e.Expr)
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return FirstLiteral(e.Expr)
 	}
 	return nil
 }
 
 // ReplaceFirstLiteral sets the value of the first literal of e and returns it, or nil if there is none.
-func ReplaceFirstLiteral(e grammar.Expr, val string) *grammar.Literal {
+func ReplaceFirstLiteral(e ast.Expr, val string) *ast.Literal {
 	lit := FirstLiteral(e)
 	if lit != nil {
 		lit.Value = val
@@ -80,7 +80,7 @@ func RawLiteralGenCorpus() []Case {
 }
 
 // LiteralCorpusGrammar parses the source of the case tc, and for a raw AST case sets the literal to the raw value the name of the case gives.
-func LiteralCorpusGrammar(t *testing.T, tc Case) *grammar.Grammar {
+func LiteralCorpusGrammar(t *testing.T, tc Case) *ast.Grammar {
 	t.Helper()
 	g, err := compiletest.Parse(tc.Src)
 	if err != nil {

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestFactsGolden requires the rule flags of the program of every repository grammar, which the
@@ -73,11 +73,11 @@ func TestFactsGolden(t *testing.T) {
 	}
 }
 
-func terminalFact(e grammar.Expr, depth int) factstest.Terminal {
+func terminalFact(e ast.Expr, depth int) factstest.Terminal {
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		return factstest.Terminal{Exp: LiteralDesc(e), Depth: depth}
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return factstest.Terminal{Exp: CharClassString(e), Depth: depth}
 	}
 	return factstest.Terminal{}

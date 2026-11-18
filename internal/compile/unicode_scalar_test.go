@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func BenchmarkCharacterRangeValidation(b *testing.B) {
@@ -25,7 +25,7 @@ func BenchmarkCharacterRangeValidation(b *testing.B) {
 			b.Run("Validate", func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if err := grammar.Validate(g); err != nil {
+					if err := ast.Validate(g); err != nil {
 						b.Fatal(err)
 					}
 				}

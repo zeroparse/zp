@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 var soundnessGrammars = flag.Int("soundness", 3000, "number of random grammars TestSoundness checks")
@@ -85,7 +85,7 @@ func TestSoundness(t *testing.T) {
 					}
 					if got != want {
 						t.Fatalf("grammar %d: %v is wrong (fix: %v): on %q the grammar gives\n  %s\nbut with the change\n  %s\n%s\nchanged:\n%s",
-							n, f, fix, in, want, got, src, grammar.Format(g2))
+							n, f, fix, in, want, got, src, ast.Format(g2))
 					}
 				}
 			}
@@ -137,7 +137,7 @@ func outcome(prog *engine.Program, in string) string {
 }
 
 // sameRuleTypes reports whether every rule of g has the same value type in a and b.
-func sameRuleTypes(a, b *engine.Program, g *grammar.Grammar) bool {
+func sameRuleTypes(a, b *engine.Program, g *ast.Grammar) bool {
 	for _, r := range g.Rules() {
 		ta, _ := a.ValueType(r.Name)
 		tb, _ := b.ValueType(r.Name)
@@ -203,12 +203,12 @@ func randomGrammar(rng *rand.Rand) string {
 	return b.String()
 }
 
-func fail(e grammar.Expr) grammar.Expr {
-	return &grammar.Seq{Items: []grammar.Expr{e, &grammar.Bottom{}}}
+func fail(e ast.Expr) ast.Expr {
+	return &ast.Seq{Items: []ast.Expr{e, &ast.Bottom{}}}
 }
 
 // applyFinding changes g as described for TestSoundness, and reports whether it did.
-func applyFinding(g *grammar.Grammar, f Finding, fix bool) bool {
+func applyFinding(g *ast.Grammar, f Finding, fix bool) bool {
 	done := false
 	noBase := f.Check == CheckNeverMatches && strings.Contains(f.Message, "no base case")
 	for _, r := range g.Rules() {
@@ -217,9 +217,9 @@ func applyFinding(g *grammar.Grammar, f Finding, fix bool) bool {
 			done = true
 			continue
 		}
-		r.Expr = rewrite(r.Expr, func(e grammar.Expr) grammar.Expr {
+		r.Expr = rewrite(r.Expr, func(e ast.Expr) ast.Expr {
 			switch e := e.(type) {
-			case *grammar.Choice:
+			case *ast.Choice:
 				if f.Check != CheckShadowedAlt {
 					return e
 				}
@@ -248,34 +248,34 @@ func applyFinding(g *grammar.Grammar, f Finding, fix bool) bool {
 					done = true
 					return e
 				}
-			case *grammar.Not:
+			case *ast.Not:
 				if f.Check == CheckUselessLookahead && e.Pos == f.Pos && !fix {
 					done = true
 					if strings.Contains(f.Message, "never succeed") {
-						return &grammar.Not{Expr: &grammar.Choice{Alts: []grammar.Expr{e.Expr, &grammar.Top{}}}}
+						return &ast.Not{Expr: &ast.Choice{Alts: []ast.Expr{e.Expr, &ast.Top{}}}}
 					}
-					return &grammar.Not{Expr: fail(e.Expr)}
+					return &ast.Not{Expr: fail(e.Expr)}
 				}
-			case *grammar.And:
+			case *ast.And:
 				if f.Check == CheckUselessLookahead && e.Pos == f.Pos && !fix {
 					done = true
-					return &grammar.And{Expr: &grammar.Choice{Alts: []grammar.Expr{e.Expr, &grammar.Top{}}}}
+					return &ast.And{Expr: &ast.Choice{Alts: []ast.Expr{e.Expr, &ast.Top{}}}}
 				}
-			case *grammar.Optional:
+			case *ast.Optional:
 				if f.Check == CheckRedundantOptional && e.Pos == f.Pos && !fix {
 					done = true
 					return e.Expr
 				}
-			case *grammar.Seq:
+			case *ast.Seq:
 				if f.Check != CheckNeverMatches || noBase || fix {
 					return e
 				}
 				for _, it := range e.Items {
 					switch it.(type) {
-					case *grammar.BeginInput, *grammar.EndInput, *grammar.BeginLine, *grammar.EndLine:
+					case *ast.BeginInput, *ast.EndInput, *ast.BeginLine, *ast.EndLine:
 						if posOf(it) == f.Pos {
 							done = true
-							e.Items = append(e.Items, &grammar.Bottom{})
+							e.Items = append(e.Items, &ast.Bottom{})
 							return e
 						}
 					}
@@ -288,33 +288,33 @@ func applyFinding(g *grammar.Grammar, f Finding, fix bool) bool {
 }
 
 // rewrite replaces the subexpressions of e bottom-up with f.
-func rewrite(e grammar.Expr, f func(grammar.Expr) grammar.Expr) grammar.Expr {
+func rewrite(e ast.Expr, f func(ast.Expr) ast.Expr) ast.Expr {
 	switch x := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		x.Expr = rewrite(x.Expr, f)
-	case *grammar.Seq:
+	case *ast.Seq:
 		for i := range x.Items {
 			x.Items[i] = rewrite(x.Items[i], f)
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for i := range x.Alts {
 			x.Alts[i] = rewrite(x.Alts[i], f)
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		x.Expr = rewrite(x.Expr, f)
-	case *grammar.Optional:
+	case *ast.Optional:
 		x.Expr = rewrite(x.Expr, f)
-	case *grammar.And:
+	case *ast.And:
 		x.Expr = rewrite(x.Expr, f)
-	case *grammar.Not:
+	case *ast.Not:
 		x.Expr = rewrite(x.Expr, f)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		x.Expr = rewrite(x.Expr, f)
-	case *grammar.Discard:
+	case *ast.Discard:
 		x.Expr = rewrite(x.Expr, f)
-	case *grammar.Capture:
+	case *ast.Capture:
 		x.Expr = rewrite(x.Expr, f)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		x.Expr = rewrite(x.Expr, f)
 	}
 	return f(e)

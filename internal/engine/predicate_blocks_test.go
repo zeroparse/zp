@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestPredicateBlockBindingComparison(t *testing.T) {
@@ -54,16 +54,16 @@ func TestPredicateBlocksSourceAndSavedGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := grammar.MarshalJSON(g)
+	before, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	formattedGrammar, err := parseTest(formatted)
-	if err != nil || grammar.Format(formattedGrammar) != formatted {
+	if err != nil || ast.Format(formattedGrammar) != formatted {
 		t.Fatalf("formatter round trip: %v", err)
 	}
-	for _, original := range []*grammar.Grammar{g, jsonActionBlockGrammar(t, g), formattedGrammar} {
+	for _, original := range []*ast.Grammar{g, jsonActionBlockGrammar(t, g), formattedGrammar} {
 		program, err := Compile(original, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
@@ -89,7 +89,7 @@ func TestPredicateBlocksSourceAndSavedGrammar(t *testing.T) {
 			}
 		}
 	}
-	after, err := grammar.MarshalJSON(g)
+	after, err := ast.MarshalJSON(g)
 	if err != nil || !bytes.Equal(before, after) {
 		t.Fatalf("compilation mutated source: %v", err)
 	}

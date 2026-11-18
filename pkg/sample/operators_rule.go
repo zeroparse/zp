@@ -1,6 +1,6 @@
 package sample
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // A Operators Rule expression is emitted as a flat chain while immutable scopes track the parser's recursive
 // prefix and infix RHS frames. Returning to a parent restores its own nonassociative restriction.
@@ -8,7 +8,7 @@ import "zeroparse.dev/zp/grammar"
 
 // operatorsRuleOp is an operator together with its level.
 type operatorsRuleOp struct {
-	op    *grammar.OperatorsRuleOperator
+	op    *ast.OperatorsRuleOperator
 	level int
 }
 
@@ -16,7 +16,7 @@ type operatorsRuleOp struct {
 // Longest selection must precede level and nonassociative eligibility checks.
 type operatorsRuleStop struct {
 	ops, prefixes []operatorsRuleOp
-	pr            *grammar.OperatorsRule
+	pr            *ast.OperatorsRule
 	base          *operatorsRuleCheck
 	uncommitted   bool // every led part is known unable to commit a failed application
 }
@@ -47,7 +47,7 @@ func (s *operatorsRuleScope) owner(o operatorsRuleOp, budget int) (owner *operat
 			return nil, work, false
 		}
 		if o.level >= f.minLevel {
-			if o.op.Kind == grammar.Infix && o.op.Assoc == grammar.AssocNone && f.lastNone == o.level {
+			if o.op.Kind == ast.Infix && o.op.Assoc == ast.AssocNone && f.lastNone == o.level {
 				return nil, work, true
 			}
 			return f, work, true
@@ -70,7 +70,7 @@ func (g *gen) operatorsRuleOwner(scope *operatorsRuleScope, o operatorsRuleOp) *
 
 // operatorsRuleOps returns operators of the kind from minLevel on. Prefix selection always starts at zero;
 // only the infix/postfix tail is restricted by a named entry or a prefix's right-hand binding level.
-func operatorsRuleOps(pr *grammar.OperatorsRule, minLevel int, kind string) []operatorsRuleOp {
+func operatorsRuleOps(pr *ast.OperatorsRule, minLevel int, kind string) []operatorsRuleOp {
 	var ops []operatorsRuleOp
 	for i := minLevel; i < len(pr.Levels); i++ {
 		for _, op := range pr.Levels[i].Operators {
@@ -96,7 +96,7 @@ func (g *gen) genOperatorsRule(ri *ruleInfo, minLevel int, k cont) bool {
 }
 
 // operatorsRuleSkip generates the skip expression, which the parser inserts before each operand and operator.
-func (g *gen) operatorsRuleSkip(pr *grammar.OperatorsRule, k thunk) bool {
+func (g *gen) operatorsRuleSkip(pr *ast.OperatorsRule, k thunk) bool {
 	if pr.Skip == nil {
 		return k()
 	}
@@ -110,13 +110,13 @@ func (g *gen) operatorsRuleSkip(pr *grammar.OperatorsRule, k thunk) bool {
 
 // operatorsRulePart generates an operator part in its own capture scope. Prefix and postfix parts must
 // consume input: the parser does not consider an empty match of them.
-func (g *gen) operatorsRulePart(op *grammar.OperatorsRuleOperator, k thunk) bool {
+func (g *gen) operatorsRulePart(op *ast.OperatorsRuleOperator, k thunk) bool {
 	pos := len(g.out)
 	caps := g.caps
 	g.caps = nil
 	m := g.mark(g.in.ops[op])
 	ok := g.gen(op.Expr, func(val) bool {
-		if op.Kind != grammar.Infix && len(g.out) == pos {
+		if op.Kind != ast.Infix && len(g.out) == pos {
 			return false
 		}
 		inner := g.caps
@@ -148,7 +148,7 @@ func (g *gen) operatorsRulePrimary(ri *ruleInfo, scope *operatorsRuleScope, pref
 		return g.operatorsRuleSkip(pr, func() bool { return g.operatorsRuleOperand(pr, func() bool { return k(scope) }) })
 	}
 	prefix := func() bool {
-		ops := operatorsRuleOps(pr, 0, grammar.Prefix)
+		ops := operatorsRuleOps(pr, 0, ast.Prefix)
 		if len(ops) == 0 || prefixes >= g.cfg.maxRepeat {
 			return false
 		}
@@ -169,7 +169,7 @@ func (g *gen) operatorsRulePrimary(ri *ruleInfo, scope *operatorsRuleScope, pref
 	}
 	prefixFirst := !g.minimal() && g.rng.IntN(5) == 0
 	if g.cfg.coverage && !g.minimal() {
-		for _, o := range operatorsRuleOps(pr, 0, grammar.Prefix) {
+		for _, o := range operatorsRuleOps(pr, 0, ast.Prefix) {
 			if g.wanted(g.in.ops[o.op]) {
 				prefixFirst = true
 			}
@@ -182,7 +182,7 @@ func (g *gen) operatorsRulePrimary(ri *ruleInfo, scope *operatorsRuleScope, pref
 }
 
 // operatorsRuleOperand generates one of the operands, which form an ordered choice.
-func (g *gen) operatorsRuleOperand(pr *grammar.OperatorsRule, k thunk) bool {
+func (g *gen) operatorsRuleOperand(pr *ast.OperatorsRule, k thunk) bool {
 	opts := make([]option, len(pr.Operands))
 	for i, o := range pr.Operands {
 		opts[i] = option{height: g.in.height(o.Expr), length: g.in.length(o.Expr), own: g.in.operands[o], reach: g.in.reach(o.Expr)}
@@ -239,7 +239,7 @@ func (g *gen) operatorsRuleTail(ri *ruleInfo, count int, scope *operatorsRuleSco
 		if count >= g.cfg.maxRepeat {
 			return false
 		}
-		ops := operatorsRuleOps(pr, scope.minimum, grammar.Postfix)
+		ops := operatorsRuleOps(pr, scope.minimum, ast.Postfix)
 		if len(ops) == 0 {
 			return false
 		}
@@ -270,7 +270,7 @@ func (g *gen) operatorsRuleTail(ri *ruleInfo, count int, scope *operatorsRuleSco
 			return false
 		}
 		var ops []operatorsRuleOp
-		for _, o := range operatorsRuleOps(pr, scope.minimum, grammar.Infix) {
+		for _, o := range operatorsRuleOps(pr, scope.minimum, ast.Infix) {
 			if g.operatorsRuleOwner(scope, o) != nil {
 				ops = append(ops, o)
 			}
@@ -292,12 +292,12 @@ func (g *gen) operatorsRuleTail(ri *ruleInfo, count int, scope *operatorsRuleSco
 					continue
 				}
 				lastNone := -1
-				if o.op.Assoc == grammar.AssocNone {
+				if o.op.Assoc == ast.AssocNone {
 					lastNone = o.level
 				}
 				parent := newOperatorsRuleScope(owner.minLevel, lastNone, owner.parent)
 				rhsMin := o.level + 1
-				if o.op.Assoc == grammar.AssocRight {
+				if o.op.Assoc == ast.AssocRight {
 					rhsMin = o.level
 				}
 				if g.operatorsRulePart(o.op, func() bool {
@@ -323,12 +323,12 @@ func (g *gen) operatorsRuleTail(ri *ruleInfo, count int, scope *operatorsRuleSco
 			options = []thunk{postfix, infix, stop}
 		}
 		if g.cfg.coverage {
-			for _, o := range operatorsRuleOps(pr, scope.minimum, grammar.Infix) {
+			for _, o := range operatorsRuleOps(pr, scope.minimum, ast.Infix) {
 				if g.wanted(g.in.ops[o.op]) {
 					options = []thunk{infix, postfix, stop}
 				}
 			}
-			for _, o := range operatorsRuleOps(pr, scope.minimum, grammar.Postfix) {
+			for _, o := range operatorsRuleOps(pr, scope.minimum, ast.Postfix) {
 				if g.wanted(g.in.ops[o.op]) {
 					options = []thunk{postfix, infix, stop}
 				}
@@ -366,10 +366,10 @@ func (g *gen) operatorsRuleStopCheck(ri *ruleInfo, scope *operatorsRuleScope) *o
 
 func (g *gen) operatorsRuleStopParts(ri *ruleInfo, minLevel int) *operatorsRuleStop {
 	pr := ri.operatorsRule
-	s := &operatorsRuleStop{pr: pr, prefixes: operatorsRuleOps(pr, 0, grammar.Prefix), uncommitted: true}
+	s := &operatorsRuleStop{pr: pr, prefixes: operatorsRuleOps(pr, 0, ast.Prefix), uncommitted: true}
 	for l, level := range pr.Levels {
 		for _, op := range level.Operators {
-			if op.Kind == grammar.Infix || op.Kind == grammar.Postfix {
+			if op.Kind == ast.Infix || op.Kind == ast.Postfix {
 				s.ops = append(s.ops, operatorsRuleOp{op, l})
 				s.uncommitted = s.uncommitted && operatorsRuleUncommitted(op.Expr)
 			}
@@ -381,38 +381,38 @@ func (g *gen) operatorsRuleStopParts(ri *ruleInfo, minLevel int) *operatorsRuleS
 
 // operatorsRuleUncommitted proves that a part cannot commit a later failed RHS or fail after a cut.
 // References and unsupported constructs remain conservative, even if one current match succeeds.
-func operatorsRuleUncommitted(e grammar.Expr) bool {
+func operatorsRuleUncommitted(e ast.Expr) bool {
 	switch e := e.(type) {
-	case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Top, *grammar.Bottom,
-		*grammar.BeginInput, *grammar.EndInput, *grammar.BeginLine, *grammar.EndLine:
+	case *ast.Literal, *ast.CharClass, *ast.Any, *ast.Top, *ast.Bottom,
+		*ast.BeginInput, *ast.EndInput, *ast.BeginLine, *ast.EndLine:
 		return true
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !operatorsRuleUncommitted(it) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, a := range e.Alts {
 			if !operatorsRuleUncommitted(a) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return operatorsRuleUncommitted(e.Expr)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return operatorsRuleUncommitted(e.Expr)
-	case *grammar.And:
+	case *ast.And:
 		return operatorsRuleUncommitted(e.Expr)
-	case *grammar.Not:
+	case *ast.Not:
 		return operatorsRuleUncommitted(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return operatorsRuleUncommitted(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return operatorsRuleUncommitted(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return operatorsRuleUncommitted(e.Expr)
 	}
 	return false

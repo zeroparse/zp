@@ -1,9 +1,9 @@
 package engine
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
@@ -13,7 +13,7 @@ import (
 
 // compileForGenerator compiles g for the generators, as the compileForGenerator of package
 // codegen does.
-func compileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
+func compileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 	prog, err := Compile(g, opts)
 	if err != nil {
 		return nil, nil, err
