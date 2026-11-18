@@ -310,7 +310,7 @@ func main() {
 `)
 	data, _ := json.Marshal(inputBytes(inputs))
 	write("inputs.json", string(data))
-	cmd := exec.Command(goBin, "run", ".", "inputs.json")
+	cmd := exec.Command(goBin, "run", CorpusGCFlags, ".", "inputs.json")
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), GoFlagsEnv, "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
@@ -489,7 +489,7 @@ func main() {
 `)
 	data, _ := json.Marshal(inputBytes(inputs))
 	write("inputs.json", string(data))
-	cmd := exec.Command(goBin, "run", ".", "inputs.json")
+	cmd := exec.Command(goBin, "run", CorpusGCFlags, ".", "inputs.json")
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), GoFlagsEnv, "GOTOOLCHAIN=local")
 	var stderr strings.Builder

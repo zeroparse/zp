@@ -52,6 +52,15 @@ var GoFlags = buildFlags(os.Getenv("GOFLAGS"))
 // needs.
 const WitnessTags = "-tags=" + witnessTag
 
+// CorpusGCFlags is the -gcflags flag of the builds of the programs that compare the results of many
+// generated parsers with the engine's (GeneratedParsersOutputs, GeneratedTypesMismatches): it
+// compiles the packages of the program's module (codegentest/...) without optimizations and
+// inlining. These builds compile thousands of generated packages and run each parser on a few
+// inputs, so compiling dominates their cost, and the verdict compares results, which do not depend on
+// the optimizations of the compiler. The library and the standard library stay optimized, as do the
+// tests that measure allocations or retained memory of a generated parser, which build otherwise.
+const CorpusGCFlags = "-gcflags=codegentest/...=-N -l"
+
 // GoFlagsEnv is the GOFLAGS entry of the environment of a go command that builds generated programs.
 var GoFlagsEnv = "GOFLAGS=" + GoFlags
 
