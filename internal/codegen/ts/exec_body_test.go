@@ -38,7 +38,7 @@ func bodyTarget(named *[]string) *BodyTarget {
 			*named = append(*named, name)
 			return "L_" + name
 		},
-		Op: func(c *ir.Call, _ bool) string { return c.Callee + "()" },
+		Op: func(c *ir.Call, _ func() []string, _ bool) string { return c.Callee + "()" },
 		Do: func(c *ir.Call, args func() []string, _ bool) string {
 			return c.Callee + "(" + strings.Join(args(), ", ") + ");\n"
 		},

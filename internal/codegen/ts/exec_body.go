@@ -31,18 +31,19 @@ type BodyTarget struct {
 	// Label returns the TypeScript label of the Exec IR label name; Body calls it where the label
 	// prints and where a jump to it prints.
 	Label func(name string) string
-	// Op returns the TypeScript expression of a call of an operation.
-	Op func(c *code.Call, dead bool) string
+	// Op returns the TypeScript expression of a call of an operation. args returns the printed
+	// arguments.
+	Op func(c *code.Call, args func() []string, dead bool) string
 	// Do returns the statements of a call of an operation that a Do makes, each ending with a
 	// newline. args returns the printed arguments.
 	Do func(c *code.Call, args func() []string, dead bool) string
 	// Set, if not nil, returns the statements of an assignment of one call of an operation, each
 	// ending with a newline, or reports false to print the assignment as Body does. init reports
-	// the Init of an If, which is formed at an unreachable point too.
-	Set func(s *code.Set, init, dead bool) (string, bool)
+	// the Init of an If, which is formed at an unreachable point too. expr prints an expression.
+	Set func(s *code.Set, expr func(code.Expr) string, init, dead bool) (string, bool)
 	// Test, if not nil, returns the condition of an If with an Init, which then is not printed
-	// apart, or reports false to print the Init before the If.
-	Test func(s *code.If, dead bool) (string, bool)
+	// apart, or reports false to print the Init before the If. expr prints an expression.
+	Test func(s *code.If, expr func(code.Expr) string, dead bool) (string, bool)
 	// Pure reports whether evaluating a call of an operation has no effect, for leaving out unread
 	// assignments.
 	Pure func(c *code.Call) bool
@@ -162,7 +163,7 @@ func (p *bodyPrinter) stmt(s code.Stmt) {
 			return
 		}
 		if p.t.Set != nil {
-			if text, ok := p.t.Set(s, false, false); ok {
+			if text, ok := p.t.Set(s, p.expr, false, false); ok {
 				p.write(text)
 				return
 			}
@@ -242,14 +243,14 @@ func (p *bodyPrinter) ifStmt(s *code.If) {
 	var init, cond string
 	tested := false
 	if s.Init != nil && p.t.Test != nil {
-		cond, tested = p.t.Test(s, dead)
+		cond, tested = p.t.Test(s, p.expr, dead)
 	}
 	if !tested {
 		if s.Init != nil {
 			// The Init is formed at an unreachable point too.
 			text, ok := "", false
 			if p.t.Set != nil {
-				text, ok = p.t.Set(s.Init, true, dead)
+				text, ok = p.t.Set(s.Init, p.expr, true, dead)
 			}
 			if !ok {
 				text = p.setText(s.Init)
@@ -372,7 +373,7 @@ func (p *bodyPrinter) expr(x code.Expr) string {
 		if p.m.Op(x.Callee) == nil {
 			panic("tsgen: a call of function " + x.Callee + " in grammar code")
 		}
-		return p.t.Op(x, p.dead)
+		return p.t.Op(x, func() []string { return p.args(x) }, p.dead)
 	}
 	panic(fmt.Sprintf("tsgen: expression %T in grammar code", x))
 }

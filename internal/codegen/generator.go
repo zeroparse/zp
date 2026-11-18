@@ -246,6 +246,20 @@ func (g *Generator) FlowPasses(f *flow.Func, err error) (*flow.Func, error) {
 	return f, nil
 }
 
+// LowerFlow writes the lowered function f at the Flow stage of Code IR (flowlower.Emit) and converts
+// it to the Exec stage (execlower.Lower), which the backends print.
+func LowerFlow(f *flow.Func) (*execlower.Lowered, error) {
+	m, fn, err := flowlower.Emit(f)
+	if err != nil {
+		return nil, err
+	}
+	x, err := execlower.Lower(m)
+	if err != nil {
+		return nil, err
+	}
+	return &execlower.Lowered{Module: x, Func: fn, Vars: flow.AttrsOf(fn).Vars}, nil
+}
+
 // ExecPasses runs the pipeline of Exec passes on the module of l, which the lowering of a Flow IR
 // function made, labeled with the table being generated as FlowPasses labels it. A failure is kept as
 // the first internal error of the generation (FlowErr), which fails it. The printers print l.Func with
@@ -305,10 +319,10 @@ func (g *Generator) InlineLiterals() int {
 	return g.Opt.Value("inline-literals")
 }
 
-// FrameScope returns the scope of the frame whose slots the captures c name.
-func FrameScope(c flow.Captures) *check.Scope {
+// FrameScope returns the scope of the frame whose slots are names.
+func FrameScope(names []string) *check.Scope {
 	s := check.NewScope()
-	for _, name := range c.Names {
+	for _, name := range names {
 		s.Slot(name)
 	}
 	return s
