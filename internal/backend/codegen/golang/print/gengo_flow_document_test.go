@@ -226,8 +226,8 @@ func runDocumentProbes(t *testing.T, cases []documentCase, start string, mutate 
 		if err != nil {
 			return nil, err
 		}
-		return &doc{func() (*core.Node, error) { return d.Parse() }, d.Edit, d.Text, d.Stats}, nil
-	}, parse: func(s string) (*core.Node, error) { return f%[1]d.Parse(s) }},
+		return &doc{func() (*zpvalue.Node, error) { return d.Parse() }, d.Edit, d.Text, d.Stats}, nil
+	}, parse: func(s string) (*zpvalue.Node, error) { return f%[1]d.Parse(s) }},
 `, i)
 	}
 	write("main.go", strings.NewReplacer("IMPORTS", imports.String(), "ENTRIES", entries.String()).Replace(documentProbeMain))

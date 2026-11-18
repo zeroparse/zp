@@ -12,7 +12,7 @@ import (
 // parse does not: it runs the call-preserving family of its backend (FamilyOf). See
 // docs/design/records/014-tracing-and-profiling.md.
 
-// TraceKind is core.TraceKind. A parse reports TraceEnter and TraceExit; the engine reports no
+// TraceKind is instrument.TraceKind. A parse reports TraceEnter and TraceExit; the engine reports no
 // TraceSkipped events (the calls that its backends skip are not reported).
 type TraceKind = instrument.TraceKind
 
@@ -21,7 +21,7 @@ const (
 	TraceExit  = instrument.TraceExit
 )
 
-// TraceEvent is core.TraceEvent. Its accessors read the parse's tracing state (Tracer, the event's
+// TraceEvent is instrument.TraceEvent. Its accessors read the parse's tracing state (Tracer, the event's
 // TraceSource): call them only from the trace function, while it handles the event.
 type TraceEvent = instrument.TraceEvent
 

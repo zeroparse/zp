@@ -7,12 +7,12 @@ import (
 	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
-// Data is the representation of a core.Node, which the library builds and reads nodes through.
+// Data is the representation of a value.Node, which the library builds and reads nodes through.
 //
 // Data is for generated parsers; not a stable API.
 type Data = valueimpl.Data[zpvalue.Node]
 
-// D returns the representation of the node n. A core.Node holds a Data as its only field, so
+// D returns the representation of the node n. A value.Node holds a Data as its only field, so
 // the conversion is free.
 //
 // D is for generated parsers; not a stable API.

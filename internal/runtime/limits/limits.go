@@ -1,5 +1,5 @@
 // Package limits holds the defaults of the limits of one parse invocation
-// (core.Limits) and the overflow-safe arithmetic used to spend budget against
+// (runtime.Limits) and the overflow-safe arithmetic used to spend budget against
 // them. The parser, the document and the structural query share it.
 package limits
 

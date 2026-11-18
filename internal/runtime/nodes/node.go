@@ -1,4 +1,4 @@
-// Package nodes gives the engine access to the representation of core.Node: the parsers, the
+// Package nodes gives the engine access to the representation of value.Node: the parsers, the
 // Document, the compiler and the structural query build and read nodes through D. It also holds
 // the node helpers that only the engine needs.
 package nodes
@@ -12,10 +12,10 @@ import (
 	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
-// Data is the representation of a core.Node.
+// Data is the representation of a value.Node.
 type Data = valueimpl.Data[value.Node]
 
-// D returns the representation of n. A core.Node holds its representation as its only field.
+// D returns the representation of n. A value.Node holds its representation as its only field.
 func D(n *value.Node) *Data { return (*Data)(unsafe.Pointer(n)) }
 
 // Of returns the node with the representation d.
@@ -126,8 +126,8 @@ func FieldOf(n *value.Node, name string) (any, bool) {
 // ShapeOf returns what n stands for in the value model.
 func ShapeOf(n *value.Node) valueimpl.Shape { return valueimpl.ShapeOfKind(D(n).Kind, D(n).Terminal) }
 
-// KindOfShape returns the core.NodeKind of a node that has the shape. It agrees with
-// core.Node.Kind, which TestKindOfShape checks.
+// KindOfShape returns the value.NodeKind of a node that has the shape. It agrees with
+// value.Node.Kind, which TestKindOfShape checks.
 func KindOfShape(shape valueimpl.Shape) value.NodeKind {
 	switch shape {
 	case valueimpl.ShapeString:

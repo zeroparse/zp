@@ -86,7 +86,7 @@ func ExactSteps(p *engine.Parser, input string, b engine.Backend, cap uint64) (C
 
 // StepsLenient is Steps for an input that the grammar reports syntax errors for, such as one
 // that exercises error recovery: the cost of a parse that finishes with a syntax error carries
-// the error in Cost.ParseErr instead of failing. Only a *core.SyntaxError or core.SyntaxErrors
+// the error in Cost.ParseErr instead of failing. Only a *value.SyntaxError or value.SyntaxErrors
 // is accepted; any other error is returned.
 func StepsLenient(p *engine.Parser, input string, b engine.Backend, cap uint64) (Cost, error) {
 	return steps(p, input, b, cap, 256)
