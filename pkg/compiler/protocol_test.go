@@ -38,11 +38,11 @@ func bumpProtocol(src []byte, by int) []byte {
 	})
 }
 
-// protocolBuild writes a module zeroparse.dev/zp in dir/zp that holds this module's core and
-// core/impl, with coreimpl's source passed through coreimpl, and the files libFiles at their paths
+// protocolBuild writes a module zeroparse.dev/zp in dir/zp that holds this module's runtime
+// packages, with the source of value/impl passed through valueimpl, and the files libFiles at their paths
 // below lib (the directory of the library in it, or "" to leave it out), and the parser files in
 // dir/p, a module that requires it; then it builds the parser.
-func protocolBuild(t *testing.T, files, libFiles []compiler.File, lib string, coreimpl func([]byte) []byte) (string, error) {
+func protocolBuild(t *testing.T, files, libFiles []compiler.File, lib string, valueimpl func([]byte) []byte) (string, error) {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(rel string, data []byte) {
@@ -59,7 +59,7 @@ func protocolBuild(t *testing.T, files, libFiles []compiler.File, lib string, co
 		write("p/"+f.Path, f.Content)
 	}
 	write("zp/go.mod", []byte("module zeroparse.dev/zp\n\ngo 1.27.1\n"))
-	for _, pkg := range []string{"pkg/runtime", "pkg/runtime/input", "pkg/runtime/value", "pkg/runtime/value/impl", "pkg/runtime/instrument"} {
+	for _, pkg := range []string{"pkg/runtime", "pkg/runtime/input", "pkg/runtime/value", "pkg/runtime/value/impl", "pkg/runtime/instrument", "pkg/runtime/schema"} {
 		src := filepath.Join(codegentest.ModuleRoot(), filepath.FromSlash(pkg))
 		entries, err := os.ReadDir(src)
 		if err != nil {
@@ -73,8 +73,8 @@ func protocolBuild(t *testing.T, files, libFiles []compiler.File, lib string, co
 			if err != nil {
 				t.Fatal(err)
 			}
-			if pkg == "pkg/runtime/value/impl" && coreimpl != nil {
-				data = coreimpl(data)
+			if pkg == "pkg/runtime/value/impl" && valueimpl != nil {
+				data = valueimpl(data)
 			}
 			write("zp/"+pkg+"/"+e.Name(), data)
 		}
@@ -152,9 +152,9 @@ rule main = [a-z]+ "=" [0-9]+`)
 }
 
 // TestEmbedCoreProtocol builds a parser generated with LibEmbed, whose copy of the library imports
-// core and core/impl from zeroparse.dev/zp, against this module's core, which builds, and against
-// a core whose coreimpl serves the representation of the protocol version after or before the
-// library's, which must fail to build on the coreimpl constant the copy refers to.
+// the runtime packages from zeroparse.dev/zp, against this module's runtime packages, which builds, and against
+// runtime packages whose value/impl serves the representation of the protocol version after or before the
+// library's, which must fail to build on the valueimpl constant the copy refers to.
 func TestEmbedCoreProtocol(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a generated parser")
@@ -175,7 +175,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 		t.Fatal("embed mode wrote no copy of the library")
 	}
 	if out, err := protocolBuild(t, files, nil, "", nil); err != nil {
-		t.Fatalf("the parser does not build against the core of its generator: %v\n%s", err, out)
+		t.Fatalf("the parser does not build against the runtime packages of its generator: %v\n%s", err, out)
 	}
 	src, err := os.ReadFile(filepath.Join(codegentest.ModuleRoot(), "pkg", "runtime", "value", "impl", "impl.go"))
 	if err != nil {
@@ -183,16 +183,16 @@ rule main = [a-z]+ "=" [0-9]+`)
 	}
 	m := protocolName.FindSubmatch(src)
 	if m == nil {
-		t.Fatal("core/impl declares no protocol constant")
+		t.Fatal("value/impl declares no protocol constant")
 	}
 	want := "undefined: valueimpl.Protocol" + string(m[1])
 	for _, by := range []int{1, -1} {
 		out, err := protocolBuild(t, files, nil, "", func(src []byte) []byte { return bumpProtocol(src, by) })
 		if err == nil {
-			t.Fatalf("the copy of the library builds against a core/impl of protocol %+d", by)
+			t.Fatalf("the copy of the library builds against a value/impl of protocol %+d", by)
 		}
 		if !strings.Contains(out, want) {
-			t.Errorf("protocol %+d: the build fails for another reason than the coreimpl constant:\n%s", by, out)
+			t.Errorf("protocol %+d: the build fails for another reason than the valueimpl constant:\n%s", by, out)
 		}
 	}
 }

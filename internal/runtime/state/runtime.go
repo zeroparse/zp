@@ -425,7 +425,7 @@ func (p *Parser) Unisolate(m ExpMark) (far int, inner []ExpID) {
 // the backend built for it.
 type Rule struct {
 	staticRule
-	// Kinds are the node kinds the rule makes (coreimpl.NewRuleKinds).
+	// Kinds are the node kinds the rule makes (valueimpl.NewRuleKinds).
 	Kinds valueimpl.RuleKinds
 	// Body matches the body of the rule at the current position and returns its node; min is the
 	// binding level of the call (see Call).
