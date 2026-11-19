@@ -10,9 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/driver/entry"
-
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"

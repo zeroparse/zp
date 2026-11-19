@@ -5,10 +5,10 @@ package print_test
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // termChargeMutants are the edits of call_exec.go that make a charged clear of Predicate or Bind a plain clear:

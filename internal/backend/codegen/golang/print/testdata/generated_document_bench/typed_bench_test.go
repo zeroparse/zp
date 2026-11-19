@@ -1,6 +1,8 @@
 package generateddocumentbench
 
 import (
+	typedbatch "generateddocumentbench/typedbatch"
+	typeddocument "generateddocumentbench/typeddocument"
 	"os"
 	"reflect"
 	"runtime"
@@ -8,9 +10,6 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
-
-	typedbatch "generateddocumentbench/typedbatch"
-	typeddocument "generateddocumentbench/typeddocument"
 )
 
 var typedBatchBenchmarkResult []*typedbatch.Item

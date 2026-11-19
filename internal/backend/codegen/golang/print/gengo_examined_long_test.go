@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // examinedMutant leaves out one record of the examined end on one route of an observed parse: in the

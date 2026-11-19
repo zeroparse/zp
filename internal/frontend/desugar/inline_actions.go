@@ -3,11 +3,11 @@ package desugar
 import (
 	"fmt"
 	"strings"
+
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/runtime/program"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

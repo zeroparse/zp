@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 	"sync"
-	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/value"
 	"zeroparse.dev/zp/pkg/runtime/value/impl"

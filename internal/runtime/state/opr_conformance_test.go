@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/ir/code/exec/ref"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
 

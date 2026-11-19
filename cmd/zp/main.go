@@ -37,11 +37,10 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/internal/driver/entry"
-	"zeroparse.dev/zp/internal/frontend/parser"
-
 	igen "zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/driver"
+	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"

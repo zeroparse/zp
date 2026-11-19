@@ -26,8 +26,8 @@ package elaborate
 
 import (
 	"fmt"
-	"zeroparse.dev/zp/internal/cancel"
 
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/desugar"

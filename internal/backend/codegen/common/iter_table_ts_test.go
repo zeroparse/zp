@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/ir/code/exec/conform"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // iterScript runs the calls of calls.json on the TypeScript library (fxFold, fxMap and fxFilter of tsCompose, over

@@ -10,9 +10,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"zeroparse.dev/zp/internal/driver/entry"
-
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/pkg/lint"
 )
 

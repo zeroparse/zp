@@ -2,8 +2,8 @@ package state
 
 import (
 	"testing"
-	"zeroparse.dev/zp/internal/runtime/program"
 
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/value"

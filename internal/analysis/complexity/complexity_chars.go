@@ -4,8 +4,8 @@ import (
 	"math"
 	"slices"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/compile"
 
+	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

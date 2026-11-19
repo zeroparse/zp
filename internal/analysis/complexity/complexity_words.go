@@ -2,8 +2,8 @@ package complexity
 
 import (
 	"slices"
-	"zeroparse.dev/zp/internal/compile"
 
+	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

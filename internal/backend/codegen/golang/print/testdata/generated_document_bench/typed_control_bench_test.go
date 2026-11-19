@@ -1,13 +1,12 @@
 package generateddocumentbench
 
 import (
+	typedbatch "generateddocumentbench/typedbatch"
+	typeddocumentconv "generateddocumentbench/typeddocumentconv"
 	"reflect"
 	"strconv"
 	"testing"
 	"unicode/utf8"
-
-	typedbatch "generateddocumentbench/typedbatch"
-	typeddocumentconv "generateddocumentbench/typeddocumentconv"
 )
 
 var typedControlResult []*typedbatch.Item

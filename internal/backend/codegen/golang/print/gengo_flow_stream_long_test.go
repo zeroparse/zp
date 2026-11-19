@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // TestFlowStreamObservationMutants checks that the reports of stream parses notice a stream body that

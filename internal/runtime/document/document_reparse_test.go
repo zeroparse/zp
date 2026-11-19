@@ -5,11 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/driver/entry"
-
-	"zeroparse.dev/zp/internal/runtime/document"
-
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/runtime/document"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/runtime/input"
 )

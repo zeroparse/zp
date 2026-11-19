@@ -3,17 +3,17 @@ package compile
 import (
 	"fmt"
 	"sync"
+
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/check"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/runtime/program"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
-
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // Program is what the compiler found out about a grammar: its rules with their static facts,

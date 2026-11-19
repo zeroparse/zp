@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"testing"
 	"weak"
-	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/internal/backend/closure"
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/starttest"

@@ -2,6 +2,7 @@ package desugar
 
 import (
 	"strings"
+
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/astfacts"

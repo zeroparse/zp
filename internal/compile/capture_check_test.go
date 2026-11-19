@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 )

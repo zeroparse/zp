@@ -4,11 +4,11 @@ import (
 	"maps"
 	"slices"
 	"unicode/utf8"
+
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/syntax/fmt"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

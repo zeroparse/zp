@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"unicode"
 	"unicode/utf8"
+
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/types"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // TypeResolver turns the type expressions of a grammar into types. It reports undefined names,

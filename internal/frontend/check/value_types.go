@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/types"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

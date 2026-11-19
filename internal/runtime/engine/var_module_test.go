@@ -3,10 +3,10 @@ package engine
 import (
 	"fmt"
 	"testing"
-	fcheck "zeroparse.dev/zp/internal/frontend/check"
-	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/compile"
+	fcheck "zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/bytecode"
 )
 

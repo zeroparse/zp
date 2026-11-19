@@ -2,9 +2,9 @@ package complexity
 
 import (
 	"maps"
+
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

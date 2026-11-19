@@ -2,8 +2,8 @@ package closure
 
 import (
 	"fmt"
-	"zeroparse.dev/zp/internal/backend/actionlower"
 
+	"zeroparse.dev/zp/internal/backend/actionlower"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 )

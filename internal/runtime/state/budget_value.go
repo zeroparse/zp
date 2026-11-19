@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode/utf8"
 	"unsafe"
-	"zeroparse.dev/zp/internal/runtime/program"
 
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/runtime/input"
 	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )

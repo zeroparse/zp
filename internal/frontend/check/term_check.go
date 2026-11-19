@@ -1,14 +1,14 @@
 package check
 
 import (
+	"fmt"
 	"slices"
 	"strings"
-	"zeroparse.dev/zp/internal/runtime/program"
 
-	"fmt"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

@@ -5,9 +5,9 @@ package print_test
 import (
 	"bytes"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // TestFlowNodeBudgetMutants checks that the invariants and the golden of TestFlowNodeBudgetInvariants notice a

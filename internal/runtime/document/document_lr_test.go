@@ -4,9 +4,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"zeroparse.dev/zp/internal/runtime/document"
-
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/runtime/document"
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/runtime/input"
 )

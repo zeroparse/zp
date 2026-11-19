@@ -14,7 +14,6 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/bench/inputs"
-
 	gcalc "zeroparse.dev/zp/internal/bench/parsers/calc"
 	gcalclr "zeroparse.dev/zp/internal/bench/parsers/calclr"
 	gcsv "zeroparse.dev/zp/internal/bench/parsers/csv"

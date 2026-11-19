@@ -3,8 +3,8 @@ package compile
 import (
 	"strconv"
 	"strings"
-	"zeroparse.dev/zp/internal/cancel"
 
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

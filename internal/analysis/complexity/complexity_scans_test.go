@@ -7,9 +7,8 @@ import (
 
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
-	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
-
 	"zeroparse.dev/zp/internal/frontend/parser"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )

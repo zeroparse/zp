@@ -3,11 +3,10 @@
 package engine
 
 import (
-	"zeroparse.dev/zp/internal/testing/codegentest"
-
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/input"
 )

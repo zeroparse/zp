@@ -3,6 +3,7 @@ package compile
 import (
 	"slices"
 	"strings"
+
 	"zeroparse.dev/zp/internal/frontend/types"
 )
 

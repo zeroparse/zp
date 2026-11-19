@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
 	"zeroparse.dev/zp/internal/analysis/lint"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )

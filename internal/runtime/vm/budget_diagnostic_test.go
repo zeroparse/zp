@@ -9,9 +9,9 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime"

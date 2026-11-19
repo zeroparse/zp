@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/diagnostic"
 )
 
 // A name captured several times in one match has the join of the types of its captures: the

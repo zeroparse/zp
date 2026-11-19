@@ -2,9 +2,9 @@ package check
 
 import (
 	"sync"
+
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

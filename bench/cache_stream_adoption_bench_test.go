@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/bench/inputs"
-
 	"zeroparse.dev/zp/internal/runtime/engine"
 	zpruntime "zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/value"

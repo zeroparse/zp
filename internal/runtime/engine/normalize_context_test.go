@@ -4,8 +4,8 @@ import (
 	"context"
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp/internal/cancel"
 
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/testing/codegentest"

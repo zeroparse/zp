@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // TestGeneratedStorePolicy checks the store policy of "Evaluations of Rules" in

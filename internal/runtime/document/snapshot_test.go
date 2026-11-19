@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/runtime/document"
-
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/runtime"

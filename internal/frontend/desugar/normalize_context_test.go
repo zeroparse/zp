@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"testing"
-	"zeroparse.dev/zp/internal/cancel"
 
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

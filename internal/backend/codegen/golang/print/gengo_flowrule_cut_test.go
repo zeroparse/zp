@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/driver/entry"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

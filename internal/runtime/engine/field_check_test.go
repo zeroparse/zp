@@ -6,9 +6,9 @@ import (
 	"hash/crc32"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/frontend/types"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"

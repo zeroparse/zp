@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/cancel"
 
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )

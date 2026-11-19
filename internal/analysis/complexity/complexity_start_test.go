@@ -3,9 +3,9 @@ package complexity
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/frontend"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 )

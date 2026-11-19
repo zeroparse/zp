@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
 	"zeroparse.dev/zp/internal/bench/inputs"
 )
 

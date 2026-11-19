@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp/pkg/runtime/instrument"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // TestTraceFirstCharacterDispatch records executed calls, not synthetic calls

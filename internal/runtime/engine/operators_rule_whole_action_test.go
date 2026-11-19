@@ -3,14 +3,14 @@ package engine
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/diagnostic"
-	"zeroparse.dev/zp/pkg/runtime/value"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // Every compiler path accepts a whole-rule action of an Operators Rule, from source and from a

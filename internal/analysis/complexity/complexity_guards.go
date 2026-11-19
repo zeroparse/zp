@@ -3,9 +3,9 @@ package complexity
 import (
 	"math"
 	"slices"
+
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/syntax/fmt"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

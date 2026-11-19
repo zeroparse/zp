@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/runtime/program"
 
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/runtime"
 	"zeroparse.dev/zp/pkg/runtime/input"

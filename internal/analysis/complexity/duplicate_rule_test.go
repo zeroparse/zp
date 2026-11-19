@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/cancel"
-
 	"zeroparse.dev/zp/internal/frontend/parser"
 )
 

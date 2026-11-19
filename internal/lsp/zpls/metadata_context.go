@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"sort"
+
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

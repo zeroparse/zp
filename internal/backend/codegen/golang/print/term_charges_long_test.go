@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // TestTermChargeGoldensDetectBrokenCharges checks that the term charge goldens notice generated Go that

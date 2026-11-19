@@ -3,10 +3,10 @@ package common_test
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"

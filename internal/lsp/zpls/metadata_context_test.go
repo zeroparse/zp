@@ -10,10 +10,10 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"zeroparse.dev/zp/internal/diagnostic"
-	"zeroparse.dev/zp/internal/lsp/protocol"
 
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

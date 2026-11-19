@@ -7,8 +7,8 @@ import (
 	"math"
 	"runtime"
 	"sync"
-	"zeroparse.dev/zp/internal/runtime/program"
 
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/runtime/vm"
 	zpruntime "zeroparse.dev/zp/pkg/runtime"

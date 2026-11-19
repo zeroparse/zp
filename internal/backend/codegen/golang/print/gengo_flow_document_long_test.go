@@ -5,9 +5,9 @@ package print_test
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // TestFlowNodeDocumentMutants checks that the checks notice a Flow build that reads input in place in a

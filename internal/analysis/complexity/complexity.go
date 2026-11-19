@@ -6,13 +6,13 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/check"
-	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
-
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/analysis/complexity"
-
 	"zeroparse.dev/zp/internal/testing/complexitytest"
 	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/internal/testing/starttest"

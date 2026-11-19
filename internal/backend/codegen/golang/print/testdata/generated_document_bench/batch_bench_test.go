@@ -1,12 +1,11 @@
 package generateddocumentbench
 
 import (
+	generatedbatch "generateddocumentbench/generatedbatch"
+	generateddocument "generateddocumentbench/generateddocument"
 	"strconv"
 	"strings"
 	"testing"
-
-	generatedbatch "generateddocumentbench/generatedbatch"
-	generateddocument "generateddocumentbench/generateddocument"
 )
 
 const benchmarkRecords = 4096 // 20 KiB UTF-8, 16 Ki code points

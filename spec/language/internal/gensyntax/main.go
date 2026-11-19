@@ -8,7 +8,6 @@ import (
 	"text/template"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
-
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 )
 

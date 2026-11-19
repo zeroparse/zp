@@ -7,10 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/pkg/runtime/instrument"
-
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/enginetest"
+	"zeroparse.dev/zp/pkg/runtime/instrument"
 )
 
 // Exercise the CLI formatters with real Document events: an ordinary trace

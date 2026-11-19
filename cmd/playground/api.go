@@ -28,11 +28,10 @@ import (
 	"strings"
 	"time"
 
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/driver/entry"
 	gensrc "zeroparse.dev/zp/internal/driver/generate"
 	"zeroparse.dev/zp/internal/frontend/parser"
-
-	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"

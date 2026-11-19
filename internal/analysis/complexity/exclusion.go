@@ -3,9 +3,9 @@ package complexity
 import (
 	"fmt"
 	"slices"
+
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

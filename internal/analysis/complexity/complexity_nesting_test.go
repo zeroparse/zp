@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/middleend/corepass"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 

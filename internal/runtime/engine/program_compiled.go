@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
-	"zeroparse.dev/zp/internal/runtime/program"
 
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/vm"
 	"zeroparse.dev/zp/pkg/bytecode"
 )

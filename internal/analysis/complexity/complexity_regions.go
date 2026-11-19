@@ -4,8 +4,8 @@ import (
 	"math/bits"
 	"slices"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/frontend/astfacts"
 
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

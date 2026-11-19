@@ -2,9 +2,9 @@ package complexity
 
 import (
 	"fmt"
+
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

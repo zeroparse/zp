@@ -2,11 +2,10 @@ package print
 
 import (
 	"fmt"
+	goast "go/ast"
 	goparser "go/parser"
 	"go/token"
 	"strings"
-
-	goast "go/ast"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/frontend/check"

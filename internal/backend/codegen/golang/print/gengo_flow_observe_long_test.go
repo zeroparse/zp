@@ -5,9 +5,9 @@ package print_test
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // TestFlowNodeObservationMutants checks that the golden notices a Flow build that drops, moves or reorders

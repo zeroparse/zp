@@ -7,7 +7,6 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/runtime/document"
-
 	. "zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/state"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"

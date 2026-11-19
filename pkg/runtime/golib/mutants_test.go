@@ -3,9 +3,9 @@ package golib_test
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/testing/mutanttest"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // A mutant changes the printed code of the operators of terms in one way: in the compositions of

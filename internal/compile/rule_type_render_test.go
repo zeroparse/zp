@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 )

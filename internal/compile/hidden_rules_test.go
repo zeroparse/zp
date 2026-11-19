@@ -3,8 +3,8 @@ package compile
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/frontend/check"
 
+	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )

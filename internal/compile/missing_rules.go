@@ -2,11 +2,10 @@ package compile
 
 import (
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/runtime/program"
-	"zeroparse.dev/zp/pkg/runtime/value/impl"
-
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // markMissingRules records transitive insertion dependencies before matchers or

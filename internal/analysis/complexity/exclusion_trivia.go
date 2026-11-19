@@ -4,8 +4,8 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"zeroparse.dev/zp/internal/frontend/astfacts"
 
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

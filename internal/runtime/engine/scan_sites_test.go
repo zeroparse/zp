@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 	"testing/iotest"
-	"zeroparse.dev/zp/internal/middleend/corepass"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/bytecode"

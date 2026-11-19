@@ -5,9 +5,9 @@ import (
 	"maps"
 	"slices"
 	"strings"
+
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/types"
-
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 

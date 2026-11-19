@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
 	"zeroparse.dev/zp/internal/frontend/parser"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"

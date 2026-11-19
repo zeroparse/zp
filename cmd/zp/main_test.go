@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	igen "zeroparse.dev/zp/internal/backend/codegen/common"
-
 	"zeroparse.dev/zp/internal/runtime/engine"
 )
 
