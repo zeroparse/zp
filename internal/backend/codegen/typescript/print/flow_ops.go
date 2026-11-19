@@ -625,7 +625,7 @@ func (p *tsFlowPrinter) outline(c *code.Call) string {
 	}
 	x := c.Imm.(flow.Outline)
 	g := p.g
-	f, err := g.FlowPasses(flowlower.LowerOutline(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], x.Node, x.Slots, x.Build, g.Cur.Name, g.Flow.Opts))
+	f, err := g.FlowPasses(flowlower.Unit{Module: g.Flow.M, Opts: g.Flow.Opts, Func: flowlower.Func{Form: flowlower.Outline, Rule: g.Flow.M.Rules[g.Cur.ID], Name: g.Cur.Name, Body: x.Node, Slots: x.Slots, Build: x.Build}})
 	if err != nil {
 		panic(fmt.Errorf("outlined node of rule %s in table %s: %w", g.Cur.Name, g.Table, err)) // Outlinable holds
 	}

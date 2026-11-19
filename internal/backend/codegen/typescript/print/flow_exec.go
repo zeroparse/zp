@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/internal/backend/codegen/common"
 	tspass "zeroparse.dev/zp/internal/backend/codegen/typescript/pass"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -15,7 +14,7 @@ import (
 // Rules printed from the Exec stage of Code IR.
 //
 // The functions of grammar code are written at the Flow stage and converted to the Exec stage
-// (common.LowerFlow), and printed by print.Body, which prints their structure and decides which
+// (Generator.ExecPasses), and printed by print.Body, which prints their structure and decides which
 // assignments stay (codepass.DeadStores). The primitives are printed in place by tsFlowPrinter.
 // Before printing, the TypeScript Exec passes (typescript/pass) make charges in a row one spend, the
 // end of an expectation record followed by the merge of its expectations one unisolateMerge, and the
@@ -26,11 +25,10 @@ import (
 func (g *Generator) printTSFlowExec(f *code.Module) (string, []string, []tsDecl) {
 	fn := flow.FuncOf(f)
 	a := flow.AttrsOf(fn)
-	l, err := common.LowerFlow(f)
+	l, err := g.ExecPasses(f, tspass.Pipeline)
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", fn.Name, g.Table, err))
 	}
-	g.ExecPasses(l, tspass.Pipeline)
 	g.ExecFuncs++
 	vars := map[string]bool{}
 	for _, v := range append(append([]string(nil), a.Vars...), a.Start, a.Result, a.Ctx) {

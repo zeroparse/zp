@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -27,11 +28,10 @@ func TestGeneratorOptIsTheRunnerSettings(t *testing.T) {
 func TestGeneratorWithoutRunnerPanicsClearly(t *testing.T) {
 	t.Parallel()
 	for name, use := range map[string]func(g *common.Generator){
-		"Opt":       func(g *common.Generator) { g.Opt() },
-		"RunCore":   func(g *common.Generator) { _ = g.RunCore("rules", nil, nil) },
-		"RunFlow":   func(g *common.Generator) { _ = g.RunFlow("rules", nil, false, common.Generator{}.FlowTarget) },
-		"RunExec":   func(g *common.Generator) { _ = g.RunExec("rules", nil, false) },
-		"RunTarget": func(g *common.Generator) { _ = g.RunTarget("rules", nil, nil, false) },
+		"Opt":        func(g *common.Generator) { g.Opt() },
+		"RunCore":    func(g *common.Generator) { _ = g.RunCore("rules", nil, nil) },
+		"FlowPasses": func(g *common.Generator) { _, _ = g.FlowPasses(flowlower.Unit{}) },
+		"ExecPasses": func(g *common.Generator) { _, _ = g.ExecPasses(nil, nil) },
 	} {
 		t.Run(name, func(t *testing.T) {
 			defer func() {

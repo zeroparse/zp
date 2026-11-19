@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/execlower"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/middleend/flowpass"
 	"zeroparse.dev/zp/internal/pass"
 )
@@ -38,18 +39,20 @@ type Runner interface {
 	// RunCore runs the pipeline of Core passes on m, the Core IR of the table named table;
 	// prepareScans is called around the scans (corepass.Env).
 	RunCore(table string, m *core.Module, prepareScans func(*core.Module) func()) error
-	// RunFlow runs the pipeline of Flow passes on the module m of one lowered function of the table
-	// named table; observe says that the parser reports its rules and skipped alternatives, and
-	// target which forms the backend prints (flowpass.Env).
-	RunFlow(table string, m *code.Module, observe bool, target flowpass.Target) error
-	// RunExec runs the pipeline of Exec passes that every target runs on the module m, which the
-	// lowering of one function of the table named table from Flow IR made; observe is as for RunFlow.
-	RunExec(table string, m *code.Module, observe bool) error
-	// RunTarget runs p, the pipeline of a target's own Exec passes, on the lowered function l, after
-	// RunExec; table and observe are as for RunExec.
-	RunTarget(table string, p *TargetPipeline, l *execlower.Lowered, observe bool) error
+	// FlowFunc runs the Flow part of the pipeline on one function of the table named table: the
+	// lowering of u (flowlower), the Flow passes and flow-finish; observe says that the parser
+	// reports its rules and skipped alternatives, and target which forms the backend prints
+	// (flowpass.Env). A failure of the lowering is a *pass.StepError, returned with no module; a
+	// failure of a pass is returned with the module, ended by flow-finish.
+	FlowFunc(table string, u flowlower.Unit, observe bool, target flowpass.Target) (*code.Module, error)
+	// ExecFunc runs the Exec part of the pipeline on the module m of one function of the table named
+	// table, which FlowFunc returned: the conversion to Exec IR (execlower), the Exec passes that
+	// every target runs and then p, the pipeline of the target's own Exec passes; observe is as for
+	// FlowFunc. A failure of the conversion is a *pass.StepError, returned with no result; a failure
+	// of a pass is returned with the result.
+	ExecFunc(table string, m *code.Module, p *TargetPipeline, observe bool) (*execlower.Lowered, error)
 }
 
 // TargetPipeline is the pipeline of the Exec passes of one target (golang/pass, typescript/pass), which
-// run on a lowered function after the Exec passes that every target runs (Runner.RunExec).
+// run on a lowered function after the Exec passes that every target runs (Runner.ExecFunc).
 type TargetPipeline = pass.Pipeline[*execlower.Lowered, *codepass.Env]

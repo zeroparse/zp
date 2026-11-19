@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/internal/ir/code"
@@ -25,16 +26,20 @@ func TestDriverRunCore(t *testing.T) {
 	}
 	var dump strings.Builder
 	var hooked []string
-	var verifyEach bool
 	d := &Driver{Opt: off, PrintAfter: []string{"core", corepass.PassGuards}, PrintTo: &dump, VerifyEach: true,
 		CoreHook: func(pass string, _ *core.Module) { hooked = append(hooked, pass) }}
 	var ran []string
-	d.CoreRun = func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error) {
-		verifyEach = o.VerifyEach
-		var err error
-		ran, err = corepass.Run(m, env, o)
-		return ran, err
+	p := *corepass.Pipeline
+	p.Passes = slices.Clone(p.Passes)
+	for i := range p.Passes {
+		run := p.Passes[i].Run
+		name := p.Passes[i].Name
+		p.Passes[i].Run = func(m *core.Module, e *corepass.Env) error {
+			ran = append(ran, name)
+			return run(m, e)
+		}
 	}
+	d.CorePipeline = func(string) *pass.Pipeline[*core.Module, *corepass.Env] { return &p }
 	if err := d.RunCore("typed", &core.Module{}, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -45,8 +50,8 @@ func TestDriverRunCore(t *testing.T) {
 	if !slices.Equal(hooked, append([]string{"core"}, want...)) {
 		t.Errorf("hook saw %v", hooked)
 	}
-	if !verifyEach {
-		t.Error("VerifyEach did not reach the pipeline")
+	if !d.manager().VerifyEach {
+		t.Error("VerifyEach did not reach the manager")
 	}
 	got := dump.String()
 	for _, label := range []string{"-- Core IR of the typed table after core --", "-- Core IR of the typed table after guards --"} {
@@ -76,7 +81,10 @@ func TestDriverRunCore(t *testing.T) {
 // A failing pass is reported as an internal error that keeps the cause.
 func TestDriverRunCoreError(t *testing.T) {
 	cause := errors.New("broken")
-	d := &Driver{CoreRun: func(*core.Module, *corepass.Env, corepass.RunOptions) ([]string, error) { return nil, cause }}
+	p := &pass.Pipeline[*core.Module, *corepass.Env]{Passes: []pass.Pass[*core.Module, *corepass.Env]{{
+		Name: "test-core-fail", Obligation: "none: it fails",
+		Run: func(*core.Module, *corepass.Env) error { return cause }}}}
+	d := &Driver{CorePipeline: func(string) *pass.Pipeline[*core.Module, *corepass.Env] { return p }, TestPasses: []string{"test-core-fail"}}
 	err := d.RunCore("typed", &core.Module{}, nil)
 	if !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "internal error: ") {
 		t.Fatalf("error %v", err)
@@ -87,8 +95,8 @@ func TestDriverRunCoreError(t *testing.T) {
 const testFlowPass = "test-flow-comment"
 
 // withTestFlowPass adds a profile that turns testFlowPass (registered on in speed) off for the
-// duration of the test, and returns a FlowRun that runs a pipeline with the pass.
-func withTestFlowPass(t *testing.T) func(string, *code.Module, *flowpass.Env, flowpass.RunOptions) ([]string, error) {
+// duration of the test, and returns a FlowPipeline hook that runs a pipeline with the pass.
+func withTestFlowPass(t *testing.T) func(string) *pass.Pipeline[*code.Module, *flowpass.Env] {
 	defs := profileDefs
 	profileDefs = append(slices.Clone(profileDefs), profileDef{Name: "no-comment", Doc: "x", Values: map[string]int{testFlowPass: 0}})
 	t.Cleanup(func() { profileDefs = defs })
@@ -100,30 +108,43 @@ func withTestFlowPass(t *testing.T) func(string, *code.Module, *flowpass.Env, fl
 			b.Stmts = append(b.Stmts, &code.Comment{Text: "tested"})
 			return nil
 		}})
-	return func(_ string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error) {
-		return p.Run(m, env, o.Options(env))
+	return func(string) *pass.Pipeline[*code.Module, *flowpass.Env] { return &p }
+}
+
+// framed returns the unit of a framed function r that matches the literal "a" and builds no value.
+func framed() flowlower.Unit {
+	lit := &core.Lit{Text: "a", Exp: 5}
+	m := &core.Module{Exps: []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line", `"a"`}}
+	r := &core.Rule{Name: "r", Body: lit, Policy: core.Policy{Seen: -1}}
+	m.Rules = []*core.Rule{r}
+	core.Analyze(m)
+	return flowlower.Unit{Module: m, Func: flowlower.Func{Form: flowlower.Frame, Rule: r, Name: "r", Body: lit}}
+}
+
+// comments counts the comments that testFlowPass added to the function of m.
+func comments(m *code.Module) int {
+	n := 0
+	for _, st := range flow.FuncOf(m).Body.Stmts {
+		if c, ok := st.(*code.Comment); ok && c.Text == "tested" {
+			n++
+		}
 	}
+	return n
 }
 
-// framed returns the module of an empty framed function r at the Flow stage.
-func framed() *code.Module {
-	m := flow.NewModule("t")
-	m.Funcs = append(m.Funcs, &code.Func{Name: "r", Attrs: &flow.Attrs{Frame: true, Fail: "fail"}, Body: &code.Block{Label: "fail"}})
-	return m
-}
-
-// A Flow pass runs when its flag is on, and a profile or a flag turns it off; the dumps show the
-// function as lowered under "flow" and after each selected pass, labeled with its table.
-func TestDriverRunFlow(t *testing.T) {
+// The driver lowers a function, runs a Flow pass when its flag is on, and a profile or a flag turns
+// it off; the dumps show the function as lowered under "flow" and after each selected pass, labeled
+// with its table.
+func TestDriverFlowFunc(t *testing.T) {
 	run := withTestFlowPass(t)
 	var dump strings.Builder
-	d := &Driver{FlowRun: run, PrintAfter: []string{PrintFlow, testFlowPass}, PrintTo: &dump, VerifyEach: true}
-	f := framed()
-	if err := d.RunFlow("rules", f, false, flowpass.Target{}); err != nil {
+	d := &Driver{FlowPipeline: run, PrintAfter: []string{PrintFlow, testFlowPass}, PrintTo: &dump, VerifyEach: true}
+	f, err := d.FlowFunc("rules", framed(), false, flowpass.Target{})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if len(flow.FuncOf(f).Body.Stmts) != 1 {
-		t.Errorf("the pass did not run: %d statements", len(flow.FuncOf(f).Body.Stmts))
+	if comments(f) != 1 {
+		t.Errorf("the pass did not run:\n%s", code.FuncStringIn(f, flow.FuncOf(f)))
 	}
 	got := dump.String()
 	for _, label := range []string{"-- Flow IR of r in the rules table after flow --", "-- Flow IR of r in the rules table after " + testFlowPass + " --"} {
@@ -140,21 +161,20 @@ func TestDriverRunFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, s := range map[string]pass.Settings{"profile": byProfile, "flag": byFlag} {
-		f := framed()
-		if err := (&Driver{Opt: s, FlowRun: run}).RunFlow("rules", f, false, flowpass.Target{}); err != nil {
+		f, err := (&Driver{Opt: s, FlowPipeline: run}).FlowFunc("rules", framed(), false, flowpass.Target{})
+		if err != nil {
 			t.Fatal(err)
 		}
-		if len(flow.FuncOf(f).Body.Stmts) != 0 {
+		if comments(f) != 0 {
 			t.Errorf("the pass ran although the %s turned it off", name)
 		}
 	}
-	// The real pipeline leaves a function without forms alone, and prints it after each pass that
-	// applies: for a framed function of a target that has every form and no observability, every pass
-	// but terminals (local functions only) and class-tables (a number, off at its default 0).
+	// The real pipeline prints the function after each pass that applies: for a framed function
+	// of a target that has every form and no observability, every pass but terminals (local
+	// functions only) and class-tables (a number, off at its default 0). flow-finish is no dump.
 	all := flowpass.Target{Terminals: true, ClassRuns: true, ClassTables: true, GuardedClasses: true, InlineLiterals: true}
 	dump.Reset()
-	f = framed()
-	if err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).RunFlow("typed", f, false, all); err != nil {
+	if _, err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).FlowFunc("typed", framed(), false, all); err != nil {
 		t.Fatal(err)
 	}
 	var printed []string
@@ -168,6 +188,31 @@ func TestDriverRunFlow(t *testing.T) {
 	}
 }
 
+// A failure of flowlower is returned as the failure of the step, with no module; a failure of a Flow
+// pass is an internal error that names the pass, returned with the module that flow-finish ended.
+func TestDriverFlowFuncErrors(t *testing.T) {
+	u := framed()
+	u.Func.Form = flowlower.Form(9)
+	if f, err := (&Driver{}).FlowFunc("rules", u, false, flowpass.Target{}); f != nil || !isStep(err, flowlower.Name) {
+		t.Errorf("a refused unit: %v, %v", f, err)
+	}
+	cause := errors.New("broken")
+	p := *flowpass.Pipeline
+	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flowpass.Env]{
+		Name: "test-flow-fail", Obligation: "none: it fails", Run: func(*code.Module, *flowpass.Env) error { return cause }})
+	d := &Driver{FlowPipeline: func(string) *pass.Pipeline[*code.Module, *flowpass.Env] { return &p }, TestPasses: []string{"test-flow-fail"}}
+	f, err := d.FlowFunc("rules", framed(), false, flowpass.Target{})
+	if f == nil || !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "internal error: pass test-flow-fail: ") {
+		t.Errorf("a failing pass: %v, %v", f, err)
+	}
+}
+
+// isStep reports whether err is the failure of the required step name.
+func isStep(err error, name string) bool {
+	var se *pass.StepError
+	return errors.As(err, &se) && se.Step.Name == name
+}
+
 // testExecPass is an Exec pass of the tests: it sets the documentation of every function, which keeps
 // the module valid.
 const testExecPass = "test-exec-doc"
@@ -175,16 +220,22 @@ const testExecPass = "test-exec-doc"
 // testExecBreak is an Exec pass of the tests, off in speed, that breaks the module.
 const testExecBreak = "test-exec-break"
 
-func execModule() *code.Module {
-	m := code.NewModule("m")
-	m.AddFunc("r", nil, nil, nil, func(*code.Builder) {})
+// execModule returns the module of a function at the Flow stage, ready for execlower.
+func execModule(t *testing.T) *code.Module {
+	m, err := (&Driver{}).FlowFunc("rules", framed(), false, flowpass.Target{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	return m
 }
+
+// noTarget is the pipeline of a target without Exec passes of its own.
+var noTarget = &TargetPipeline{}
 
 // An Exec pass runs when its flag is on and a flag turns it off; the dumps show each function of the
 // module as lowered under "exec" and after each selected pass, and a pass that breaks the module is
 // named with VerifyEach.
-func TestDriverRunExec(t *testing.T) {
+func TestDriverExecFunc(t *testing.T) {
 	p := *codepass.Pipeline
 	p.Passes = append(slices.Clone(p.Passes),
 		pass.Pass[*code.Module, *codepass.Env]{Name: testExecPass, Obligation: "a comment changes nothing",
@@ -199,15 +250,13 @@ func TestDriverRunExec(t *testing.T) {
 				m.Funcs = append(m.Funcs, m.Funcs[0])
 				return nil
 			}})
-	run := func(_ string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error) {
-		return p.Run(m, env, o.Options(env))
-	}
+	run := func(string) *pass.Pipeline[*code.Module, *codepass.Env] { return &p }
 	var dump strings.Builder
-	m := execModule()
-	if err := (&Driver{ExecRun: run, PrintAfter: []string{PrintExec, testExecPass}, PrintTo: &dump}).RunExec("rules", m, false); err != nil {
+	l, err := (&Driver{ExecPipeline: run, PrintAfter: []string{PrintExec, testExecPass}, PrintTo: &dump}).ExecFunc("rules", execModule(t), noTarget, false)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if m.Funcs[0].Doc != "tested" {
+	if l.Func.Doc != "tested" {
 		t.Error("the pass did not run")
 	}
 	for _, label := range []string{"-- Exec IR of r in the rules table after exec --", "-- Exec IR of r in the rules table after " + testExecPass + " --"} {
@@ -219,21 +268,20 @@ func TestDriverRunExec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = execModule()
-	if err := (&Driver{Opt: off, ExecRun: run}).RunExec("rules", m, false); err != nil || m.Funcs[0].Doc != "" {
+	if l, err := (&Driver{Opt: off, ExecPipeline: run}).ExecFunc("rules", execModule(t), noTarget, false); err != nil || l.Func.Doc != "" {
 		t.Errorf("the pass ran although the flag turned it off (%v)", err)
 	}
 	on, err := pass.Settings{}.With(testExecBreak, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = (&Driver{Opt: on, ExecRun: run, VerifyEach: true}).RunExec("rules", execModule(), false)
+	_, err = (&Driver{Opt: on, ExecPipeline: run, VerifyEach: true}).ExecFunc("rules", execModule(t), noTarget, false)
 	if err == nil || !strings.Contains(err.Error(), "after pass test-exec-break:") {
 		t.Errorf("a broken module: %v", err)
 	}
 	// The real pipeline leaves the module alone and prints only the lowered functions.
 	dump.Reset()
-	if err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).RunExec("typed", execModule(), true); err != nil {
+	if _, err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).ExecFunc("typed", execModule(t), noTarget, true); err != nil {
 		t.Fatal(err)
 	}
 	if n := strings.Count(dump.String(), "-- Exec IR of r in the typed table after "); n != 1+len(codepass.Pipeline.Passes) {

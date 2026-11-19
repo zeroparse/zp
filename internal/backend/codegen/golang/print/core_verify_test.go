@@ -51,9 +51,9 @@ var brokenGuards = pass.Pass[*core.Module, *corepass.Env]{
 	},
 }
 
-// withBrokenGuards returns a Hooks.CoreRun that runs the pipeline of Core passes with brokenGuards
-// added after the pass guards.
-func withBrokenGuards() func(*core.Module, *corepass.Env, corepass.RunOptions) ([]string, error) {
+// withBrokenGuards returns hooks whose pipeline of Core passes has brokenGuards added after the
+// pass guards. The mutant is no registered optimization, so the hooks name it in TestPasses.
+func withBrokenGuards() generate.Hooks {
 	p := *corepass.Pipeline
 	p.Passes = nil
 	for _, ps := range corepass.Pipeline.Passes {
@@ -62,12 +62,9 @@ func withBrokenGuards() func(*core.Module, *corepass.Env, corepass.RunOptions) (
 			p.Passes = append(p.Passes, brokenGuards)
 		}
 	}
-	return func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error) {
-		// The mutant is not a registered optimization, which the settings of the generator would refuse.
-		enabled := func(name string) bool { return name == brokenGuards.Name || env.On(name) }
-		po := o.Options(env)
-		po.Enabled = enabled
-		return p.Run(m, env, po)
+	return generate.Hooks{
+		CorePipeline: func(string) *pass.Pipeline[*core.Module, *corepass.Env] { return &p },
+		TestPasses:   []string{brokenGuards.Name},
 	}
 }
 
@@ -83,7 +80,7 @@ rule num = [0-9]+
 		t.Fatal(err)
 	}
 	opts := common.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p", Lib: common.LibImport}
-	hooks := generate.Hooks{CoreRun: withBrokenGuards()}
+	hooks := withBrokenGuards()
 
 	_, err = print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 	if err == nil || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-guard") {
@@ -125,7 +122,7 @@ rule num = [0-9]+
 	for _, c := range pipelineTables {
 		t.Run(c.table, func(t *testing.T) {
 			seen := 0
-			hooks := generate.Hooks{FlowRun: codegentest.BrokenFlowRun(c.table, &seen)}
+			hooks := generate.Hooks{FlowPipeline: codegentest.BrokenFlowPipeline(c.table, &seen), TestPasses: []string{codegentest.BrokenFlowPass.Name}}
 			opts := c.opts
 			_, err := print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-flow") {
@@ -157,7 +154,7 @@ rule num = [0-9]+
 	for _, c := range pipelineTables {
 		t.Run(c.table, func(t *testing.T) {
 			seen := 0
-			hooks := generate.Hooks{ExecRun: codegentest.BrokenExecRun(c.table, &seen)}
+			hooks := generate.Hooks{ExecPipeline: codegentest.BrokenExecPipeline(c.table, &seen), TestPasses: []string{codegentest.BrokenExecPass.Name}}
 			opts := c.opts
 			_, err := print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-exec") {
@@ -213,11 +210,20 @@ rule num = [0-9]+
 		}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			hooks := generate.Hooks{ExecRun: func(_ string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error) {
-				ran, err := codepass.RunPasses(m, env, o)
-				c.run(m)
-				return ran, err
-			}}
+			// The pipeline does not verify the module, so that the check of the lowered function, not
+			// the Exec verifier, is what catches the mutant.
+			p := *codepass.Pipeline
+			p.Verify = nil
+			p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *codepass.Env]{
+				Name: "test-exec-mutant", Obligation: "none: it breaks the lowered function on purpose",
+				Run: func(m *code.Module, _ *codepass.Env) error {
+					c.run(m)
+					return nil
+				}})
+			hooks := generate.Hooks{
+				ExecPipeline: func(string) *pass.Pipeline[*code.Module, *codepass.Env] { return &p },
+				TestPasses:   []string{"test-exec-mutant"},
+			}
 			opts := common.GenOptions{Module: "example.com/p", Lib: common.LibImport}
 			if _, err := print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil); err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err %v, want %q", err, c.want)

@@ -75,36 +75,31 @@ var BrokenExecPass = pass.Pass[*code.Module, *codepass.Env]{
 	},
 }
 
-// BrokenFlowRun returns a FlowRun hook of a generator that runs the Flow pipeline with
-// BrokenFlowPass added at its end on the functions of the table named table, and the Flow pipeline
-// as it is on the others. It counts the functions of the table in seen.
-func BrokenFlowRun(table string, seen *int) func(string, *code.Module, *flowpass.Env, flowpass.RunOptions) ([]string, error) {
+// BrokenFlowPipeline returns a FlowPipeline hook of a generator (driver.Driver) that runs the Flow
+// pipeline with BrokenFlowPass added at its end on the functions of the table named table, and the
+// Flow pipeline as it is on the others. It counts the functions of the table in seen. The pass is no
+// registered optimization, so the hooks name it in TestPasses.
+func BrokenFlowPipeline(table string, seen *int) func(string) *pass.Pipeline[*code.Module, *flowpass.Env] {
 	p := *flowpass.Pipeline
 	p.Passes = append(slices.Clone(flowpass.Pipeline.Passes), BrokenFlowPass)
-	return func(tb string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error) {
+	return func(tb string) *pass.Pipeline[*code.Module, *flowpass.Env] {
 		if tb != table {
-			return flowpass.Run(m, env, o)
+			return flowpass.Pipeline
 		}
 		*seen++
-		po := o.Options(env)
-		// The pass is not a registered optimization, which the settings of the generator would refuse.
-		po.Enabled = func(name string) bool { return name == BrokenFlowPass.Name || env.On(name) }
-		return p.Run(m, env, po)
+		return &p
 	}
 }
 
-// BrokenExecRun is BrokenFlowRun for the Exec pipeline, with BrokenExecPass.
-func BrokenExecRun(table string, seen *int) func(string, *code.Module, *codepass.Env, codepass.RunOptions) ([]string, error) {
+// BrokenExecPipeline is BrokenFlowPipeline for the Exec pipeline, with BrokenExecPass.
+func BrokenExecPipeline(table string, seen *int) func(string) *pass.Pipeline[*code.Module, *codepass.Env] {
 	p := *codepass.Pipeline
 	p.Passes = append(slices.Clone(codepass.Pipeline.Passes), BrokenExecPass)
-	return func(tb string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error) {
+	return func(tb string) *pass.Pipeline[*code.Module, *codepass.Env] {
 		if tb != table {
-			return codepass.RunPasses(m, env, o)
+			return codepass.Pipeline
 		}
 		*seen++
-		po := o.Options(env)
-		// The pass is not a registered optimization, which the settings of the generator would refuse.
-		po.Enabled = func(name string) bool { return name == BrokenExecPass.Name || env.On(name) }
-		return p.Run(m, env, po)
+		return &p
 	}
 }

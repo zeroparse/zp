@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
@@ -10,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowpass"
+	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -100,16 +102,24 @@ func recordingHooks(rec *flowRecord) *print.Hooks {
 	return &print.Hooks{
 		Generator: func(x *print.Generator) {
 			rec.gen = x
-			driverOf(x).FlowRun = func(_ string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error) {
-				ran, err := flowpass.Run(m, env, o)
-				if err == nil {
+			// The decisions are recorded by a test pass at the end of the Flow pipeline, which runs
+			// only when the passes before it succeeded, before flow-finish drops the forms.
+			p := *flowpass.Pipeline
+			p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flowpass.Env]{
+				Name: recordPass, Obligation: "none: it records the decisions and changes nothing",
+				Run: func(m *code.Module, _ *flowpass.Env) error {
 					rec.record(x, m)
-				}
-				return ran, err
-			}
+					return nil
+				}})
+			d := driverOf(x)
+			d.FlowPipeline = func(string) *pass.Pipeline[*code.Module, *flowpass.Env] { return &p }
+			d.TestPasses = append(d.TestPasses, recordPass)
 		},
 	}
 }
+
+// recordPass is the test pass of recordingHooks that records the decisions of the Flow passes.
+const recordPass = "test-record-flow-decisions"
 
 // record adds the decisions of the passes on the function of m, which the generator g lowered from
 // the Core IR of its current table (codegen.FlowState), before flowpass.Finish drops its forms.

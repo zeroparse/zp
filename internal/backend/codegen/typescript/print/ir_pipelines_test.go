@@ -65,9 +65,11 @@ rule num = [0-9]+
 				seen := 0
 				h := generate.Hooks{}
 				if ir == "flow" {
-					h.FlowRun = codegentest.BrokenFlowRun(table, &seen)
+					h.FlowPipeline = codegentest.BrokenFlowPipeline(table, &seen)
+					h.TestPasses = []string{codegentest.BrokenFlowPass.Name}
 				} else {
-					h.ExecRun = codegentest.BrokenExecRun(table, &seen)
+					h.ExecPipeline = codegentest.BrokenExecPipeline(table, &seen)
+					h.TestPasses = []string{codegentest.BrokenExecPass.Name}
 				}
 				opts := common.GenOptions{Recognize: true}
 				_, err := print.GenerateParser(pg, compileForGenerator, generate.Passes(opts, h), codegentest.WithLib(opts), nil)

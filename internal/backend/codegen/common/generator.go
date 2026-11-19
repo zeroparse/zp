@@ -97,21 +97,6 @@ func (g *Generator) RunCore(table string, m *core.Module, prepareScans func(*cor
 	return g.runner().RunCore(table, m, prepareScans)
 }
 
-// RunFlow runs the Flow passes through the Runner.
-func (g *Generator) RunFlow(table string, m *code.Module, observe bool, target flowpass.Target) error {
-	return g.runner().RunFlow(table, m, observe, target)
-}
-
-// RunExec runs the Exec passes that every target runs through the Runner.
-func (g *Generator) RunExec(table string, m *code.Module, observe bool) error {
-	return g.runner().RunExec(table, m, observe)
-}
-
-// RunTarget runs the Exec passes of a target through the Runner.
-func (g *Generator) RunTarget(table string, p *TargetPipeline, l *execlower.Lowered, observe bool) error {
-	return g.runner().RunTarget(table, p, l, observe)
-}
-
 // FieldTypeVar returns the variable holding check type ft of key, declaring it with decl the
 // first time.
 func (g *Generator) FieldTypeVar(key any, ft types.Ty, decl func(v string, t *types.FieldType) string) string {
@@ -267,45 +252,33 @@ func (g *Generator) FlowNodeFrameOK(r *Rule) (*core.Rule, bool) {
 	return cr, true
 }
 
-// FlowPasses runs the pipeline of Flow passes on the module m of one function that the lowering
-// returned with err, at the Flow stage of Code IR, and returns the module. Every function that a
-// generator prints goes through it, labeled with the table being generated ("typed" for the typed
-// rules, as in the dumps of Core IR). An error of the lowering is returned; a failure of the passes is
-// kept as the first internal error of the generation (FlowErr), which fails it, and the module is
-// returned for the printing to go on.
-func (g *Generator) FlowPasses(m *code.Module, err error) (*code.Module, error) {
-	if err != nil {
+// FlowPasses runs the Flow part of the pipeline (Runner.FlowFunc) on the function u of the table
+// being generated, labeled "typed" for the typed rules as in the dumps of Core IR, and returns its
+// module at the Flow stage. Every function that a generator prints goes through it. An error of the
+// lowering is returned; a failure of the passes is kept as the first internal error of the
+// generation (FlowErr), which fails it, and the module is returned for the printing to go on.
+func (g *Generator) FlowPasses(u flowlower.Unit) (*code.Module, error) {
+	m, err := g.runner().FlowFunc(g.IRTable(), u, g.Observability, g.FlowTarget)
+	if m == nil {
 		return nil, err
 	}
-	if err := g.RunFlow(g.IRTable(), m, g.Observability, g.FlowTarget); err != nil && g.FlowErr == nil {
+	if err != nil && g.FlowErr == nil {
 		g.FlowErr = fmt.Errorf("function %s of table %s: %w", flow.FuncOf(m).Name, g.IRTable(), err)
 	}
 	return m, nil
 }
 
-// LowerFlow converts the module m of one lowered function from the Flow stage of Code IR to the Exec
-// stage (execlower.Lower), which the backends print.
-func LowerFlow(m *code.Module) (*execlower.Lowered, error) {
-	l, err := execlower.LowerFunc(m)
-	if err == nil {
-		err = execlower.Verify(l.Module)
-	}
-	if err != nil {
+// ExecPasses runs the Exec part of the pipeline (Runner.ExecFunc) on the module m of one function
+// that FlowPasses returned, with target, the pipeline of the backend's own Exec passes, labeled with
+// the table being generated as FlowPasses labels it, and returns the lowered function. An error of
+// the conversion to Exec IR is returned; a failure of the passes is kept as the first internal error
+// of the generation (FlowErr), which fails it. The printers print l.Func with the locals l.Vars, so
+// a pass keeps that function in the module and those locals in it (the pipeline contract of Exec
+// IR); a run that breaks this is an internal error too.
+func (g *Generator) ExecPasses(m *code.Module, target *TargetPipeline) (*execlower.Lowered, error) {
+	l, err := g.runner().ExecFunc(g.IRTable(), m, target, g.Observability)
+	if l == nil {
 		return nil, err
-	}
-	return l, nil
-}
-
-// ExecPasses runs the pipeline of Exec passes on the module of l, which the lowering of a Flow IR
-// function made, and then target, the pipeline of the backend's own Exec passes, on l, labeled with
-// the table being generated as FlowPasses labels it. A failure is kept as the first internal error of
-// the generation (FlowErr), which fails it. The printers print l.Func with the locals l.Vars, so a
-// pass keeps that function in the module and those locals in it (the pipeline contract of Exec IR); a
-// run that breaks this is an internal error too.
-func (g *Generator) ExecPasses(l *execlower.Lowered, target *TargetPipeline) {
-	err := g.RunExec(g.IRTable(), l.Module, g.Observability)
-	if err == nil {
-		err = g.RunTarget(g.IRTable(), target, l, g.Observability)
 	}
 	if err == nil {
 		err = keepsLowered(l)
@@ -313,6 +286,7 @@ func (g *Generator) ExecPasses(l *execlower.Lowered, target *TargetPipeline) {
 	if err != nil && g.FlowErr == nil {
 		g.FlowErr = fmt.Errorf("module %s of table %s: %w", l.Module.Name, g.IRTable(), err)
 	}
+	return l, nil
 }
 
 // keepsLowered reports an error if the module of l no longer holds l.Func, or l.Func no longer

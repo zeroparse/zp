@@ -32,7 +32,7 @@ func (g *Generator) flowRecRule(r *common.Rule) *flatRule {
 	if !flowlower.LocalRule(cr) {
 		return nil
 	}
-	f, err := g.FlowPasses(flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts))
+	f, err := g.FlowPasses(flowlower.Unit{Module: g.Flow.M, Opts: g.Flow.Opts, Func: flowlower.Func{Form: flowlower.Flat, Rule: cr, Name: r.Name}})
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // LocalRule holds
 	}

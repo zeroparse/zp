@@ -8,7 +8,6 @@ import (
 
 	goast "go/ast"
 
-	"zeroparse.dev/zp/internal/backend/codegen/common"
 	gopass "zeroparse.dev/zp/internal/backend/codegen/golang/pass"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
@@ -21,7 +20,7 @@ import (
 //
 // The rules of every table (the typed table, the Node table and the recognizer, and the stream
 // body), in the ordinary form, with budget controls and with a Document, are written at the Flow
-// stage and converted to the Exec stage (common.LowerFlow), and printed by the Go backend of the Exec
+// stage and converted to the Exec stage (Generator.ExecPasses), and printed by the Go backend of the Exec
 // stage (print.Body), which prints the compositions of the library too. The primitives of grammar
 // code are printed in place by the flow printer (flowPrinter.op).
 
@@ -38,11 +37,10 @@ func (p *flowPrinter) execBody(f *code.Module) BodyResult {
 // execPrint lowers the Flow IR function f to Exec IR and prints its body with the flow printer p.
 func (p *flowPrinter) execPrint(f *code.Module) (*execlower.Lowered, BodyResult) {
 	fn := flow.FuncOf(f) // the conversion to the Exec stage moves it out of f
-	l, err := common.LowerFlow(f)
+	l, err := p.g.ExecPasses(f, gopass.Pipeline)
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", fn.Name, p.g.Table, err))
 	}
-	p.g.ExecPasses(l, gopass.Pipeline)
 	return l, Body(l.Module, l.Func, p.execTarget(), l.Vars)
 }
 
