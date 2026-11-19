@@ -30,8 +30,8 @@ var examinedMutants = []examinedMutant{
 	// The reads of a stream in the traced Node bodies.
 	{name: "unrecorded character read of a stream", file: "stream.go", old: "\tp.documentTouch(end)\n\treturn r, size, ok\n", new: "\t_ = end\n\treturn r, size, ok\n",
 		entries: []string{"stream"}},
-	{name: "unrecorded literal match of a stream", file: "stream.go", old: "\tp.documentTouch(p.Pos)\n\tif !build {\n\t\treturn nil, true\n\t}\n\treturn p.NewNode(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text)",
-		new:     "\tif !build {\n\t\treturn nil, true\n\t}\n\treturn p.NewNode(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text)",
+	{name: "unrecorded literal match of a stream", file: "stream.go", old: "\tp.documentTouch(p.Pos)\n\tif !build {\n\t\treturn nil, true\n\t}\n\treturn p.NewNode(Data{Kind: valueimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text)",
+		new:     "\tif !build {\n\t\treturn nil, true\n\t}\n\treturn p.NewNode(Data{Kind: valueimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text)",
 		entries: []string{"stream"}},
 	// The records that the library replays for a result it reuses.
 	{name: "a Node memo hit records nothing", file: "call_exec.go", old: "p.documentTouch(e.examined)", new: "p.documentTouch(0)",

@@ -38,7 +38,7 @@ const (
 	TypeListValue  = valueimpl.TypeListValue
 )
 
-// BaseString is the base (coreimpl.Kind.Base) of string nodes.
+// BaseString is the base (valueimpl.Kind.Base) of string nodes.
 //
 // BaseString is for generated parsers; not a stable API.
 const BaseString = valueimpl.BaseString

@@ -179,7 +179,7 @@ func tupleTerm(n int) string {
 }
 
 // CaptureLocations returns the locations of the captures of the tuple node n, in name order (see
-// coreimpl.CaptureLocations).
+// valueimpl.CaptureLocations).
 func CaptureLocations(n *value.Node) []valueimpl.CaptureLocation {
 	return valueimpl.CaptureLocations(D(n), D)
 }
