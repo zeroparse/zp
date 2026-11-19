@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,12 +63,19 @@ func TestFormatPreservesCorpus(t *testing.T) {
 	for _, c := range codegentest.GenCorpus(t) {
 		sources = append(sources, source{c.Name, c.Src, c.Inputs})
 	}
-	out, err := exec.Command("git", "-C", "../../../..", "ls-files", "*.zp").Output()
-	if err != nil {
+	out, err := exec.Command("git", "-C", "../../..", "ls-files", "*.zp").Output()
+	if errors.Is(err, exec.ErrNotFound) {
 		t.Skip("git ls-files:", err)
 	}
-	for _, name := range strings.Fields(string(out)) {
-		data, err := os.ReadFile(filepath.Join("../../../..", name))
+	if err != nil {
+		t.Fatal("git ls-files:", err)
+	}
+	listed := strings.Fields(string(out))
+	if len(listed) == 0 {
+		t.Fatal("git ls-files listed no grammars of the module")
+	}
+	for _, name := range listed {
+		data, err := os.ReadFile(filepath.Join("../../..", name))
 		if err != nil {
 			t.Fatal(err)
 		}
