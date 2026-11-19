@@ -48,7 +48,7 @@ rule x = "x"`)
 	for _, c := range []struct {
 		backend Backend
 		total   uint64
-	}{{Closure, 415}, {Bytecode, 442}, {BytecodeIterative, 432}} {
+	}{{Closure, 415}, {Bytecode, 426}, {BytecodeIterative, 416}} {
 		t.Run(c.backend.String(), func(t *testing.T) {
 			sizes, total := computeSweep(t, prog, input, c.backend)
 			for _, want := range []uint64{14, 12} {
@@ -64,9 +64,10 @@ rule x = "x"`)
 }
 
 // TestFailedRepetitionDropsItsElements pins that a repetition that fails below its minimum makes no list: its
-// three gathered elements are dropped, which the closure backend charges as three units, and are not taken off
-// with a reservation of six, as a list is. The only take-off of the parse is the list of the second
-// alternative, which every engine backend reserves after the same units.
+// three gathered elements are dropped for free, as flow.dropKids drops them (spec/flow-ir/operations.md), and
+// are not taken off with a reservation of six, as a list is. Neither the drop nor the failure of the
+// alternative charges, on any backend, so the only take-off of the parse, the list of the second alternative,
+// is reserved after the same 24 units everywhere, and the parse charges the same units on every backend.
 func TestFailedRepetitionDropsItsElements(t *testing.T) {
 	prog := mustCompile(t, "@start\nrule main = [a-z]#repeat(5,) / [a-z]*")
 	reservations := func(b Backend) (used []uint64) {
@@ -81,21 +82,12 @@ func TestFailedRepetitionDropsItsElements(t *testing.T) {
 	}
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(b.String(), func(t *testing.T) {
-			if got := reservations(b); !slices.Equal(got, []uint64{27}) {
-				t.Errorf("reservations of six units after %v units, want one after 27: the take-off of the second alternative's list only", got)
+			if got := reservations(b); !slices.Equal(got, []uint64{24}) {
+				t.Errorf("reservations of six units after %v units, want one after 24: the take-off of the second alternative's list only", got)
+			}
+			if _, total := computeSweep(t, prog, "abc", b); total != 31 {
+				t.Errorf("the parse charges %d units, want 31", total)
 			}
 		})
-	}
-	// The closure backend drops the three elements of the failed repetition as units of a run; the
-	// bytecode backends, generated Go and TypeScript charge nothing for the drop. That difference is the
-	// open one of the drop charge of a failed alternative (#7).
-	var dropped bool
-	for l := uint64(1); l < 200 && !dropped; l++ {
-		_, err := prog.ParseWith("main", "abc", ParseOptions{Backend: Closure, Limits: runtime.Limits{Compute: l}})
-		var le *runtime.LimitError
-		dropped = errors.As(err, &le) && le.Used == 16 && le.Requested == 3
-	}
-	if !dropped {
-		t.Error("the closure backend does not drop the elements of the failed repetition as three units after 16")
 	}
 }
