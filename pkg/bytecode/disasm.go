@@ -163,6 +163,8 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 			parts = append(parts, fmt.Sprintf("slot=%d", x))
 		case s.Imm == FlowImmRunSite, s.Imm == FlowImmScanSite:
 			parts = append(parts, fmt.Sprintf("site=%d", x))
+		case s.Imm == FlowImmTerm:
+			parts = append(parts, fmt.Sprintf("term=%d", x))
 		case s.Imm == FlowImmScope && x >= 0 && x < len(m.Scopes):
 			ns := make([]string, len(m.Scopes[x]))
 			for i, id := range m.Scopes[x] {

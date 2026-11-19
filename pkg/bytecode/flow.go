@@ -189,6 +189,9 @@ const (
 	// at the int Args[0], gathered on the stack from the int Args[1], which matched the int Args[2]
 	// characters (flow.scanKids).
 	FlowScanKids
+	// FlowPred sets Dst[0] to whether the predicate whose term is the immediate holds in the current
+	// frame, as the match code's PRED evaluates it (flow.pred).
+	FlowPred
 )
 
 // FlowImm is the kind of immediate of an operation.
@@ -232,6 +235,8 @@ const (
 	// FlowImmScanSite is a scan site, numbered as the match code numbers it: an int from 1 to the
 	// largest scan site that the match code can name.
 	FlowImmScanSite
+	// FlowImmTerm is a term: an int index of Module.Terms.
+	FlowImmTerm
 )
 
 // FlowShape is what the instructions of an operation hold: the number of destination and argument
@@ -312,6 +317,7 @@ var FlowShapes = [...]FlowShape{
 	FlowScanReach:     {Name: "SCANREACH", Dst: 1, Args: 2, Imm: FlowImmScanSite},
 	FlowScanEnd:       {Name: "SCANEND", Args: 2, Imm: FlowImmScanSite},
 	FlowScanKids:      {Name: "SCANKIDS", Dst: 1, Args: 3, Imm: FlowImmScanSite},
+	FlowPred:          {Name: "PRED", Dst: 1, Imm: FlowImmTerm},
 }
 
 // Shape returns the shape of o; ok is false for an operation that does not exist.

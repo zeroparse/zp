@@ -238,7 +238,7 @@ func (w *Encoder) flowImm(k FlowImm, v any) {
 		w.Int(x.Site)
 		w.Bool(x.Build)
 		w.Bool(x.KeyEnv)
-	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope, FlowImmRunSite, FlowImmScanSite:
+	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope, FlowImmRunSite, FlowImmScanSite, FlowImmTerm:
 		x, ok := v.(int)
 		if !ok {
 			bad()
@@ -538,7 +538,7 @@ func (r *Decoder) flowImm(k FlowImm) any {
 		return FlowSilenceOf{Delta: int(r.int32()), Site: int(r.int32()), Ok: r.Bool()}
 	case FlowImmRunWalk:
 		return FlowRunWalkOf{Site: int(r.int32()), Build: r.Bool(), KeyEnv: r.Bool()}
-	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope, FlowImmRunSite, FlowImmScanSite:
+	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope, FlowImmRunSite, FlowImmScanSite, FlowImmTerm:
 		return int(r.int32())
 	case FlowImmShape:
 		x := FlowShapeOf{Elems: r.Bool(), Shared: r.Bool(), Tuple: r.Bool()}
@@ -1205,6 +1205,11 @@ func validateFlowImm(m *Module, slots int, k FlowImm, v any) error {
 		var x int
 		if x, ok = v.(int); ok && (x < 0 || x >= len(m.Scopes)) {
 			return fmt.Errorf("scope %d out of range", x)
+		}
+	case FlowImmTerm:
+		var x int
+		if x, ok = v.(int); ok && (x < 0 || x >= len(m.Terms)) {
+			return fmt.Errorf("term %d out of range", x)
 		}
 	case FlowImmRunSite:
 		var x int

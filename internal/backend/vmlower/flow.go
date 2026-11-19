@@ -34,7 +34,8 @@ func CoreOf(prog *compile.Program) (*ir.Module, error) {
 // prog. m is the Core IR of the table and plan its plan: a body runs in the rule frame of the VM,
 // whose slots must be the capture layout that the plan gave the rule (flowplan.Table.CheckLayout).
 // A rule whose Flow function uses an operation that the bytecode Flow bodies do not yet have is an
-// error, and the module keeps no body of that rule.
+// error, and the module keeps no body of that rule and no term of its predicates. The term of a
+// predicate of a body is added to the module's term table, after the terms of the match code.
 func SelectFlows(bc *bytecode.Module, prog *compile.Program, m *ir.Module, plan *flowplan.Table, flows map[int]*code.Module) error {
 	c := &compiler{prog: prog, core: m, m: bc, strs: map[string]int{}}
 	for i, s := range bc.Strings {
@@ -50,8 +51,10 @@ func SelectFlows(bc *bytecode.Module, prog *compile.Program, m *ir.Module, plan 
 		if err := plan.CheckLayout(rule, fn.Name, c.strNames(bc.Rules[rule].Scope)); err != nil {
 			return err
 		}
+		terms := len(bc.Terms)
 		f, err := c.flow(fn, rule)
 		if err != nil {
+			bc.Terms = bc.Terms[:terms] // the terms of the predicates of the body
 			return fmt.Errorf("rule %s: %w", fn.Name, err)
 		}
 		if bc.Flows == nil {
@@ -691,6 +694,16 @@ func (s *flowSel) call(c *code.Call, dst []int) error {
 		return s.op(bytecode.FlowScanEnd, c, dst, int(c.Imm.(flowpkg.Site)))
 	case flowpkg.OpScanKids:
 		return s.op(bytecode.FlowScanKids, c, dst, int(c.Imm.(flowpkg.Site)))
+	case flowpkg.OpPred:
+		x := c.Imm.(flowpkg.Predicate)
+		if !x.Frame {
+			return fmt.Errorf("a predicate whose captures are arguments has no bytecode Flow form")
+		}
+		t, err := s.term(x.Node.Term, x.Names)
+		if err != nil {
+			return err
+		}
+		return s.op(bytecode.FlowPred, c, dst, t)
 	case flowpkg.OpDeclareNames:
 		// It does nothing to the state: the names are those of the frame's scope.
 		return nil
@@ -720,6 +733,22 @@ func (s *flowSel) op(op bytecode.FlowOp, c *code.Call, dst []int, imm any) error
 	}
 	s.emit(bytecode.FlowInstr{Op: op, Dst: dst, Args: a, Imm: imm})
 	return nil
+}
+
+// term adds the term code of t to the module's term table, compiled for the frame whose slots are
+// names, as the match code compiles the term of a predicate for the scope it runs in, and returns its
+// index.
+func (s *flowSel) term(t ir.ActionExpr, names []string) (int, error) {
+	slots := make([]ir.Slot, len(names))
+	for i, n := range names {
+		slots[i] = ir.Slot{Name: n}
+	}
+	code, err := s.c.termCode(termSite{term: t, scope: slots})
+	if err != nil {
+		return 0, err
+	}
+	s.c.m.Terms = append(s.c.m.Terms, code)
+	return len(s.c.m.Terms) - 1, nil
 }
 
 // shapeOf returns the immediate of the shape sh.
