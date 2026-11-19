@@ -157,6 +157,10 @@ snap_def='snap() { { git diff HEAD --binary; git ls-files -o --exclude-standard 
 # What a change affects, computed once and only when a conditional step asks. Every answer fails closed: when the
 # affected packages or the changed files cannot be computed, a step is planned. aff_has_pkg PKG..., aff_has_marker NAME
 # (a "# NAME" line of hack/affected-tests.sh) and docs_changed succeed when the step has to run.
+# has_line TEXT GREP-ARGS...: grep -q over TEXT, fed from a here-string rather than a pipe. Under pipefail a pipe into
+# grep -q fails with SIGPIPE when grep stops reading before the writer is done (a long change list), which would read
+# as "no match" and skip a step; and grep's own errors (status 2 and up) count as a match, so detection fails closed.
+has_line() { local text=$1 rc=0; shift; grep -q "$@" <<<"$text" || rc=$?; [ "$rc" != 1 ]; }
 aff_state=
 aff_raw=
 chg_state=
@@ -170,11 +174,11 @@ aff_has_pkg() { # aff_has_pkg PATH...: one of the module-relative packages is af
 	affected_load
 	[ "$aff_state" = ok ] || return 0
 	local p
-	for p in "$@"; do printf '%s\n' "$aff_raw" | grep -qx "zeroparse.dev/zp/$p" && return 0; done
+	for p in "$@"; do has_line "$aff_raw" -x "zeroparse.dev/zp/$p" && return 0; done
 	return 1
 }
-aff_has_marker() { affected_load; [ "$aff_state" = ok ] || return 0; printf '%s\n' "$aff_raw" | grep -qx "# $1"; }
-docs_changed() { affected_load; [ "$chg_state" = ok ] || return 0; printf '%s\n' "$chg" | grep -qE '^(docs/|spec/|site/|README\.md$)'; }
+aff_has_marker() { affected_load; [ "$aff_state" = ok ] || return 0; has_line "$aff_raw" -x "# $1"; }
+docs_changed() { affected_load; [ "$chg_state" = ok ] || return 0; has_line "$chg" -E '^(docs/|spec/|site/|README\.md$)'; }
 # skipstep NAME REASON: a step that the gate leaves out, listed in the plan and the summary as "NAME skipped (REASON)".
 skipstep() { step "$1" "skipped ($2)" ":skip:$2"; }
 
@@ -230,7 +234,7 @@ if [ "$dry" = 1 ]; then
 	i=0
 	for n in "${names[@]}"; do printf '  %-15s %s\n' "$n" "${descs[$i]}"; i=$((i + 1)); done
 	case " ${names[*]} " in *" test"* | *" test-long "* | *" test-all "*) echo "gate: affected packages since $base:"; "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD | sed 's/^/  /' ;; esac
-	if [ "${GATE_SHARDS:-2}" -gt 1 ] && case " ${names[*]} " in *" test"* | *" test-long "*) true ;; *) false ;; esac && "${GATE_AFFECTED_CMD:-hack/affected-tests.sh}" "$base" HEAD 2>/dev/null | grep -qx zeroparse.dev/zp/internal/backend/codegen/golang/print; then
+	if [ "${GATE_SHARDS:-2}" -gt 1 ] && case " ${names[*]} " in *" test"* | *" test-long "*) true ;; *) false ;; esac && affected_load && [ "$aff_state" = ok ] && has_line "$aff_raw" -x zeroparse.dev/zp/internal/backend/codegen/golang/print; then
 		echo "gate: internal/backend/codegen/golang/print is affected: its tests run in ${GATE_SHARDS:-2} concurrent shards (go test -list), beside the other packages"
 	fi
 	exit 0
