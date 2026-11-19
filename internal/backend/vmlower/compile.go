@@ -454,7 +454,17 @@ func (c *compiler) choice(n *ir.Choice, build bool) {
 			}
 		}
 		if i == len(n.Alts)-1 {
+			// The last alternative is guarded too: a guard that skips it fails the choice, as the
+			// guard of each other alternative leads to the next one.
+			if alt.Guard == nil {
+				body()
+				break
+			}
+			guard := c.guard(alt.Guard)
 			body()
+			ends = append(ends, c.emit(bytecode.OpJump, 0, 0, 0))
+			c.m.Code[guard].C = c.here()
+			c.emit(bytecode.OpFail, 0, 0, 0)
 			break
 		}
 		guard := c.guard(alt.Guard)
