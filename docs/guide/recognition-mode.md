@@ -38,10 +38,10 @@ What it does not do:
   `compiler.Marshal(src, vm.CompiledRecognize)`), on the bytecode backends. A file in another mode returns an error that names
   the mode it needs, and traced or profiled recognition needs the grammar source. The [compiled grammars
   guide](compiled-grammars.md#modes) explains the modes.
-- It cannot be combined with `ParseStream` or `NewDocument`: both return errors (`recognition is not supported for
-  stream parsing`, `recognition is not supported for documents`).
+- It has no stream or Document form: `Recognize` reads one complete input, and `ParseStream` and `NewDocument` always build
+  values.
 
-Typical uses are validating uploads or configuration before doing real work, linting loops, and pre-filtering large
+Typical uses are checking the syntax of uploads or configuration before doing real work, linting loops, and pre-filtering large
 inputs. On the command line: `zp parse -g grammar.zp -recognize < input`, which prints `ok` or the syntax error (and
 exits with status 1).
 

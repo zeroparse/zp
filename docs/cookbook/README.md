@@ -72,7 +72,7 @@ times differ from machine to machine.
 |:--|:--|
 | [Embed a grammar in a program and share the parser](embed-grammar.md) | `go:embed`, one compiled parser used from many goroutines with `WithStart`, and a `-race` test |
 | [Ship a parser and keep it up to date](ship-a-parser.md) | `zp gen` with `go generate`, a test that fails when the generated file is stale, and `.zpc` for grammars that stay data |
-| [Validate a YAML file and point at the problem](ready-made-parsers.md) | A ready-made parser of [parsers/](https://github.com/zeroparse/alpha-parsers/blob/main/README.md): syntax errors with positions, and your own checks with the positions of the typed tree |
+| [Check a YAML file and point at the problem](ready-made-parsers.md) | A ready-made parser of [parsers/](https://github.com/zeroparse/alpha-parsers/blob/main/README.md): syntax errors with positions, and your own checks with the positions of the typed tree |
 | [Test hand-written code against a grammar](test-with-samples.md) | Inputs and near misses generated from the grammar, a differential test and a fuzz test |
 | [Fuzz the edits of a grammar in your tests](edit-fuzz-grammar.md) | `editfuzz` in `go test`: random edits, undos and redos checked against fresh parses, saved failures as regression tests, and a case written by hand |
 | [Check a file in a TypeScript tool with the same grammar](typescript-parser.md) | `zp gen -lang ts -types`: a dependency-free module, typed values, recovered syntax errors and a check of the tool's own |
