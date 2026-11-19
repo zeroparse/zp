@@ -395,6 +395,21 @@ registers (A); `JUMP` and `JUMPFALSE` also have a target.
 | 27 | `ISOLATE` | 1 | 0 | `flow.isolate`. |
 | 28 | `UNISOLATE` | 2 | 1 | `flow.unisolate`: the farthest failure and the expectations. |
 | 29 | `MERGEEXPECTED` | 0 | 2 | `flow.mergeExpected` of the expectations of the second argument at the position of the first. |
+| 30 | `NEWTERMINAL` | 1 | 2 | `flow.newTerminalNode` from the integer first argument to the position, with the text of the second. |
+| 31 | `NEWSEQ` | 1 | 2 | `flow.newBranchNode` of a sequence from the integer first argument to the position, with the list of values of the second as its children. |
+| 32 | `NEWLIST` | 1 | 2 | `flow.newBranchNode` of a list, as `NEWSEQ`. |
+| 33 | `NEWVALS` | 1 | 0 | `flow.newVals` with room for the immediate, a count. |
+| 34 | `APPEND` | 1 | 2 | `flow.append` of the value of the second argument to the list of the first. |
+| 35 | `SPREAD` | 1 | 2 | `flow.append` of the children of the node of the second argument to the list of the first (Spread). |
+| 36 | `TEXT` | 1 | 1 | `flow.text` from the integer argument to the position. |
+| 37 | `LITERALTEXT` | 1 | 1 | `flow.literalText` of the literal of the immediate, a string index, matched from the integer argument. |
+| 38 | `STR` | 1 | 0 | `flow.str` of the string of the immediate, a string index, with its bytes as the string table holds them. |
+| 39 | `KIDSLEN` | 1 | 0 | `flow.kidsLen`. |
+| 40 | `KIDS` | 1 | 1 | `flow.kids` above the integer argument. |
+| 41 | `DROPKIDS` | 0 | 1 | `flow.dropKids` to the integer argument. |
+| 42 | `PUSHKID` | 0 | 1 | `flow.pushKid` of the argument, as the body of a rule frame pushes it: the charge of a gathered value is made where `KIDS` takes it off. |
+| 43 | `SHAPESINGLE` | 2 | 2 | `flow.shapeSingle` of the shape of the immediate for the value of the first argument matched from the integer second: the value and whether there is one. |
+| 44 | `SCOPEVALUE` | 1 | 2 | `flow.scopeValue` of the shape of the immediate for the value of the first argument matched from the integer second. |
 
 A destination of -1 discards the value.
 
@@ -444,7 +459,7 @@ The module is laid out in the following order. A *list* is a count (unsigned) fo
 12. Wide-integer table: a list of signed integers.
 13. Term table: a list of terms. A term is the sizes of its four register files (unsigned: values, integers, sequences, strings); its constants, a list of (kind as 1 byte: 0 nil, 1 int, 2 string, 3 bool; signed integer: the int, the string index, or 0 or 1); its names, a list of string indices; its member reads, a list of (member kind, name, field); its node types, a list of string indices; its casts, a list of (type text, line, column), the type text -1 for a cast that checks nothing; its struct literals, a list of (type name, number of fields); and its code, a list of instructions. Between the register sizes and the constants, a byte whose bits 0 to 5 mark the pools that are not empty (constants, names, member reads, node types, casts, struct literals) precedes them; only those pools are written, and a marked pool is not empty. An instruction is its opcode (1 byte), a byte whose bits 0 to 3 mark the operands D, `A`, `B` and `C` that are not zero, and those operands; a marked operand is not zero.
 14. Run key table: a list of (run site, list of string indices of the key's variables, list of string indices of the variables it binds), by increasing run site. Each list is sorted by name.
-15. Flow bodies ([Flow Bodies](#flow-bodies)): a list of (rule table index, number of registers (unsigned), list of instructions), by increasing rule index. An instruction is its operation (1 byte: its code), then its destination registers, its argument registers, its target and its immediate, each only if the operation has it and in the numbers the operation fixes. An immediate is, by operation: for `CONST` a kind (1 byte: 0 nil, 1 int, 3 bool, as for term constants) and a signed integer (0 for nil, the int, or 0 or 1); for `GUARD` (literal (boolean), rune, case-folded (boolean), class index or -1 for a literal, depth); for `EXPECT` (expectation, message (boolean)), the expectation 0 to 4 one of the fixed expectations (any character, beginning of input, end of input, beginning of line, end of line) and 5 + i the string i of the string table; for `CALL` (rule table index, binding level); for `INCLASS` the class index; for `ATANCHOR` the anchor; for `MATCHLIT` (string index of the literal, for a case-insensitive literal its text with ASCII letters lowercased, expectation as for `EXPECT`, case-insensitive (boolean)); for `SILENT` (change of depth, site, matched (boolean)).
+15. Flow bodies ([Flow Bodies](#flow-bodies)): a list of (rule table index, number of registers (unsigned), list of instructions), by increasing rule index. An instruction is its operation (1 byte: its code), then its destination registers, its argument registers, its target and its immediate, each only if the operation has it and in the numbers the operation fixes. An immediate is, by operation: for `CONST` a kind (1 byte: 0 nil, 1 int, 3 bool, as for term constants) and a signed integer (0 for nil, the int, or 0 or 1); for `GUARD` (literal (boolean), rune, case-folded (boolean), class index or -1 for a literal, depth); for `EXPECT` (expectation, message (boolean)), the expectation 0 to 4 one of the fixed expectations (any character, beginning of input, end of input, beginning of line, end of line) and 5 + i the string i of the string table; for `CALL` (rule table index, binding level); for `INCLASS` the class index; for `ATANCHOR` the anchor; for `MATCHLIT` (string index of the literal, for a case-insensitive literal its text with ASCII letters lowercased, expectation as for `EXPECT`, case-insensitive (boolean)); for `SILENT` (change of depth, site, matched (boolean)); for `NEWVALS` the count; for `LITERALTEXT` and `STR` the string index; for `SHAPESINGLE` and `SCOPEVALUE` the shape (elements (boolean), shared (boolean), tuple (boolean), number of valued elements, single mode: 0 no value, 1 the element, 2 the tuple node).
 
 ### Load-Time Validation
 

@@ -91,6 +91,45 @@ const (
 	// FlowMergeExpected merges the expectations Args[1], recorded at the int Args[0], into the
 	// enclosing scope (flow.mergeExpected).
 	FlowMergeExpected
+	// FlowNewTerminal sets Dst[0] to a terminal node from the int Args[0] to the position with the
+	// text Args[1] (flow.newTerminalNode).
+	FlowNewTerminal
+	// FlowNewSeq sets Dst[0] to a sequence node from the int Args[0] to the position with the children
+	// Args[1] (flow.newBranchNode).
+	FlowNewSeq
+	// FlowNewList is FlowNewSeq for a list node (flow.newBranchNode of a list).
+	FlowNewList
+	// FlowNewVals sets Dst[0] to an empty list of values with room for the immediate, an int
+	// (flow.newVals).
+	FlowNewVals
+	// FlowAppend sets Dst[0] to the list Args[0] with the value Args[1] appended (flow.append).
+	FlowAppend
+	// FlowSpread sets Dst[0] to the list Args[0] with the children of the node Args[1] appended
+	// (flow.append of a spread value).
+	FlowSpread
+	// FlowText sets Dst[0] to the text of the input from the int Args[0] to the position (flow.text).
+	FlowText
+	// FlowLiteralText sets Dst[0] to the text of the literal of the immediate, a string index, matched
+	// from the int Args[0] (flow.literalText).
+	FlowLiteralText
+	// FlowStr sets Dst[0] to the string of the immediate, a string index (flow.str).
+	FlowStr
+	// FlowKidsLen sets Dst[0] to the height of the stack of gathered values (flow.kidsLen).
+	FlowKidsLen
+	// FlowKids sets Dst[0] to the values gathered above the int Args[0], which it takes off the stack
+	// (flow.kids).
+	FlowKids
+	// FlowDropKids truncates the stack of gathered values to the int Args[0] (flow.dropKids).
+	FlowDropKids
+	// FlowPushKid pushes the value Args[0] on the stack of gathered values (flow.pushKid).
+	FlowPushKid
+	// FlowShapeSingle sets Dst[0] to the value of Args[0], matched from the int Args[1] by an
+	// expression of the shape of the immediate FlowShapeOf, and Dst[1] to whether it has one
+	// (flow.shapeSingle).
+	FlowShapeSingle
+	// FlowScopeValue sets Dst[0] to the value of a scope whose body, of the shape of the immediate
+	// FlowShapeOf, matched Args[0] from the int Args[1] (flow.scopeValue).
+	FlowScopeValue
 )
 
 // FlowImm is the kind of immediate of an operation.
@@ -115,6 +154,12 @@ const (
 	FlowImmLit
 	// FlowImmSilence is a FlowSilenceOf.
 	FlowImmSilence
+	// FlowImmCount is a count: an int that is not negative.
+	FlowImmCount
+	// FlowImmStr is a string: an int index of Module.Strings.
+	FlowImmStr
+	// FlowImmShape is a FlowShapeOf.
+	FlowImmShape
 )
 
 // FlowShape is what the instructions of an operation hold: the number of destination and argument
@@ -160,6 +205,21 @@ var FlowShapes = [...]FlowShape{
 	FlowIsolate:       {Name: "ISOLATE", Dst: 1},
 	FlowUnisolate:     {Name: "UNISOLATE", Dst: 2, Args: 1},
 	FlowMergeExpected: {Name: "MERGEEXPECTED", Args: 2},
+	FlowNewTerminal:   {Name: "NEWTERMINAL", Dst: 1, Args: 2},
+	FlowNewSeq:        {Name: "NEWSEQ", Dst: 1, Args: 2},
+	FlowNewList:       {Name: "NEWLIST", Dst: 1, Args: 2},
+	FlowNewVals:       {Name: "NEWVALS", Dst: 1, Imm: FlowImmCount},
+	FlowAppend:        {Name: "APPEND", Dst: 1, Args: 2},
+	FlowSpread:        {Name: "SPREAD", Dst: 1, Args: 2},
+	FlowText:          {Name: "TEXT", Dst: 1, Args: 1},
+	FlowLiteralText:   {Name: "LITERALTEXT", Dst: 1, Args: 1, Imm: FlowImmStr},
+	FlowStr:           {Name: "STR", Dst: 1, Imm: FlowImmStr},
+	FlowKidsLen:       {Name: "KIDSLEN", Dst: 1},
+	FlowKids:          {Name: "KIDS", Dst: 1, Args: 1},
+	FlowDropKids:      {Name: "DROPKIDS", Args: 1},
+	FlowPushKid:       {Name: "PUSHKID", Args: 1},
+	FlowShapeSingle:   {Name: "SHAPESINGLE", Dst: 2, Args: 2, Imm: FlowImmShape},
+	FlowScopeValue:    {Name: "SCOPEVALUE", Dst: 1, Args: 2, Imm: FlowImmShape},
 }
 
 // Shape returns the shape of o; ok is false for an operation that does not exist.
@@ -223,6 +283,16 @@ type FlowSilenceOf struct {
 	Delta int
 	Site  int
 	Ok    bool
+}
+
+// FlowShapeOf is the immediate of FlowShapeSingle and FlowScopeValue, the shape of an expression's
+// value: Elems if the value is the tuple node of its elements, Shared if that node is shared through
+// a splice rule's memo entry, K the number of valued elements, Mode how the value where it takes one
+// element is made (0 no value, 1 the element itself, 2 the tuple node of the elements), and Tuple if
+// the value of a scope with this body is the tuple node.
+type FlowShapeOf struct {
+	Elems, Shared, Tuple bool
+	K, Mode              int
 }
 
 // FlowCallOf is the immediate of FlowCall: the rule's index and the binding level it is called at.
