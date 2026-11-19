@@ -16,6 +16,7 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -275,7 +276,7 @@ func TestFlowRecognizerFallbackMatchesEngine(t *testing.T) {
 	gh := &print.Hooks{}
 	codegentest.SetGenHooks(t, gh)
 	gh.RefuseFlowRecRule = func(r *common.Rule) bool {
-		if common.RecEligible(r) {
+		if flowplan.RecEligible(r.PlanRule()) {
 			refused[r.Name] = true
 			return true
 		}
