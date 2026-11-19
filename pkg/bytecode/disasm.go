@@ -159,6 +159,14 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 			parts = append(parts, str(m.Classes[x].Desc))
 		case s.Imm == FlowImmStr && x >= 0 && x < len(m.Strings):
 			parts = append(parts, strconv.Quote(m.Strings[x]))
+		case s.Imm == FlowImmSlot:
+			parts = append(parts, fmt.Sprintf("slot=%d", x))
+		case s.Imm == FlowImmScope && x >= 0 && x < len(m.Scopes):
+			ns := make([]string, len(m.Scopes[x]))
+			for i, id := range m.Scopes[x] {
+				ns[i] = m.Strings[id]
+			}
+			parts = append(parts, "scope=["+strings.Join(ns, " ")+"]")
 		default:
 			parts = append(parts, fmt.Sprint(x))
 		}
