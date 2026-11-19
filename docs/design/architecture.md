@@ -260,6 +260,7 @@ in [Package Layering](layering.md), and the public packages are described in [Th
 | `internal/frontend/elaborate` | Semantic model to Core IR |
 | `internal/frontend/schemaexport` | Export of the output schema |
 | `internal/middleend/corepass` | Core rewrites and the analyses of facts |
+| `internal/middleend/flowplan` | The plan of the functions of a rule table: their forms, fallbacks and frame layouts |
 | `internal/middleend/flowlower` | Core IR to Code IR at the Flow stage |
 | `internal/middleend/flowpass` | The Flow passes |
 | `internal/middleend/execlower` | Complete conversion from the Flow stage to the Exec stage |

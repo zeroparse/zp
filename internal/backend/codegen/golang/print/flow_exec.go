@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/execlower"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 )
 
 // Go rules printed from the Exec stage of Code IR.
@@ -232,32 +233,25 @@ func (g *Generator) execFlatRule(p *flowPrinter, f *code.Module) *flatRule {
 }
 
 // execRecRule prints the local function f of a rule of the Node library from Exec IR as a flat rule,
-// or returns nil where flowRecRule does: if the printed function reads its start or its context, or
-// a variable has a type that untypedGoType cannot name. It checks the variables at the point where
-// flowRecRule does, between the two refusals, and counts only a rule it prints.
+// or returns nil if the plan refuses it (flowplan.Refused). It counts only a rule it prints.
 func (g *Generator) execRecRule(p *flowPrinter, f *code.Module) *flatRule {
 	fn := flow.FuncOf(f) // the conversion to the Exec stage moves it out of f
 	l, res := p.execPrint(f)
-	st := res.Stores
-	a, vars := flow.AttrsOf(fn), flow.VarsOf(fn)
-	read := func(v string) bool { return v != "" && st.Named[v] }
-	if read(a.Start) || read(a.Ctx) {
+	if flowplan.Refused(l) {
 		return nil
 	}
+	st := res.Stores
+	vars := flow.VarsOf(fn)
 	p.execVars(l, &res)
-	types := make([]string, len(vars))
-	for i, v := range vars {
-		t, ok := untypedGoType(flow.TypeOf(v.Type))
-		if !ok {
-			return nil
-		}
-		types[i] = t
-	}
 	p.execCount()
 	out := &flatRule{fail: res.Exited, succeed: res.End}
 	var unread []string
-	for i, v := range vars {
-		out.vars = append(out.vars, dvar{v.Name, types[i]})
+	for _, v := range vars {
+		t, ok := untypedGoType(flow.TypeOf(v.Type))
+		if !ok {
+			panic(fmt.Errorf("internal error: the flat rule %s has a variable %s of a type the Node library cannot name", fn.Name, v.Name)) // Refused holds
+		}
+		out.vars = append(out.vars, dvar{v.Name, t})
 		switch {
 		case st.Dead[v.Name]:
 			out.markVar(v.Name, true)

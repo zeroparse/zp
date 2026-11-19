@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -103,28 +104,24 @@ func (g *Generator) flowFrameBody(r *compile.Rule, scope *check.Scope) string {
 	return g.flowFramed(f, cr.Scope, scope, r.Name+" ("+comment+")", true)
 }
 
-// flowNodeFrameBody prints the body of the rule r of the Node table from Flow IR as the matcher of
-// its frame body, or returns "" if r takes another route. The rule is eligible
-// (common.Generator.FlowNodeFrameOK) when its Core body is a framed body and its action reads only
-// captures of the frame; the library owns depth, memo, frame, action and finish. With budget controls
-// (Options.Budget) the method that holds the body charges one step on entry (flow.Attrs.Entered) and the
-// body charges one on each iteration of a repetition, plus the input spend of each Peek; the limits
-// of a parse hold at these charges.
-func (g *Generator) flowNodeFrameBody(r *compile.Rule, scope *check.Scope) string {
-	cr, ok := g.FlowNodeFrameOK(r)
-	if !ok {
-		return ""
-	}
+// flowNodeFrameBody prints the body of the rule r of the Node or recognizer table from Flow IR as
+// the matcher of its frame body, the framed function spec of the table's plan (flowplan.Plan): a rule
+// whose Core body is a framed body and whose action reads only captures of the frame. The library
+// owns depth, memo, frame, action and finish. With budget controls (Options.Budget) the method that
+// holds the body charges one step on entry (flow.Attrs.Entered) and the body charges one on each
+// iteration of a repetition, plus the input spend of each Peek; the limits of a parse hold at these
+// charges.
+func (g *Generator) flowNodeFrameBody(r *compile.Rule, spec *flowplan.FuncSpec, scope *check.Scope) string {
 	if !g.Flow.Opts.Node {
 		panic("internal error: a Node rule is lowered with the options of the typed table")
 	}
-	f, err := g.FlowPasses(flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, !r.Lean, r.Name, g.Flow.Opts))
+	f, err := g.FlowPasses(spec.Lower(g.Flow.M, g.Flow.Opts))
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // FramedBody holds
 	}
 	g.Cur, g.Proj = r, g.Projections(r)
 	defer func() { g.Proj = nil }()
-	return g.flowFramed(f, cr.Scope, scope, r.Name+" (Node body inlined)", true)
+	return g.flowFramed(f, spec.Slots, scope, r.Name+" (Node body inlined)", true)
 }
 
 // flowStreamBody prints the body of the start rule r of ParseStream from Flow IR as the matcher of its
@@ -147,8 +144,9 @@ func (g *Generator) flowStreamBody(r *compile.Rule, scope *check.Scope) string {
 	return g.flowFramed(f, cr.Scope, scope, r.Name+" (stream body)", true)
 }
 
-// flowOperatorsRuleBody prints the line l of the Operators Rule g.cur, whose expression is e, from Flow
-// IR, or returns "" if Flow IR does not print the line that way.
+// flowOperatorsRuleBody prints the line l of the Operators Rule g.cur, whose expression is e and whose
+// use in the table is k, from Flow IR, or returns "" if Flow IR does not print the line that way. The
+// Node and recognizer tables print the line that their plan holds for k (flowplan.Plan).
 //
 // In the typed table every line is printed from Flow IR, as in the Node and recognizer tables (a line with
 // recovery builds its error node with NewErrorNode there). Nothing needs a check. The lines of an Operators
@@ -156,11 +154,28 @@ func (g *Generator) flowStreamBody(r *compile.Rule, scope *check.Scope) string {
 // on the shape of every capture, and the checker lets an action name only captures of its line. With budget
 // controls (Options.Budget) the method that holds the function charges its entry and the function charges
 // each iteration of a repetition, as Flow IR makes them explicit.
-func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e ast.Expr, scope *check.Scope, build bool) string {
-	if g.Flow == nil || l == nil || !flowlower.LineOK(e) || !flowlower.FramedBody(l.Body) {
-		return ""
+func (g *Generator) flowOperatorsRuleBody(k flowplan.Key, l *core.OpLine, e ast.Expr, scope *check.Scope, build bool) string {
+	if g.Table != "trules" {
+		spec, ok := g.plan.Func(k)
+		if !ok {
+			return ""
+		}
+		if spec.Build != build && g.FlowErr == nil {
+			g.FlowErr = fmt.Errorf("internal error: a line of Operators Rule %s is planned with build %v, not %v", g.Cur.Name, spec.Build, build)
+		}
+		f, err := g.FlowPasses(spec.Lower(g.Flow.M, g.Flow.Opts))
+		if err != nil {
+			panic(fmt.Errorf("line of Operators Rule %s in table %s: %w", g.Cur.Name, g.Table, err)) // FramedBody holds
+		}
+		prev := g.Proj
+		g.Proj = nil // the actions of the lines use no projections of the rule
+		defer func() { g.Proj = prev }()
+		if g.hooks.OperatorsRoute != nil && g.collect == nil && !g.Traced {
+			g.hooks.OperatorsRoute(g.Table, g.Cur)
+		}
+		return g.flowFramed(f, spec.Slots, scope, g.Cur.Name+" (OperatorsRule body inlined)", false)
 	}
-	if g.Table != "trules" && !flowlower.BodyOK(e, true, true) {
+	if g.Flow == nil || l == nil || !flowlower.LineOK(e) || !flowlower.FramedBody(l.Body) {
 		return ""
 	}
 	f, err := g.FlowPasses(flowlower.LowerFrame(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], l.Body, l.Scope, build, g.Cur.Name, g.Flow.Opts))
@@ -170,12 +185,6 @@ func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e ast.Expr, scope *che
 	prev := g.Proj
 	g.Proj = nil // the actions of the lines use no projections of the rule
 	defer func() { g.Proj = prev }()
-	if g.Table != "trules" {
-		if g.hooks.OperatorsRoute != nil && g.collect == nil && !g.Traced {
-			g.hooks.OperatorsRoute(g.Table, g.Cur)
-		}
-		return g.flowFramed(f, l.Scope, scope, g.Cur.Name+" (OperatorsRule body inlined)", false)
-	}
 	return g.flowFramed(f, l.Scope, scope, g.Cur.Name+" (typed OperatorsRule body inlined)", false)
 }
 
