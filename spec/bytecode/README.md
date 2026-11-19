@@ -347,11 +347,13 @@ past it. As for match code, a runtime does not check that registers hold what an
 ## Flow Bodies
 
 A rule may have a Flow body: the code of the [Flow function](../flow-ir/functions.md) of the rule, lowered with
-budget controls and for the node runtime, as a flat list of instructions. In the recursive model
+budget controls and for the node runtime, as a flat list of instructions. In both models
 ([Execution Models](#execution-models)) a rule with a Flow body runs it in place of its match code; its entry, its call
 and its completion ([Rule Calls](#rule-calls)) are those of the rule table, and the body returns the rule's value and
-success, or failure. The iterative model runs the match code of every rule. A module file holds the Flow bodies after the run key table
-([File Format](#file-format)).
+success, or failure. A `CALL` of a Flow body calls its rule as a `CALL` of match code does: the recursive model with a
+host function call, and the iterative model by suspending the body and resuming it with the value and the success when
+the call ends, so that the iterative model's host stack does not grow with the calls of Flow bodies either. A module
+file holds the Flow bodies after the run key table ([File Format](#file-format)).
 
 A Flow body has a frame of registers, which hold the variables of the function, each register a value of the type of
 its variable. An instruction has an operation, destination registers, argument registers, a jump target and an
