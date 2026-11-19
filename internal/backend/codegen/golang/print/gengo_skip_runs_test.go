@@ -104,7 +104,7 @@ func generatedDocumentEdits(t *testing.T, goBin string, grammars []struct{ Name,
 		}
 		codegentest.GeneratePackageIn(t, dir, "skipdoc", fmt.Sprintf("g%d", n), g, common.GenOptions{Start: "main", Types: true, Document: true})
 		if hotSpan > 0 {
-			write(fmt.Sprintf("g%d/span.go", n), fmt.Sprintf("package g%d\n\nimport rt %q\n\nfunc init() { rt.RunHotSpan = %d }\n", n, "zeroparse.dev/zp/codegen/go/lib", hotSpan))
+			write(fmt.Sprintf("g%d/span.go", n), fmt.Sprintf("package g%d\n\nimport rt %q\n\nfunc init() { rt.RunHotSpan = %d }\n", n, "zeroparse.dev/zp/pkg/runtime/golib", hotSpan))
 		}
 		fmt.Fprintf(&imports, "\tg%d \"skipdoc/g%d\"\n", n, n)
 		fmt.Fprintf(&checks, `	{%q, %q, func(text string, edits func(string) (int, int, string, bool)) string {

@@ -29,12 +29,12 @@ type engineObservationMutant struct {
 var (
 	agreementRun     = engineObservationRun{"./internal/backend/codegen/golang/print", "TestEngineObservationsAgreeWithGenerated", ""}
 	discardRun       = engineObservationRun{"./internal/runtime/engine", "TestProfileStreamMemory", ""}
-	engineOptionsRun = engineObservationRun{"./engine", "TestTraceOptions", ""}
+	engineOptionsRun = engineObservationRun{"./internal/runtime/engine", "TestTraceOptions", ""}
 	// The generated parsers of the agreement use a copy of the library that the overlay does not
 	// change; a mutant of the library changes that copy too (agreeLibPatchEnv).
 	libOptionsRun = engineObservationRun{"./pkg/runtime/golib", "TestTraceOption(Selection|Composition)", ""}
 	// The Documents of both producers, whose parses share the defaults' trace selection.
-	engineDocumentRun    = engineObservationRun{"./engine", "TestDocumentTraceSelection", ""}
+	engineDocumentRun    = engineObservationRun{"./internal/runtime/engine", "TestDocumentTraceSelection", ""}
 	generatedDocumentRun = engineObservationRun{"./internal/backend/codegen/golang/print", "TestGeneratedDocumentObservation", ""}
 	// The generated TypeScript parsers, whose library the go command's overlay does not reach: a mutant
 	// of it changes the code that the tests generate (codegentest.TSLibPatchEnv).
@@ -66,15 +66,15 @@ var engineObservationMutants = []engineObservationMutant{
 	{name: "engine depth limit ignored", file: "internal/runtime/state/trace.go",
 		old: "deliver := t.fn != nil && selected && (t.maxDepth <= 0 || ev.Depth <= t.maxDepth)", new: "deliver := t.fn != nil && selected",
 		runs: []engineObservationRun{expecting(agreementRun, "the trace filter"), expecting(engineOptionsRun, "filtered events")}},
-	{name: "engine keeps the last trace function", file: "engine/engine.go",
-		old: "o.Trace = engine.ComposeTrace(prev, f)", new: "o.Trace = f",
+	{name: "engine keeps the last trace function", file: "pkg/runtime/options.go",
+		old: "o.Traces = append(slices.Clip(o.Traces), f)", new: "o.Traces = append(o.Traces[:0:0], f)",
 		runs: []engineObservationRun{expecting(engineOptionsRun, "the second trace function")}},
-	{name: "engine keeps the last profile", file: "engine/engine.go",
+	{name: "engine keeps the last profile", file: "pkg/runtime/options.go",
 		old: "o.Profiles = append(slices.Clip(o.Profiles), prof)", new: "o.Profiles = append(o.Profiles[:0:0], prof)",
 		runs: []engineObservationRun{expecting(engineOptionsRun, "the second profile")}},
-	{name: "engine Document parses change the default selection", file: "engine/engine.go",
-		old:  "\ts := new(engine.TraceSelection)\n\tif o.TraceSelection != nil {\n\t\t*s = *o.TraceSelection\n\t}\n\to.TraceSelection = s\n",
-		new:  "\tif o.TraceSelection == nil {\n\t\to.TraceSelection = new(engine.TraceSelection)\n\t}\n\ts := o.TraceSelection\n",
+	{name: "engine Document parses change the default selection", file: "pkg/runtime/options.go",
+		old:  "\ts := new(instrument.TraceSelection)\n\tif o.TraceSelection != nil {\n\t\t*s = *o.TraceSelection\n\t}\n\to.TraceSelection = s\n",
+		new:  "\tif o.TraceSelection == nil {\n\t\to.TraceSelection = new(instrument.TraceSelection)\n\t}\n\ts := o.TraceSelection\n",
 		runs: []engineObservationRun{expecting(engineDocumentRun, "Parse 3 selected")}},
 	{name: "generated trace filter ignored", file: "pkg/runtime/golib/trace.go",
 		old: "return len(o.rules) == 0 || o.rules[rule] ||", new: "return len(o.rules) >= 0 || o.rules[rule] ||",
@@ -95,30 +95,30 @@ var engineObservationMutants = []engineObservationMutant{
 		old:  "return func(o *parseOptions) { o.observe.withExtras().rules = names }",
 		new:  "return func(o *parseOptions) {\n\t\tif o.observe.extras == nil {\n\t\t\to.observe.extras = new(observeExtras)\n\t\t}\n\t\to.observe.extras.rules = names\n\t}",
 		runs: []engineObservationRun{expecting(generatedDocumentRun, "Parse 3 selected")}},
-	{name: "typescript trace filter ignored", file: "codegen/ts/lib/trace.ts",
+	{name: "typescript trace filter ignored", file: "internal/backend/codegen/typescript/lib/trace.ts",
 		old: "return this.rules === null || this.rules.has(rule) ||", new: "return true || this.rules.has(rule) ||",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the trace filter"), expecting(tsOptionsRun, "FAIL the trace filter leaves profiles whole")}},
-	{name: "typescript depth limit ignored", file: "codegen/ts/lib/trace.ts",
+	{name: "typescript depth limit ignored", file: "internal/backend/codegen/typescript/lib/trace.ts",
 		old: "const traced = call.selected && (this.maxDepth <= 0 || call.depth <= this.maxDepth);", new: "const traced = call.selected;",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the trace filter"), expecting(tsOptionsRun, "FAIL the depth limit leaves profiles whole")}},
-	{name: "typescript keeps the last trace function", file: "codegen/ts/lib/trace.ts",
+	{name: "typescript keeps the last trace function", file: "internal/backend/codegen/typescript/lib/trace.ts",
 		old: "for (const trace of this.traces!) trace({ ...event });", new: "this.traces![this.traces!.length - 1]!({ ...event });",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the second trace function"), expecting(tsOptionsRun, "FAIL every trace function receives the whole parse")}},
-	{name: "typescript keeps the last profile", file: "codegen/ts/lib/trace.ts",
+	{name: "typescript keeps the last profile", file: "internal/backend/codegen/typescript/lib/trace.ts",
 		old: "o.profiles.map(profile => new ProfileRecorder(profile, o.profileClock!, o))", new: "[new ProfileRecorder(o.profiles[o.profiles.length - 1]!, o.profileClock!, o)]",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the second profile"), expecting(tsOptionsRun, "FAIL every profile receives the whole parse")}},
-	{name: "typescript profiles depend on the trace filter", file: "codegen/ts/lib/trace.ts",
+	{name: "typescript profiles depend on the trace filter", file: "internal/backend/codegen/typescript/lib/trace.ts",
 		old: "if (recorders !== null) for (const r of recorders) r.record(event);\n    if (!traced) return;", new: "if (!traced) return;\n    if (recorders !== null) for (const r of recorders) r.record(event);",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the profile depends on the trace filter"), expecting(tsOptionsRun, "FAIL the trace filter leaves profiles whole")}},
-	{name: "typescript Document parses change the defaults", file: "codegen/ts/lib/lib.ts",
+	{name: "typescript Document parses change the defaults", file: "internal/backend/codegen/typescript/lib/lib.ts",
 		old: "const out: { [key: string]: unknown } = { ...defaults, ...invocation };", new: "const out: { [key: string]: unknown } = Object.assign(defaults, invocation);",
 		runs: []engineObservationRun{expecting(tsOptionsRun, "FAIL a later parse has the defaults again")}},
 	// The records of the examined end in generated TypeScript: in its terminals, and those that the
 	// library replays for a result it reuses or keeps for a growth step or a lookahead.
-	{name: "typescript unrecorded character read", file: "codegen/ts/lib/lib.ts",
+	{name: "typescript unrecorded character read", file: "internal/backend/codegen/typescript/lib/lib.ts",
 		old: "this.documentTouch(this.pos + this.psize);", new: "void this.psize;",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
-	{name: "typescript unrecorded literal match", file: "codegen/ts/lib/lib.ts",
+	{name: "typescript unrecorded literal match", file: "internal/backend/codegen/typescript/lib/lib.ts",
 		old: "    if (v !== undefined) {\n      this.documentTouch(this.pos);\n      return v;", new: "    if (v !== undefined) {\n      return v;",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
 	{name: "typescript memo hit records nothing", file: "internal/ir/code/exec/compose/core.go",
@@ -127,19 +127,19 @@ var engineObservationMutants = []engineObservationMutant{
 	{name: "typescript context replay records nothing", file: "internal/ir/code/exec/compose/core.go",
 		old: "\t\t\tb.Do(\"doc.touch\", C(\"ctx.examined\", s))\n", new: "",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
-	{name: "typescript skip record reused records nothing", file: "codegen/ts/lib/lib.ts",
+	{name: "typescript skip record reused records nothing", file: "internal/backend/codegen/typescript/lib/lib.ts",
 		old: "this.documentTouch(r.examined);", new: "this.documentTouch(0);",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
-	{name: "typescript lookahead drops what it examined", file: "codegen/ts/lib/lib.ts",
+	{name: "typescript lookahead drops what it examined", file: "internal/backend/codegen/typescript/lib/lib.ts",
 		old: "this.docExamined = Math.max(this.lookExamined.pop()!, this.docExamined);", new: "this.docExamined = this.lookExamined.pop()!;",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
 	// A lookahead outcome taken for one of a different examined end skips the calls the lookahead makes;
 	// the expected difference is that of the case made for it (examinedExtras), on its first input.
-	{name: "typescript lookahead outcomes identified without their examined ends", file: "codegen/ts/lib/lib.ts",
+	{name: "typescript lookahead outcomes identified without their examined ends", file: "internal/backend/codegen/typescript/lib/lib.ts",
 		old: "return (examined - pos) * 2 + (ok ? 1 : 0);", new: "return ok ? 1 : 0;",
 		runs: []engineObservationRun{expecting(tsAgreementRun, lookaheadOutcomeKill)}},
 	// examinedOnlyCases reaches the last step of a growth taken from the context.
-	{name: "typescript growth step taken from the context records nothing", file: "codegen/ts/lib/lib.ts",
+	{name: "typescript growth step taken from the context records nothing", file: "internal/backend/codegen/typescript/lib/lib.ts",
 		old: "this.documentTouch(s.examined);", new: "void s;",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined ends of")}},
 	// Two records of the examined end in a growth, in both libraries, are left without a mutant, as no parse
@@ -152,14 +152,14 @@ var engineObservationMutants = []engineObservationMutant{
 	// takes one more step, as only a step that does not grow ends it, and that step reads the seed again,
 	// recording the same end through the replay of the seed. The touch keeps a jump a complete replay of
 	// the steps it stands for, as every other reuse is, at the cost of a maximum per step of a run.
-	{name: "typescript seeds identified without their examined ends", file: "codegen/ts/lib/lib.ts",
+	{name: "typescript seeds identified without their examined ends", file: "internal/backend/codegen/typescript/lib/lib.ts",
 		old: "c.e.examined === e.examined && ", new: "",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
 	// As for TypeScript, the outcome taken skips the calls of the lookahead.
-	{name: "generated lookahead outcomes identified without their examined ends", file: "codegen/go/lib/context_memo.go",
+	{name: "generated lookahead outcomes identified without their examined ends", file: "pkg/runtime/golib/context_memo.go",
 		old: "\tv := uint64(hi) << 1\n", new: "\tv := uint64(0)\n",
 		runs: []engineObservationRun{expecting(agreementRun, lookaheadOutcomeKill)}},
-	{name: "typescript library control", file: "codegen/ts/lib/trace.ts",
+	{name: "typescript library control", file: "internal/backend/codegen/typescript/lib/trace.ts",
 		old: "  release(): void {\n", new: "  release(): void {\n    void 0;\n",
 		runs: []engineObservationRun{tsAgreementRun, tsOptionsRun}},
 	// The control changes nothing that the tests observe: they must pass with it, so that what makes the
@@ -205,7 +205,7 @@ func TestEngineObservationMutants(t *testing.T) {
 				t.Fatal(err)
 			}
 			replace := map[string]string{path: mutated}
-			ts := strings.HasPrefix(m.file, "codegen/ts/lib/")
+			ts := strings.HasPrefix(m.file, "internal/backend/codegen/typescript/lib/")
 			if ts {
 				// The generator embeds the library, which the overlay does not reach.
 				replace = map[string]string{}
