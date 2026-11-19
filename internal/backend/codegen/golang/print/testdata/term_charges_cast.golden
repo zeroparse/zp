@@ -6,16 +6,16 @@
 # A run checks every entry of its scope: an entry that is missing, stale or different fails. -update replaces the
 # entries of the scope, drops stale ones and logs a summary per case. Review the diff: it is a regression freeze.
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa engine-closure	36 ok
-termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa engine-iterative	37 ok
-termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa engine-vm	37 ok
+termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa engine-iterative	35 ok
+termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa engine-vm	35 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa go-node	39 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa go-node-recognize	18 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa go-typed	39 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa go-typed-recognize	18 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaa ts-node	50 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaaa engine-closure	42 ok
-termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaaa engine-iterative	43 ok
-termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaaa engine-vm	43 ok
+termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaaa engine-iterative	41 ok
+termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaaa engine-vm	41 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaaa go-node	46 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaaa go-node-recognize	22 ok
 termchargescast/term 0: list(1, (F{}).F0)[0].(int) | aaaaa go-typed	46 ok
@@ -38,16 +38,16 @@ termchargescast/term 10: list("s", (F{}).F4)[0].(*int) | aaaaa go-typed	226 acti
 termchargescast/term 10: list("s", (F{}).F4)[0].(*int) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 10: list("s", (F{}).F4)[0].(*int) | aaaaa ts-node	81 action in main: cannot cast string to *int at input position 0 (line 1, column 1)
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa engine-closure	61 ok
-termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa engine-iterative	62 ok
-termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa engine-vm	62 ok
+termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa engine-iterative	60 ok
+termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa engine-vm	60 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa go-node	36 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa go-node-recognize	18 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa go-typed	37 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa go-typed-recognize	18 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaa ts-node	50 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaaa engine-closure	67 ok
-termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaaa engine-iterative	68 ok
-termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaaa engine-vm	68 ok
+termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaaa engine-iterative	66 ok
+termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaaa engine-vm	66 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaaa go-node	43 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaaa go-node-recognize	22 ok
 termchargescast/term 11: list($w, (F{}).F5)[0].(*Num) | aaaaa go-typed	44 ok
@@ -86,32 +86,32 @@ termchargescast/term 13: list($x, (F{}).F5)[0].(*Num) | aaaaa go-typed	238 actio
 termchargescast/term 13: list($x, (F{}).F5)[0].(*Num) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 13: list($x, (F{}).F5)[0].(*Num) | aaaaa ts-node	81 action in main: cannot cast node[string] to *Num at input position 0 (line 1, column 1)
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa engine-closure	71 ok
-termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa engine-iterative	72 ok
-termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa engine-vm	72 ok
+termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa engine-iterative	70 ok
+termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa engine-vm	70 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa go-node	38 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa go-node-recognize	18 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa go-typed	40 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa go-typed-recognize	18 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaa ts-node	50 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa engine-closure	77 ok
-termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa engine-iterative	78 ok
-termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa engine-vm	78 ok
+termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa engine-iterative	76 ok
+termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa engine-vm	76 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa go-node	45 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa go-node-recognize	22 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa go-typed	47 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 14: list(1, (F{}).F7)[0].(int | string) | aaaaa ts-node	58 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa engine-closure	71 ok
-termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa engine-iterative	72 ok
-termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa engine-vm	72 ok
+termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa engine-iterative	70 ok
+termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa engine-vm	70 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa go-node	38 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa go-node-recognize	18 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa go-typed	40 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa go-typed-recognize	18 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaa ts-node	50 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaaa engine-closure	77 ok
-termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaaa engine-iterative	78 ok
-termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaaa engine-vm	78 ok
+termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaaa engine-iterative	76 ok
+termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaaa engine-vm	76 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaaa go-node	45 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaaa go-node-recognize	22 ok
 termchargescast/term 15: list("s", (F{}).F7)[0].(int | string) | aaaaa go-typed	47 ok
@@ -150,16 +150,16 @@ termchargescast/term 17: list($x, (F{}).F8)[0].(Num | int) | aaaaa go-typed	248 
 termchargescast/term 17: list($x, (F{}).F8)[0].(Num | int) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 17: list($x, (F{}).F8)[0].(Num | int) | aaaaa ts-node	81 action in main: cannot cast node[string] to Num | int at input position 0 (line 1, column 1)
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa engine-closure	82 ok
-termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa engine-iterative	83 ok
-termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa engine-vm	83 ok
+termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa engine-iterative	81 ok
+termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa engine-vm	81 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa go-node	37 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa go-node-recognize	18 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa go-typed	38 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaa ts-node	51 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaaa engine-closure	88 ok
-termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaaa engine-iterative	89 ok
-termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaaa engine-vm	89 ok
+termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaaa engine-iterative	87 ok
+termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaaa engine-vm	87 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaaa go-node	44 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 18: list($x, (F{}).F9)[0].(node[string]) | aaaaa go-typed	45 ok
@@ -214,48 +214,48 @@ termchargescast/term 20: list(1, (F{}).F9)[0].(node[string]) | aaaaa go-typed	23
 termchargescast/term 20: list(1, (F{}).F9)[0].(node[string]) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 20: list(1, (F{}).F9)[0].(node[string]) | aaaaa ts-node	81 action in main: cannot cast int to node[string] at input position 0 (line 1, column 1)
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa engine-closure	49 ok
-termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa engine-iterative	48 ok
-termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa engine-vm	48 ok
+termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa engine-iterative	46 ok
+termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa engine-vm	46 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa go-node	37 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa go-node-recognize	18 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa go-typed	38 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaa ts-node	51 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa engine-closure	55 ok
-termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa engine-iterative	54 ok
-termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa engine-vm	54 ok
+termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa engine-iterative	52 ok
+termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa engine-vm	52 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa go-node	44 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa go-typed	45 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 21: list($x, (F{}).F10)[0].(node[_]) | aaaaa ts-node	59 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa engine-closure	49 ok
-termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa engine-iterative	48 ok
-termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa engine-vm	48 ok
+termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa engine-iterative	46 ok
+termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa engine-vm	46 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa go-node	37 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa go-node-recognize	18 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa go-typed	44 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaa ts-node	51 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa engine-closure	55 ok
-termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa engine-iterative	54 ok
-termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa engine-vm	54 ok
+termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa engine-iterative	52 ok
+termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa engine-vm	52 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa go-node	44 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa go-typed	51 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 22: list($y, (F{}).F10)[0].(node[_]) | aaaaa ts-node	59 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa engine-closure	49 ok
-termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa engine-iterative	48 ok
-termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa engine-vm	48 ok
+termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa engine-iterative	46 ok
+termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa engine-vm	46 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa go-node	37 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa go-node-recognize	18 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa go-typed	41 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaa ts-node	51 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaaa engine-closure	55 ok
-termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaaa engine-iterative	54 ok
-termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaaa engine-vm	54 ok
+termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaaa engine-iterative	52 ok
+termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaaa engine-vm	52 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaaa go-node	44 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 23: list($z, (F{}).F10)[0].(node[_]) | aaaaa go-typed	51 ok
@@ -326,16 +326,16 @@ termchargescast/term 27: list($x, (F{}).F6)[0].(Num) | aaaaa go-typed	236 action
 termchargescast/term 27: list($x, (F{}).F6)[0].(Num) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 27: list($x, (F{}).F6)[0].(Num) | aaaaa ts-node	81 action in main: cannot cast node[string] to Num at input position 0 (line 1, column 1)
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa engine-closure	67 ok
-termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa engine-iterative	68 ok
-termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa engine-vm	68 ok
+termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa engine-iterative	66 ok
+termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa engine-vm	66 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa go-node	37 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa go-node-recognize	18 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa go-typed	39 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa go-typed-recognize	18 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaa ts-node	52 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaaa engine-closure	73 ok
-termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaaa engine-iterative	74 ok
-termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaaa engine-vm	74 ok
+termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaaa engine-iterative	72 ok
+termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaaa engine-vm	72 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaaa go-node	44 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaaa go-node-recognize	22 ok
 termchargescast/term 28: list(Num{$x}, (F{}).F6)[0].(Num) | aaaaa go-typed	46 ok
@@ -406,32 +406,32 @@ termchargescast/term 31: list($y, (F{}).F12)[0].(Pair) | aaaaa go-typed	238 acti
 termchargescast/term 31: list($y, (F{}).F12)[0].(Pair) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 31: list($y, (F{}).F12)[0].(Pair) | aaaaa ts-node	81 action in main: cannot cast node[(_, _)] to Pair at input position 0 (line 1, column 1)
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa engine-closure	63 ok
-termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa engine-iterative	62 ok
-termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa engine-vm	62 ok
+termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa engine-iterative	60 ok
+termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa engine-vm	60 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa go-node	37 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa go-node-recognize	18 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa go-typed	42 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa go-typed-recognize	18 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaa ts-node	52 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa engine-closure	69 ok
-termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa engine-iterative	68 ok
-termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa engine-vm	68 ok
+termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa engine-iterative	66 ok
+termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa engine-vm	66 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa go-node	44 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa go-node-recognize	22 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa go-typed	49 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 32: list(Pair{$y}, (F{}).F12)[0].(Pair) | aaaaa ts-node	60 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa engine-closure	70 ok
-termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa engine-iterative	69 ok
-termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa engine-vm	69 ok
+termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa engine-iterative	67 ok
+termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa engine-vm	67 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa go-node	37 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa go-node-recognize	18 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa go-typed	42 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa go-typed-recognize	18 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaa ts-node	52 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaaa engine-closure	76 ok
-termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaaa engine-iterative	75 ok
-termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaaa engine-vm	75 ok
+termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaaa engine-iterative	73 ok
+termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaaa engine-vm	73 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaaa go-node	44 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaaa go-node-recognize	22 ok
 termchargescast/term 33: list(Many{$z}, (F{}).F13)[0].(Many) | aaaaa go-typed	51 ok
@@ -454,16 +454,16 @@ termchargescast/term 34: list($z, (F{}).F13)[0].(Many) | aaaaa go-typed	232 acti
 termchargescast/term 34: list($z, (F{}).F13)[0].(Many) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 34: list($z, (F{}).F13)[0].(Many) | aaaaa ts-node	81 action in main: cannot cast node[[]_] to Many at input position 0 (line 1, column 1)
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa engine-closure	80 ok
-termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa engine-iterative	79 ok
-termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa engine-vm	79 ok
+termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa engine-iterative	77 ok
+termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa engine-vm	77 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-node	40 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-node-recognize	18 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-typed	42 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-typed-recognize	18 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa ts-node	53 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa engine-closure	86 ok
-termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa engine-iterative	85 ok
-termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa engine-vm	85 ok
+termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa engine-iterative	83 ok
+termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa engine-vm	83 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-node	47 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-node-recognize	22 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-typed	49 ok
@@ -502,16 +502,16 @@ termchargescast/term 37: list(1, (F{}).F14)[0].(Inner) | aaaaa go-typed	224 acti
 termchargescast/term 37: list(1, (F{}).F14)[0].(Inner) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 37: list(1, (F{}).F14)[0].(Inner) | aaaaa ts-node	81 action in main: cannot cast int to Inner at input position 0 (line 1, column 1)
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa engine-closure	100 ok
-termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa engine-iterative	99 ok
-termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa engine-vm	99 ok
+termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa engine-iterative	97 ok
+termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa engine-vm	97 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-node	55 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-node-recognize	18 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-typed	62 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-typed-recognize	18 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa ts-node	71 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa engine-closure	106 ok
-termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa engine-iterative	105 ok
-termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa engine-vm	105 ok
+termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa engine-iterative	103 ok
+termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa engine-vm	103 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-node	62 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-node-recognize	22 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-typed	69 ok
@@ -534,32 +534,32 @@ termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aa
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa ts-node	97 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa engine-closure	41 ok
-termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa engine-iterative	42 ok
-termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa engine-vm	42 ok
+termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa engine-iterative	40 ok
+termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa engine-vm	40 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa go-node	39 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa go-node-recognize	18 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa go-typed	39 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa go-typed-recognize	18 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa ts-node	50 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa engine-closure	47 ok
-termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa engine-iterative	48 ok
-termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa engine-vm	48 ok
+termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa engine-iterative	46 ok
+termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa engine-vm	46 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa go-node	46 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa go-node-recognize	22 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa go-typed	46 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaaa ts-node	58 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa engine-closure	93 ok
-termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa engine-iterative	92 ok
-termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa engine-vm	92 ok
+termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa engine-iterative	90 ok
+termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa engine-vm	90 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa go-node	39 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa go-node-recognize	18 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa go-typed	43 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaa ts-node	53 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa engine-closure	99 ok
-termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa engine-iterative	98 ok
-termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa engine-vm	98 ok
+termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa engine-iterative	96 ok
+termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa engine-vm	96 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa go-node	46 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 40: list($y, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa go-typed	50 ok
@@ -630,16 +630,16 @@ termchargescast/term 44: list($x, (F{}).F16)[0].(node[(node[string], node[string
 termchargescast/term 44: list($x, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 44: list($x, (F{}).F16)[0].(node[(node[string], node[string])]) | aaaaa ts-node	81 action in main: cannot cast node[string] to node[(node[string], node[string])] at input position 0 (line 1, column 1)
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa engine-closure	120 ok
-termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa engine-iterative	119 ok
-termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa engine-vm	119 ok
+termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa engine-iterative	117 ok
+termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa engine-vm	117 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa go-node	38 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa go-node-recognize	18 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa go-typed	42 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaa ts-node	52 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaaa engine-closure	127 ok
-termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaaa engine-iterative	126 ok
-termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaaa engine-vm	126 ok
+termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaaa engine-iterative	124 ok
+termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaaa engine-vm	124 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaaa go-node	46 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 45: list($z, (F{}).F20)[0].(node[[]node[string]]) | aaaaa go-typed	52 ok
@@ -662,16 +662,16 @@ termchargescast/term 46: list($z, (F{}).F21)[0].(node[[]int]) | aaaaa go-typed	2
 termchargescast/term 46: list($z, (F{}).F21)[0].(node[[]int]) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 46: list($z, (F{}).F21)[0].(node[[]int]) | aaaaa ts-node	82 action in main: cannot cast node[[]_] to node[[]int] at input position 0 (line 1, column 1)
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa engine-closure	133 ok
-termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa engine-iterative	132 ok
-termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa engine-vm	132 ok
+termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa engine-iterative	130 ok
+termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa engine-vm	130 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa go-node	37 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa go-node-recognize	18 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa go-typed	42 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaa ts-node	51 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaaa engine-closure	139 ok
-termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaaa engine-iterative	138 ok
-termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaaa engine-vm	138 ok
+termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaaa engine-iterative	136 ok
+termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaaa engine-vm	136 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaaa go-node	44 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 47: list($z, (F{}).F22)[0].(node[[]_]) | aaaaa go-typed	52 ok
@@ -694,16 +694,16 @@ termchargescast/term 48: list($y, (F{}).F20)[0].(node[[]node[string]]) | aaaaa g
 termchargescast/term 48: list($y, (F{}).F20)[0].(node[[]node[string]]) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 48: list($y, (F{}).F20)[0].(node[[]node[string]]) | aaaaa ts-node	81 action in main: cannot cast node[(_, _)] to node[[]node[string]] at input position 0 (line 1, column 1)
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa engine-closure	140 ok
-termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa engine-iterative	139 ok
-termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa engine-vm	139 ok
+termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa engine-iterative	137 ok
+termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa engine-vm	137 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa go-node	37 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa go-node-recognize	18 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa go-typed	38 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaa ts-node	51 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaaa engine-closure	146 ok
-termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaaa engine-iterative	145 ok
-termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaaa engine-vm	145 ok
+termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaaa engine-iterative	143 ok
+termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaaa engine-vm	143 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaaa go-node	44 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 49: list($x, (F{}).F23)[0].(node[*string]) | aaaaa go-typed	45 ok
@@ -742,16 +742,16 @@ termchargescast/term 50: list($y, (F{}).F23)[0].(node[*string]) | aaaaa go-typed
 termchargescast/term 50: list($y, (F{}).F23)[0].(node[*string]) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 50: list($y, (F{}).F23)[0].(node[*string]) | aaaaa ts-node	81 action in main: cannot cast node[(_, _)] to node[*string] at input position 0 (line 1, column 1)
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa engine-closure	148 ok
-termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa engine-iterative	147 ok
-termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa engine-vm	147 ok
+termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa engine-iterative	145 ok
+termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa engine-vm	145 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa go-node	38 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa go-node-recognize	18 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa go-typed	43 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaa ts-node	52 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaaa engine-closure	155 ok
-termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaaa engine-iterative	154 ok
-termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaaa engine-vm	154 ok
+termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaaa engine-iterative	152 ok
+termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaaa engine-vm	152 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaaa go-node	46 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 51: list($z, (F{}).F24)[0].(node[string | []node[string]]) | aaaaa go-typed	54 ok
@@ -790,16 +790,16 @@ termchargescast/term 53: list($x, (F{}).F25)[0].(node[int]) | aaaaa go-typed	248
 termchargescast/term 53: list($x, (F{}).F25)[0].(node[int]) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 53: list($x, (F{}).F25)[0].(node[int]) | aaaaa ts-node	81 action in main: cannot cast node[string] to node[int] at input position 0 (line 1, column 1)
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa engine-closure	162 ok
-termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa engine-iterative	161 ok
-termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa engine-vm	161 ok
+termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa engine-iterative	159 ok
+termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa engine-vm	159 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa go-node	39 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa go-node-recognize	18 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa go-typed	42 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa go-typed-recognize	18 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaa ts-node	53 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaaa engine-closure	169 ok
-termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaaa engine-iterative	168 ok
-termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaaa engine-vm	168 ok
+termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaaa engine-iterative	166 ok
+termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaaa engine-vm	166 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaaa go-node	47 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaaa go-node-recognize	22 ok
 termchargescast/term 54: list($z.Value, (F{}).F26)[0].([]node[string]) | aaaaa go-typed	52 ok
@@ -822,16 +822,16 @@ termchargescast/term 55: list($z.Value, (F{}).F27)[0].([]int) | aaaaa go-typed	2
 termchargescast/term 55: list($z.Value, (F{}).F27)[0].([]int) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 55: list($z.Value, (F{}).F27)[0].([]int) | aaaaa ts-node	84 action in main: cannot cast []_ to []int at input position 0 (line 1, column 1)
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa engine-closure	175 ok
-termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa engine-iterative	174 ok
-termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa engine-vm	174 ok
+termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa engine-iterative	172 ok
+termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa engine-vm	172 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa go-node	39 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa go-node-recognize	18 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa go-typed	43 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa go-typed-recognize	18 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaa ts-node	53 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaaa engine-closure	181 ok
-termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaaa engine-iterative	180 ok
-termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaaa engine-vm	180 ok
+termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaaa engine-iterative	178 ok
+termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaaa engine-vm	178 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaaa go-node	46 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaaa go-node-recognize	22 ok
 termchargescast/term 56: list($z.Value, (F{}).F28)[0].([]_) | aaaaa go-typed	53 ok
@@ -854,16 +854,16 @@ termchargescast/term 57: list($z.Value, (F{}).F29)[0].([][]int) | aaaaa go-typed
 termchargescast/term 57: list($z.Value, (F{}).F29)[0].([][]int) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 57: list($z.Value, (F{}).F29)[0].([][]int) | aaaaa ts-node	84 action in main: cannot cast []_ to [][]int at input position 0 (line 1, column 1)
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa engine-closure	183 ok
-termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa engine-iterative	182 ok
-termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa engine-vm	182 ok
+termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa engine-iterative	180 ok
+termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa engine-vm	180 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa go-node	57 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa go-node-recognize	18 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa go-typed	61 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa go-typed-recognize	18 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaa ts-node	71 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaaa engine-closure	189 ok
-termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaaa engine-iterative	188 ok
-termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaaa engine-vm	188 ok
+termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaaa engine-iterative	186 ok
+termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaaa engine-vm	186 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaaa go-node	64 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaaa go-node-recognize	22 ok
 termchargescast/term 58: list(list(1, 2, 3), (F{}).F27)[0].([]int) | aaaaa go-typed	68 ok
@@ -886,16 +886,16 @@ termchargescast/term 59: list(list("s", 2, 3), (F{}).F27)[0].([]int) | aaaaa go-
 termchargescast/term 59: list(list("s", 2, 3), (F{}).F27)[0].([]int) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 59: list(list("s", 2, 3), (F{}).F27)[0].([]int) | aaaaa ts-node	99 action in main: cannot cast []_ to []int at input position 0 (line 1, column 1)
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa engine-closure	46 ok
-termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa engine-iterative	47 ok
-termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa engine-vm	47 ok
+termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa engine-iterative	45 ok
+termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa engine-vm	45 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa go-node	39 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa go-node-recognize	18 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa go-typed	39 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa go-typed-recognize	18 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaa ts-node	50 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaaa engine-closure	52 ok
-termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaaa engine-iterative	53 ok
-termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaaa engine-vm	53 ok
+termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaaa engine-iterative	51 ok
+termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaaa engine-vm	51 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaaa go-node	46 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaaa go-node-recognize	22 ok
 termchargescast/term 5: list(true, (F{}).F2)[0].(bool) | aaaaa go-typed	46 ok
@@ -950,16 +950,16 @@ termchargescast/term 62: list(list(1, 2), (F{}).F30)[0].([]string) | aaaaa go-ty
 termchargescast/term 62: list(list(1, 2), (F{}).F30)[0].([]string) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 62: list(list(1, 2), (F{}).F30)[0].([]string) | aaaaa ts-node	94 action in main: cannot cast []_ to []string at input position 0 (line 1, column 1)
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa engine-closure	183 ok
-termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa engine-iterative	182 ok
-termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa engine-vm	182 ok
+termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa engine-iterative	180 ok
+termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa engine-vm	180 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa go-node	49 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa go-node-recognize	18 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa go-typed	54 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa go-typed-recognize	18 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaa ts-node	63 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaaa engine-closure	189 ok
-termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaaa engine-iterative	188 ok
-termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaaa engine-vm	188 ok
+termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaaa engine-iterative	186 ok
+termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaaa engine-vm	186 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaaa go-node	56 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaaa go-node-recognize	22 ok
 termchargescast/term 63: list(list(1, true), (F{}).F28)[0].([]_) | aaaaa go-typed	61 ok
@@ -982,16 +982,16 @@ termchargescast/term 64: list(list(1, true), (F{}).F27)[0].([]int) | aaaaa go-ty
 termchargescast/term 64: list(list(1, true), (F{}).F27)[0].([]int) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 64: list(list(1, true), (F{}).F27)[0].([]int) | aaaaa ts-node	95 action in main: cannot cast []_ to []int at input position 0 (line 1, column 1)
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa engine-closure	211 ok
-termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa engine-iterative	210 ok
-termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa engine-vm	210 ok
+termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa engine-iterative	208 ok
+termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa engine-vm	208 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa go-node	56 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa go-node-recognize	18 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa go-typed	63 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa go-typed-recognize	18 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaa ts-node	70 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaaa engine-closure	217 ok
-termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaaa engine-iterative	216 ok
-termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaaa engine-vm	216 ok
+termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaaa engine-iterative	214 ok
+termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaaa engine-vm	214 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaaa go-node	63 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaaa go-node-recognize	22 ok
 termchargescast/term 65: list(list(1, "s", 2), (F{}).F31)[0].([](int | string)) | aaaaa go-typed	70 ok
@@ -1014,32 +1014,32 @@ termchargescast/term 66: list(list(1, true), (F{}).F31)[0].([](int | string)) | 
 termchargescast/term 66: list(list(1, true), (F{}).F31)[0].([](int | string)) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 66: list(list(1, true), (F{}).F31)[0].([](int | string)) | aaaaa ts-node	94 action in main: cannot cast []_ to [](int | string) at input position 0 (line 1, column 1)
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa engine-closure	213 ok
-termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa engine-iterative	212 ok
-termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa engine-vm	212 ok
+termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa engine-iterative	210 ok
+termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa engine-vm	210 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa go-node	51 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa go-node-recognize	18 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa go-typed	54 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa go-typed-recognize	18 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaa ts-node	65 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa engine-closure	219 ok
-termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa engine-iterative	218 ok
-termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa engine-vm	218 ok
+termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa engine-iterative	216 ok
+termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa engine-vm	216 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa go-node	58 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa go-node-recognize	22 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa go-typed	61 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 67: list(list(1, 2), (F{}).F32)[0].([]*int) | aaaaa ts-node	73 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa engine-closure	207 ok
-termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa engine-iterative	206 ok
-termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa engine-vm	206 ok
+termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa engine-iterative	204 ok
+termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa engine-vm	204 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa go-node	69 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa go-node-recognize	18 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa go-typed	77 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa go-typed-recognize	18 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaa ts-node	85 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaaa engine-closure	213 ok
-termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaaa engine-iterative	212 ok
-termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaaa engine-vm	212 ok
+termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaaa engine-iterative	210 ok
+termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaaa engine-vm	210 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaaa go-node	76 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaaa go-node-recognize	22 ok
 termchargescast/term 68: list(list(list(1, 2), list(3)), (F{}).F29)[0].([][]int) | aaaaa go-typed	84 ok
@@ -1206,16 +1206,16 @@ termchargescast/term 77: list($y.Value, (F{}).F37)[0].((Num)) | aaaaa go-typed	2
 termchargescast/term 77: list($y.Value, (F{}).F37)[0].((Num)) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 77: list($y.Value, (F{}).F37)[0].((Num)) | aaaaa ts-node	82 action in main: cannot cast (_, _) to Num at input position 0 (line 1, column 1)
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa engine-closure	255 ok
-termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa engine-iterative	254 ok
-termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa engine-vm	254 ok
+termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa engine-iterative	252 ok
+termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa engine-vm	252 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa go-node	49 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa go-node-recognize	18 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa go-typed	54 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa go-typed-recognize	18 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaa ts-node	63 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaaa engine-closure	261 ok
-termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaaa engine-iterative	260 ok
-termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaaa engine-vm	260 ok
+termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaaa engine-iterative	258 ok
+termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaaa engine-vm	258 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaaa go-node	56 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaaa go-node-recognize	22 ok
 termchargescast/term 78: list($y.Value, (F{}).F38)[0].((_, _)) | aaaaa go-typed	61 ok
@@ -1238,32 +1238,32 @@ termchargescast/term 79: list($z.Value, (F{}).F33)[0].((Num, Num)) | aaaaa go-ty
 termchargescast/term 79: list($z.Value, (F{}).F33)[0].((Num, Num)) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 79: list($z.Value, (F{}).F33)[0].((Num, Num)) | aaaaa ts-node	82 action in main: cannot cast []_ to (Num, Num) at input position 0 (line 1, column 1)
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa engine-closure	51 ok
-termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa engine-iterative	52 ok
-termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa engine-vm	52 ok
+termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa engine-iterative	50 ok
+termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa engine-vm	50 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa go-node	38 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa go-node-recognize	18 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa go-typed	40 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa go-typed-recognize	18 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaa ts-node	50 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa engine-closure	57 ok
-termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa engine-iterative	58 ok
-termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa engine-vm	58 ok
+termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa engine-iterative	56 ok
+termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa engine-vm	56 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa go-node	45 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa go-node-recognize	22 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa go-typed	47 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 7: list(1, (F{}).F3)[0].(_) | aaaaa ts-node	58 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa engine-closure	270 ok
-termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa engine-iterative	269 ok
-termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa engine-vm	269 ok
+termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa engine-iterative	267 ok
+termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa engine-vm	267 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa go-node	61 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa go-node-recognize	18 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa go-typed	62 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa go-typed-recognize	18 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaa ts-node	73 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaaa engine-closure	276 ok
-termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaaa engine-iterative	275 ok
-termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaaa engine-vm	275 ok
+termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaaa engine-iterative	273 ok
+termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaaa engine-vm	273 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaaa go-node	68 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaaa go-node-recognize	22 ok
 termchargescast/term 80: list((1, "a"), (F{}).F39)[0].((int, string)) | aaaaa go-typed	69 ok
@@ -1334,16 +1334,16 @@ termchargescast/term 84: list((1,), (F{}).F39)[0].((int, string)) | aaaaa go-typ
 termchargescast/term 84: list((1,), (F{}).F39)[0].((int, string)) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 84: list((1,), (F{}).F39)[0].((int, string)) | aaaaa ts-node	96 action in main: cannot cast (_,) to (int, string) at input position 0 (line 1, column 1)
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa engine-closure	287 ok
-termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa engine-iterative	286 ok
-termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa engine-vm	286 ok
+termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa engine-iterative	284 ok
+termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa engine-vm	284 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa go-node	73 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa go-node-recognize	18 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa go-typed	77 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa go-typed-recognize	18 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaa ts-node	87 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaaa engine-closure	293 ok
-termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaaa engine-iterative	292 ok
-termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaaa engine-vm	292 ok
+termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaaa engine-iterative	290 ok
+termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaaa engine-vm	290 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaaa go-node	80 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaaa go-node-recognize	22 ok
 termchargescast/term 85: list((1, list(2, 3)), (F{}).F40)[0].((int, []int)) | aaaaa go-typed	84 ok
@@ -1366,32 +1366,32 @@ termchargescast/term 86: list((1, list(2, "s")), (F{}).F40)[0].((int, []int)) | 
 termchargescast/term 86: list((1, list(2, "s")), (F{}).F40)[0].((int, []int)) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 86: list((1, list(2, "s")), (F{}).F40)[0].((int, []int)) | aaaaa ts-node	117 action in main: cannot cast (_, _) to (int, []int) at input position 0 (line 1, column 1)
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa engine-closure	294 ok
-termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa engine-iterative	293 ok
-termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa engine-vm	293 ok
+termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa engine-iterative	291 ok
+termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa engine-vm	291 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa go-node	73 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa go-node-recognize	18 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa go-typed	77 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa go-typed-recognize	18 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaa ts-node	87 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa engine-closure	300 ok
-termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa engine-iterative	299 ok
-termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa engine-vm	299 ok
+termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa engine-iterative	297 ok
+termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa engine-vm	297 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa go-node	80 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa go-node-recognize	22 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa go-typed	84 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 87: list((list(1, 2), "a"), (F{}).F41)[0].(([]int, string)) | aaaaa ts-node	95 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa engine-closure	309 ok
-termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa engine-iterative	308 ok
-termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa engine-vm	308 ok
+termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa engine-iterative	306 ok
+termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa engine-vm	306 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa go-node	83 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa go-node-recognize	18 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa go-typed	85 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa go-typed-recognize	18 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaa ts-node	95 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaaa engine-closure	315 ok
-termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaaa engine-iterative	314 ok
-termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaaa engine-vm	314 ok
+termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaaa engine-iterative	312 ok
+termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaaa engine-vm	312 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaaa go-node	90 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaaa go-node-recognize	22 ok
 termchargescast/term 88: list((1, (2, "a")), (F{}).F42)[0].((int, (int, string))) | aaaaa go-typed	92 ok
@@ -1414,32 +1414,32 @@ termchargescast/term 89: list((1, (2, 3)), (F{}).F42)[0].((int, (int, string))) 
 termchargescast/term 89: list((1, (2, 3)), (F{}).F42)[0].((int, (int, string))) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 89: list((1, (2, 3)), (F{}).F42)[0].((int, (int, string))) | aaaaa ts-node	125 action in main: cannot cast (_, _) to (int, (int, string)) at input position 0 (line 1, column 1)
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa engine-closure	51 ok
-termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa engine-iterative	52 ok
-termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa engine-vm	52 ok
+termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa engine-iterative	50 ok
+termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa engine-vm	50 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa go-node	38 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa go-node-recognize	18 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa go-typed	40 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa go-typed-recognize	18 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaa ts-node	50 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa engine-closure	57 ok
-termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa engine-iterative	58 ok
-termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa engine-vm	58 ok
+termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa engine-iterative	56 ok
+termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa engine-vm	56 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa go-node	45 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa go-node-recognize	22 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa go-typed	47 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 8: list("s", (F{}).F3)[0].(_) | aaaaa ts-node	58 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa engine-closure	310 ok
-termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa engine-iterative	309 ok
-termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa engine-vm	309 ok
+termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa engine-iterative	307 ok
+termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa engine-vm	307 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa go-node	75 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa go-node-recognize	18 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa go-typed	80 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa go-typed-recognize	18 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaa ts-node	91 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaaa engine-closure	316 ok
-termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaaa engine-iterative	315 ok
-termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaaa engine-vm	315 ok
+termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaaa engine-iterative	313 ok
+termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaaa engine-vm	313 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaaa go-node	82 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaaa go-node-recognize	22 ok
 termchargescast/term 90: list(list((1, "a"), (2, "b")), (F{}).F43)[0].([](int, string)) | aaaaa go-typed	87 ok
@@ -1494,16 +1494,16 @@ termchargescast/term 93: list((1, 2), (F{}).F27)[0].([]int) | aaaaa go-typed	240
 termchargescast/term 93: list((1, 2), (F{}).F27)[0].([]int) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 93: list((1, 2), (F{}).F27)[0].([]int) | aaaaa ts-node	93 action in main: cannot cast (_, _) to []int at input position 0 (line 1, column 1)
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa engine-closure	56 ok
-termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa engine-iterative	57 ok
-termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa engine-vm	57 ok
+termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa engine-iterative	55 ok
+termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa engine-vm	55 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa go-node	38 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa go-node-recognize	18 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa go-typed	38 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa go-typed-recognize	18 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaa ts-node	50 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaaa engine-closure	62 ok
-termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaaa engine-iterative	63 ok
-termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaaa engine-vm	63 ok
+termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaaa engine-iterative	61 ok
+termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaaa engine-vm	61 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaaa go-node	45 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaaa go-node-recognize	22 ok
 termchargescast/term 9: list(1, (F{}).F4)[0].(*int) | aaaaa go-typed	45 ok
