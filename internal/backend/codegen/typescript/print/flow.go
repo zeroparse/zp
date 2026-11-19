@@ -59,7 +59,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *check.Scope) (call string, 
 	var f *code.Module
 	var slots []core.Slot
 	cr := g.Flow.M.Rules[r.ID]
-	if flowlower.RecEligible(r) && flowlower.LocalRule(cr) {
+	if common.RecEligible(r) && flowlower.LocalRule(cr) {
 		var err error
 		if f, err = g.FlowPasses(flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts)); err != nil {
 			panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // LocalRule holds

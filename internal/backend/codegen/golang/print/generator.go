@@ -24,7 +24,6 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
-	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -672,7 +671,7 @@ func (g *Generator) rules() {
 				flats[r] = d
 				continue
 			}
-		} else if flowlower.RecEligible(r) {
+		} else if common.RecEligible(r) {
 			// flowRecRule returns nil for a rule whose printed function would read its start or context, and
 			// for one whose types it cannot name; such a rule takes its framed body below and is called through
 			// the rule table (plainCall).
