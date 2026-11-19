@@ -113,9 +113,18 @@ func (p *Parser) Kids(base int) []*value.Node {
 	return ks
 }
 
-// DropKids discards p.KidStack[base:].
+// DropKids discards p.KidStack[base:] and charges a unit for each element, as term.dropKids does
+// (spec/exec-ir/values.md).
 func (p *Parser) DropKids(base int) {
 	ClearSpend(p, p.KidStack[base:])
+	p.KidStack = p.KidStack[:base]
+}
+
+// TruncateKids discards p.KidStack[base:] without a charge, as flow.dropKids does
+// (spec/flow-ir/operations.md): a repetition that fails drops the elements it gathered, each of which
+// was charged when it was gathered.
+func (p *Parser) TruncateKids(base int) {
+	clear(p.KidStack[base:])
 	p.KidStack = p.KidStack[:base]
 }
 
