@@ -154,13 +154,12 @@ The Core IR of a Node or recognizer table and the options its functions are lowe
 the same package, which both call: it elaborates the program with or without the projected values of the Node table,
 runs the Core passes through the caller's driver, and sets the lowering options from what the parser charges and
 records (budget controls, observation, Documents, traced bodies). The VM builds the Node table of a parse with budget
-controls at the default optimizations and runs the driver's Flow and Exec passes, the Flow passes for a target of its
-own, the bytecode target of the Flow passes, so its functions are those of the generated Go parser with budget controls
-in the forms the VM runs. The bytecode target declares what the VM prints beyond the forms of every backend: none of
-the forms of the Flow passes. The forms of typed rules do not apply to the Node table, guarded classes apply only to
-functions without budget controls, and the VM has no instruction that compares a literal in place, so it matches each
-literal as the lowering wrote it. Each form charges what it replaces, so the VM's functions charge what the Go
-parser's do.
+controls at the default optimizations and runs the driver's Flow passes for a target of its own, the bytecode target of
+the Flow passes, so its functions are those of the generated Go parser with budget controls in the forms the VM runs.
+The bytecode target declares what the VM prints beyond the forms of every backend: none of the forms of the Flow passes.
+The forms of typed rules do not apply to the Node table, guarded classes apply only to functions without budget
+controls, and the VM has no instruction that compares a literal in place, so it matches each literal as the lowering
+wrote it. Each form charges what it replaces, so the VM's functions charge what the Go parser's do.
 
 The plan of a table is computed from the Core IR of the table after its Core passes, the rules of the table (value-free
 twins included) as the plan reads them: their definitions, actions and run-time facts, and the rules that the backend
@@ -175,10 +174,15 @@ them too, so every backend lowers the same rules. It holds:
   a **flat** function, with no frame. Any other rule whose Core body can run inside the frame its runtime owns is a
   **framed** body, which builds its value unless the rule is lean. A flat function carries the framed body as its
   fallback.
-- The refusal of a flat function, an analysis of its Exec IR after `execlower` and the Exec passes: the function is
-  refused when a reachable statement reads its entry position or its context, which a flat function has no
-  parameters for, or when a variable holds a value, which a value-free function does not keep. Reachability is the
-  printers' (the dead-store analysis of Code IR). A refused function is replaced by its fallback.
+- The refusal of a flat function, an analysis of its Exec IR: the function is refused when a reachable statement
+  reads its entry position or its context, which a flat function has no parameters for, or when a variable holds a
+  value, which a value-free function does not keep. Reachability is the printers' (the dead-store analysis of Code
+  IR). The plan makes this decision once, for every backend: it lowers the flat function with the table's options,
+  ends it with each form in the form every backend prints, with no Flow pass, and runs `execlower` and the Exec passes
+  that every backend runs, at the optimizations of the table. A refused function is replaced in the plan by its
+  fallback, so a backend only follows the plan. A pass that makes a form of a target keeps what the decision reads; the
+  Go generator checks that the flat functions it prints in its own forms are not refused, and fails with an internal
+  error otherwise.
 - The capture-slot layout of each rule's frame: the names of the Core rule's scope, empty for a rule that runs flat or
   as an Operators Rule. A backend verifies the rows it emits against it: the Go generator the scopes of its rule
   table, and the VM the scope of each rule whose body it runs from Flow IR, whose framed body runs in that frame.

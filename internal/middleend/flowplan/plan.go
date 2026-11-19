@@ -7,7 +7,8 @@
 // A plan lists FuncSpecs in the order a backend lowers them, keyed by their use in the table, and
 // fixes the capture-slot layout of each rule's frame, from which both the Go table rows and the
 // VM's rule scopes derive. The route facts are analyses of Core IR and of the rules of the table
-// (Rule, RecEligible, NodeFrameOK); the refusal of a flat function (Refused) is an analysis of its Exec IR.
+// (Rule, RecEligible, NodeFrameOK); the refusal of a flat function (Refused) is an analysis of its Exec IR,
+// which the plan makes once for every backend.
 package flowplan
 
 import (
@@ -21,6 +22,8 @@ import (
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
+	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -67,8 +70,9 @@ type FuncSpec struct {
 	Body  core.Node
 	Slots []core.Slot
 	Build bool
-	// Fallback is the framed body that replaces a flat function that Refused rejects, or nil if the
-	// rule has none (the table cannot run the rule then).
+	// Fallback is the framed body of the rule of a flat function, or nil if the rule has none. The plan
+	// holds it in place of a flat function that Refused rejects; a backend's tests can run it in
+	// place of an accepted one.
 	Fallback *FuncSpec
 }
 
@@ -109,10 +113,68 @@ func (t *Table) CheckLayout(rule int, name string, slots []string) error {
 	return nil
 }
 
-// Plan plans the Node or recognizer table whose rules, value-free twins included, are rules by ID
-// and whose Core IR, after the Core passes of the table, is m. live reports whether a rule is
-// emitted; nil emits every rule.
-func Plan(m *core.Module, rules []*Rule, live func(rule int) bool) *Table {
+// Plan plans the Node or recognizer table t, whose rules, value-free twins included, are rules by
+// ID. live reports whether a rule is emitted; nil emits every rule. opt holds the optimizations of
+// the table's passes.
+//
+// Each rule's route follows from its facts (route); a flat function then stays in the plan only if
+// Refused accepts it, in the Exec IR that Exec decides on, and is otherwise replaced by its framed
+// fallback, or left out if the rule has none. The decision is made here, once, so every backend
+// that follows the plan runs the same functions; a backend that prints the flat function in forms of
+// its own checks that they keep the decision.
+func Plan(t *TableIR, rules []*Rule, live func(rule int) bool, opt pass.Settings) (*Table, error) {
+	return plan(t, rules, live, opt, Refused)
+}
+
+// plan is Plan with the refusal refused.
+func plan(t *TableIR, rules []*Rule, live func(rule int) bool, opt pass.Settings, refused func(*execlower.Lowered) bool) (*Table, error) {
+	p := route(t.M, rules, live)
+	funcs := p.Funcs[:0]
+	for _, s := range p.Funcs {
+		if s.Form == Flat {
+			l, err := Exec(t, s, opt)
+			if err != nil {
+				return nil, err
+			}
+			if refused(l) {
+				delete(p.byKey, s.Key)
+				if s = s.Fallback; s == nil {
+					continue
+				}
+				p.byKey[s.Key] = s
+			}
+		}
+		funcs = append(funcs, s)
+	}
+	p.Funcs = funcs
+	return p, nil
+}
+
+// Exec lowers the function s of the table t to the Exec IR that the plan decides on: the function
+// as the lowering writes it, with each form in the one form every backend prints (flowpass.Finish,
+// with no Flow pass, since a pass makes a form of a target and keeps what the decisions read),
+// after the Exec passes that every backend runs, with the optimizations opt.
+func Exec(t *TableIR, s *FuncSpec, opt pass.Settings) (*execlower.Lowered, error) {
+	f, err := s.Lower(t.M, t.Opts)
+	if err != nil {
+		return nil, fmt.Errorf("internal error: flow of %s: %w", s.Name, err)
+	}
+	flowpass.Finish(f)
+	fn := flow.FuncOf(f) // the conversion to the Exec stage moves it out of f
+	x, err := execlower.Lower(f)
+	if err != nil {
+		return nil, fmt.Errorf("internal error: exec of %s: %w", s.Name, err)
+	}
+	if _, err := codepass.RunPasses(x, &codepass.Env{Observe: t.Opts.Observe, Flag: opt.On}, codepass.RunOptions{}); err != nil {
+		return nil, fmt.Errorf("internal error: exec of %s: %w", s.Name, err)
+	}
+	return &execlower.Lowered{Module: x, Func: fn, Vars: flow.AttrsOf(fn).Vars}, nil
+}
+
+// route plans the routes of the table whose Core IR, after the Core passes of the table, is m, from
+// the facts of its rules: a flat function where the rule may run flat, with its framed body as the
+// fallback, and the framed body otherwise.
+func route(m *core.Module, rules []*Rule, live func(rule int) bool) *Table {
 	t := &Table{Layouts: make([][]string, len(rules)), byKey: map[Key]*FuncSpec{}}
 	add := func(s *FuncSpec) {
 		t.Funcs = append(t.Funcs, s)

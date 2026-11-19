@@ -232,12 +232,17 @@ func (g *Generator) execFlatRule(p *flowPrinter, f *code.Module) *flatRule {
 	return out
 }
 
-// execRecRule prints the local function f of a rule of the Node library from Exec IR as a flat rule,
-// or returns nil if the plan refuses it (flowplan.Refused). It counts only a rule it prints.
+// execRecRule prints the local function f of a rule of the Node library from Exec IR as a flat rule.
+// The plan has accepted the function (flowplan.Plan); if the forms that the Go passes chose make
+// flowplan.Refused reject it, the generation fails with an internal error (Generator.FlowErr) and
+// execRecRule returns nil. It counts only a rule it prints.
 func (g *Generator) execRecRule(p *flowPrinter, f *code.Module) *flatRule {
 	fn := flow.FuncOf(f) // the conversion to the Exec stage moves it out of f
 	l, res := p.execPrint(f)
 	if flowplan.Refused(l) {
+		if g.FlowErr == nil {
+			g.FlowErr = fmt.Errorf("internal error: the plan runs %s flat, but in the forms of the Go passes it reads its start or its context, or keeps a value", fn.Name)
+		}
 		return nil
 	}
 	st := res.Stores
