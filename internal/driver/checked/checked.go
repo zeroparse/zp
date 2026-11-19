@@ -8,6 +8,7 @@ package checked
 
 import (
 	"context"
+	"fmt"
 
 	"zeroparse.dev/zp/internal/backend/closure"
 	"zeroparse.dev/zp/internal/backend/vmlower"
@@ -15,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/program"
@@ -87,11 +89,11 @@ func (s *Source) Module() (*bytecode.Module, error) {
 	return p.Bytecode, p.BytecodeErr
 }
 
-// Core builds the Core IR of the program for the closures (closure.Core), polling ctx (nil for
-// none): an ended context returns a state.BuildCancelled.
+// Core builds the Core IR of the program for the closures (elaborate.CoreControlled, then
+// closure.Core), polling ctx (nil for none): an ended context returns a state.BuildCancelled.
 func (s *Source) Core(ctx context.Context) (m any, err error) {
 	if ctx == nil {
-		return closure.Core(s.prog, nil)
+		return closureCore(s.prog, nil)
 	}
 	defer func() {
 		if x := recover(); x != nil {
@@ -102,7 +104,19 @@ func (s *Source) Core(ctx context.Context) (m any, err error) {
 			m, err = nil, state.BuildCancelled{Err: cancelled.Err}
 		}
 	}()
-	return closure.Core(s.prog, &cancel.Control{Ctx: attributedContext{ctx}})
+	return closureCore(s.prog, &cancel.Control{Ctx: attributedContext{ctx}})
+}
+
+// closureCore builds the Core IR of the program prog and optimizes it for the closures
+// (closure.Core). The build and the passes poll control (nil for none), and a cancellation unwinds
+// as cancel.Cancellation. A failure is an internal error: the program compiled, so its Core IR
+// builds.
+func closureCore(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
+	m, err := elaborate.CoreControlled(prog, control)
+	if err != nil {
+		return nil, fmt.Errorf("internal error: Core IR: %w", err)
+	}
+	return closure.Core(m)
 }
 
 // attributedContext is a parse's context whose Err attributes a panic to the caller's context
@@ -125,7 +139,7 @@ func (c attributedContext) Err() error {
 
 // Family builds the closures of the family f from the Core IR core (closure.Build).
 func (s *Source) Family(core any, f state.Family, plainDispatch bool) ([]*state.Rule, error) {
-	return closure.Build(s.prog, core.(*ir.Module), plainDispatch, f)
+	return closure.Build(s.prog.Runtime(), s.prog.Checker(), core.(*ir.Module), plainDispatch, f)
 }
 
 // Recognizer compiles the grammar again as a program that builds no tree, with the rule flags of

@@ -42,6 +42,7 @@ func TestRuntimeReadsNoCheckedProgram(t *testing.T) {
 // (internal/backend/vmlower) are to keep reading it; the list grows as the other readers move.
 var modelReaders = []string{
 	"internal/backend/actionlower",
+	"internal/backend/closure",
 	"internal/frontend/schemaexport",
 }
 

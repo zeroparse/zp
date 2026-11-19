@@ -16,6 +16,7 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/closure"
 	"zeroparse.dev/zp/internal/compile"
+	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -232,14 +233,14 @@ func TestClosureFamiliesLeaveModuleUnchanged(t *testing.T) {
 	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			sp := mustCompile(t, c.Src).Static()
-			m, err := closure.Core(sp, nil)
+			m, err := buildClosureCore(sp)
 			if err != nil {
 				t.Fatal(err)
 			}
 			before := ir.Print(m, true)
 			for _, f := range []state.Family{state.Inlined, state.CallPreserving} {
 				for _, plainDispatch := range []bool{true, false} {
-					if _, err := closure.Build(sp, m, plainDispatch, f); err != nil {
+					if _, err := closure.Build(sp.Runtime(), sp.Checker(), m, plainDispatch, f); err != nil {
 						t.Fatal(err)
 					}
 					if after := ir.Print(m, true); after != before {
@@ -259,7 +260,7 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			sp := mustCompile(t, c.Src).Static()
-			m, err := closure.Core(sp, nil)
+			m, err := buildClosureCore(sp)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -267,7 +268,7 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 			errs := make([]error, 4)
 			for i := range errs {
 				wg.Go(func() {
-					_, errs[i] = closure.Build(sp, m, i%2 == 0, state.Family(i/2))
+					_, errs[i] = closure.Build(sp.Runtime(), sp.Checker(), m, i%2 == 0, state.Family(i/2))
 				})
 			}
 			wg.Wait()
@@ -398,11 +399,21 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	}
 }
 
+// buildClosureCore builds the Core IR of the program prog for the closures, as the parse that first
+// needs a family does (checked.Source.Core).
+func buildClosureCore(prog *compile.Program) (*ir.Module, error) {
+	m, err := irbuild.CoreControlled(prog, nil)
+	if err != nil {
+		return nil, err
+	}
+	return closure.Core(m)
+}
+
 // inCoreBuild reports whether the calling goroutine is inside the build of the Core IR of the
-// closures (closure.Core).
+// closures (checked.Source.Core).
 func inCoreBuild() bool {
 	buf := make([]byte, 64<<10)
-	return strings.Contains(string(buf[:runtime.Stack(buf, false)]), "/internal/backend/closure.Core(")
+	return strings.Contains(string(buf[:runtime.Stack(buf, false)]), "/internal/driver/checked.(*Source).Core(")
 }
 
 // buildHookContext is a live context whose Err calls hook when it is called from inside the build
