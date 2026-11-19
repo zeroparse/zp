@@ -68,9 +68,6 @@ func SelectFlows(bc *bytecode.Module, prog *compile.Program, m *ir.Module, plan 
 // flow returns the Flow body of the function fn, the flow form of rule index rule.
 func (c *compiler) flow(fn *code.Func, rule int) (*bytecode.Flow, error) {
 	a := flowpkg.AttrsOf(fn)
-	if a.Cut != "" {
-		return nil, fmt.Errorf("a function of this shape has no bytecode Flow body yet")
-	}
 	if a.Rule == nil || a.Rule.ID != rule {
 		return nil, fmt.Errorf("the function is not the body of rule %d", rule)
 	}
@@ -333,6 +330,8 @@ func (s *flowSel) set(x *code.Set) error {
 		switch {
 		case p.Reg && p.Name == flowpkg.Pos:
 			dst[i] = posDst
+		case p.Reg && p.Name == flowpkg.Cut:
+			dst[i] = cutDst
 		case p.Reg:
 			return fmt.Errorf("an assignment to register %s has no bytecode Flow form", p.Name)
 		case p.Name == "":
@@ -365,14 +364,21 @@ func (s *flowSel) set(x *code.Set) error {
 	return nil
 }
 
-// posDst is the destination of an assignment to the position register.
-const posDst = -2
+// posDst and cutDst are the destinations of an assignment to the position register and to the cut
+// flag register.
+const (
+	posDst = -2
+	cutDst = -3
+)
 
-// store assigns the register r to the destination d (-1 discards it, posDst sets the position).
+// store assigns the register r to the destination d (-1 discards it, posDst sets the position and
+// cutDst the cut flag).
 func (s *flowSel) store(d, r int) {
 	switch {
 	case d == posDst:
 		s.emit(bytecode.FlowInstr{Op: bytecode.FlowSetPos, Args: []int{r}})
+	case d == cutDst:
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowSetCut, Args: []int{r}})
 	case d >= 0:
 		s.emit(bytecode.FlowInstr{Op: bytecode.FlowMove, Dst: []int{d}, Args: []int{r}})
 	}
@@ -419,11 +425,16 @@ func (s *flowSel) expr(e code.Expr) (int, error) {
 		s.emit(bytecode.FlowInstr{Op: bytecode.FlowConst, Dst: []int{r}, Imm: v})
 		return r, nil
 	case *code.Reg:
-		if x.Name != flowpkg.Pos {
+		op := bytecode.FlowPos
+		switch x.Name {
+		case flowpkg.Pos:
+		case flowpkg.Cut:
+			op = bytecode.FlowCut
+		default:
 			return 0, fmt.Errorf("register %s has no bytecode Flow form", x.Name)
 		}
 		r := s.reg()
-		s.emit(bytecode.FlowInstr{Op: bytecode.FlowPos, Dst: []int{r}})
+		s.emit(bytecode.FlowInstr{Op: op, Dst: []int{r}})
 		return r, nil
 	case *code.Unary:
 		if x.Op != "!" {
@@ -507,8 +518,8 @@ func (s *flowSel) binary(x *code.Binary) (int, error) {
 // here is one Flow operation whose charges and effects its VM body reproduces.
 func (s *flowSel) call(c *code.Call, dst []int) error {
 	for _, d := range dst {
-		if d == posDst {
-			return fmt.Errorf("an operation that assigns the position has no bytecode Flow form")
+		if d == posDst || d == cutDst {
+			return fmt.Errorf("an operation that assigns a register has no bytecode Flow form")
 		}
 	}
 	args := func(es []code.Expr) ([]int, error) {
