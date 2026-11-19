@@ -2,6 +2,8 @@ package bytecode
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -109,7 +111,80 @@ func (m *Module) Disassemble() string {
 	for _, k := range m.RunKeys {
 		fmt.Fprintf(&b, "runKey site=%d vars=%s bind=%s\n", k.Site, names(k.Vars), names(k.Bind))
 	}
+	for _, rule := range slices.Sorted(maps.Keys(m.Flows)) {
+		f := m.Flows[rule]
+		name := fmt.Sprintf("rule%d", rule)
+		if rule >= 0 && rule < len(m.Rules) {
+			name = m.Strings[m.Rules[rule].Name]
+		}
+		fmt.Fprintf(&b, "flow %s regs=%d:\n", name, f.Regs)
+		for pc, in := range f.Code {
+			fmt.Fprintf(&b, "  %4d  %-10s %s\n", pc, in.Op, m.flowOperands(&in, str))
+		}
+	}
 	return b.String()
+}
+
+// flowOperands renders the registers, target and immediate of a Flow instruction: destinations
+// before an arrow (_ for a discarded one), then the arguments, the target and the immediate.
+func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
+	var parts []string
+	reg := func(r int) string {
+		if r < 0 {
+			return "_"
+		}
+		return fmt.Sprintf("r%d", r)
+	}
+	if len(in.Dst) > 0 {
+		ds := make([]string, len(in.Dst))
+		for i, d := range in.Dst {
+			ds[i] = reg(d)
+		}
+		parts = append(parts, strings.Join(ds, ",")+" =")
+	}
+	for _, a := range in.Args {
+		parts = append(parts, reg(a))
+	}
+	if s, _ := in.Op.Shape(); s.Target {
+		parts = append(parts, fmt.Sprintf("-> %d", in.Target))
+	}
+	switch x := in.Imm.(type) {
+	case nil:
+		if in.Op == FlowConst {
+			parts = append(parts, "nil")
+		}
+	case int, bool:
+		parts = append(parts, fmt.Sprint(x))
+	case FlowGuardOf:
+		g := fmt.Sprintf("class=%d", x.Class)
+		switch {
+		case x.Lit && x.Fold:
+			g = strconv.QuoteRune(x.Rune) + " fold"
+		case x.Lit:
+			g = strconv.QuoteRune(x.Rune)
+		case x.Class >= 0 && x.Class < len(m.Classes):
+			g = str(m.Classes[x.Class].Desc)
+		}
+		parts = append(parts, fmt.Sprintf("%s depth=%d", g, x.Depth))
+	case FlowExpectOf:
+		e := fmt.Sprintf("exp=%d", x.Exp)
+		if x.Exp >= FixedExps {
+			e = str(x.Exp - FixedExps)
+		}
+		if x.Message {
+			e += " message"
+		}
+		parts = append(parts, e)
+	case FlowCallOf:
+		r := fmt.Sprintf("rule%d", x.Rule)
+		if x.Rule >= 0 && x.Rule < len(m.Rules) {
+			r = m.Strings[m.Rules[x.Rule].Name]
+		}
+		parts = append(parts, fmt.Sprintf("%s level=%d", r, x.Level))
+	default:
+		parts = append(parts, fmt.Sprintf("%#v", x))
+	}
+	return strings.Join(parts, " ")
 }
 
 func (m *Module) operands(in Instr, str func(int) string, names func([]int) string) string {
