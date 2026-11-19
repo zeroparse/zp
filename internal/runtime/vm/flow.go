@@ -337,6 +337,23 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 			// As the match code's BIND, in the current frame.
 			x := in.Imm.(bytecode.FlowBindOf)
 			fr.set(in.Dst[0], vm.bind(p, x.Var, x.Term))
+		case bytecode.FlowKeep:
+			// As the match code keeps the expectations of a failed recovery body.
+			exps, _ := regs[in.Args[0]].([]state.ExpID)
+			fr.set(in.Dst[0], p.Keep(exps))
+		case bytecode.FlowMakeError:
+			exps, _ := regs[in.Args[1]].([]state.ExpID)
+			fr.set(in.Dst[0], p.MakeError(regs[in.Args[0]].(int), exps))
+		case bytecode.FlowAppendError:
+			p.PushRecovered(regs[in.Args[0]].(*value.SyntaxError))
+		case bytecode.FlowNewErrorNode:
+			fr.set(in.Dst[0], errorNode(p, regs[in.Args[0]].(int), regs[in.Args[1]].(*value.SyntaxError)))
+		case bytecode.FlowRecLen:
+			fr.set(in.Dst[0], len(p.Recovered))
+		case bytecode.FlowRestore:
+			// As the Go library's Restore.
+			p.Pos = regs[in.Args[0]].(int)
+			p.Recovered = p.Recovered[:regs[in.Args[1]].(int)]
 		default:
 			panic(fmt.Sprintf("internal error: vm: flow operation %d", in.Op))
 		}

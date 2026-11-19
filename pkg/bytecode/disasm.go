@@ -125,6 +125,11 @@ func (m *Module) Disassemble() string {
 	return b.String()
 }
 
+// skipRunSite reports whether site is a skip-run site: one that a SKIPREPEAT of the match code walks.
+func (m *Module) skipRunSite(site int) bool {
+	return slices.ContainsFunc(m.Code, func(in Instr) bool { return in.Op == OpSkipRepeat && int(in.B) == site })
+}
+
 // flowOperands renders the registers, target and immediate of a Flow instruction: destinations
 // before an arrow (_ for a discarded one), then the arguments, the target and the immediate.
 func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
@@ -178,6 +183,9 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 		parts = append(parts, fmt.Sprint(x))
 	case FlowRunWalkOf:
 		parts = append(parts, fmt.Sprintf("site=%d build=%t keyenv=%t", x.Site, x.Build, x.KeyEnv))
+		if m.skipRunSite(x.Site) {
+			parts = append(parts, "skip-run") // flow.skipBegin: the walk of a SKIPREPEAT's site
+		}
 	case FlowBindOf:
 		parts = append(parts, fmt.Sprintf("var=%d term=%d", x.Var, x.Term))
 	case FlowGuardOf:

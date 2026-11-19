@@ -1,10 +1,13 @@
 package engine
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // flowGrammar is a grammar of the tests of Flow bodies, with its inputs. want says that a Flow body of
@@ -16,11 +19,11 @@ type flowGrammar struct {
 }
 
 // checkFlowGrammars runs the grammars gs through both VM models with every rule that has a Flow body
-// running it: the trees and the errors must be those of the match code and of the reference parser
-// (the closure backend), and each grammar that wants it must run op from a Flow body. (Flow bodies
-// do not yet charge the units of the match code for every operation, so the charges are not
-// compared; PRED and BIND run the match code's evaluation, with its charges, and CUT and SETCUT
-// charge nothing.)
+// running it: the trees with the spans of their nodes and the errors must be those of the match code
+// and of the reference parser (the closure backend), with expectations recorded and without, and each
+// grammar that wants it must run op from a Flow body. (Flow bodies do not yet charge the units of the
+// match code for every operation, so the charges are not compared; PRED and BIND run the match code's
+// evaluation, with its charges, and CUT and SETCUT charge nothing.)
 func checkFlowGrammars(t *testing.T, gs []flowGrammar, op bytecode.FlowOp) {
 	t.Helper()
 	for _, g := range gs {
@@ -40,19 +43,47 @@ func checkFlowGrammars(t *testing.T, gs []flowGrammar, op bytecode.FlowOp) {
 			continue
 		}
 		for _, in := range g.inputs {
-			rt, re, _ := parseChargedWith(t, old, in, Closure)
-			for _, b := range []Backend{Bytecode, BytecodeIterative} {
-				ot, oe, _ := parseChargedWith(t, old, in, b)
-				ft, fe, _ := parseChargedWith(t, flows, in, b)
-				if ot != ft || oe != fe {
-					t.Errorf("%s, %v, input %q:\n match code %s %s\n flow       %s %s", g.name, b, in, ot, oe, ft, fe)
-				}
-				if ft != rt || fe != re {
-					t.Errorf("%s, %v, input %q:\n reference %s %s\n flow      %s %s", g.name, b, in, rt, re, ft, fe)
+			for _, exp := range []bool{false, true} {
+				rt, re := parseFlowCase(t, old, in, ParseOptions{Backend: Closure, Expectations: exp})
+				for _, b := range []Backend{Bytecode, BytecodeIterative} {
+					o := ParseOptions{Backend: b, Expectations: exp}
+					ot, oe := parseFlowCase(t, old, in, o)
+					ft, fe := parseFlowCase(t, flows, in, o)
+					if ot != ft || oe != fe {
+						t.Errorf("%s, %v, expectations %v, input %q:\n match code %s %s\n flow       %s %s", g.name, b, exp, in, ot, oe, ft, fe)
+					}
+					if ft != rt || fe != re {
+						t.Errorf("%s, %v, expectations %v, input %q:\n reference %s %s\n flow      %s %s", g.name, b, exp, in, rt, re, ft, fe)
+					}
 				}
 			}
 		}
 	}
+}
+
+// parseFlowCase parses input with prog and the options o, and returns the tree, followed by the spans
+// of its nodes in preorder, and the error.
+func parseFlowCase(t *testing.T, prog *Program, input string, o ParseOptions) (string, string) {
+	t.Helper()
+	n, msg, _ := parseChargedOpts(t, prog, input, o)
+	if n == nil {
+		return "<nil>", msg
+	}
+	var b strings.Builder
+	b.WriteString(n.String())
+	var walk func(n *value.Node)
+	walk = func(n *value.Node) {
+		if n == nil {
+			b.WriteString(" -")
+			return
+		}
+		fmt.Fprintf(&b, " %d-%d", n.Start(), n.End())
+		for _, k := range n.Elems() {
+			walk(k)
+		}
+	}
+	walk(n)
+	return b.String(), msg
 }
 
 // predicateBlocks returns the cases of predicate blocks as grammars of checkFlowGrammars that need not

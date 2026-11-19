@@ -725,6 +725,24 @@ func (s *flowSel) call(c *code.Call, dst []int) error {
 			return err
 		}
 		return s.op(bytecode.FlowBind, c, dst, bytecode.FlowBindOf{Var: s.c.prog.Vars.Index(x.Node.Var), Term: t})
+	case flowpkg.OpSkipBegin:
+		// A walk of a skip-run site begins as the match code's SKIPREPEAT begins it: without values,
+		// keyed by the variables unless the site is free of them. A skip-run site and a run site
+		// share the numbering of the parser's walk records, so RUNBEGIN begins either.
+		site := int(c.Imm.(flowpkg.Site))
+		return s.op(bytecode.FlowRunBegin, c, dst, bytecode.FlowRunWalkOf{Site: site, KeyEnv: !s.c.prog.EnvFree(site)})
+	case flowpkg.OpRecLen:
+		return s.op(bytecode.FlowRecLen, c, dst, nil)
+	case flowpkg.OpRestore:
+		return s.op(bytecode.FlowRestore, c, dst, nil)
+	case flowpkg.OpKeep:
+		return s.op(bytecode.FlowKeep, c, dst, nil)
+	case flowpkg.OpMakeError:
+		return s.op(bytecode.FlowMakeError, c, dst, nil)
+	case flowpkg.OpAppendError:
+		return s.op(bytecode.FlowAppendError, c, dst, nil)
+	case flowpkg.OpNewErrorNode:
+		return s.op(bytecode.FlowNewErrorNode, c, dst, nil)
 	case flowpkg.OpDeclareNames:
 		// It does nothing to the state: the names are those of the frame's scope.
 		return nil

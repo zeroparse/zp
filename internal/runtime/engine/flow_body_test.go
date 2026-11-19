@@ -18,6 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/bytecode"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // parseCharged parses input with the recursive bytecode VM of prog as Parse does, and returns the
@@ -30,7 +31,18 @@ func parseCharged(t *testing.T, prog *Program, input string) (string, string, ui
 // parseChargedWith is parseCharged on the backend b.
 func parseChargedWith(t *testing.T, prog *Program, input string, b Backend) (string, string, uint64) {
 	t.Helper()
-	o := ParseOptions{Backend: b}
+	n, msg, used := parseChargedOpts(t, prog, input, ParseOptions{Backend: b})
+	tree := "<nil>"
+	if n != nil {
+		tree = n.String()
+	}
+	return tree, msg, used
+}
+
+// parseChargedOpts is parseCharged with the options o (of which it reads the backend and the
+// recording of expectations), returning the tree as a node.
+func parseChargedOpts(t *testing.T, prog *Program, input string, o ParseOptions) (*value.Node, string, uint64) {
+	t.Helper()
 	start := prog.ResolveStart("")
 	active, _, control, err := prog.admitParse(start, o, optionsFamily(o), false, input)
 	if err != nil {
@@ -42,14 +54,11 @@ func parseChargedWith(t *testing.T, prog *Program, input string, b Backend) (str
 	p.Input = state.NewControlledTextInput(input, o.Unit, true, p.Scratch, control)
 	control.AttachMemory(p)
 	p.MaxDepth, _ = state.DepthLimit(o, o.Backend)
+	p.Expectations = o.Expectations
 	p.DeferMemo = true
 	n, err := active.Run(p, o.Backend, start)
 	if !p.Aborted {
 		control.Check()
-	}
-	tree := "<nil>"
-	if n != nil {
-		tree = n.String()
 	}
 	msg := "<nil>"
 	if err != nil {
@@ -59,7 +68,7 @@ func parseChargedWith(t *testing.T, prog *Program, input string, b Backend) (str
 	if control != nil {
 		used = control.Used
 	}
-	return tree, msg, used
+	return n, msg, used
 }
 
 // jsonFlowPrograms returns the JSON grammar compiled as usual, and the same grammar whose VM runs the

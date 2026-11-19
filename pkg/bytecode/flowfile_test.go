@@ -91,6 +91,12 @@ func flowModule() *bytecode.Module {
 		{Op: bytecode.FlowBind, Dst: []int{2}, Imm: bytecode.FlowBindOf{Var: 0, Term: 0}},
 		{Op: bytecode.FlowCut, Dst: []int{2}},
 		{Op: bytecode.FlowSetCut, Args: []int{2}},
+		{Op: bytecode.FlowKeep, Dst: []int{6}, Args: []int{6}},
+		{Op: bytecode.FlowMakeError, Dst: []int{7}, Args: []int{1, 6}},
+		{Op: bytecode.FlowAppendError, Args: []int{7}},
+		{Op: bytecode.FlowNewErrorNode, Dst: []int{0}, Args: []int{1, 7}},
+		{Op: bytecode.FlowRecLen, Dst: []int{1}},
+		{Op: bytecode.FlowRestore, Args: []int{1, 1}},
 		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
 	}}
 	return &bytecode.Module{
@@ -334,6 +340,12 @@ func TestFlowBodyDisassembly(t *testing.T) {
 		"    71  BIND       r2 = var=0 term=0\n",
 		"    72  CUT        r2 =\n",
 		"    73  SETCUT     r2\n",
+		"    74  KEEP       r6 = r6\n",
+		"    75  MAKEERROR  r7 = r1 r6\n",
+		"    76  APPENDERROR r7\n",
+		"    77  NEWERRORNODE r0 = r1 r7\n",
+		"    78  RECLEN     r1 =\n",
+		"    79  RESTORE    r1 r1\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("disassembly has no %q:\n%s", want, got)
@@ -367,6 +379,29 @@ func TestSpecFlowOperations(t *testing.T) {
 		s, ok := bytecode.FlowOp(code).Shape()
 		if !ok || s.Name != r[2] || s.Dst != d || s.Args != a {
 			t.Errorf("the specification has %s as code %d with %d destinations and %d arguments; the runtime has %+v", r[2], code, d, a, s)
+		}
+	}
+}
+
+// TestFlowSkipRunWalkDisassembly checks that the disassembly marks a RUNBEGIN of a skip-run site,
+// the form of flow.skipBegin, and no RUNBEGIN of another site.
+func TestFlowSkipRunWalkDisassembly(t *testing.T) {
+	m := &bytecode.Module{
+		Strings: []string{"main"},
+		Rules:   []bytecode.RuleInfo{{Name: 0, Action: -1, NodeType: -1, OperatorsRule: -1, Where: -1}},
+		Code:    []bytecode.Instr{{Op: bytecode.OpSkipRepeat, A: 0, B: 1, C: 2}, {Op: bytecode.OpReturn}},
+		Flows: map[int]*bytecode.Flow{0: {Code: []bytecode.FlowInstr{
+			{Op: bytecode.FlowRunBegin, Imm: bytecode.FlowRunWalkOf{Site: 1}},
+			{Op: bytecode.FlowRunBegin, Imm: bytecode.FlowRunWalkOf{Site: 2}},
+		}}},
+	}
+	got := m.Disassemble()
+	for _, want := range []string{
+		"     0  RUNBEGIN   site=1 build=false keyenv=false skip-run\n",
+		"     1  RUNBEGIN   site=2 build=false keyenv=false\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("disassembly has no %q:\n%s", want, got)
 		}
 	}
 }
