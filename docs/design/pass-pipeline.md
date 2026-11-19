@@ -166,8 +166,13 @@ The Core IR of a Node or recognizer table and the options its functions are lowe
 the same package, which both call: it elaborates the program with or without the projected values of the Node table,
 runs the Core passes through the caller's driver, and sets the lowering options from what the parser charges and
 records (budget controls, observation, Documents, traced bodies). The VM builds the Node table of a parse with budget
-controls at the default optimizations and runs the driver's Flow and Exec passes, so its functions are those of the
-generated Go parser with budget controls, except for the forms that only the Go target prints (inline literals).
+controls at the default optimizations and runs the driver's Flow and Exec passes, the Flow passes for a target of its
+own, the bytecode target of the Flow passes, so its functions are those of the generated Go parser with budget controls
+in the forms the VM runs. The bytecode target declares what the VM prints beyond the forms of every backend: none of
+the forms of the Flow passes. The forms of typed rules do not apply to the Node table, guarded classes apply only to
+functions without budget controls, and the VM has no instruction that compares a literal in place, so it matches each
+literal as the lowering wrote it. Each form charges what it replaces, so the VM's functions charge what the Go
+parser's do.
 
 The plan of a table is computed from the Core IR of the table after its Core passes, the rules of the table (value-free
 twins included) as the plan reads them: their definitions, actions and run-time facts, and the rules that the backend

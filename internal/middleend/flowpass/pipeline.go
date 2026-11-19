@@ -52,6 +52,17 @@ type Target struct {
 	InlineLiterals bool
 }
 
+// Bytecode is the target of the bytecode VM, which runs the Flow functions of the Node table with an
+// instruction for each Flow operation (spec/bytecode/README.md, Flow Bodies). It prints none of the
+// forms of the passes, so the VM runs the operations that the lowering wrote; it charges what a
+// target that prints the forms charges, since each form keeps the charges of what it replaces:
+//   - Terminals, ClassRuns and ClassTables apply to typed rules only, which the VM does not run.
+//   - GuardedClasses applies to functions without budget controls only; the VM's Node table has
+//     them.
+//   - InlineLiterals: no instruction compares a literal in place. hasLit charges what matchLit
+//     charges for the match it reads and nothing for a miss, after which matchLit runs.
+var Bytecode = Target{Terminals: false, ClassRuns: false, ClassTables: false, GuardedClasses: false, InlineLiterals: false}
+
 // On reports whether the optimization of the given name is on.
 func (e *Env) On(name string) bool { return e.Flag == nil || e.Flag(name) }
 

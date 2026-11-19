@@ -26,8 +26,8 @@ type FlowTable struct {
 // FlowTable builds the Node table of the program the way the generated Go parser with budget
 // controls builds its Node table, so that the VM runs the same functions: the same Core IR and
 // lowering options (flowplan.BuildTable), the same plan (flowplan.Plan) and the Core, Flow and Exec
-// steps of the driver at the default optimizations. The VM prints none of the forms that only a
-// backend's own target prints (flowpass.Target).
+// steps of the driver at the default optimizations, the Flow passes for the VM's target
+// (flowpass.Bytecode).
 func (s *Source) FlowTable() (*FlowTable, error) {
 	p := s.prog
 	d := &driver.Driver{}
@@ -41,7 +41,7 @@ func (s *Source) FlowTable() (*FlowTable, error) {
 	plan := flowplan.Plan(t.M, planRules(rules), nil)
 	ft := &FlowTable{IR: t, Plan: plan, Bodies: map[int]*code.Module{}}
 	lower := func(spec *flowplan.FuncSpec) (*code.Module, error) {
-		f, err := d.FlowFunc("rules", t.Unit(spec.Func), false, flowpass.Target{})
+		f, err := d.FlowFunc("rules", t.Unit(spec.Func), false, flowpass.Bytecode)
 		if err != nil {
 			return nil, fmt.Errorf("function %s of table rules: %w", spec.Name, err)
 		}
