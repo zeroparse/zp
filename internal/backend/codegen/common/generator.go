@@ -17,7 +17,6 @@ import (
 	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/runtime/limits"
 	"zeroparse.dev/zp/internal/runtime/program"
-	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Generator is the state that the Go and TypeScript generators share: the program and rule being
@@ -318,21 +317,19 @@ func FrameScope(names []string) *check.Scope {
 }
 
 // StartRecFlow builds the Core IR of the program rec (the recognizer, or the program of the Node
-// table), with the passes of the untyped tables (no terminal programs and no class runs), for
-// printing its eligible rules from Flow IR. It runs the pipeline of Core passes: the guards and the
-// scans. Terminals and class runs
-// apply only to lean typed rules (the Flow passes, flowpass.Target): the Node recognizer writes its
-// terminals and classes as inline tests.
+// table) with the Core passes of the generator, and the options its functions are lowered with
+// (flowplan.BuildTable), for printing its rules from Flow IR. The bytecode VM builds the Node table it
+// runs from Flow IR through the same function.
 func (g *Generator) StartRecFlow(rec *Program) error {
-	origin := map[core.Node]ast.Expr{}
-	m, err := g.Core(g.IRTable(), func() (*core.Module, error) { return irbuild.CoreProjecting(rec.Elab, origin, g.Table != "recRules") })
+	c := flowplan.TableConfig{Values: g.Table != "recRules", Budget: !g.NoBudget, Observe: g.Observability,
+		Document: g.RecordsExamined(), Traced: g.Traced}
+	t, err := flowplan.BuildTable(rec.Elab, c, func(build func() (*core.Module, error)) (*core.Module, error) {
+		return g.Core(g.IRTable(), build)
+	})
 	if err != nil {
 		return err
 	}
-	// Classes are inline tests, as the Node library's generated code writes them.
-	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), Observe: g.Observability, Node: true,
-		Document: g.RecordsExamined(), Traced: g.Traced}
-	g.Flow = &FlowState{M: m, Origin: irbuild.OriginByID(origin), Opts: opts, Rules: append(append([]*Rule(nil), rec.RuleList...), rec.Twins...)}
+	g.Flow = &FlowState{M: t.M, Origin: t.Origin, Opts: t.Opts, Rules: append(append([]*Rule(nil), rec.RuleList...), rec.Twins...)}
 	return nil
 }
 
