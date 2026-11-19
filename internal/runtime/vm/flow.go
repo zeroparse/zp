@@ -135,6 +135,75 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 			if n := asNode(regs[in.Args[0]]); n != nil {
 				nodes.D(n).Fresh = false
 			}
+		case bytecode.FlowAdd:
+			fr.set(in.Dst[0], regs[in.Args[0]].(int)+regs[in.Args[1]].(int))
+		case bytecode.FlowSub:
+			fr.set(in.Dst[0], regs[in.Args[0]].(int)-regs[in.Args[1]].(int))
+		case bytecode.FlowEq:
+			fr.set(in.Dst[0], flowEqual(regs[in.Args[0]], regs[in.Args[1]]))
+		case bytecode.FlowNe:
+			fr.set(in.Dst[0], !flowEqual(regs[in.Args[0]], regs[in.Args[1]]))
+		case bytecode.FlowLt:
+			fr.set(in.Dst[0], flowInt(regs[in.Args[0]]) < flowInt(regs[in.Args[1]]))
+		case bytecode.FlowLe:
+			fr.set(in.Dst[0], flowInt(regs[in.Args[0]]) <= flowInt(regs[in.Args[1]]))
+		case bytecode.FlowStep:
+			p.Spend()
+		case bytecode.FlowSilent:
+			// As the match code's LOOK and END_LOOK, and its unwinding of a lookahead.
+			x := in.Imm.(bytecode.FlowSilenceOf)
+			if x.Delta > 0 {
+				p.Silent++
+				p.LookBegin(x.Site)
+			} else {
+				p.LookEnd(x.Ok)
+				p.Silent--
+			}
+		case bytecode.FlowAdvance:
+			p.Pos += regs[in.Args[0]].(int)
+		case bytecode.FlowInClass:
+			fr.set(in.Dst[0], vm.has(p, int32(in.Imm.(int)), regs[in.Args[0]].(rune)))
+		case bytecode.FlowAtAnchor:
+			// As the match code's ASSERT.
+			var at bool
+			switch in.Imm.(int) {
+			case 0:
+				at = p.AtInputStart()
+			case 1:
+				at = p.AtEOF()
+			case 2:
+				at = p.AtLineStart()
+			default:
+				ch, _, more := p.Peek()
+				at = !more || ch == '\n' || ch == '\r'
+			}
+			fr.set(in.Dst[0], at)
+		case bytecode.FlowMatchLit:
+			// As the match code's STR and STR_FOLD, except that a failure leaves the position where it
+			// was, as flow.matchLit does.
+			x := in.Imm.(bytecode.FlowLitOf)
+			start := p.Pos
+			var ok bool
+			if x.Fold {
+				ok = p.MatchLiteralFold(vm.runes[x.Str])
+			} else {
+				ok = p.MatchLiteral(vm.runes[x.Str], vm.bytes[x.Str])
+			}
+			if !ok {
+				p.Expect(start, state.ExpID(x.Exp))
+				p.Pos = start
+			}
+			fr.set(in.Dst[0], nil)
+			fr.set(in.Dst[1], ok)
+		case bytecode.FlowIsolate:
+			fr.set(in.Dst[0], p.Isolate(p.Pos))
+		case bytecode.FlowUnisolate:
+			far, inner := p.Unisolate(regs[in.Args[0]].(state.ExpMark))
+			fr.set(in.Dst[0], far)
+			fr.set(in.Dst[1], inner)
+		case bytecode.FlowMergeExpected:
+			exps, _ := regs[in.Args[1]].([]state.ExpID)
+			p.MergeExpected(regs[in.Args[0]].(int), exps)
 		default:
 			panic(fmt.Sprintf("internal error: vm: flow operation %d", in.Op))
 		}
@@ -147,4 +216,25 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 func asNode(v any) *value.Node {
 	n, _ := v.(*value.Node)
 	return n
+}
+
+// flowInt returns the integer that a register holds: an int or a character.
+func flowInt(v any) int {
+	if r, ok := v.(rune); ok {
+		return int(r)
+	}
+	return v.(int)
+}
+
+// flowEqual reports whether two registers hold equal values; an int and a character compare as
+// integers.
+func flowEqual(a, b any) bool {
+	switch a.(type) {
+	case int, rune:
+		switch b.(type) {
+		case int, rune:
+			return flowInt(a) == flowInt(b)
+		}
+	}
+	return a == b
 }

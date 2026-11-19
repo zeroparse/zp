@@ -78,7 +78,7 @@ func (c *compiler) flow(fn *code.Func, rule int) (*bytecode.Flow, error) {
 	if a.Rule == nil || a.Rule.ID != rule {
 		return nil, fmt.Errorf("the function is not the body of rule %d", rule)
 	}
-	s := &flowSel{c: c, f: &bytecode.Flow{}, regs: map[string]int{}, labels: map[string][]int{}}
+	s := &flowSel{c: c, f: &bytecode.Flow{}, regs: map[string]int{}, labels: map[string][]int{}, conts: map[string][]int{}}
 	for _, p := range fn.Locals {
 		r := s.local(p.Name)
 		zero, err := zeroOf(p.Type)
@@ -117,7 +117,7 @@ func (c *compiler) flow(fn *code.Func, rule int) (*bytecode.Flow, error) {
 		s.f.Code[j].Target = failAt
 	}
 	delete(s.labels, a.Fail)
-	if len(s.labels) > 0 {
+	if len(s.labels) > 0 || len(s.conts) > 0 {
 		return nil, fmt.Errorf("an exit to a block that does not enclose it")
 	}
 	return s.f, nil
@@ -137,12 +137,14 @@ func zeroOf(t code.Type) (any, error) {
 }
 
 // flowSel selects the instructions of one Flow function: regs maps its locals to registers, and
-// labels holds the jumps that wait for the end of each block they exit.
+// labels holds the jumps that wait for the end of each block or loop they exit, and conts those that
+// wait for the next iteration of each loop they continue.
 type flowSel struct {
 	c      *compiler
 	f      *bytecode.Flow
 	regs   map[string]int
 	labels map[string][]int
+	conts  map[string][]int
 }
 
 func (s *flowSel) reg() int {
@@ -198,6 +200,16 @@ func (s *flowSel) stmt(st code.Stmt) error {
 		j := s.emit(bytecode.FlowInstr{Op: bytecode.FlowJump})
 		s.labels[x.Label] = append(s.labels[x.Label], j)
 		return nil
+	case *code.Break:
+		j := s.emit(bytecode.FlowInstr{Op: bytecode.FlowJump})
+		s.labels[x.Label] = append(s.labels[x.Label], j)
+		return nil
+	case *code.Continue:
+		j := s.emit(bytecode.FlowInstr{Op: bytecode.FlowJump})
+		s.conts[x.Label] = append(s.conts[x.Label], j)
+		return nil
+	case *code.Loop:
+		return s.loop(x)
 	case *code.Return:
 		if len(x.Values) != 2 {
 			return fmt.Errorf("a return of %d values has no bytecode Flow form", len(x.Values))
@@ -249,6 +261,48 @@ func (s *flowSel) stmt(st code.Stmt) error {
 		return s.set(x)
 	}
 	return fmt.Errorf("statement %T has no bytecode Flow form", st)
+}
+
+// loop emits the loop x: Init, then at the top the check of Cond, the body, and Post, which a
+// Continue reaches, before the jump back to the top. A Break or an Exit to its label leaves it.
+func (s *flowSel) loop(x *code.Loop) error {
+	if x.Init != nil {
+		if err := s.set(x.Init); err != nil {
+			return err
+		}
+	}
+	top := len(s.f.Code)
+	jf := -1
+	if x.Cond != nil {
+		cond, err := s.expr(x.Cond)
+		if err != nil {
+			return err
+		}
+		jf = s.emit(bytecode.FlowInstr{Op: bytecode.FlowJumpFalse, Args: []int{cond}})
+	}
+	if err := s.block(x.Body); err != nil {
+		return err
+	}
+	post := len(s.f.Code)
+	if x.Post != nil {
+		if err := s.set(x.Post); err != nil {
+			return err
+		}
+	}
+	s.emit(bytecode.FlowInstr{Op: bytecode.FlowJump, Target: top})
+	end := len(s.f.Code)
+	if jf >= 0 {
+		s.f.Code[jf].Target = end
+	}
+	for _, j := range s.conts[x.Label] {
+		s.f.Code[j].Target = post
+	}
+	for _, j := range s.labels[x.Label] {
+		s.f.Code[j].Target = end
+	}
+	delete(s.conts, x.Label)
+	delete(s.labels, x.Label)
+	return nil
 }
 
 // set assigns the places of x: with a call of as many results as places, its results, otherwise
@@ -368,8 +422,65 @@ func (s *flowSel) expr(e code.Expr) (int, error) {
 			return 0, err
 		}
 		return r, nil
+	case *code.Binary:
+		return s.binary(x)
 	}
 	return 0, fmt.Errorf("expression %T has no bytecode Flow form", e)
+}
+
+// binaryOps holds the instruction of each binary operator, and whether it takes its operands swapped.
+var binaryOps = map[string]struct {
+	op   bytecode.FlowOp
+	swap bool
+}{
+	"+": {bytecode.FlowAdd, false}, "-": {bytecode.FlowSub, false},
+	"==": {bytecode.FlowEq, false}, "!=": {bytecode.FlowNe, false},
+	"<": {bytecode.FlowLt, false}, "<=": {bytecode.FlowLe, false},
+	">": {bytecode.FlowLt, true}, ">=": {bytecode.FlowLe, true},
+}
+
+// binary evaluates x and returns the register of its value. || and && evaluate their right operand
+// only when the left one does not decide the value.
+func (s *flowSel) binary(x *code.Binary) (int, error) {
+	if x.Op == "||" || x.Op == "&&" {
+		l, err := s.expr(x.X)
+		if err != nil {
+			return 0, err
+		}
+		r := s.reg()
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowMove, Dst: []int{r}, Args: []int{l}})
+		test := r
+		if x.Op == "||" {
+			test = s.reg()
+			s.emit(bytecode.FlowInstr{Op: bytecode.FlowNot, Dst: []int{test}, Args: []int{r}})
+		}
+		jf := s.emit(bytecode.FlowInstr{Op: bytecode.FlowJumpFalse, Args: []int{test}})
+		y, err := s.expr(x.Y)
+		if err != nil {
+			return 0, err
+		}
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowMove, Dst: []int{r}, Args: []int{y}})
+		s.f.Code[jf].Target = len(s.f.Code)
+		return r, nil
+	}
+	b, ok := binaryOps[x.Op]
+	if !ok {
+		return 0, fmt.Errorf("binary %s has no bytecode Flow form", x.Op)
+	}
+	l, err := s.expr(x.X)
+	if err != nil {
+		return 0, err
+	}
+	y, err := s.expr(x.Y)
+	if err != nil {
+		return 0, err
+	}
+	if b.swap {
+		l, y = y, l
+	}
+	r := s.reg()
+	s.emit(bytecode.FlowInstr{Op: b.op, Dst: []int{r}, Args: []int{l, y}})
+	return r, nil
 }
 
 // call emits the operation c with its results in dst (nil for none). Each operation selected
@@ -450,6 +561,59 @@ func (s *flowSel) call(c *code.Call, dst []int) error {
 			return fmt.Errorf("rule %d is %s in the Core IR and %s in the module", x.Rule, want, got)
 		}
 		s.emit(bytecode.FlowInstr{Op: bytecode.FlowCall, Dst: dst, Imm: bytecode.FlowCallOf{Rule: x.Rule, Level: x.Level}})
+	case flowpkg.OpStep:
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowStep})
+	case flowpkg.OpSilent:
+		x := c.Imm.(flowpkg.Silence)
+		if x.Delta != 1 && x.Delta != -1 {
+			return fmt.Errorf("flow.silent by %d", x.Delta)
+		}
+		// The match code names a lookahead by the index of its instruction, so the sites of Flow
+		// bodies follow the instructions, where no instruction can take them.
+		site := -1
+		if x.Site != 0 {
+			site = len(s.c.m.Code) + x.Site
+		}
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowSilent, Imm: bytecode.FlowSilenceOf{Delta: x.Delta, Site: site, Ok: x.Delta == -1 && x.Ok}})
+	case flowpkg.OpAdvance:
+		a, err := args(c.Args)
+		if err != nil {
+			return err
+		}
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowAdvance, Args: a})
+	case flowpkg.OpInClass:
+		a, err := args(c.Args)
+		if err != nil {
+			return err
+		}
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowInClass, Dst: dst, Args: a, Imm: int(s.c.class(c.Imm.(*ir.Class)))})
+	case flowpkg.OpAtAnchor:
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowAtAnchor, Dst: dst, Imm: int(c.Imm.(ir.AnchorKind))})
+	case flowpkg.OpMatchLit:
+		lit := c.Imm.(*ir.Lit)
+		of := bytecode.FlowLitOf{Fold: lit.Fold}
+		// The operands are interned as the match code interns them: the text, then the expectation.
+		if lit.Fold {
+			of.Str = int(s.c.str(string(compile.FoldedRunes([]rune(lit.Text)))))
+		} else {
+			of.Str = int(s.c.str(lit.Text))
+		}
+		of.Exp = int(program.NumFixedDescs) + int(s.c.litDesc(lit))
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowMatchLit, Dst: dst, Imm: of})
+	case flowpkg.OpIsolate:
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowIsolate, Dst: dst})
+	case flowpkg.OpUnisolate:
+		a, err := args(c.Args)
+		if err != nil {
+			return err
+		}
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowUnisolate, Dst: dst, Args: a})
+	case flowpkg.OpMergeExpected:
+		a, err := args(c.Args)
+		if err != nil {
+			return err
+		}
+		s.emit(bytecode.FlowInstr{Op: bytecode.FlowMergeExpected, Args: a})
 	default:
 		return fmt.Errorf("operation %s has no bytecode Flow form yet", c.Callee)
 	}
