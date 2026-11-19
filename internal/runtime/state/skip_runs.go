@@ -580,43 +580,58 @@ func (p *Parser) SkipEnd() {
 }
 
 // SkipEndList ends a walk begun with SkipBeginList as SkipEnd does, and returns the list node of
-// the values of its iterations for the range from start to the current position, or nil if build
-// is false. The list may share its elements with the lists of other walks. Taking the n values that
-// the walk gathered off into the list is one reservation of 2n units, made before any of them moves,
-// as Parser.Kids makes for a repetition that keeps no records; the elements that a reused record
-// adds after them are charged as copies where they are copied. Without a list, dropping the gathered
-// values is charged if chargeClear is set, as the closure backend charges dropping its element
-// stack; the bytecode machine pops its elements uncharged.
+// the values of its iterations for the range from start to the current position (SkipKids), or nil
+// if build is false. Without a list, dropping the gathered values is charged if chargeClear is set,
+// as the closure backend charges dropping its element stack; the bytecode machine pops its elements
+// uncharged.
 func (p *Parser) SkipEndList(start int, build, chargeClear bool) *value.Node {
-	if n := len(p.walk().vals); build && n > 0 {
-		p.SpendValue(2 * n)
-	}
-	p.skipEnd(build)
-	w := p.walk()
-	var kids []*value.Node
 	if build {
-		if w.placed {
-			kids = w.buf.a[w.lo:len(w.buf.a):len(w.buf.a)]
-		} else {
-			kids = p.Nodes(len(w.vals))
-			copy(kids, w.vals)
-		}
+		kids := p.SkipKids()
+		return p.NewNode(nodes.Data{Kind: valueimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
 	}
-	if chargeClear && !build {
+	p.skipEnd(false)
+	w := p.walk()
+	if chargeClear {
 		ClearSpend(p, w.vals)
 	} else {
 		clear(w.vals)
 	}
 	w.vals, w.buf = w.vals[:0], nil
 	p.skipN--
-	if !build {
-		return nil
+	return nil
+}
+
+// SkipEndDrop is flow.skipEnd: it ends the walk as SkipEnd does and drops the values that a walk
+// begun with SkipBeginList gathered, charging their drop as the Go library's SkipEnd does.
+func (p *Parser) SkipEndDrop() { p.SkipEndList(0, false, true) }
+
+// SkipKids is flow.skipKids: it ends a walk begun with SkipBeginList as SkipEnd does, and returns
+// the values of its iterations, then those of the record it took, as a child list. The list may
+// share its elements with the lists of other walks. Taking the n values that the walk gathered off
+// into the list is one reservation of 2n units, made before any of them moves, as Parser.Kids makes
+// for a repetition that keeps no records; the elements that a reused record adds after them are
+// charged as copies where they are copied.
+func (p *Parser) SkipKids() []*value.Node {
+	if n := len(p.walk().vals); n > 0 {
+		p.SpendValue(2 * n)
 	}
-	return p.NewNode(nodes.Data{Kind: valueimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
+	p.skipEnd(true)
+	w := p.walk()
+	var kids []*value.Node
+	if w.placed {
+		kids = w.buf.a[w.lo:len(w.buf.a):len(w.buf.a)]
+	} else {
+		kids = p.Nodes(len(w.vals))
+		copy(kids, w.vals)
+	}
+	clear(w.vals)
+	w.vals, w.buf = w.vals[:0], nil
+	p.skipN--
+	return kids
 }
 
 // skipEnd ends the walk and records the rest of it from each position it visited recording. paid
-// says that the move of the gathered values into the list has been charged (SkipEndList).
+// says that the move of the gathered values into the list has been charged (SkipKids).
 func (p *Parser) skipEnd(paid bool) {
 	w := p.walk()
 	if !w.on {

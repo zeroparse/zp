@@ -161,6 +161,8 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 			parts = append(parts, strconv.Quote(m.Strings[x]))
 		case s.Imm == FlowImmSlot:
 			parts = append(parts, fmt.Sprintf("slot=%d", x))
+		case s.Imm == FlowImmRunSite, s.Imm == FlowImmScanSite:
+			parts = append(parts, fmt.Sprintf("site=%d", x))
 		case s.Imm == FlowImmScope && x >= 0 && x < len(m.Scopes):
 			ns := make([]string, len(m.Scopes[x]))
 			for i, id := range m.Scopes[x] {
@@ -172,6 +174,8 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 		}
 	case bool:
 		parts = append(parts, fmt.Sprint(x))
+	case FlowRunWalkOf:
+		parts = append(parts, fmt.Sprintf("site=%d build=%t keyenv=%t", x.Site, x.Build, x.KeyEnv))
 	case FlowGuardOf:
 		g := fmt.Sprintf("class=%d", x.Class)
 		switch {

@@ -212,6 +212,9 @@ type Parser struct {
 	skipN      int
 	// runCold holds what the walks of each run site did before the site turned hot (skip_runs.go).
 	runCold []runCold
+	// scan is the walk of a scan site of a Flow body that has reached ScanHotSpan characters
+	// (scan_sites.go).
+	scan flowScan
 	// skipBytes counts the bytes of the element buffers and error lists of the skip-run records.
 	skipBytes uint64
 	// Scratch holds the pooled buffers the parser uses (AcquirePooledParser), or nil.

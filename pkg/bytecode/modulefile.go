@@ -230,7 +230,15 @@ func (w *Encoder) flowImm(k FlowImm, v any) {
 		w.Int(x.Delta)
 		w.Int(x.Site)
 		w.Bool(x.Ok)
-	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope:
+	case FlowImmRunWalk:
+		x, ok := v.(FlowRunWalkOf)
+		if !ok {
+			bad()
+		}
+		w.Int(x.Site)
+		w.Bool(x.Build)
+		w.Bool(x.KeyEnv)
+	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope, FlowImmRunSite, FlowImmScanSite:
 		x, ok := v.(int)
 		if !ok {
 			bad()
@@ -528,7 +536,9 @@ func (r *Decoder) flowImm(k FlowImm) any {
 		return FlowLitOf{Str: int(r.int32()), Exp: int(r.int32()), Fold: r.Bool()}
 	case FlowImmSilence:
 		return FlowSilenceOf{Delta: int(r.int32()), Site: int(r.int32()), Ok: r.Bool()}
-	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope:
+	case FlowImmRunWalk:
+		return FlowRunWalkOf{Site: int(r.int32()), Build: r.Bool(), KeyEnv: r.Bool()}
+	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope, FlowImmRunSite, FlowImmScanSite:
 		return int(r.int32())
 	case FlowImmShape:
 		x := FlowShapeOf{Elems: r.Bool(), Shared: r.Bool(), Tuple: r.Bool()}
@@ -1195,6 +1205,27 @@ func validateFlowImm(m *Module, slots int, k FlowImm, v any) error {
 		var x int
 		if x, ok = v.(int); ok && (x < 0 || x >= len(m.Scopes)) {
 			return fmt.Errorf("scope %d out of range", x)
+		}
+	case FlowImmRunSite:
+		var x int
+		if x, ok = v.(int); ok && (x < 1 || x > len(m.Code)) {
+			return fmt.Errorf("invalid run site %d", x)
+		}
+	case FlowImmRunWalk:
+		var x FlowRunWalkOf
+		if x, ok = v.(FlowRunWalkOf); !ok {
+			break
+		}
+		if x.Site < 1 || x.Site > len(m.Code) {
+			return fmt.Errorf("invalid run site %d", x.Site)
+		}
+		if x.KeyEnv && !slices.ContainsFunc(m.RunKeys, func(k RunKeyInfo) bool { return k.Site == x.Site }) {
+			return fmt.Errorf("run site %d is keyed by the variables but has no run key", x.Site)
+		}
+	case FlowImmScanSite:
+		var x int
+		if x, ok = v.(int); ok && (x < 1 || int64(x) > int64(scanSiteLimit(len(m.Code)))) {
+			return fmt.Errorf("invalid scan site %d", x)
 		}
 	case FlowImmShape:
 		var x FlowShapeOf
