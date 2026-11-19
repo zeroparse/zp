@@ -61,3 +61,37 @@ func TestModelReadersReadNoCheckedProgram(t *testing.T) {
 		}
 	}
 }
+
+// generatorReaders are the generator packages that are to read a checked grammar only through the
+// view of package common (common.Program), which internal/driver/checked builds. Until the printers
+// read the view (generatorsReadTheView), they still reach the checked program.
+var generatorReaders = []string{
+	"internal/backend/codegen/common",
+	"internal/backend/codegen/golang/print",
+	"internal/backend/codegen/typescript/print",
+}
+
+// generatorsReadTheView switches TestGeneratorsReadNoCheckedProgram on: it is set with the change
+// that makes the printers read the view.
+const generatorsReadTheView = false
+
+// TestGeneratorsReadNoCheckedProgram checks, in every build, that no package of generatorReaders
+// reaches the checked program of the compiler. While generatorsReadTheView is false it checks the
+// opposite, that each still does, so that the check cannot stay off once they no longer do.
+func TestGeneratorsReadNoCheckedProgram(t *testing.T) {
+	for _, g := range loadAll(t) {
+		for _, rel := range generatorReaders {
+			from := modulePath + "/" + rel
+			if _, ok := g.pkgs[from]; !ok {
+				t.Fatalf("build %q: no package %s", g.tags, rel)
+			}
+			chain := g.shortestChain([]string{from}, checkedProgramPackage, func(a, b string) bool { return inModule(b) })
+			switch {
+			case generatorsReadTheView && chain != nil:
+				t.Errorf("build %q: %s reaches the checked program: %s", g.tags, rel, strings.Join(chain, " -> "))
+			case !generatorsReadTheView && chain == nil:
+				t.Errorf("build %q: %s no longer reaches the checked program: set generatorsReadTheView", g.tags, rel)
+			}
+		}
+	}
+}

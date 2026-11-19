@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/pass"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
@@ -226,7 +225,21 @@ func Describe(e ast.Expr) string {
 	return s
 }
 
-// Compiler compiles a grammar for a generator. It returns the compiled program and a function
-// that returns the program of its recognizer (the program in which no rule builds a value),
-// which it compiles on first use.
-type Compiler func(g *ast.Grammar, opts compile.Options) (prog *compile.Program, recognizer func() (*compile.Program, error), err error)
+// CompileOptions are the choices of the check of a grammar that a generator asks its Compiler for;
+// each means what the compiler option of the same name means (compile.Options).
+type CompileOptions struct {
+	// SourceInfo records source information in the values: the rule that produced each node and
+	// where its captures are.
+	SourceInfo bool
+	// DefaultValue makes every rule produce the default value of its expression: value actions and
+	// the declared types of rules are dropped.
+	DefaultValue bool
+	// LeftRecursionBindings accepts a binding that may run before a left call into a cycle that
+	// reads its variable, for tests of the left-recursion guard.
+	LeftRecursionBindings bool
+}
+
+// Compiler checks a grammar for a generator. It returns the view of the checked grammar and a
+// function that returns the view of its recognizer (the program in which no rule builds a value),
+// which it checks on first use.
+type Compiler func(g *ast.Grammar, opts CompileOptions) (prog *Program, recognizer func() (*Program, error), err error)

@@ -92,10 +92,11 @@ func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h
 		return nil, err
 	}
 	printAfter, _ := driver.ParsePrintAfter(opts.PrintAfter)
-	prog, recognizer, err := c(g, compile.Options{SourceInfo: opts.SourceInfo, DefaultValue: opts.DefaultValue, LeftRecursionBindings: opts.LeftRecursionBindings})
+	view, recognizer, err := c(g, common.CompileOptions{SourceInfo: opts.SourceInfo, DefaultValue: opts.DefaultValue, LeftRecursionBindings: opts.LeftRecursionBindings})
 	if err != nil {
 		return nil, err
 	}
+	prog := view.Checked
 	if prog.HasMissing {
 		return nil, rprogram.MissingUnsupported("generated parsers")
 	}
@@ -105,9 +106,11 @@ func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h
 	}
 	var rec *compile.Program
 	if opts.Recognize {
-		if rec, err = recognizer(); err != nil {
+		recView, err := recognizer()
+		if err != nil {
 			return nil, err
 		}
+		rec = recView.Checked
 	}
 	live, err := reachableRules(prog, rec, start, opts.Document)
 	if err != nil {

@@ -10,7 +10,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
@@ -150,11 +149,11 @@ func TestAnalyzeFeatures(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		prog, _, err := codegentest.Compile(g, compile.Options{})
+		view, _, err := codegentest.Compile(g, common.CompileOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := common.Analyze(prog, nil, tc.opts)
+		got, err := common.Analyze(view.Checked, nil, tc.opts)
 		if err != nil {
 			t.Fatal(err)
 		}

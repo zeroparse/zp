@@ -33,7 +33,7 @@ func TestGeneratorRecognizerCarriesEveryOption(t *testing.T) {
 				t.Fatalf("option %s is a %s: the test must say how to set it", name, f.Kind())
 			}
 			o.LeftRecursionBindings = true // the grammar needs it
-			prog, recognizer, err := Compile(g, o)
+			prog, recognizer, err := checkForGenerator(g, o)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -190,10 +190,11 @@ func generateOnce(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *
 	if err != nil {
 		return nil, err
 	}
-	prog, recognizer, err := c(g, compile.Options{SourceInfo: opts.SourceInfo, DefaultValue: opts.DefaultValue, LeftRecursionBindings: opts.LeftRecursionBindings})
+	view, recognizer, err := c(g, common.CompileOptions{SourceInfo: opts.SourceInfo, DefaultValue: opts.DefaultValue, LeftRecursionBindings: opts.LeftRecursionBindings})
 	if err != nil {
 		return nil, err
 	}
+	prog := view.Checked
 	if prog.HasMissing {
 		return nil, rprogram.MissingUnsupported("generated parsers")
 	}
@@ -240,9 +241,11 @@ func generateOnce(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *
 	var rec *compile.Program
 	if opts.Recognize {
 		// The recognizer: the program in which no rule builds a value, in a rule table of its own.
-		if rec, err = recognizer(); err != nil {
+		recView, err := recognizer()
+		if err != nil {
 			return nil, err
 		}
+		rec = recView.Checked
 		genGo.Prog, genGo.Table = rec, "recRules"
 		if err := genGo.StartRecFlow(rec); err != nil {
 			return nil, err

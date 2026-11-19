@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/checked"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
@@ -137,9 +138,13 @@ func Reference(t *testing.T, src string, opts compile.Options) codegentest.Refer
 	}
 }
 
-// CompileForGenerator compiles g for the generators, as the compileForGenerator of package
-// codegen does.
-func CompileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
+// CompileForGenerator compiles grammars for the generators with the engine, and gives them the views
+// of the programs (checked.Source.Generator), as the compileForGenerator of package codegen does.
+var CompileForGenerator = checked.GeneratorCompiler(compileForGenerator)
+
+// compileForGenerator compiles g with the engine and returns its checked program and a function that
+// returns that of its recognizer.
+func compileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 	prog, err := entry.Compile(g, opts)
 	if err != nil {
 		return nil, nil, err
