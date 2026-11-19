@@ -2,6 +2,7 @@ package engine
 
 import (
 	"testing"
+	"zeroparse.dev/zp/internal/driver/checked"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
@@ -10,7 +11,7 @@ import (
 
 // The tests of this package compile the grammars that they generate parsers for with the engine.
 func init() {
-	codegentest.Compile = compileForGenerator
+	codegentest.Compile = checked.GeneratorCompiler(compileForGenerator)
 	codegentest.Reference = referenceProgram
 }
 

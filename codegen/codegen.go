@@ -18,6 +18,7 @@ import (
 	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	tsprint "zeroparse.dev/zp/internal/backend/codegen/typescript/print"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/checked"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -329,10 +330,14 @@ func (c TypeScript) GenerateLib() ([]File, error) {
 	return files(tsprint.Generate(nil, compileForGenerator, common.GenOptions{Lib: common.LibOnly, TSLib: tsLib}))
 }
 
-// compileForGenerator is the common.Compiler that the generators compile grammars with: it checks g
-// to its static program, which is all a generator reads, and checks the recognizer of the program
-// (as the engine's Program.Recognizer makes it) on first use. No backend of the engine is built.
-func compileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
+// compileForGenerator is the common.Compiler that the generators compile grammars with: it gives
+// them the views (checked.Source.Generator) of the programs that checkForGenerator checks.
+var compileForGenerator = checked.GeneratorCompiler(checkForGenerator)
+
+// checkForGenerator checks g to its static program, which is all a generator reads, and checks the
+// recognizer of the program (as the engine's Program.Recognizer makes it) on first use. No backend of
+// the engine is built.
+func checkForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 	prog, err := check(g, opts, nil)
 	if err != nil {
 		return nil, nil, err

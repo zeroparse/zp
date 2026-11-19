@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"zeroparse.dev/zp/internal/driver/checked"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
@@ -89,7 +90,7 @@ func coreGenerate(src string, opts common.GenOptions) (*print.Generator, bool) {
 	var gen *print.Generator
 	h := &print.Hooks{Generator: func(x *print.Generator) { gen = x }}
 	opts.Module = "example.com/p"
-	if _, err := print.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h); err != nil || gen == nil {
+	if _, err := print.GenerateParser(g, checked.GeneratorCompiler(compileForGenerator), codegentest.WithLib(opts), h); err != nil || gen == nil {
 		return nil, false
 	}
 	if opts.Observability {
