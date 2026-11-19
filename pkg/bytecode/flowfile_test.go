@@ -89,6 +89,8 @@ func flowModule() *bytecode.Module {
 		{Op: bytecode.FlowScanKids, Dst: []int{4}, Args: []int{1, 1, 1}, Imm: 5},
 		{Op: bytecode.FlowPred, Dst: []int{2}, Imm: 0},
 		{Op: bytecode.FlowBind, Dst: []int{2}, Imm: bytecode.FlowBindOf{Var: 0, Term: 0}},
+		{Op: bytecode.FlowCut, Dst: []int{2}},
+		{Op: bytecode.FlowSetCut, Args: []int{2}},
 		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
 	}}
 	return &bytecode.Module{
@@ -330,6 +332,8 @@ func TestFlowBodyDisassembly(t *testing.T) {
 		"    69  SCANKIDS   r4 = r1 r1 r1 site=5\n",
 		"    70  PRED       r2 = term=0\n",
 		"    71  BIND       r2 = var=0 term=0\n",
+		"    72  CUT        r2 =\n",
+		"    73  SETCUT     r2\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("disassembly has no %q:\n%s", want, got)

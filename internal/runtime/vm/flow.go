@@ -92,6 +92,10 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 			fr.set(in.Dst[0], p.Pos)
 		case bytecode.FlowSetPos:
 			p.Pos = regs[in.Args[0]].(int)
+		case bytecode.FlowCut:
+			fr.set(in.Dst[0], p.Cut)
+		case bytecode.FlowSetCut:
+			p.Cut = regs[in.Args[0]].(bool)
 		case bytecode.FlowJump:
 			pc = in.Target
 		case bytecode.FlowJumpFalse:

@@ -440,6 +440,8 @@ registers (A); `JUMP` and `JUMPFALSE` also have a target.
 | 64 | `SCANKIDS` | 1 | 3 | `flow.scanKids` of the scan site of the immediate for the walk that began at the integer first argument, gathered its elements from the height of the integer second and matched the integer third characters. |
 | 65 | `PRED` | 1 | 0 | `flow.pred` of a framed body: whether the predicate whose term is the immediate holds, evaluated in the current frame as `PRED` of the match code evaluates it, with the same charges. |
 | 66 | `BIND` | 1 | 0 | `flow.bind` of a framed body: binds the variable of the immediate to the value of its term, evaluated in the current frame as `BIND` of the match code evaluates it, with the same charges, and the destination is whether the evaluation succeeded. The rule's entry restores the variables when the call ends, as for match code. |
+| 67 | `CUT` | 1 | 0 | The destination is the cut flag of the rule call the body runs in (the register `flow.cut`), which `CUT` of the match code sets and the rule's entry clears on entry and restores when the call ends. |
+| 68 | `SETCUT` | 0 | 1 | The cut flag of the rule call the body runs in is the boolean argument. |
 
 A destination of -1 discards the value.
 

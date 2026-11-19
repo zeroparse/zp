@@ -196,6 +196,11 @@ const (
 	// the current frame as the match code's BIND evaluates it, and sets Dst[0] to whether the
 	// evaluation succeeded (flow.bind).
 	FlowBind
+	// FlowCut sets Dst[0] to the cut flag of the rule call the body runs in, as the match code's CUT
+	// sets it (the register flow.Cut).
+	FlowCut
+	// FlowSetCut sets the cut flag of the rule call the body runs in to the bool Args[0].
+	FlowSetCut
 )
 
 // FlowImm is the kind of immediate of an operation.
@@ -325,6 +330,8 @@ var FlowShapes = [...]FlowShape{
 	FlowScanKids:      {Name: "SCANKIDS", Dst: 1, Args: 3, Imm: FlowImmScanSite},
 	FlowPred:          {Name: "PRED", Dst: 1, Imm: FlowImmTerm},
 	FlowBind:          {Name: "BIND", Dst: 1, Imm: FlowImmBind},
+	FlowCut:           {Name: "CUT", Dst: 1},
+	FlowSetCut:        {Name: "SETCUT", Args: 1},
 }
 
 // Shape returns the shape of o; ok is false for an operation that does not exist.
