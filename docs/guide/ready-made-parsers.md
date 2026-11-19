@@ -128,7 +128,7 @@ There are four kinds of entry point, and the same input costs different amounts 
 | The language's own (`Decode`, `Load`, `ParseFile`, `ParseModule`, `ParseExpr`, `Records`) | Values or a tree as the language's tools produce them, after the checks that the language's reference does and that are not part of its grammar | You want what the reference implementation would give you: it accepts what the reference accepts |
 | `ParseValue` | The grammar's own typed values, with positions | You analyze or transform the source and need to know where everything is, or the language has no value form (SQL, TypeScript) |
 | `Parse` | The generic `*Node` tree, as the engine builds it | You work with several ZeroParse grammars at once, or compare with the engine ([testing](testing-grammars.md)) |
-| `Recognize`, `Valid` | Only whether the input is valid | You validate input and do not need the tree |
+| `Recognize`, `Valid` | Only whether the input matches the grammar | You check the syntax of input and do not need the tree |
 
 Note the first row: `ParseValue` is the grammar alone. The language's own function also runs the checks that a grammar
 cannot express (the range of a literal, the limits of CEL, the `from __future__` rules of Python), so the two can

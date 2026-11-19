@@ -1,4 +1,4 @@
-# Validate a YAML File and Point at the Problem
+# Check a YAML File and Point at the Problem
 
 **Problem.** Your program reads a YAML configuration. You want to reject a file that is not YAML, a file that repeats a
 key, and a file whose `port` is not a port, and to tell the user the line and the column of each problem.
@@ -43,7 +43,7 @@ func lineCol(src string, offset int) (line, col int) {
 	return line, col
 }
 
-// check validates a configuration: it must be YAML, and the top-level key port must be an integer from 1 to 65535.
+// check accepts a configuration only if it is YAML and its top-level key port is an integer from 1 to 65535.
 func check(src string) error {
 	// Load parses the YAML (a *yaml.SyntaxError, with a line and a column) and checks what the syntax cannot show,
 	// such as a key that occurs twice (a *yaml.SemanticError, with a line and a column).

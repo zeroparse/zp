@@ -63,7 +63,7 @@ or in Go:
 
 ```bash
 zp parse -g config.zp -f sexpr -backend bytecode < example.conf
-zp parse -g config.zp -recognize -backend bytecode-iterative < example.conf   # validate only, prints ok
+zp parse -g config.zp -recognize -backend bytecode-iterative < example.conf   # recognize only, prints ok
 ```
 
 ```go
