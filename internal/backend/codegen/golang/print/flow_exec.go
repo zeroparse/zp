@@ -9,6 +9,7 @@ import (
 	goast "go/ast"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
+	gopass "zeroparse.dev/zp/internal/backend/codegen/golang/pass"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -41,7 +42,7 @@ func (p *flowPrinter) execPrint(f *code.Module) (*execlower.Lowered, BodyResult)
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", fn.Name, p.g.Table, err))
 	}
-	p.g.ExecPasses(l)
+	p.g.ExecPasses(l, gopass.Pipeline)
 	return l, Body(l.Module, l.Func, p.execTarget(), l.Vars)
 }
 

@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"io"
 	"slices"
-	"zeroparse.dev/zp/internal/middleend/flowpass"
 
+	gopass "zeroparse.dev/zp/internal/backend/codegen/golang/pass"
+	tspass "zeroparse.dev/zp/internal/backend/codegen/typescript/pass"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/middleend/execlower"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 	"zeroparse.dev/zp/internal/pass"
 )
 
@@ -133,6 +136,35 @@ func (d *Driver) RunExec(table string, m *code.Module, observe bool) error {
 		_, err = codepass.RunPasses(m, env, o)
 	}
 	if err != nil {
+		return fmt.Errorf("internal error: %w", err)
+	}
+	return nil
+}
+
+// TargetPipeline is the pipeline of the Exec passes of one target (golang/pass, typescript/pass), which
+// run on a lowered function after the Exec passes that every target runs (RunExec).
+type TargetPipeline = pass.Pipeline[*execlower.Lowered, *codepass.Env]
+
+// targets holds the pipelines of the targets' Exec passes, whose passes -print-after names
+// (PrintNames).
+var targets = []*TargetPipeline{gopass.Pipeline, tspass.Pipeline}
+
+// RunTarget runs the pipeline p of the Exec passes of a target on the lowered function l, with the
+// optimizations of the driver, as RunExec runs the Exec passes: observe and table are as for RunExec,
+// and the dumps after each pass are labeled with the table. A failure is an internal error that names
+// the pass.
+func (d *Driver) RunTarget(table string, p *TargetPipeline, l *execlower.Lowered, observe bool) error {
+	env := &codepass.Env{Observe: observe, Flag: d.Opt.On}
+	var dump func(pass string, l *execlower.Lowered)
+	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
+		dump = func(name string, l *execlower.Lowered) {
+			if name != codepass.Stage && d.prints(name) {
+				fmt.Fprintf(d.PrintTo, "-- Exec IR of %s in the %s table after %s --\n%s\n", l.Func.Name, table, name, code.FuncStringIn(l.Module, l.Func))
+			}
+		}
+	}
+	o := pass.Options[*execlower.Lowered]{Enabled: env.On, VerifyEach: d.VerifyEach, Dump: dump, Stage: codepass.Stage, BuiltVerified: true}
+	if _, err := p.Run(l, env, o); err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 	return nil

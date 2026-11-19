@@ -4,16 +4,18 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/middleend/flowpass"
 
+	gopass "zeroparse.dev/zp/internal/backend/codegen/golang/pass"
+	tspass "zeroparse.dev/zp/internal/backend/codegen/typescript/pass"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 	"zeroparse.dev/zp/internal/pass"
 )
 
 // The flags of the passes that the tests of the driver add to the pipelines. The registry of this
-// test binary holds them and the flags of the parts the driver links (the Core and Flow passes), and not
-// those of the generators.
+// test binary holds them and the flags of the parts the driver links (the Core, Flow and Exec passes and
+// the targets' Exec passes), and not those of the printers.
 func init() {
 	pass.Register(
 		pass.Flag{Name: testFlowPass, Kind: pass.KindFlowPass, Default: 1, Doc: "adds a comment"},
@@ -120,10 +122,11 @@ func TestParsePrintAfter(t *testing.T) {
 		t.Errorf("unknown: %v", err)
 	}
 	// The names follow the order the steps run in: the Core IR as built and the Core passes, then the Flow lowering
-	// and passes, then the Exec lowering and passes.
+	// and passes, then the Exec lowering and passes and the Exec passes of the targets.
 	want := append([]string{"core"}, corepass.Pipeline.Names()...)
 	want = append(append(want, "flow"), flowpass.Pipeline.Names()...)
 	want = append(append(want, "exec"), codepass.Pipeline.Names()...)
+	want = append(append(want, gopass.Pipeline.Names()...), tspass.Pipeline.Names()...)
 	want = append(want, "all")
 	if got := PrintNames(); !slices.Equal(got, want) {
 		t.Errorf("names %v, want %v", got, want)

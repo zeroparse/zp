@@ -3460,7 +3460,9 @@ export class Parser {
   }
 
   // unisolate ends the record that isolate began, returns the farthest position it reached and
-  // leaves a copy of its expectations in isoIds.
+  // leaves a copy of its expectations in isoIds. It charges no units, as exp.unisolate bounds
+  // (spec/exec-ir/operations.md): each expectation it copies was charged when it was recorded, and a
+  // merge charges it again. The copy counts toward the memory limit.
   unisolate(mk: number): number {
     const far = this.farthest;
     const from = this.expBase;
@@ -3468,7 +3470,8 @@ export class Parser {
     if (from === to) {
       this.isoIds = noExp;
     } else {
-      this.isoIds = this.control === null ? this.exp.slice(from, to) : copyIDsSpend(this.exp, from, to, this.control);
+      this.alloc(arrayBytes(to - from));
+      this.isoIds = this.exp.slice(from, to);
     }
     this.expTop = from;
     this.expBase = this.isoStack[mk + 1]!;

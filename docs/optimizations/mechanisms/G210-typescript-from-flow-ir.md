@@ -14,8 +14,9 @@ The printer keeps the text small and the functions few:
 
 - Printing runs dry to a fixpoint of what is read, so a mark part (position, environment, trail,
   recovered count) is declared only as far as it is read, and an unread assignment is not printed.
-- Consecutive step charges merge into one `p.spend(n)`, and an expectation unisolate followed by a
-  merge of the same variables is one `p.unisolateMerge(mark)` that merges in place.
+- The TypeScript Exec passes (`typescript/pass`, each with a flag) make consecutive step charges one
+  `p.spendUnits(n)`, an expectation unisolate followed by a merge of the same variables one
+  `p.unisolateMerge(mark)` that merges in place, and the test of an `if`'s first call its condition.
 - Functions whose printed bodies are equal share one method (the method names of the shared generator state). The key of a function
   replaces each constant it names (a literal table, the capture names, a bind function) by the declaration
   of the constant, so functions that read equal tables under different names share one method although the

@@ -262,12 +262,16 @@ func LowerFlow(m *code.Module) (*execlower.Lowered, error) {
 }
 
 // ExecPasses runs the pipeline of Exec passes on the module of l, which the lowering of a Flow IR
-// function made, labeled with the table being generated as FlowPasses labels it. A failure is kept as
-// the first internal error of the generation (FlowErr), which fails it. The printers print l.Func with
-// the locals l.Vars, so a pass keeps that function in the module and those locals in it (the
-// pipeline contract of Exec IR); a run that breaks this is an internal error too.
-func (g *Generator) ExecPasses(l *execlower.Lowered) {
+// function made, and then target, the pipeline of the backend's own Exec passes, on l, labeled with
+// the table being generated as FlowPasses labels it. A failure is kept as the first internal error of
+// the generation (FlowErr), which fails it. The printers print l.Func with the locals l.Vars, so a
+// pass keeps that function in the module and those locals in it (the pipeline contract of Exec IR); a
+// run that breaks this is an internal error too.
+func (g *Generator) ExecPasses(l *execlower.Lowered, target *driver.TargetPipeline) {
 	err := g.RunExec(g.IRTable(), l.Module, g.Observability)
+	if err == nil {
+		err = g.RunTarget(g.IRTable(), target, l, g.Observability)
+	}
 	if err == nil {
 		err = keepsLowered(l)
 	}

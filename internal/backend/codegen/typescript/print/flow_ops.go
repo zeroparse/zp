@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
+	tspass "zeroparse.dev/zp/internal/backend/codegen/typescript/pass"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
@@ -409,16 +410,6 @@ func (p *tsFlowPrinter) markLocal(c *code.Call) string {
 	return l.Name
 }
 
-// tsTwoResults reports whether a call of the Flow operation name has two results, the value and
-// whether it matched, which an assignment tests.
-func tsTwoResults(name string) bool {
-	switch name {
-	case flow.OpMatchLit, flow.OpCallRule, flow.OpCallOutline:
-		return true
-	}
-	return false
-}
-
 // set writes the assignment s of one call of a primitive.
 func (p *tsFlowPrinter) set(s *code.Set, expr func(code.Expr) string) {
 	if p.dead {
@@ -501,7 +492,7 @@ func (p *tsFlowPrinter) setText(s *code.Set, expr func(code.Expr) string, stmt b
 		}
 		return call + end
 	}
-	if len(s.Dst) == 2 && tsTwoResults(name) {
+	if len(s.Dst) == 2 && tspass.TwoResults(name) {
 		// A call with two results: the value and whether it matched.
 		p.read(c)
 		x := expr(c)
