@@ -21,7 +21,7 @@ plain rules, projected repetitions, first-character dispatch, the recognizer) an
 expression and a function per action and predicate. It shares the expectation table, the naming and `first` with the
 Go generator (both embed `codegen.Generator`).
 
-The runtime, `codegen/ts/lib/lib.ts`, is a port of `codegen/go/lib/lib.go`, function for function: rule calls with
+The runtime, `internal/backend/codegen/typescript/lib/lib.ts`, is a port of `pkg/runtime/golib/lib.go`, function for function: rule calls with
 deferred memoization (`firstCall`, with the per-rule eager switch), left recursion by growing the seed, memo entries
 keyed by variable values, expectation records isolated in memoized calls and kept for reuse, captures with frames and
 the trail, `attachCaptures` and `finish`, `@error` and `#recover`, the Operators Rule loop, and every built-in function including
@@ -30,7 +30,7 @@ catches what is not.
 
 | Part | Contents |
 |:--|:--|
-| `lib.ts` | `codegen/ts/lib/lib.ts` after its `--- Runtime ---` line, with the invocation budget controls, tracing and profiling (`budget.ts`, `trace.ts`, `profile.ts`). The same for every grammar and every option, so that one copy can be shared (`-lib import`). It type-checks on its own. Every top-level declaration is exported. |
+| `lib.ts` | `internal/backend/codegen/typescript/lib/lib.ts` after its `--- Runtime ---` line, with the invocation budget controls, tracing and profiling (`budget.ts`, `trace.ts`, `profile.ts`). The same for every grammar and every option, so that one copy can be shared (`-lib import`). It type-checks on its own. Every top-level declaration is exported. |
 | `types.ts` | With `-types`: the declarations of the grammar's types. |
 | `parser.ts` | The parts below, importing `./lib.ts` (or the module of `-lib-module`) and `./types.ts`, and re-exporting the names a user needs (`Node`, `SyntaxError`, `marshal`, ...). |
 | Rule table | A constant per rule (`R0`, `R1`, ...; `Q0`, ... for the recognizer) with the engine's analysis results, and the table `rules` for `parseRule` |

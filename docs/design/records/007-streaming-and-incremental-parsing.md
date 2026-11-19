@@ -63,4 +63,4 @@ An element is a function of the input it examined only under the conditions that
 
 ### Verification
 
-A test applies random edits repeatedly and checks that the result of incremental parsing (the node tree, including positions, and the syntax errors) equals the result of parsing the edited text from scratch (`internal/engine/document_test.go`).
+A test applies random edits repeatedly and checks that the result of incremental parsing (the node tree, including positions, and the syntax errors) equals the result of parsing the edited text from scratch (`internal/runtime/engine/document_test.go`).

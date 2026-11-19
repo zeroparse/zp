@@ -26,10 +26,10 @@ Source inspection at `6fac14632cbf933d91fee7f8e5df9e82fb134c56` establishes the
 existing boundary:
 
 - [`ParseOptions`](../../../internal/runtime/state/input.go) carries unit, backend,
-  recognition, depth, and tracing; [`public APIs`](../../../engine/) use functional
+  recognition, depth, and tracing; [`public APIs`](../../../pkg/runtime/) use functional
   ParseOption arguments. Document stores its construction settings; Parse has
   no per-call arguments today.
-- [`run`/`recoverParse`](../../../internal/engine/program_parse.go) distinguish completed
+- [`run`/`recoverParse`](../../../internal/runtime/engine/program_parse.go) distinguish completed
   syntax/recovery outcomes from fatal interruptions. Recognition skips actions
   whose values predicates do not need; predicate-dependent rules and callees
   can still execute actions. Streams synchronously call a caller-owned reader
@@ -41,9 +41,9 @@ existing boundary:
   [input loops](../../../internal/runtime/state/input.go), and
   [repetition resumption](../../../internal/runtime/state/resume.go) contain work outside a
   rule-entry depth check.
-- [Generated Go](../../../codegen/go/lib/lib.go) resolves options per
+- [Generated Go](../../../pkg/runtime/golib/lib.go) resolves options per
   invocation, pools private scratch, and separately supports
-  [typed execution](../../../codegen/go/lib/typed.go). Depth options already
+  [typed execution](../../../pkg/runtime/golib/typed.go). Depth options already
   apply to Node, recognition, and typed entry points under
   [design 022](022-generated-parser-depth-limits.md).
 

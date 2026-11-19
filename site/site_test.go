@@ -201,14 +201,18 @@ func TestBuild(t *testing.T) {
 			"One Grammar. Every Parser.", `class="feature"`, `id="live"`, `data-input="1 &#43; 2 * 3 ^ 2"`, `id="live-input" class="live-input" value="1 &#43; 2 * 3 ^ 2"`, "zp parse -g calc.zp",
 			`href="docs/tutorial/getting-started/"`, `id="install"`,
 		},
-		"reference/engine/index.html": {
-			`id="CompileSource"`, `id="Parser.Parse"`, "pkg.go.dev", `id="TraceEvent"`,
+		"reference/compiler/index.html": {
+			`id="Compile"`, `id="NewReferenceParser"`, "pkg.go.dev", `id="GoConfig"`, `id="LibMode.String"`, "Content []byte",
 		},
-		"reference/core/index.html": {
-			`id="TraceEvent.LineCol"`, `id="Profile.Snapshot"`, "type Limits struct", `id="LimitError.Error"`, "type SyntaxError struct", `id="SyntaxError.ExpectedInMessage"`,
+		"reference/runtime/index.html": {
+			`id="Parser"`, "type Limits struct", `id="LimitError.Error"`, `id="WithTrace"`,
+		},
+		"reference/vm/index.html":         {`id="LoadParser"`, `id="Parser.Recognize"`},
+		"reference/instrument/index.html": {`id="TraceEvent.LineCol"`, `id="Profile.Snapshot"`},
+		"reference/value/index.html": {
+			"type SyntaxError struct", `id="SyntaxError.ExpectedInMessage"`,
 			"type Node struct", `id="Node.Clone"`, `id="NodeKind.String"`, `id="Cursor.At"`,
 		},
-		"reference/codegen/index.html":    {`id="Go.Generate"`, `id="Generator"`, `id="LibMode.String"`, "Content []byte"},
 		"reference/lint/index.html":       {`id="Config.Run"`, `id="Checks"`, `id="Severity.String"`},
 		"reference/grammar/index.html":    {`id="Format"`, `id="Load"`, `id="FromFS"`, "type Source struct"},
 		"reference/grammarast/index.html": {`id="Grammar.Rules"`, "type RuleDef struct"},
@@ -292,7 +296,7 @@ func TestBuild(t *testing.T) {
 		t.Errorf("command sections = %s, want %s", got, want)
 	}
 	for cmd, flags := range map[string][]string{
-		"parse":   {"-g string", "-check", "-stream", "-f string"},
+		"parse":   {"-g string", "-recognize", "-stream", "-f string"},
 		"test":    {"-f string", "-format string", "-backend string", "-equivalence", "-update"},
 		"fmt":     {"-w", "-l"},
 		"trace":   {"-g string", "-f string", "-show-depth int", "-max-depth value", "-rule value", "-failures", "-unit string", "-backend string"},
@@ -753,7 +757,7 @@ func TestNavigation(t *testing.T) {
 	}
 	for path, heading := range map[string]string{
 		"reference/index.html":            `<h1 id="api-reference">Go API Reference</h1>`,
-		"reference/engine/index.html":     `<h1 id="top">Package <code>zp/engine</code></h1>`,
+		"reference/compiler/index.html":   `<h1 id="top">Package <code>zp/pkg/compiler</code></h1>`,
 		"reference/grammar/index.html":    `<h1 id="top">Package <code>zp/pkg/grammar</code></h1>`,
 		"reference/grammarast/index.html": `<h1 id="top">Package <code>zp/pkg/grammar/ast</code></h1>`,
 		"reference/cli/index.html":        `<h1 id="top">CLI Reference</h1>`,

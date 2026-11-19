@@ -18,8 +18,8 @@ compositions as they stand; this record keeps the decision, the measurements and
 The algorithmic core of a ZeroParse parse — memoization, left-recursion growth, expected-set merging, recovery bookkeeping,
 the variable environment, budget charges, stream commitment, Document reuse and the Operators Rule loop — is written
 once per runtime: in the engine (`internal/runtime/state`, shared by the closure backend and both bytecode VMs), twice in
-the generated Go runtime (the node `Parser` in `codegen/go/lib/lib.go` and the typed `TParser` in `codegen/go/lib/typed.go`), and
-in the TypeScript runtime (`codegen/ts/lib/lib.ts`). A fix to one of these mechanisms is a fix to up to four
+the generated Go runtime (the node `Parser` in `pkg/runtime/golib/lib.go` and the typed `TParser` in `pkg/runtime/golib/typed.go`), and
+in the TypeScript runtime (`internal/backend/codegen/typescript/lib/lib.ts`). A fix to one of these mechanisms is a fix to up to four
 copies, and the copies already differ in algorithm where they should only differ in host.
 
 This design specifies the **parser VM** once. **Exec IR** (the structure in `internal/ir/code`, the operations in `internal/ir/code/exec`) is that specification: it declares the
@@ -87,7 +87,7 @@ that repeat a body with or without budget charges.
 ### Changes Paid Several Times
 
 Of the 1,263 commits, 79 touched the non-test sources of two or more of the four copies (the engine runtime files
-under their former and current paths, `codegen/go/lib/` or its former `internal/engine/genrt/`, and the TypeScript runtime
+under their former and current paths, `pkg/runtime/golib/` or its former `internal/engine/genrt/`, and the TypeScript runtime
 under its former and current paths; the copy in `gen/_runtime` is mechanical and not counted). Classified by hand:
 
 | Kind | Commits | Examples |
@@ -604,8 +604,8 @@ backends' choice.
   arrays and reference arrays are allocated at their final length, so that they never become holey.
 - Loops print as `for (;;)` with labeled `break`; no iterator protocol or closure appears in a hot path.
 
-Printed code is checked in: the Go library in `codegen/go/lib/`, the TypeScript library in
-`codegen/ts/lib/`, and the engine's in `internal/runtime/state`. A test regenerates them and fails on any
+Printed code is checked in: the Go library in `pkg/runtime/golib/`, the TypeScript library in
+`internal/backend/codegen/typescript/lib/`, and the engine's in `internal/runtime/state`. A test regenerates them and fails on any
 difference. Names come from the compositions and operations, with a suffix only
 for a specialization; each printed function starts with a comment naming its source and specialization, so that a
 stack trace or a profile leads back to it; comments carry through; output is formatted by `go/format` and by the
@@ -1164,8 +1164,8 @@ in non-test sources, and include comments.
 | Engine core, shared by closures and both VMs | `internal/runtime/state/*.go` | 7,142 |
 | Engine backends (dispatch only) | `internal/backend/closure/*.go`, `internal/runtime/vm/vm.go`, `ivm.go` | 1,218 + 2,015 |
 | Engine Document API | `internal/runtime/document/*.go` | 1,784 |
-| Generated Go library | `codegen/go/lib/*.go` | 11,475 |
-| TypeScript library | `codegen/ts/lib/*.ts` | 4,444 |
+| Generated Go library | `pkg/runtime/golib/*.go` | 11,475 |
+| TypeScript library | `internal/backend/codegen/typescript/lib/*.ts` | 4,444 |
 
 ### Mechanisms
 
@@ -1185,7 +1185,7 @@ in non-test sources, and include comments.
 | Document reuse | Core (reuse), host (edits, snapshots) | `resume.go`, `Splice`, `moveResult`, `MoveTree` (~540); Document API (1,784, host) | `callDocument`, `documentTouch`, `editReuse` (~200 of 423) | `DocumentCall`, `invalidate` (~250) | none |
 | Input access | Host | `input.go`, `input_pieces.go` | `Peek…`, `MatchLiteral…`, `stream…` readers | `MatchLiteral…` | `peek`, `decode…`, `matchLiteral…` |
 | Values, nodes, terms | Host (later candidate) | `eval.go`, `value_runtime.go` | `ActCtx`, `rt…` built-ins | `TActCtx`, `trt…` built-ins | `Actx`, `rt…` built-ins |
-| Public API, I/O, tracing | Host | `internal/engine/program*.go`, `trace.go` | `RunParse…`, `WithLimits…`, JSON, `trace.go`, `profile.go` | `TParse…`, `TPub…` | `run`, `resolveOptions`, `trace.ts`, `profile.ts` |
+| Public API, I/O, tracing | Host | `internal/runtime/engine/program*.go`, `trace.go` | `RunParse…`, `WithLimits…`, JSON, `trace.go`, `profile.go` | `TParse…`, `TPub…` | `run`, `resolveOptions`, `trace.ts`, `profile.ts` |
 
 ### Duplication Cost
 
