@@ -150,7 +150,12 @@ func (s *flowSel) reg() int {
 	return s.f.Regs - 1
 }
 
+// emit appends in. An operation whose results are all unused (a call of a statement) gets
+// destinations that discard them, so that every instruction names the registers of its shape.
 func (s *flowSel) emit(in bytecode.FlowInstr) int {
+	if sh, _ := in.Op.Shape(); len(in.Dst) == 0 && sh.Dst > 0 {
+		in.Dst = slices.Repeat([]int{-1}, sh.Dst)
+	}
 	s.f.Code = append(s.f.Code, in)
 	return len(s.f.Code) - 1
 }

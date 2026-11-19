@@ -2,6 +2,8 @@ package vmlower
 
 import (
 	"os"
+	"path/filepath"
+	"reflect"
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
@@ -84,4 +86,52 @@ func TestSelectJSONRulesCount(t *testing.T) {
 		ok++
 	}
 	t.Logf("selected %d of %d rules", ok, len(m.Rules))
+}
+
+// TestSelectedFlowsSurviveTheFileForm selects the Flow body of every rule of the testdata grammars
+// that has one with the operations selected so far, and checks that the module validates and that
+// its bodies read back from the module file as they were written.
+func TestSelectedFlowsSurviveTheFileForm(t *testing.T) {
+	paths, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
+	if err != nil || len(paths) == 0 {
+		t.Fatalf("no grammars: %v", err)
+	}
+	total := 0
+	for _, path := range paths {
+		src, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		prog := compiletest.Program(t, string(src), compile.Options{})
+		m := mustCore(t, prog)
+		bc, err := CompileCore(prog, mustCore(t, prog))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, r := range m.Rules {
+			fm, err := FlowModule(m, i, r.Name)
+			if err != nil {
+				continue // a rule whose Flow form the VM's options do not have
+			}
+			_ = SelectFlows(bc, prog, m, map[int]*code.Module{i: fm}) // a rule it fails for keeps no body
+		}
+		total += len(bc.Flows)
+		if err := compile.ValidateModule(bc); err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		w := &bytecode.Encoder{Strs: map[string]int{}}
+		w.WriteModule(bc)
+		r := &bytecode.Decoder{Data: w.Body.Bytes(), Strs: bc.Strings}
+		got := r.ReadModule()
+		if r.Err != nil {
+			t.Fatalf("%s: %v", path, r.Err)
+		}
+		if !reflect.DeepEqual(got.Flows, bc.Flows) {
+			t.Errorf("%s: the Flow bodies read back differ from those written", path)
+		}
+	}
+	if total == 0 {
+		t.Fatal("no rule of the testdata grammars has a Flow body")
+	}
+	t.Logf("%d Flow bodies", total)
 }
