@@ -153,7 +153,7 @@ func (d *Driver) FlowFunc(table string, u flowlower.Unit, observe bool, target f
 //
 // A failure of execlower is returned as the *pass.StepError that names it, with no result. A failure
 // of a pass or of a verification is an internal error that names it, returned with the result as the
-// passes before the failure left it.
+// failed segment of passes got it (pass.Pipeline.Run).
 func (d *Driver) ExecFunc(table string, m *code.Module, target *TargetPipeline, observe bool) (*execlower.Lowered, error) {
 	p := codepass.Pipeline
 	if d.ExecPipeline != nil {
@@ -188,12 +188,13 @@ func stepError(err error) error {
 
 // execModuleIR describes the Exec module of a lowered function to the Exec passes: each function of
 // it is dumped.
-var execModuleIR = pass.IR[*code.Module]{Stage: codepass.Stage, Verify: code.Verify, Print: execlower.PrintModule}
+var execModuleIR = pass.IR[*code.Module]{Stage: codepass.Stage, Verify: code.Verify, Print: execlower.PrintModule, Copy: (*code.Module).Clone}
 
 // loweredIR describes a lowered function to the passes of a target: only the function is dumped.
 var loweredIR = pass.IR[*execlower.Lowered]{
 	Stage:  codepass.Stage,
 	Verify: execlower.IR.Verify,
+	Copy:   (*execlower.Lowered).Clone,
 	Print: func(w io.Writer, lb pass.Label, after string, l *execlower.Lowered) {
 		fmt.Fprintf(w, "-- Exec IR of %s in the %s table after %s --\n%s\n", l.Func.Name, lb.Table, after, code.FuncStringIn(l.Module, l.Func))
 	},

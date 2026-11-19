@@ -14,4 +14,5 @@ import (
 var Pipeline = &pass.Pipeline[*execlower.Lowered, *codepass.Env]{
 	Analyses: map[pass.Analysis]func(*execlower.Lowered){},
 	Verify:   func(l *execlower.Lowered) error { return code.Verify(l.Module) },
+	Copy:     (*execlower.Lowered).Clone,
 }

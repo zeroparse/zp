@@ -106,7 +106,6 @@ func withTestFlowPass(t *testing.T) func(string) *pass.Pipeline[*code.Module, *f
 	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flowpass.Env]{
 		Name: testFlowPass, Obligation: "a comment changes nothing",
 		Run: func(m *code.Module, _ *flowpass.Env) (*code.Module, pass.PreservedSet, error) {
-			m = m.Clone()
 			b := flow.FuncOf(m).Body
 			b.Stmts = append(b.Stmts, &code.Comment{Text: "tested"})
 			return m, pass.PreserveNone(), nil
@@ -191,6 +190,39 @@ func TestDriverFlowFunc(t *testing.T) {
 	}
 }
 
+// The Flow passes of a function change one copy of the module that flowlower made, and flow-finish
+// finishes it in place; under VerifyEach every pass that runs takes a copy of its own.
+func TestDriverFlowFuncCopies(t *testing.T) {
+	all := flowpass.Target{Terminals: true, ClassRuns: true, ClassTables: true, GuardedClasses: true, InlineLiterals: true}
+	for _, verifyEach := range []bool{false, true} {
+		var copies, ran int
+		p := *flowpass.Pipeline
+		p.Copy = func(m *code.Module) *code.Module {
+			copies++
+			return m.Clone()
+		}
+		p.Passes = slices.Clone(p.Passes)
+		for i := range p.Passes {
+			run := p.Passes[i].Run
+			p.Passes[i].Run = func(m *code.Module, e *flowpass.Env) (*code.Module, pass.PreservedSet, error) {
+				ran++
+				return run(m, e)
+			}
+		}
+		d := &Driver{FlowPipeline: func(string) *pass.Pipeline[*code.Module, *flowpass.Env] { return &p }, VerifyEach: verifyEach}
+		if _, err := d.FlowFunc("typed", framed(), false, all); err != nil {
+			t.Fatal(err)
+		}
+		want := 1
+		if verifyEach {
+			want = ran
+		}
+		if ran < 2 || copies != want {
+			t.Errorf("VerifyEach %v: %d passes ran with %d copies, want %d", verifyEach, ran, copies, want)
+		}
+	}
+}
+
 // A failure of flowlower is returned as the failure of the step, with no module; a failure of a Flow
 // pass is an internal error that names the pass, returned with the module that flow-finish ended.
 func TestDriverFlowFuncErrors(t *testing.T) {
@@ -245,7 +277,6 @@ func TestDriverExecFunc(t *testing.T) {
 	p.Passes = append(slices.Clone(p.Passes),
 		pass.Pass[*code.Module, *codepass.Env]{Name: testExecPass, Obligation: "a comment changes nothing",
 			Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
-				m = m.Clone()
 				for _, f := range m.Funcs {
 					f.Doc = "tested"
 				}
@@ -253,7 +284,6 @@ func TestDriverExecFunc(t *testing.T) {
 			}},
 		pass.Pass[*code.Module, *codepass.Env]{Name: testExecBreak, Obligation: "none: it breaks the module",
 			Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
-				m = m.Clone()
 				m.Funcs = append(m.Funcs, m.Funcs[0])
 				return m, pass.PreserveNone(), nil
 			}})

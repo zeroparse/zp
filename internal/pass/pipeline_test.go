@@ -108,9 +108,8 @@ func TestDumpCallsEachPassInOrder(t *testing.T) {
 	}
 }
 
-// With VerifyEach the error names the first pass that broke an invariant, and the run returns the
-// unit before it; without it the break is reported at the end, and the run returns its input,
-// unchanged.
+// With VerifyEach the error names the first pass that broke an invariant; without it the break is
+// reported at the end. Either way the run returns its input, unchanged.
 func TestVerificationNamesThePass(t *testing.T) {
 	breaker := Pass[*unit, mode]{Name: "breaker", Obligation: "breaks", Run: func(u *unit, _ mode) (*unit, PreservedSet, error) {
 		v := u.with("breaker")
@@ -118,14 +117,14 @@ func TestVerificationNamesThePass(t *testing.T) {
 		return v, none, nil
 	}}
 	p := fakePipeline(logging("a", nil, all), breaker, logging("c", nil, all))
-	u, ran, err := p.Run(&unit{}, mode{}, Options[*unit]{VerifyEach: true})
+	in := &unit{}
+	u, ran, err := p.Run(in, mode{}, Options[*unit]{VerifyEach: true})
 	if err == nil || !strings.Contains(err.Error(), "after pass breaker") || !slices.Equal(ran, []string{"a", "breaker"}) {
 		t.Fatalf("ran %v, err %v", ran, err)
 	}
-	if u.broken != "" || !slices.Equal(u.log, []string{"a", "analyze"}) {
-		t.Errorf("after the broken pass the run returned the unit with log %v, broken %q; want the unit before it", u.log, u.broken)
+	if u != in || u.broken != "" || len(u.log) != 0 {
+		t.Errorf("after the broken pass the run returned %v with log %v, broken %q; want its input, unchanged", u, u.log, u.broken)
 	}
-	in := &unit{}
 	u, ran, err = p.Run(in, mode{}, Options[*unit]{})
 	if err == nil || !strings.HasPrefix(err.Error(), "verification:") || len(ran) != 3 {
 		t.Fatalf("ran %v, err %v", ran, err)
@@ -135,13 +134,10 @@ func TestVerificationNamesThePass(t *testing.T) {
 	}
 }
 
-// A pass that fails is named, a run does not go on, and it returns the unit as the passes before
-// the failed one left it, which no pass changed: neither the input of the run nor the input of the
-// failed pass.
+// A pass that fails is named, a run does not go on, and it rolls back to its start: it returns its
+// input, unchanged, without what the passes before the failed one made.
 func TestPassErrorIsNamed(t *testing.T) {
-	var seen *unit
 	bad := Pass[*unit, mode]{Name: "bad", Run: func(u *unit, _ mode) (*unit, PreservedSet, error) {
-		seen = u
 		return u.with("bad"), none, errors.New("boom")
 	}}
 	p := fakePipeline(logging("a", nil, all), bad, logging("c", nil, all))
@@ -150,8 +146,8 @@ func TestPassErrorIsNamed(t *testing.T) {
 	if err == nil || err.Error() != "pass bad: boom" || slices.Contains(u.log, "c") {
 		t.Fatalf("err %v, log %v", err, u.log)
 	}
-	if u != seen || !slices.Equal(u.log, []string{"a"}) || len(in.log) != 0 {
-		t.Errorf("returned the log %v (the input of bad: %v), input log %v; want [a], the input of bad, and []", u.log, u == seen, in.log)
+	if u != in || len(in.log) != 0 {
+		t.Errorf("returned %v with the log %v, input log %v; want the input, with the log []", u, u.log, in.log)
 	}
 }
 
@@ -242,5 +238,90 @@ func TestRunSharesTheCallersManager(t *testing.T) {
 	}
 	if am.Computations("attrs") != 2 {
 		t.Fatalf("computations after a run on another unit %d, want 2", am.Computations("attrs"))
+	}
+}
+
+// copying makes p copy its units as Pipeline.Copy does, counting the copies in n.
+func copying(p *Pipeline[*unit, mode], n *int) *Pipeline[*unit, mode] {
+	p.Copy = func(u *unit) *unit {
+		*n++
+		v := *u
+		v.log = slices.Clone(u.log)
+		return &v
+	}
+	return p
+}
+
+// inPlace is a pass that changes the unit it is given in place: it appends its name to the log.
+func inPlace(name string) Pass[*unit, mode] {
+	return Pass[*unit, mode]{Name: name, Obligation: name, Run: func(u *unit, _ mode) (*unit, PreservedSet, error) {
+		u.log = append(u.log, name)
+		return u, none, nil
+	}}
+}
+
+// A run copies its input once, before the first pass that runs, and its passes change that copy;
+// a run in which no pass runs copies nothing and returns its input.
+func TestRunCopiesOnce(t *testing.T) {
+	var n int
+	p := copying(fakePipeline(inPlace("a"), inPlace("b"), inPlace("c")), &n)
+	in := &unit{log: []string{"in"}}
+	u, _, err := p.Run(in, mode{}, Options[*unit]{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 || u == in || !slices.Equal(u.log, []string{"in", "a", "b", "c", "analyze"}) || !slices.Equal(in.log, []string{"in"}) {
+		t.Errorf("%d copies, log %v, input log %v; want 1 copy, the passes' log and the input unchanged", n, u.log, in.log)
+	}
+	n = 0
+	u, _, err = p.Run(in, mode{}, Options[*unit]{Enabled: func(string) bool { return false }})
+	if err != nil || n != 0 || u != in {
+		t.Errorf("no pass ran: %d copies, the input returned %v, err %v", n, u == in, err)
+	}
+}
+
+// A failing pass rolls the run back to its start: the run returns its input, which neither the
+// failed pass nor the passes before it changed, though they changed their copy in place.
+func TestFailedPassRollsBack(t *testing.T) {
+	var n int
+	half := Pass[*unit, mode]{Name: "half", Run: func(u *unit, _ mode) (*unit, PreservedSet, error) {
+		u.log = append(u.log, "half")
+		return u, none, errors.New("no")
+	}}
+	p := copying(fakePipeline(inPlace("a"), inPlace("b"), half, inPlace("c")), &n)
+	in := &unit{log: []string{"in"}}
+	u, ran, err := p.Run(in, mode{}, Options[*unit]{})
+	if err == nil || err.Error() != "pass half: no" || !slices.Equal(ran, []string{"a", "b"}) {
+		t.Fatalf("ran %v, err %v", ran, err)
+	}
+	if u != in || !slices.Equal(in.log, []string{"in"}) || n != 1 {
+		t.Errorf("returned the input %v with the log %v after %d copies; want the input, unchanged, after 1", u == in, in.log, n)
+	}
+}
+
+// With VerifyEach every pass gets a copy of its own: the error names the pass that broke the unit,
+// the run returns its input, intact, and each unit that the dump was given stays as its pass
+// returned it.
+func TestVerifyEachCopiesEachPass(t *testing.T) {
+	var n int
+	breaker := Pass[*unit, mode]{Name: "breaker", Run: func(u *unit, _ mode) (*unit, PreservedSet, error) {
+		u.log, u.broken = append(u.log, "breaker"), "breaker"
+		return u, none, nil
+	}}
+	p := copying(fakePipeline(inPlace("a"), breaker, inPlace("c")), &n)
+	dumped := map[string]*unit{}
+	in := &unit{log: []string{"in"}}
+	u, ran, err := p.Run(in, mode{}, Options[*unit]{VerifyEach: true, Stage: "u", Dump: func(name string, u *unit) { dumped[name] = u }})
+	if err == nil || err.Error() != "after pass breaker: broken by breaker" || !slices.Equal(ran, []string{"a", "breaker"}) {
+		t.Fatalf("ran %v, err %v", ran, err)
+	}
+	if u != in || u.broken != "" || !slices.Equal(in.log, []string{"in"}) {
+		t.Errorf("returned the input %v with the log %v, broken %q; want the input, intact", u == in, in.log, in.broken)
+	}
+	if n != 2 {
+		t.Errorf("%d copies, want one for each of the 2 passes that ran", n)
+	}
+	if a := dumped["a"]; !slices.Equal(a.log, []string{"in", "a", "analyze"}) || a.broken != "" {
+		t.Errorf("the unit dumped after a changed later: log %v, broken %q", a.log, a.broken)
 	}
 }

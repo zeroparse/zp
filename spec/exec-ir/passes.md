@@ -11,7 +11,7 @@ The functions that a backend prints from the Exec stage are converted from the F
 (see [Lowering From the Flow Stage](lowering.md)). Each such module then goes through the passes of the one compiler pipeline
 that run at the Exec stage, in their declared order. A pass has a name that no pass of Core IR or of the Flow stage has, and that
 is also the name of the optimization that turns it off; a pass that is off, or that does not apply to the build, does
-not run. A pass does not change the module it is given; it returns the module after it, in which it keeps the function
+not run. A pass returns the module after it, in which it keeps the function
 that lowering made, at the same place and with the same name, and in it the locals that lowering declared for the
 variables of the function of the Flow stage, because the backend prints the body of that function with those locals;
 it may change the body, add locals and add the declarations that its changes need. A module that lost the function or

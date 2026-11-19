@@ -71,14 +71,20 @@ generic over the input and output IR of a pass and has four parts.
   passes, invalidates the cache after each, and verifies and dumps on request. The registry holds the passes and their
   control flags.
 
-A transform does not change the unit it is given: it returns the unit after it, which may share with its input the
-parts it did not change (copy on write), and a transform that changed nothing returns its input with every analysis
-preserved. The manager replaces the current unit by the result only when the pass succeeded, and, when it verifies after
-every pass, when the result verifies; after a failure the required steps go on with the unit as the passes before the
-failed one left it, never with a half-rewritten one. The returned preserved set is the declaration of what the pass
-kept: the result inherits those analyses, and a lowering, which returns another IR, invalidates the whole cache. An
-analysis whose result refers to parts of the unit by identity (pointers) cannot survive a copy of those parts: it keys
-them by an ID that copies keep (Core IR nodes carry one), or no pass reports it preserved.
+A transform returns the unit after it, and a transform that changed nothing returns its input with every analysis
+preserved. When to copy is the manager's policy, not the transform's: the passes of one IR that run in a row form a
+segment, and before the first of them runs the manager takes one private copy of the unit, which the passes of the
+segment change in place. The caller's unit stays as it was until the segment succeeds. A pass that fails, or under
+`-verify-each` a result that does not verify, rolls the segment back to its start: the copy is dropped, and only the
+required steps go on, with the unit as the segment got it, never with a half-rewritten one. An observer that needs the
+unit before each pass (`-verify-each`, `-print-changed`, the check of what a pass preserves, `-opt-bisect-limit`) makes
+the manager copy before every pass instead; the result and the rollback are the same. So a normal build pays one copy per segment
+and a run that is being diagnosed one per pass. A required step that is not a pass (`flow-finish`) changes the unit in
+place, since a lowering or the copy of the segment before it made the unit the run's own; it copies only a unit that is
+still the caller's. The returned preserved set is the declaration of what the pass kept: the result inherits those
+analyses, and a lowering, which returns another IR, invalidates the whole cache. A copy keeps every analysis, so an
+analysis whose result refers to parts of the unit by identity (pointers) cannot be kept as it is: it keys them by an ID
+that copies keep (Core IR nodes carry one), or it is computed again.
 
 Passes run one at a time, in the order of the pipeline. A pass that works on one function reads only analyses of the
 module that were computed before it runs, and never the body of another function, so what it does to a function depends

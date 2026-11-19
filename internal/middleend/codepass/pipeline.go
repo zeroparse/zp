@@ -30,6 +30,7 @@ func (e *Env) On(name string) bool { return e.Flag == nil || e.Flag(name) }
 var Pipeline = &pass.Pipeline[*code.Module, *Env]{
 	Analyses: map[pass.Analysis]func(*code.Module){},
 	Verify:   code.Verify,
+	Copy:     (*code.Module).Clone,
 }
 
 // RunOptions selects what a run of Pipeline does besides running the passes.

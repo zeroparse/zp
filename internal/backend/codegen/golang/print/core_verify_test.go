@@ -23,7 +23,6 @@ var brokenGuards = pass.Pass[*core.Module, *corepass.Env]{
 	After:      []string{corepass.PassGuards},
 	Obligation: "none: it breaks the module on purpose",
 	Run: func(m *core.Module, _ *corepass.Env) (*core.Module, pass.PreservedSet, error) {
-		m = m.Clone()
 		for _, r := range m.Rules {
 			if r == nil {
 				continue
@@ -218,7 +217,6 @@ rule num = [0-9]+
 			p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *codepass.Env]{
 				Name: "test-exec-mutant", Obligation: "none: it breaks the lowered function on purpose",
 				Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
-					m = m.Clone()
 					c.run(m)
 					return m, pass.PreserveNone(), nil
 				}})

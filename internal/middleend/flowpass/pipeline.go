@@ -73,6 +73,7 @@ var Pipeline = &pass.Pipeline[*code.Module, *Env]{
 	Passes:   passes,
 	Analyses: map[pass.Analysis]func(*code.Module){},
 	Verify:   flow.VerifyModule,
+	Copy:     (*code.Module).Clone,
 }
 
 // RunOptions selects what a run of Pipeline does besides running the passes.

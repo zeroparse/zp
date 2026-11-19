@@ -139,9 +139,10 @@ func TestStageFailure(t *testing.T) {
 	if err == nil || err.Error() != "pass bad: no" {
 		t.Fatalf("error %v", err)
 	}
-	// The required steps go on with the unit as a left it, not with what bad made before it failed.
-	if !slices.Equal(out.log, []string{"a!"}) {
-		t.Errorf("unit %v, want [a!]: the optional pass c ran after the failure, or the failed pass's unit went on", out.log)
+	// The required steps go on with the unit as the stage of bad got it: the stage rolled back what
+	// a and bad made.
+	if !slices.Equal(out.log, []string{"!"}) {
+		t.Errorf("unit %v, want [!]: the optional pass c ran after the failure, or the failed stage's unit went on", out.log)
 	}
 	if want := []string{"1:a:a:", "0:lower:t:", "0:finish::", "0:back:u:"}; !slices.Equal(rec.events, want) {
 		t.Errorf("events %v, want %v", rec.events, want)
@@ -214,4 +215,51 @@ func TestStageProject(t *testing.T) {
 	if out, err := refuses.Run(&Run{}, Label{}, in); err != cause || out != in {
 		t.Errorf("refused part: out %v, err %v", out, err)
 	}
+}
+
+// copyUnit is unitIR with a copy that counts in n.
+func copyUnit(n *int) IR[*unit] {
+	ir := unitIR
+	ir.Copy = func(u *unit) *unit {
+		*n++
+		v := *u
+		v.log = slices.Clone(u.log)
+		return &v
+	}
+	return ir
+}
+
+// TestStageCopies checks that the passes of a stage take one copy, that a required step changes the
+// run's own unit in place, made by a lowering or copied by the passes before, and copies the
+// caller's unit first, and that the caller's unit is never changed.
+func TestStageCopies(t *testing.T) {
+	var passCopies, stepCopies int
+	finish := Do("finish", copyUnit(&stepCopies), func(u *unit) *unit {
+		u.log = append(u.log, "!")
+		return u
+	})
+	segment := func(passes ...Pass[*unit, mode]) Stage[*unit, *unit] {
+		return transforms(copying(fakePipeline(passes...), &passCopies), "")
+	}
+	check := func(what string, s Stage[*unit, *unit], log []string, wantErr bool, passes, steps int) {
+		t.Helper()
+		passCopies, stepCopies = 0, 0
+		in := &unit{log: []string{"in"}}
+		out, err := s.Run(&Run{}, Label{}, in)
+		if (err != nil) != wantErr || !slices.Equal(out.log, log) || !slices.Equal(in.log, []string{"in"}) {
+			t.Errorf("%s: log %v, input log %v, err %v; want %v", what, out.log, in.log, err, log)
+		}
+		if passCopies != passes || stepCopies != steps {
+			t.Errorf("%s: %d copies by the passes and %d by the step, want %d and %d", what, passCopies, stepCopies, passes, steps)
+		}
+	}
+	check("passes, then a step", Then(segment(inPlace("a"), inPlace("b")), finish), []string{"in", "a", "b", "analyze", "!"}, false, 1, 0)
+	check("a step on the caller's unit", finish, []string{"in", "!"}, false, 0, 1)
+	made := Lower("make", "u", unitIR, func(u *unit) (*unit, error) { return &unit{log: append(slices.Clone(u.log), "made")}, nil })
+	check("a step after a lowering", Then(made, finish), []string{"in", "made", "!"}, false, 0, 0)
+	fails := Pass[*unit, mode]{Name: "fails", Run: func(u *unit, _ mode) (*unit, PreservedSet, error) {
+		u.log = append(u.log, "half")
+		return u, none, errors.New("no")
+	}}
+	check("a step after a failed pass", Then(segment(inPlace("a"), fails), finish), []string{"in", "!"}, true, 1, 1)
 }

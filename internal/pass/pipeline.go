@@ -8,11 +8,14 @@
 // AnalysisManager, which the run may share with its caller), and it verifies the unit, once at the
 // end or after every pass. A pass that breaks an invariant is named in the error.
 //
-// A pass does not change the unit it is given: it returns the unit after it, which may share with
-// its input the parts it did not change (copy on write), and the analyses that remain valid. The run
-// replaces its current unit by the result only when the pass succeeded, so a failed pass leaves the
-// unit as the passes before it made it. An analysis that refers to parts of the unit by identity
-// (pointers) cannot be preserved across a pass that copies those parts: it keys them by an ID that
+// A run does not change the unit it is given. Before the first pass that runs it takes one private
+// copy of the unit (Pipeline.Copy), which the passes of the run may change in place; each pass
+// returns the unit after it and the analyses that remain valid. If a pass fails, or under VerifyEach
+// its result does not verify, the run rolls back to its start: it returns the unit it was given, and
+// the changes of the passes before the failed one are dropped with the copy. Under VerifyEach the run
+// copies the unit before every pass instead, so that each unit that a dump or an observer was given
+// stays as its pass returned it; the result and the rollback are the same. An analysis that refers to
+// parts of the unit by identity (pointers) cannot be kept across a copy: it keys them by an ID that
 // the copies keep (such as core.Attrs.ID), or its passes do not report it preserved.
 //
 // The package knows nothing about the unit M or the context X that its callers choose: Core IR
@@ -47,10 +50,12 @@ type Pass[M, X any] struct {
 	// Applies reports whether the pass is sound in the mode x; nil means always. A pass that does not
 	// apply never runs, whatever its flag says.
 	Applies func(x X) bool
-	// Run transforms the unit m without changing it: it returns the unit after the pass and the set
-	// of analyses, of the pipeline and of the AnalysisManager of the run, that hold for it. A pass
-	// that changed nothing returns m and PreserveAll. The zero set preserves none: an analysis that a
-	// pass does not report is computed again, never read stale.
+	// Run transforms the unit m, which belongs to the run (a copy, Pipeline.Copy) and which it may
+	// change in place: it returns the unit after the pass, m itself or another, and the set of
+	// analyses, of the pipeline and of the AnalysisManager of the run, that hold for it. A pass that
+	// changed nothing returns m and PreserveAll. The zero set preserves none: an analysis that a pass
+	// does not report is computed again, never read stale. If it fails, the run drops what it
+	// changed.
 	Run func(m M, x X) (M, PreservedSet, error)
 }
 
@@ -66,6 +71,10 @@ type Pipeline[M, X any] struct {
 	Verify func(m M) error
 	// VerifyRequires lists the analyses that Verify reads.
 	VerifyRequires []Analysis
+	// Copy returns a deep copy of the unit m that the passes may change without changing m; a copy
+	// keeps the IDs that the analyses key on. Nil means that a unit is a value, which no pass can
+	// change in place.
+	Copy func(m M) M
 }
 
 // Options selects what a run does. The zero value runs every applicable pass and verifies once, at
@@ -74,10 +83,11 @@ type Options[M any] struct {
 	// Enabled, if not nil, reports whether the pass of the given name may run.
 	Enabled func(name string) bool
 	// VerifyEach verifies the unit after every pass that ran, so that the error names the first pass
-	// that broke an invariant.
+	// that broke an invariant, and gives every pass a copy of its own.
 	VerifyEach bool
 	// Dump, if not nil, is called with Stage before the first pass and with the name of each pass
-	// and the unit it returned after it ran, before it is verified.
+	// and the unit it returned after it ran, before it is verified. The later passes of the run may
+	// change that unit in place, except under VerifyEach.
 	Dump func(pass string, m M)
 	// Stage names the unit as it reaches the first pass: the stage of the pipeline that made it,
 	// such as "core", "flow" or "exec". A run with a Dump requires it, so that every dump is named.
@@ -142,10 +152,10 @@ func (p *Pipeline[M, X]) Names() []string {
 }
 
 // Run runs the passes on m under the mode x and returns the unit after them and the names of the
-// passes that ran, in order. m is not changed. An error names the pass that failed, or "verification"
-// for the final check; with it Run returns the unit as the passes before the failed one left it (with
-// VerifyEach, a pass whose result fails the verification failed), or m if the final verification
-// failed, since it cannot tell which pass broke the unit.
+// passes that ran, in order. m is not changed: the passes change a copy of it, taken before the first
+// of them runs, or one copy each under VerifyEach. An error names the pass that failed (with
+// VerifyEach, a pass whose result fails the verification failed), or "verification" for the final
+// check; with it Run returns m, the unit at the start of the run.
 func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) (M, []string, error) {
 	if err := p.Validate(); err != nil {
 		return m, nil, err
@@ -193,12 +203,18 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) (M, []string, error) {
 		if o.gate != nil && !o.gate(ps.Name) {
 			continue
 		}
+		// The first pass gets the run's own copy, which the later ones go on changing; under
+		// VerifyEach each pass gets a copy of its own. A copy keeps the analyses of its unit.
+		if p.Copy != nil && (len(ran) == 0 || o.VerifyEach) {
+			m = p.Copy(m)
+			am.move(m)
+		}
 		if err := ensure(ps.Requires, m); err != nil {
-			return m, ran, fmt.Errorf("pass %s: %w", ps.Name, err)
+			return in, ran, fmt.Errorf("pass %s: %w", ps.Name, err)
 		}
 		out, keep, err := ps.Run(m, x)
 		if err != nil {
-			return m, ran, fmt.Errorf("pass %s: %w", ps.Name, err)
+			return in, ran, fmt.Errorf("pass %s: %w", ps.Name, err)
 		}
 		ran = append(ran, ps.Name)
 		if o.Dump != nil {
@@ -213,7 +229,7 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) (M, []string, error) {
 		am.move(out)
 		if o.VerifyEach {
 			if err := verify("after pass "+ps.Name, out); err != nil {
-				return m, ran, err
+				return in, ran, err
 			}
 		}
 		m = out

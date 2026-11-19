@@ -42,12 +42,10 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 			// every position (duckdb: block_comment, 84,000 calls against none), and nothing reports it.
 			Requires:   []pass.Analysis{AttributesAnalysis},
 			Obligation: "A guard is the first terminal of its alternative, which the alternative cannot match without.",
-			// Guards mark the alternatives of choices and add no node: the attributes, which the copy
-			// keeps, hold.
+			// Guards mark the alternatives of choices and add no node: the attributes hold.
 			Run: func(m *core.Module, _ *Env) (*core.Module, pass.PreservedSet, error) {
-				c := m.Clone()
-				Guards(c)
-				return c, pass.Preserve(string(AttributesAnalysis)), nil
+				Guards(m)
+				return m, pass.Preserve(string(AttributesAnalysis)), nil
 			},
 		},
 		{
@@ -56,15 +54,16 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 			Requires:   []pass.Analysis{AttributesAnalysis},
 			Obligation: "Consumes the same input and records the same expectations as the repetition it replaces.",
 			Run: func(m *core.Module, _ *Env) (*core.Module, pass.PreservedSet, error) {
-				c := m.Clone()
-				Scans(c)
-				return c, pass.PreserveNone(), nil
+				Scans(m)
+				return m, pass.PreserveNone(), nil
 			},
 		},
 	},
 	Analyses:       map[pass.Analysis]func(*core.Module){AttributesAnalysis: core.Analyze},
 	Verify:         core.Verify,
 	VerifyRequires: []pass.Analysis{AttributesAnalysis},
+	// The attributes, which the analysis writes into the nodes, travel with the copy.
+	Copy: (*core.Module).Clone,
 }
 
 // RunOptions selects what a run of Pipeline does besides running the passes.

@@ -86,7 +86,7 @@ func verified(m *code.Module, err error) (*code.Module, error) {
 
 // IR describes a module of Flow functions to the manager of the pipeline: it is verified by Verify
 // and dumped as the listing of each of its functions, labeled with its table.
-var IR = pass.IR[*code.Module]{Stage: flow.Stage, Verify: Verify, Print: Print}
+var IR = pass.IR[*code.Module]{Stage: flow.Stage, Verify: Verify, Print: Print, Copy: (*code.Module).Clone}
 
 // Print writes the dump of the Flow module m, labeled l, after the step after: each function under a
 // header line of its own.

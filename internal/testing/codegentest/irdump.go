@@ -58,10 +58,9 @@ var BrokenFlowPass = pass.Pass[*code.Module, *flowpass.Env]{
 	Name:       "break-flow",
 	Obligation: "none: it breaks the function on purpose",
 	Run: func(m *code.Module, _ *flowpass.Env) (*code.Module, pass.PreservedSet, error) {
-		c := m.Clone()
-		a := flow.AttrsOf(flow.FuncOf(c))
+		a := flow.AttrsOf(flow.FuncOf(m))
 		a.Vars = append(a.Vars, "broken", "broken")
-		return c, pass.PreserveNone(), nil
+		return m, pass.PreserveNone(), nil
 	},
 }
 
@@ -71,9 +70,8 @@ var BrokenExecPass = pass.Pass[*code.Module, *codepass.Env]{
 	Name:       "break-exec",
 	Obligation: "none: it breaks the module on purpose",
 	Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
-		c := m.Clone()
-		c.Funcs = append(c.Funcs, c.Funcs[0])
-		return c, pass.PreserveNone(), nil
+		m.Funcs = append(m.Funcs, m.Funcs[0])
+		return m, pass.PreserveNone(), nil
 	},
 }
 
