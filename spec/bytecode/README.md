@@ -145,6 +145,8 @@ When an instruction fails, the VM pops entries from the entry stack of the curre
 | Recovery | `RECOVER` | See [Recovery](#recovery). |
 | Skip | Recovery handling | Restore, add the expectations recorded inside to the farthest failure, and continue failing. |
 
+Popping an entry charges no step of its own. Restoring the state charges a unit for each capture write it undoes, as `flow.reset` does ([Flow operations](../flow-ir/operations.md)), and what the handling of an entry calls, such as the merge of the expectations of a label, charges as it does elsewhere; the work that an entry undoes was charged when it was done.
+
 ## Match Instructions
 
 `b` denotes an operand that selects whether the instruction pushes a value (1) or not (0). Matching behaves the same either way.
