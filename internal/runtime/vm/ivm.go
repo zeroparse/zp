@@ -11,14 +11,15 @@ import (
 // NewIterative prepares a module for execution with the iterative model, in the family f; terms
 // are the programs of its terms (LoadTerms).
 func NewIterative(m *bytecode.Module, terms []*state.TermProgram, f state.Family) *Program {
-	return buildVMProgram(m, terms, f, iterateBody, false)
+	return buildVMProgram(m, terms, f, iterateBody)
 }
 
 // iterateBody runs a rule body with the iterative model: calls push frames instead of recursing.
 func iterateBody(vm *Program, r *state.Rule, entry int) func(p *state.Parser, min int) (*value.Node, bool) {
 	return func(p *state.Parser, min int) (*value.Node, bool) {
 		mc := ivmMachineOf(p)
-		res := mc.iterate(vm, mc.bodyFrame(entry, r, min, false))
+		mc.flows = vm.flows
+		res := mc.iterate(vm, mc.ruleBodyFrame(r, min))
 		return res.v, res.ok
 	}
 }
@@ -38,6 +39,7 @@ type ivmMachine struct {
 	Machine
 	pool    framePool                  // frames of the iterative-model VM
 	attempt state.OperatorsRuleAttempt // result of the longestFrame that just finished
+	flows   []*bytecode.Flow           // the Flow bodies of the program (Program.flows)
 }
 
 // ivmMachineOf returns the iterative-model VM state of the parse that p runs, making it on first
@@ -107,9 +109,43 @@ type bodyFrame struct {
 	b       vmBody
 	block   bool // OperatorsRule section (reports a cut to the caller through p.cut)
 	started bool
-	call    bool              // a plain call of b.r: run the end of InvokePlain when the body finishes
-	inv     state.InvokeState // call: the state saved by the call
-	rec     int               // call: recovered errors before the call
+	call    bool      // a plain call of b.r: run the end of InvokePlain (plain) when the body finishes
+	plain   plainCall // call: the state saved by the call
+}
+
+// plainCall is the state of an unmemoized call of a rule without captures whose steps
+// (InvokePlain) the frame that runs the rule's body does: begin before the body and end after it.
+type plainCall struct {
+	inv state.InvokeState // the state saved by the call
+	rec int               // recovered errors before the call
+}
+
+// begin does the start of InvokePlain for a call of r.
+func (c *plainCall) begin(p *state.Parser, r *state.Rule) {
+	*c = plainCall{inv: state.InvokeState{PrevEnv: p.Env, PrevCut: p.Cut, Trail: len(p.Trail), Start: p.Pos}, rec: len(p.Recovered)}
+	p.Cut = false
+	if r.Rec {
+		p.Enter()
+	}
+	p.Stats.Evaluated++
+}
+
+// end does the end of InvokePlain for a call of r whose body returned v and ok, and returns the
+// call's value.
+func (c *plainCall) end(p *state.Parser, r *state.Rule, v *value.Node, ok bool) *value.Node {
+	if r.Rec {
+		p.Depth--
+	}
+	p.Cut = c.inv.PrevCut
+	p.Trail = p.Trail[:state.Min2(c.inv.Trail, len(p.Trail))]
+	if ok {
+		v = p.Finish(r, state.EmptyFrame, v, c.inv.Start)
+	} else {
+		p.Pos = c.inv.Start
+		p.Recovered = p.Recovered[:c.rec]
+	}
+	p.Env = c.inv.PrevEnv
+	return v
 }
 
 func (f *bodyFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, iresult, bool) {
@@ -126,43 +162,38 @@ func (f *bodyFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 	switch ev {
 	case evCall:
 		in := &vm.m.Code[f.b.ip]
-		r, min := vm.rules[in.A], int(in.B)
-		if vm.direct[in.A] {
-			return mc.plainCallFrame(r, min), iresult{}, false
-		}
-		if p.Tr != nil {
-			return &traceFrame{r: r, min: min}, iresult{}, false
-		}
-		// What callChild does, written out on this hot path
-		if !p.MemoAll && (!p.Memoizes(r) || p.FirstCall(r)) || p.MemoAll && p.DirectCallDoc(r) {
-			if len(r.Scope.Names) == 0 {
-				return mc.plainCallFrame(r, min), iresult{}, false
-			}
-			return mc.callFrame(r, min, false), iresult{}, false
-		}
-		return mc.callFrame(r, min, true), iresult{}, false
+		return mc.ruleCallFrame(vm, int(in.A), int(in.B)), iresult{}, false
 	case evOperatorsRule:
 		return mc.operatorsRuleFrame(f.b.r, f.b.min), iresult{}, false
 	}
 	if f.block && f.b.cut {
 		p.Cut = true
 	}
-	if f.call { // the end of InvokePlain
-		r := f.b.r
-		if r.Rec {
-			p.Depth--
-		}
-		p.Cut = f.inv.PrevCut
-		p.Trail = p.Trail[:state.Min2(f.inv.Trail, len(p.Trail))]
-		if ok {
-			v = p.Finish(r, state.EmptyFrame, v, f.inv.Start)
-		} else {
-			p.Pos = f.inv.Start
-			p.Recovered = p.Recovered[:f.rec]
-		}
-		p.Env = f.inv.PrevEnv
+	if f.call {
+		v = f.plain.end(p, f.b.r, v, ok)
 	}
 	return nil, iresult{v: v, ok: ok}, true
+}
+
+// ruleCallFrame returns the frame that runs the call of the rule of ID rule at the binding level
+// min that a CALL of match code or of a Flow body makes.
+func (mc *ivmMachine) ruleCallFrame(vm *Program, rule, min int) iframe {
+	p := mc.p
+	r := vm.rules[rule]
+	if vm.direct[rule] {
+		return mc.plainCallFrame(r, min)
+	}
+	if p.Tr != nil {
+		return &traceFrame{r: r, min: min}
+	}
+	// What callChild does, written out on this hot path
+	if !p.MemoAll && (!p.Memoizes(r) || p.FirstCall(r)) || p.MemoAll && p.DirectCallDoc(r) {
+		if len(r.Scope.Names) == 0 {
+			return mc.plainCallFrame(r, min)
+		}
+		return mc.callFrame(r, min, false)
+	}
+	return mc.callFrame(r, min, true)
 }
 
 // callChild returns the frame that runs a call of r (the same steps as call).
@@ -179,19 +210,66 @@ func (mc *ivmMachine) callChild(r *state.Rule, min int) iframe {
 
 // plainCallFrame starts an unmemoized call of a rule without captures (the start of InvokePlain)
 // and returns the frame that runs its body.
-func (mc *ivmMachine) plainCallFrame(r *state.Rule, min int) *bodyFrame {
+func (mc *ivmMachine) plainCallFrame(r *state.Rule, min int) iframe {
 	p := mc.p
 	p.Spend()
+	if f := mc.flows[r.ID]; f != nil {
+		ff := mc.flowFrame(r, f)
+		ff.call = true
+		ff.plain.begin(p, r)
+		return ff
+	}
 	f := mc.bodyFrame(r.Entry, r, min, false)
 	f.call = true
-	f.inv = state.InvokeState{PrevEnv: p.Env, PrevCut: p.Cut, Trail: len(p.Trail), Start: p.Pos}
-	f.rec = len(p.Recovered)
-	p.Cut = false
-	if r.Rec {
-		p.Enter()
-	}
-	p.Stats.Evaluated++
+	f.plain.begin(p, r)
 	return f
+}
+
+// ruleBodyFrame returns the frame that runs the body of r: its Flow body if it has one, otherwise
+// its match code.
+func (mc *ivmMachine) ruleBodyFrame(r *state.Rule, min int) iframe {
+	if f := mc.flows[r.ID]; f != nil {
+		return mc.flowFrame(r, f)
+	}
+	return mc.bodyFrame(r.Entry, r, min, false)
+}
+
+// flowFrame returns a frame that runs the Flow body f of r, with the registers of a frame that ran
+// before.
+func (mc *ivmMachine) flowFrame(r *state.Rule, f *bytecode.Flow) *flowFrame {
+	ff := reuse(&mc.p.MemKept, &mc.pool.flows)
+	regs := ff.run.regs
+	*ff = flowFrame{r: r}
+	ff.run.regs = regs
+	ff.run.start(f)
+	return ff
+}
+
+// flowFrame runs the Flow body of a rule. A CALL of the body suspends it: the frame returns the
+// frame of the call, and resumes the body with the call's result.
+type flowFrame struct {
+	r       *state.Rule
+	run     flowRun
+	started bool
+	call    bool      // a plain call of r: run the end of InvokePlain (plain) when the body finishes
+	plain   plainCall // call: the state saved by the call
+}
+
+func (f *flowFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, iresult, bool) {
+	p := mc.p
+	if f.started {
+		f.run.resume(res.v, res.ok)
+	}
+	f.started = true
+	if vm.runFlow(p, &f.run) {
+		x := f.run.call()
+		return mc.ruleCallFrame(vm, x.Rule, x.Level), iresult{}, false
+	}
+	v, ok := f.run.v, f.run.ok
+	if f.call {
+		v = f.plain.end(p, f.r, v, ok)
+	}
+	return nil, iresult{v: v, ok: ok}, true
 }
 
 func blockFrame(mc *ivmMachine, entry int) *bodyFrame {
@@ -206,6 +284,7 @@ type framePool struct {
 	longests       []*longestFrame
 	nuds           []*nudFrame
 	operatorsRules []*operatorsRuleFrame
+	flows          []*flowFrame
 }
 
 // reuse pops a frame from a free list, or allocates one. A new frame is charged to the memory
@@ -290,6 +369,8 @@ func (mc *ivmMachine) releaseFrame(f iframe) {
 		mc.pool.longests = append(mc.pool.longests, f)
 	case *nudFrame:
 		mc.pool.nuds = append(mc.pool.nuds, f)
+	case *flowFrame:
+		mc.pool.flows = append(mc.pool.flows, f)
 	case *operatorsRuleFrame:
 		mc.p.Depth--
 		mc.pool.operatorsRules = append(mc.pool.operatorsRules, f)
@@ -382,7 +463,7 @@ func (f *callFrame) invoke(mc *ivmMachine) iframe {
 	p := mc.p
 	f.state = cInvoked
 	f.inv = p.InvokeBegin(f.r)
-	return mc.bodyFrame(f.r.Entry, f.r, f.min, false)
+	return mc.ruleBodyFrame(f.r, f.min)
 }
 
 // skipFrame is the skip of an Operators Rule expression, between the split form's TriviaBegin and
