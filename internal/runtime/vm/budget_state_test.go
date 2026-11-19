@@ -56,47 +56,49 @@ func TestBudgetStateVMChildAssembly(t *testing.T) {
 	}
 }
 
+// TestBudgetStateVMCutAndFailureUnwind pins that a cut charges a step for each entry it passes, so that a
+// long cut stops at the budget and at a cancellation, while the unwinding of a failure charges nothing: it
+// pops every entry without a step, as flow.reset returns to a mark (spec/flow-ir/operations.md), since the
+// work that each entry undoes was charged when it was done.
 func TestBudgetStateVMCutAndFailureUnwind(t *testing.T) {
-	for _, cut := range []bool{false, true} {
-		p := stateBudgetParser(runtime.Limits{Compute: 64})
+	newEntries := func(p *state.Parser, kind uint8) {
 		for range 320 {
-			machineOf(p).ents = append(machineOf(p).ents, vmEntry{kind: eChoice, cut: true})
+			machineOf(p).ents = append(machineOf(p).ents, vmEntry{kind: kind, cut: true})
 		}
-		vm := &Program{m: &bytecode.Module{Code: []bytecode.Instr{{Op: bytecode.OpCut}, {Op: bytecode.OpEnd}}}}
-		if cut {
-			for i := range machineOf(p).ents {
-				machineOf(p).ents[i].kind = eLabel
-			}
-			machineOf(p).ents[0].kind = eChoice
-			machineOf(p).ents[0].cut = false
+	}
+	vm := &Program{m: &bytecode.Module{Code: []bytecode.Instr{{Op: bytecode.OpCut}, {Op: bytecode.OpEnd}}}}
+	cut := func(p *state.Parser) {
+		body := vmBody{}
+		machineOf(p).step(vm, &body, false, false, nil)
+	}
+
+	p := stateBudgetParser(runtime.Limits{Compute: 64})
+	newEntries(p, eLabel)
+	machineOf(p).ents[0].kind = eChoice
+	machineOf(p).ents[0].cut = false
+	if err := catchFatal(t, func() { cut(p) }); !errors.Is(err, runtime.ErrLimit) {
+		t.Fatalf("cut err=%v", err)
+	}
+	if machineOf(p).ents[0].cut {
+		t.Fatal("cut reached its target after budget exhaustion")
+	}
+	p.Control = state.NewBudgetControl(newPollingContext(1), runtime.Limits{})
+	if err := catchFatal(t, func() { cut(p) }); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cut cancellation=%v", err)
+	}
+
+	for _, kind := range []uint8{eChoice, eIter} {
+		p := stateBudgetParser(runtime.Limits{Compute: 64})
+		newEntries(p, kind)
+		before := p.Control.Used
+		if err := catchFatal(t, func() { machineOf(p).unwind(vm.m, 0) }); err != nil {
+			t.Fatalf("unwinding entries of kind %d: %v", kind, err)
 		}
-		err := catchFatal(t, func() {
-			if cut {
-				body := vmBody{}
-				machineOf(p).step(vm, &body, false, false, nil)
-			} else {
-				machineOf(p).unwind(vm.m, 0)
-			}
-		})
-		if !errors.Is(err, runtime.ErrLimit) {
-			t.Fatalf("cut=%t err=%v", cut, err)
+		if n := len(machineOf(p).ents); n != 0 {
+			t.Fatalf("unwinding entries of kind %d left %d, want 0", kind, n)
 		}
-		if cut && machineOf(p).ents[0].cut {
-			t.Fatal("cut reached its target after budget exhaustion")
-		}
-		if !cut && len(machineOf(p).ents) != 256 {
-			t.Fatalf("unwind retained %d entries, want256", len(machineOf(p).ents))
-		}
-		p.Control = state.NewBudgetControl(newPollingContext(1), runtime.Limits{})
-		if err := catchFatal(t, func() {
-			if cut {
-				body := vmBody{}
-				machineOf(p).step(vm, &body, false, false, nil)
-			} else {
-				machineOf(p).unwind(vm.m, 0)
-			}
-		}); !errors.Is(err, context.Canceled) {
-			t.Fatalf("cut=%t cancellation=%v", cut, err)
+		if p.Control.Used != before {
+			t.Fatalf("unwinding entries of kind %d charged %d units, want none", kind, p.Control.Used-before)
 		}
 	}
 }
