@@ -888,9 +888,13 @@ func (l *lowerer) choice(n *core.Choice, s *scope, build bool, fail string) code
 		var bs *code.Block
 		var guarded *core.ClassNode
 		if a.Guard != nil {
-			// The alternative is skipped when the next character cannot begin it.
-			if ch == "" {
-				ch, more = l.decl("x", flow.TypeRune), l.decl("x", flow.TypeBool)
+			// The alternative is skipped when the next character cannot begin it. With budget controls
+			// each guard reads the character again, as the guard of each alternative is a terminal that
+			// examines it (spec/runtime/parsing.md#cost); without them one read serves all the guards.
+			if ch == "" || l.opts.Budget {
+				if ch == "" {
+					ch, more = l.decl("x", flow.TypeRune), l.decl("x", flow.TypeBool)
+				}
 				l.emit(peek(ch, size, more))
 			}
 			if size != "" && a.GuardedClass {

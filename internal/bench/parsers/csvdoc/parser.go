@@ -492,6 +492,12 @@ func e13(p *rt.Parser, _ int) (*core.Node, bool) {
 L6:
 	p.Pos = x1
 L5:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x3, _, x4 = p.In[p.Pos], 1, true
+	} else {
+		x3, _, x4 = p.Peek()
+	}
 	if !(x4 && (x3 == 10)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 14)
 		goto L7
