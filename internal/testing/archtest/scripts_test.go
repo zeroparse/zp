@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -287,5 +288,62 @@ func TestScriptsRequireAgentState(t *testing.T) {
 	out, _ := runIn(t, root, base, "bash", filepath.Join(root, ".agents", "scripts", "push-branch.sh"))
 	if strings.Contains(out, "ZP_AGENT_STATE") {
 		t.Errorf("push-branch.sh asks for ZP_AGENT_STATE: %q", out)
+	}
+}
+
+// TestGateDocsDetection runs the planning of hack/gate.sh (--dry-run docs) in a scratch repository.
+// A change list longer than a pipe buffer whose first line is under docs/ must plan the site steps:
+// detection that pipes the list into grep -q under pipefail dies of SIGPIPE there and skipped them.
+// A change outside the site paths skips them, and a base that git cannot diff against plans them.
+func TestGateDocsDetection(t *testing.T) {
+	needTools(t)
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "hack", "gate.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := t.TempDir()
+	env := append(scriptEnv(t, t.TempDir()), "GATE_AFFECTED_CMD=true")
+	write(t, filepath.Join(w, "hack", "gate.sh"), string(b), 0o755)
+	mustRun(t, w, env, "git", "init", "-q", "-b", "main")
+	mustRun(t, w, env, "git", "add", ".")
+	mustRun(t, w, env, "git", "commit", "-q", "-m", "Seed")
+	base := strings.TrimSpace(mustRun(t, w, env, "git", "rev-parse", "HEAD"))
+
+	plan := func(base string) string {
+		t.Helper()
+		return mustRun(t, w, env, "bash", filepath.Join(w, "hack", "gate.sh"), "--base", base, "--dry-run", "docs")
+	}
+	planned := func(out string) bool {
+		t.Helper()
+		test := strings.Contains(out, "site-test       cd site")
+		build := strings.Contains(out, "site-build      site/build.sh")
+		if test != build {
+			t.Fatalf("site-test and site-build disagree:\n%s", out)
+		}
+		return test
+	}
+
+	write(t, filepath.Join(w, "code", "a.go"), "package a\n", 0o644)
+	mustRun(t, w, env, "git", "add", "code")
+	mustRun(t, w, env, "git", "commit", "-q", "-m", "Code")
+	if out := plan(base); planned(out) {
+		t.Errorf("a change outside docs/, spec/, site/ and README.md plans the site steps:\n%s", out)
+	}
+
+	write(t, filepath.Join(w, "docs", "a.md"), "# A\n", 0o644)
+	long := strings.Repeat("x", 60)
+	for i := range 3000 {
+		write(t, filepath.Join(w, "zz", long+strconv.Itoa(i)), "", 0o644)
+	}
+	mustRun(t, w, env, "git", "add", "docs", "zz")
+	mustRun(t, w, env, "git", "commit", "-q", "-m", "Docs")
+	if n := len(mustRun(t, w, env, "git", "diff", "--name-only", base, "HEAD")); n < 1<<17 {
+		t.Fatalf("the change list has %d bytes; it must exceed a pipe buffer", n)
+	}
+	if out := plan(base); !planned(out) {
+		t.Errorf("a long change list that touches docs/ skips the site steps:\n%s", out)
+	}
+	if out := plan(strings.Repeat("0", 40)); !planned(out) {
+		t.Errorf("a base that cannot be diffed skips the site steps:\n%s", out)
 	}
 }
