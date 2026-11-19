@@ -63,9 +63,30 @@ type Lowered struct {
 
 // Lower converts the module m from the Flow stage to the Exec stage. The functions of m move to the
 // result, which declares the registers and handle types of m and the primitive operation of each
-// Flow operation; m is not used after. The result is verified, which checks that no call of a Flow
-// operation remains.
+// Flow operation; m is not used after. The result is verified (Verify), which checks that no call of
+// a Flow operation remains.
 func Lower(m *code.Module) (*code.Module, error) {
+	out, err := lower(m)
+	if err == nil {
+		err = Verify(out)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Verify checks a module that the conversion made with the verifier of Code IR. A module it rejects
+// is an error of the conversion, which names the module.
+func Verify(m *code.Module) error {
+	if err := code.Verify(m); err != nil {
+		return fmt.Errorf("lower %s: %w", m.Name, err)
+	}
+	return nil
+}
+
+// lower is Lower without the verification of the result.
+func lower(m *code.Module) (*code.Module, error) {
 	if m.Stage != flow.Stage {
 		return nil, fmt.Errorf("lower %s: a module at the %q stage, not the Flow stage", m.Name, m.Stage)
 	}
@@ -92,9 +113,6 @@ func Lower(m *code.Module) (*code.Module, error) {
 		out.Funcs = append(out.Funcs, f)
 	}
 	m.Funcs = nil
-	if err := code.Verify(out); err != nil {
-		return nil, fmt.Errorf("lower %s: %w", m.Name, err)
-	}
 	return out, nil
 }
 

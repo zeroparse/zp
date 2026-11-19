@@ -286,12 +286,14 @@ func (g *Generator) FlowPasses(m *code.Module, err error) (*code.Module, error) 
 // LowerFlow converts the module m of one lowered function from the Flow stage of Code IR to the Exec
 // stage (execlower.Lower), which the backends print.
 func LowerFlow(m *code.Module) (*execlower.Lowered, error) {
-	fn := flow.FuncOf(m)
-	x, err := execlower.Lower(m)
+	l, err := execlower.LowerFunc(m)
+	if err == nil {
+		err = execlower.Verify(l.Module)
+	}
 	if err != nil {
 		return nil, err
 	}
-	return &execlower.Lowered{Module: x, Func: fn, Vars: flow.AttrsOf(fn).Vars}, nil
+	return l, nil
 }
 
 // ExecPasses runs the pipeline of Exec passes on the module of l, which the lowering of a Flow IR

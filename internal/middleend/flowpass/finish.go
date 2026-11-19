@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // Finish ends the Flow passes on the module m of one lowered function, whichever of them ran: it
@@ -141,3 +142,11 @@ func splice(b *code.Block, blocks map[*code.Block]bool) {
 		b.Stmts = out
 	}
 }
+
+// FinishName is the name of Finish as a step of the pipeline.
+const FinishName = "flow-finish"
+
+// Finishing is Finish as the required step FinishName that ends the Flow stage of a function: it
+// runs after the Flow passes, also after one of them failed, and before the function leaves the Flow
+// stage.
+var Finishing = pass.Do(FinishName, pass.IR[*code.Module]{Stage: flow.Stage}, Finish)

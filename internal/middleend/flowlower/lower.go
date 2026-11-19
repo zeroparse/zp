@@ -122,7 +122,7 @@ func FramedBody(n core.Node) bool {
 // recovers, or a line of an Operators Rule of r. Analyze must have run on m. With Options.Budget the
 // function does not charge its entry: the method that calls it does (flow.Attrs.Entered).
 func LowerFrame(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot, build bool, name string, opts Options) (*code.Module, error) {
-	return lowerFrameBody(m, r, n, slots, build, name, opts)
+	return verified(LowerUnit(Unit{Module: m, Opts: opts, Func: Func{Form: Frame, Rule: r, Name: name, Body: n, Slots: slots, Build: build}}))
 }
 
 // Outlinable reports whether a node can run as a function of its own (LowerOutline): it is a framed
@@ -145,7 +145,7 @@ func Outlinable(n core.Node) bool {
 // name. The function belongs to the rule of its caller, which charged the entry of the rule: it
 // charges only the repetitions below n. Analyze must have run on m.
 func LowerOutline(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot, build bool, name string, opts Options) (*code.Module, error) {
-	return lowerFrameBody(m, r, n, slots, build, name, opts)
+	return verified(LowerUnit(Unit{Module: m, Opts: opts, Func: Func{Form: Outline, Rule: r, Name: name, Body: n, Slots: slots, Build: build}}))
 }
 
 func lowerFrameBody(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot, build bool, name string, opts Options) (*code.Module, error) {
@@ -177,6 +177,10 @@ func lowerFrameBody(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot
 // run on m. The terminal regions of the rule (corepass.TerminalRegions) are forms of the function
 // (flow.Forms), which the terminals pass may match as one program.
 func Lower(m *core.Module, r *core.Rule, name string, opts Options) (*code.Module, error) {
+	return verified(LowerUnit(Unit{Module: m, Opts: opts, Func: Func{Form: Flat, Rule: r, Name: name}}))
+}
+
+func lowerFlat(m *core.Module, r *core.Rule, name string, opts Options) (*code.Module, error) {
 	if !LocalRule(r) {
 		return nil, fmt.Errorf("rule %s is not lowered to a local function", r.Name)
 	}
@@ -295,9 +299,6 @@ func (l *lowerer) module(value code.Expr) (*code.Module, error) {
 	at.Forms.Named, at.Forms.Order = flow.NamedVars(fn.Body), append([]string(nil), at.Vars...)
 	m := flow.NewModule("flow " + fn.Name)
 	m.Funcs = append(m.Funcs, fn)
-	if err := flow.VerifyModule(m); err != nil {
-		return nil, fmt.Errorf("internal error: %w", err)
-	}
 	return m, nil
 }
 

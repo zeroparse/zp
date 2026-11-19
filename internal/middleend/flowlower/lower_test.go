@@ -330,10 +330,10 @@ func TestLowerVerifies(t *testing.T) {
 	l := newLowerer()
 	l.at.Node = true
 	l.set(l.decl("v", flow.TypeValue), call(flow.OpNewMatch, nil, num(0), call(flow.OpStr, flow.Chars(""))))
-	if g, err := l.module(nil); err == nil || g != nil || !strings.Contains(err.Error(), "typed match in a Node function") {
+	if g, err := verified(l.module(nil)); err == nil || g != nil || !strings.Contains(err.Error(), "typed match in a Node function") {
 		t.Errorf("module: got %v, %v", g, err)
 	}
-	if g, err := newLowerer().module(nil); err != nil || g == nil {
+	if g, err := verified(newLowerer().module(nil)); err != nil || g == nil {
 		t.Errorf("module of a valid function: got %v, %v", g, err)
 	}
 }
