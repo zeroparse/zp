@@ -20,7 +20,9 @@ import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/middleend/flowpass"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -558,6 +560,9 @@ type Generator struct {
 	reachErr   error
 	// typedTable reports that the typed rule table is generated.
 	typedTable bool
+	// plan is the plan of the Node or recognizer table being printed (flowplan.Plan), nil for the
+	// typed table.
+	plan *flowplan.Table
 }
 
 func (g *Generator) literal(value string) string {
@@ -652,6 +657,16 @@ func (g *Generator) rules() {
 	scopes := map[*common.Rule]*check.Scope{}
 	flats := map[*common.Rule]*flatRule{}
 	all := append(append([]*common.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...)
+	g.plan = nil
+	if g.Table != "trules" && g.Flow != nil {
+		// The functions of the Node and recognizer tables, and the frame layout of each rule, are
+		// planned in the middle end; the bodies follow the plan.
+		rules := make([]*flowplan.Rule, len(all))
+		for i, r := range all {
+			rules[i] = r.PlanRule()
+		}
+		g.plan = flowplan.Plan(g.Flow.M, rules, func(id int) bool { return !g.pruned(all[id]) })
+	}
 	for _, r := range all {
 		s := check.NewScope()
 		scopes[r] = s
@@ -660,17 +675,28 @@ func (g *Generator) rules() {
 			s.Names = append(s.Names, g.live.scopes[ruleKey{g.Table, r.ID, false}]...)
 			continue
 		}
+		_, operatorsRule := r.Def.Expr.(*ast.OperatorsRule)
 		if g.Table == "trules" {
 			// Typed flat rules need no separate body; Flow IR prints every typed rule.
 			if d := g.flowTypedRule(r); d != nil {
 				flats[r] = d
 				continue
 			}
-		} else if common.RecEligible(r) {
-			// flowRecRule returns nil for a rule whose printed function would read its start or context, and
-			// for one whose types it cannot name; such a rule takes its framed body below and is called through
-			// the rule table (plainCall).
-			if d := g.flowRecRule(r); d != nil {
+			if !operatorsRule {
+				if body := g.flowFrameBody(r, s); body != "" {
+					bodies[r] = body
+					continue
+				}
+				g.FailFlow("the body of rule " + r.Name)
+			}
+			continue
+		}
+		// The lines of an Operators Rule are printed with its table row (operatorsRule).
+		spec, ok := g.plan.Func(flowplan.Key{Use: flowplan.RuleBody, Rule: r.ID})
+		if ok && spec.Form == flowlower.Flat {
+			// flowRecRule returns nil for a rule whose flat function the plan refuses (flowplan.Refused);
+			// such a rule takes its framed fallback and is called through the rule table (plainCall).
+			if d := g.flowRecRule(r, spec); d != nil {
 				if g.hooks.LeanRoute != nil && g.collect == nil && !g.Traced {
 					g.hooks.LeanRoute(g.Table, r)
 				}
@@ -680,20 +706,16 @@ func (g *Generator) rules() {
 				}
 				continue
 			}
+			spec = spec.Fallback
 		}
-		if _, ok := r.Def.Expr.(*ast.OperatorsRule); !ok {
-			if g.Table != "trules" {
-				if body := g.flowNodeFrameBody(r, s); body != "" {
-					if g.hooks.FramedRoute != nil && g.collect == nil && !g.Traced {
-						g.hooks.FramedRoute(g.Table, r)
-					}
-					bodies[r] = body
-					continue
-				}
-			} else if body := g.flowFrameBody(r, s); body != "" {
-				bodies[r] = body
-				continue
+		if ok && spec != nil {
+			if g.hooks.FramedRoute != nil && g.collect == nil && !g.Traced {
+				g.hooks.FramedRoute(g.Table, r)
 			}
+			bodies[r] = g.flowNodeFrameBody(r, spec, s)
+			continue
+		}
+		if !operatorsRule {
 			g.FailFlow("the body of rule " + r.Name)
 		}
 	}
@@ -703,6 +725,14 @@ func (g *Generator) rules() {
 		}
 		for _, r := range all {
 			g.collect.scopes[ruleKey{g.Table, r.ID, false}] = append([]string(nil), scopes[r].Names...)
+		}
+	}
+	if g.plan != nil {
+		// Every row keeps the frame layout of the plan, which the VM's rule scopes derive from too.
+		for _, r := range all {
+			if err := g.plan.CheckLayout(r.ID, r.Name, scopes[r].Names); err != nil && g.FlowErr == nil {
+				g.FlowErr = err
+			}
 		}
 	}
 	if g.Table == "rules" && !g.Traced {
@@ -1422,7 +1452,7 @@ func (g *Generator) operatorsRule(r *common.Rule, e *ast.OperatorsRule) {
 		if co != nil {
 			skip = co.Skip
 		}
-		m := g.flowOperatorsRuleBody(skip, e.Skip, s, false)
+		m := g.flowOperatorsRuleBody(flowplan.Key{Use: flowplan.OperatorsSkip, Rule: r.ID}, skip, e.Skip, s, false)
 		if m == "" {
 			g.FailFlow("the skip of an Operators Rule of rule " + g.Cur.Name)
 		}
@@ -1434,7 +1464,7 @@ func (g *Generator) operatorsRule(r *common.Rule, e *ast.OperatorsRule) {
 		if co != nil {
 			l = co.Operands[i]
 		}
-		fmt.Fprintf(&b, "\t\t\t%s,\n", g.operatorsRuleLine(o.Expr, o.Action, false, l))
+		fmt.Fprintf(&b, "\t\t\t%s,\n", g.operatorsRuleLine(flowplan.Key{Use: flowplan.OperatorsLine, Rule: r.ID, Line: i}, o.Expr, o.Action, false, l))
 	}
 	b.WriteString("\t\t},\n")
 	var prefix, led []string
@@ -1445,7 +1475,7 @@ func (g *Generator) operatorsRule(r *common.Rule, e *ast.OperatorsRule) {
 			if co != nil {
 				l = co.Ops[id].Line
 			}
-			s := fmt.Sprintf("{Id: %d, Kind: %q, Assoc: %q, Level: %d, Line: %s}", id, op.Kind, op.Assoc, i+1, g.operatorsRuleLine(op.Expr, op.Action, true, l))
+			s := fmt.Sprintf("{Id: %d, Kind: %q, Assoc: %q, Level: %d, Line: %s}", id, op.Kind, op.Assoc, i+1, g.operatorsRuleLine(flowplan.Key{Use: flowplan.OperatorsLine, Rule: r.ID, Line: len(e.Operands) + id}, op.Expr, op.Action, true, l))
 			id++
 			if op.Kind == ast.Prefix {
 				prefix = append(prefix, s)
@@ -1465,7 +1495,7 @@ func (g *Generator) operatorsRule(r *common.Rule, e *ast.OperatorsRule) {
 
 // operatorsRuleLine returns the line of an Operators Rule with the expression e and the action;
 // l is its Core IR if it is printed from Flow IR, or nil.
-func (g *Generator) operatorsRuleLine(e ast.Expr, action ast.ActionExpr, operator bool, l *core.OpLine) string {
+func (g *Generator) operatorsRuleLine(k flowplan.Key, e ast.Expr, action ast.ActionExpr, operator bool, l *core.OpLine) string {
 	s := check.NewScope()
 	var locals []string
 	if operator {
@@ -1474,7 +1504,7 @@ func (g *Generator) operatorsRuleLine(e ast.Expr, action ast.ActionExpr, operato
 	// Lines whose value is unused are matched without values, as in the engine; so are all lines
 	// of a rule without a value (in the recognizer).
 	build := !g.Cur.Novalue && !check.LeanLine(action, locals)
-	m := g.flowOperatorsRuleBody(l, e, s, build)
+	m := g.flowOperatorsRuleBody(k, l, e, s, build)
 	if m == "" {
 		g.FailFlow("a line of an Operators Rule of rule " + g.Cur.Name)
 	}
