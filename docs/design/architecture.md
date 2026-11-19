@@ -240,7 +240,7 @@ in [Package Layering](layering.md), and the public packages are described in [Th
 | `pkg/runtime/instrument` | Trace events, filters, depth and profiles |
 | `pkg/runtime/vm` | Loading a compiled file into a parser, and the parser and Document of the VM |
 | `pkg/runtime/golib` | The support library of generated Go parsers |
-| `internal/driver` | Assembles and drives the compiler pipeline; the table of optimization profiles; the body of `pkg/compiler` and `cmd/zp`. `entry` is the compile entry, and `checked` the compiler side of a compiled program, which the runtime reaches only through an interface of the parser state |
+| `internal/driver` | Assembles and drives the compiler pipeline; the table of optimization profiles; the body of `pkg/compiler` and `cmd/zp`. `entry` is the compile entry, and `checked` the compiler side of a compiled program, which the runtime reaches only through an interface of the parser state; `tooling` is what the language server uses of the compiler, its only way to reach it |
 | `internal/diagnostic` | Positioned static errors |
 | `internal/cancel` | Cancellation of static work |
 | `internal/cliflag` | Flag names of backends and position units |
