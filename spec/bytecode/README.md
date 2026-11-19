@@ -346,8 +346,9 @@ past it. As for match code, a runtime does not check that registers hold what an
 
 ## Flow Bodies
 
-A rule may have a Flow body: the code of the [Flow function](../flow-ir/functions.md) of the rule, lowered with
-budget controls and for the node runtime, as a flat list of instructions. In both models
+A rule may have a Flow body: the code of the [Flow function](../flow-ir/functions.md) that runs the rule's body in the
+Node table of the code generated with budget controls, as a flat list of instructions. The function is local, a whole
+rule whose captures are variables, or framed, whose captures are slots of the rule's frame. In both models
 ([Execution Models](#execution-models)) a rule with a Flow body runs it in place of its match code; its entry, its call
 and its completion ([Rule Calls](#rule-calls)) are those of the rule table, and the body returns the rule's value and
 success, or failure. A `CALL` of a Flow body calls its rule as a `CALL` of match code does: the recursive model with a
@@ -357,8 +358,15 @@ file holds the Flow bodies after the run key table ([File Format](#file-format))
 
 A Flow body has a frame of registers, which hold the variables of the function, each register a value of the type of
 its variable. An instruction has an operation, destination registers, argument registers, a jump target and an
-immediate. The control of the function, its blocks, exits and conditionals, becomes jumps: an exit to the failure label
-returns failure, and running to the end of the body returns the result variable and success.
+immediate. The control of the function, its blocks, exits and conditionals, becomes jumps: in a local function an exit
+to the failure label returns failure, and running to the end of the body returns the result variable and success; a
+framed function returns by its own returns. A framed body runs in the frame of captures that the rule's entry makes, with
+a slot for each name of the rule's scope, and the rule's completion attaches them; the scope of the rule is the capture
+layout of its function, and a module whose Flow body would run in a frame of other slots is not built. The frame
+registers of a body hold capture frames: the current frame, which `SETCAPTURE` writes, and the frames of repetition
+elements, each with a slot for each name of a scope of the scope table. `flow.declareNames` has no instruction: it does
+nothing to the state. A capture slot of an immediate is below the number of slots of the largest frame the body can run
+with, the rule's or one that its `NEWFRAME` makes; a slot past the frame it indexes when the body runs fails the parse.
 
 Each operation has a code, the code a module file stores, and fixed numbers of destination registers (D) and argument
 registers (A); `JUMP` and `JUMPFALSE` also have a target.
@@ -410,6 +418,15 @@ registers (A); `JUMP` and `JUMPFALSE` also have a target.
 | 42 | `PUSHKID` | 0 | 1 | `flow.pushKid` of the argument, as the body of a rule frame pushes it: the charge of a gathered value is made where `KIDS` takes it off. |
 | 43 | `SHAPESINGLE` | 2 | 2 | `flow.shapeSingle` of the shape of the immediate for the value of the first argument matched from the integer second: the value and whether there is one. |
 | 44 | `SCOPEVALUE` | 1 | 2 | `flow.scopeValue` of the shape of the immediate for the value of the first argument matched from the integer second. |
+| 45 | `SETCAPTURE` | 0 | 1 | `flow.setCapture` of the slot of the immediate in the current frame to the argument, recorded on the capture trail. |
+| 46 | `MARKPOS` | 1 | 1 | `flow.markPos`: the position of the mark argument. |
+| 47 | `FRAME` | 1 | 0 | `flow.frame`: the current frame. |
+| 48 | `NEWFRAME` | 1 | 0 | `flow.newFrame` of the scope of the immediate, an index of the scope table: a frame with a slot for each of its names. |
+| 49 | `SETFRAME` | 0 | 1 | `flow.setFrame`: the frame argument becomes the current frame. |
+| 50 | `CLEARVALS` | 0 | 1 | `flow.clearVals` of the frame argument. |
+| 51 | `FRAMEVAL` | 1 | 1 | `flow.frameVal`: the value of the slot of the immediate of the frame argument. |
+| 52 | `ATTACHFRAME` | 1 | 3 | `flow.attachFrame` of the values of the frame of the third argument, as the fields named by the scope of the immediate, to the value of the first argument matched from the integer second. The scope has a name for each slot of the frame. |
+| 53 | `SHAPECAPTURE` | 1 | 2 | `flow.shapeCapture` of the shape of the immediate for the value of the first argument matched from the integer second. |
 
 A destination of -1 discards the value.
 
@@ -417,7 +434,8 @@ An instruction named after an operation of the [Flow dialect](../flow-ir/operati
 and charges what its cost bound names, and no more; the other instructions charge nothing. A Flow body therefore charges
 what its Flow function charges.
 
-The match code of the same rule charges by its own instructions: it builds nodes without a charge, charges each child
+The match code of the same rule charges by its own instructions: it builds nodes without a charge, including the tuple
+node that wraps a value to attach the captures of a scope to, charges each child
 that a sequence gathers, and peeks and unwinds as its instructions do. A parse can therefore spend different numbers of
 units with a rule's Flow body and with its match code, as compute counts are implementation-specific
 ([Cancellation and Compute Limits](../runtime/parsing.md#cancellation-and-compute-limits)); the code generated from the
@@ -459,7 +477,7 @@ The module is laid out in the following order. A *list* is a count (unsigned) fo
 12. Wide-integer table: a list of signed integers.
 13. Term table: a list of terms. A term is the sizes of its four register files (unsigned: values, integers, sequences, strings); its constants, a list of (kind as 1 byte: 0 nil, 1 int, 2 string, 3 bool; signed integer: the int, the string index, or 0 or 1); its names, a list of string indices; its member reads, a list of (member kind, name, field); its node types, a list of string indices; its casts, a list of (type text, line, column), the type text -1 for a cast that checks nothing; its struct literals, a list of (type name, number of fields); and its code, a list of instructions. Between the register sizes and the constants, a byte whose bits 0 to 5 mark the pools that are not empty (constants, names, member reads, node types, casts, struct literals) precedes them; only those pools are written, and a marked pool is not empty. An instruction is its opcode (1 byte), a byte whose bits 0 to 3 mark the operands D, `A`, `B` and `C` that are not zero, and those operands; a marked operand is not zero.
 14. Run key table: a list of (run site, list of string indices of the key's variables, list of string indices of the variables it binds), by increasing run site. Each list is sorted by name.
-15. Flow bodies ([Flow Bodies](#flow-bodies)): a list of (rule table index, number of registers (unsigned), list of instructions), by increasing rule index. An instruction is its operation (1 byte: its code), then its destination registers, its argument registers, its target and its immediate, each only if the operation has it and in the numbers the operation fixes. An immediate is, by operation: for `CONST` a kind (1 byte: 0 nil, 1 int, 3 bool, as for term constants) and a signed integer (0 for nil, the int, or 0 or 1); for `GUARD` (literal (boolean), rune, case-folded (boolean), class index or -1 for a literal, depth); for `EXPECT` (expectation, message (boolean)), the expectation 0 to 4 one of the fixed expectations (any character, beginning of input, end of input, beginning of line, end of line) and 5 + i the string i of the string table; for `CALL` (rule table index, binding level); for `INCLASS` the class index; for `ATANCHOR` the anchor; for `MATCHLIT` (string index of the literal, for a case-insensitive literal its text with ASCII letters lowercased, expectation as for `EXPECT`, case-insensitive (boolean)); for `SILENT` (change of depth, site, matched (boolean)); for `NEWVALS` the count; for `LITERALTEXT` and `STR` the string index; for `SHAPESINGLE` and `SCOPEVALUE` the shape (elements (boolean), shared (boolean), tuple (boolean), number of valued elements, single mode: 0 no value, 1 the element, 2 the tuple node).
+15. Flow bodies ([Flow Bodies](#flow-bodies)): a list of (rule table index, number of registers (unsigned), list of instructions), by increasing rule index. An instruction is its operation (1 byte: its code), then its destination registers, its argument registers, its target and its immediate, each only if the operation has it and in the numbers the operation fixes. An immediate is, by operation: for `CONST` a kind (1 byte: 0 nil, 1 int, 3 bool, as for term constants) and a signed integer (0 for nil, the int, or 0 or 1); for `GUARD` (literal (boolean), rune, case-folded (boolean), class index or -1 for a literal, depth); for `EXPECT` (expectation, message (boolean)), the expectation 0 to 4 one of the fixed expectations (any character, beginning of input, end of input, beginning of line, end of line) and 5 + i the string i of the string table; for `CALL` (rule table index, binding level); for `INCLASS` the class index; for `ATANCHOR` the anchor; for `MATCHLIT` (string index of the literal, for a case-insensitive literal its text with ASCII letters lowercased, expectation as for `EXPECT`, case-insensitive (boolean)); for `SILENT` (change of depth, site, matched (boolean)); for `NEWVALS` the count; for `LITERALTEXT` and `STR` the string index; for `SETCAPTURE` and `FRAMEVAL` the slot; for `NEWFRAME` and `ATTACHFRAME` the scope table index; for `SHAPESINGLE`, `SHAPECAPTURE` and `SCOPEVALUE` the shape (elements (boolean), shared (boolean), tuple (boolean), number of valued elements, single mode: 0 no value, 1 the element, 2 the tuple node).
 
 ### Load-Time Validation
 
@@ -477,7 +495,7 @@ On load, a runtime checks the following and rejects the file if any check fails:
 - Term code satisfies the checks of [Term Code](#term-code).
 - The line and column of a cast are not negative. The type text of a cast parses as a field type naming only declared types, `error`, `node[T]`, tuple types `(T, ...)`, `int`, `string`, `bool` and `nil`. These type texts are resolved types, which contain no `&` or `_|_`, and no `_` other than the argument of `node[_]`.
 - Every jump target of the match code is forward. Only `NEXT` jumps backward.
-- Every Flow body belongs to a rule of the rule table and ends with `JUMP` or `RETURN`. Each of its instructions has a known operation with the registers, target and immediate the operation fixes; every register is within the frame (a destination may be -1), every target is an instruction of the body, and the classes, expectations and rules of the immediates are in range (a guard of a literal names no class and a guard of a class is not case-folded), with depths and binding levels not negative; a literal is a string of the string table, an anchor is 0 to 3, and a lookahead enters (1) or leaves (-1) with a site not below -1, and only on leaving says whether it matched.
+- Every Flow body belongs to a rule of the rule table and ends with `JUMP` or `RETURN`. Each of its instructions has a known operation with the registers, target and immediate the operation fixes; every register is within the frame (a destination may be -1), every target is an instruction of the body, and the classes, expectations and rules of the immediates are in range (a guard of a literal names no class and a guard of a class is not case-folded), with depths and binding levels not negative; a literal is a string of the string table, an anchor is 0 to 3, a lookahead enters (1) or leaves (-1) with a site not below -1, and only on leaving says whether it matched, a scope is an entry of the scope table, and a capture slot is not negative and below the number of names of the rule's scope or of a scope of a `NEWFRAME` of the body.
 - Every rule on a cycle of calls is marked recursive (`Rec`), so that every unbounded nesting of calls counts against the nesting limit. The cycles are those of a graph that over-approximates the calls a run can make: a rule leads to its entry and to the rules that the `CALL` instructions of its Flow body call; an instruction leads to the next one, unless it is `JUMP`, `COMMIT`, `FAIL`, `RETURN` or `END`, and to the target it may go to (that of a negative `LOOK` only); `CALL` also leads to its rule, and `OPERATORS_RULE` to the code of its operand and operator lines and its skip. A rule is on a cycle when the graph leads from the rule back to it. A rule may be marked without being on a cycle.
 - Every `RECOVER` body ends at an `ENDRECOVER` immediately before its skip target; that instruction jumps past an `ENDSKIP`. These recovery regions are nested and contain no stream-mode `NEXT` (mode 2) in either the protected body or skip. Element-local recovery ends before the enclosing streaming repetition's `NEXT`.
 
