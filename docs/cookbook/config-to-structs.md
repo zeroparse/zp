@@ -47,12 +47,15 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed config.zp
-var grammar string
+var grammarSrc string
 
 // Config is what the program wants from the file.
 type Config struct {
@@ -63,35 +66,35 @@ type Config struct {
 }
 
 // text returns the text of a Key, Int, Str or Bool node.
-func text(v *core.Node) string { return v.Text() }
+func text(v *value.Node) string { return v.Text() }
 
-func asString(v *core.Node) (string, error) {
+func asString(v *value.Node) (string, error) {
 	if v.Type() != "Str" {
 		return "", fmt.Errorf("want a string, got %s", strings.ToLower(v.Type()))
 	}
 	return strconv.Unquote(text(v))
 }
 
-func asInt(v *core.Node) (int, error) {
+func asInt(v *value.Node) (int, error) {
 	if v.Type() != "Int" {
 		return 0, fmt.Errorf("want an integer, got %s", strings.ToLower(v.Type()))
 	}
 	return strconv.Atoi(text(v))
 }
 
-func asBool(v *core.Node) (bool, error) {
+func asBool(v *value.Node) (bool, error) {
 	if v.Type() != "Bool" {
 		return false, fmt.Errorf("want true or false, got %s", strings.ToLower(v.Type()))
 	}
 	return text(v) == "true", nil
 }
 
-func asStrings(v *core.Node) ([]string, error) {
+func asStrings(v *value.Node) ([]string, error) {
 	if v.Type() != "Array" {
 		return nil, fmt.Errorf("want an array, got %s", strings.ToLower(v.Type()))
 	}
 	var out []string
-	for _, item := range v.Field("Items").(*core.Node).Elems() {
+	for _, item := range v.Field("Items").(*value.Node).Elems() {
 		s, err := asString(item)
 		if err != nil {
 			return nil, err
@@ -102,16 +105,16 @@ func asStrings(v *core.Node) ([]string, error) {
 }
 
 // Load parses src and copies the entries into a Config.
-func Load(p *engine.Parser, src string) (Config, error) {
+func Load(p runtime.Parser, src string) (Config, error) {
 	var c Config
 	// Bytes, so that Start() is an offset into src.
-	tree, err := p.Parse(src, engine.WithUnit(core.Bytes))
+	tree, err := p.Parse(src, runtime.WithUnit(input.Bytes))
 	if err != nil {
 		return c, err
 	}
-	for _, e := range tree.Field("Entries").(*core.Node).Elems() {
-		key := text(e.Field("Key").(*core.Node))
-		v := e.Field("Value").(*core.Node)
+	for _, e := range tree.Field("Entries").(*value.Node).Elems() {
+		key := text(e.Field("Key").(*value.Node))
+		v := e.Field("Value").(*value.Node)
 		switch key {
 		case "name":
 			c.Name, err = asString(v)
@@ -133,7 +136,7 @@ func Load(p *engine.Parser, src string) (Config, error) {
 }
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -170,10 +173,10 @@ error: 2:9: syntax error: expected "#", "-", "[", "\"", "false", "true", [ \t\r\
 - **The tree is what the grammar declares.** `main` returns a `Config` struct whose `Entries` field is a list of `Entry`
   structs. `Field("Entries")` and `Elems` walk it, as described in
   [Shaping Trees](../guide/shaping-trees.md).
-- **`engine.WithUnit(core.Bytes)`** makes `Start()` and `End()` offsets into the Go string, so `src[:e.Start()]` is the text
+- **`runtime.WithUnit(input.Bytes)`** makes `Start()` and `End()` offsets into the Go string, so `src[:e.Start()]` is the text
   before an entry, and counting its line feeds gives the line. By default positions count code points, which are not
   string indexes when the text has non-ASCII characters.
-- **Two kinds of error.** A file that is not in the format fails in `Parse` with a `*core.SyntaxError` (the last line of
+- **Two kinds of error.** A file that is not in the format fails in `Parse` with a `*value.SyntaxError` (the last line of
   the output). A file that has the format but not the meaning your program needs, such as a wrong type or an unknown
   key, fails in your code, which knows the position of the entry.
 

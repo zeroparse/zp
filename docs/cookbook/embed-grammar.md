@@ -5,7 +5,7 @@ You want the grammar in its own file, compiled once, with a test that fails if t
 that every part of the program shares.
 
 Keep the grammar in a `.zp` file and embed it with `go:embed`, so that `zp fmt`, `zp lint` and the editor support
-work on a real file. Compile it once, at package initialization, and give each format its own start rule. A `*engine.Parser`
+work on a real file. Compile it once, at package initialization, and give each format its own start rule. A `runtime.Parser` (its dynamic type is `*vm.Parser`)
 is safe for concurrent use, and `WithStart` returns a parser for another start rule that shares the compiled grammar.
 
 ```zp
@@ -33,11 +33,13 @@ package main
 import (
 	_ "embed"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/vm"
 )
 
 //go:embed units.zp
-var grammar string
+var grammarSrc string
 
 // Compiling is the expensive step, and it happens once. WithStart returns a parser for another start
 // rule that shares the compiled grammar.
@@ -46,15 +48,19 @@ var (
 	sizeParser     = must(durationParser.WithStart("size"))
 )
 
-func mustCompile(start string) *engine.Parser {
-	return must(engine.CompileSource(grammar, start))
-}
-
-func must(p *engine.Parser, err error) *engine.Parser {
+func mustCompile(start string) *vm.Parser {
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart(start))
 	if err != nil {
 		panic(err) // a grammar error is a bug in the program, found by the test below
 	}
-	return p
+	return p.(*vm.Parser)
+}
+
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 ```
 
@@ -134,9 +140,9 @@ duration "90"     error: 1:3: syntax error: expected "GiB", "KiB", "MiB", "h", "
 
 - `//go:embed units.zp` puts the file in the binary, so the program needs no file at run time, and the grammar is still a
   file that tools can read.
-- `CompileSource(grammar, start)` parses, checks and compiles the grammar, which costs far more than a parse. Doing it in a
+- `compiler.Compile(grammar.FromString(...), compiler.WithStart(start))` parses, checks and compiles the grammar, which costs far more than a parse. Doing it in a
   package-level variable means it happens once, before `main`.
-- A compiled `*engine.Parser` may be used by any number of goroutines at once, as `main` does, and so may the parser that
+- A compiled `runtime.Parser` may be used by any number of goroutines at once, as `main` does, and so may the parser that
   `WithStart` derives from it.
 - The test runs `go test` on every change, so a broken grammar fails the build, not the first request.
 
@@ -145,5 +151,5 @@ duration "90"     error: 1:3: syntax error: expected "GiB", "KiB", "MiB", "h", "
 - `WithStart` returns a new parser, so call it once for each format and keep the result, not once for each input.
 - To avoid compiling at start-up at all, generate Go code or save a `.zpc` file; see [Ship a parser and keep it up to
   date](ship-a-parser.md).
-- The grammar is data: to load one at run time instead, call `CompileSource` on text you read. The guide
+- The grammar is data: to load one at run time instead, call `compiler.Compile` on text you read. The guide
   [Running Parsers](../guide/running-parsers.md) lists the other ways to compile a grammar.

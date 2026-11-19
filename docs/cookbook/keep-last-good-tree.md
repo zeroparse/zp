@@ -21,11 +21,13 @@ import (
 	"os"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
-const grammar = `package settings
+const grammarSrc = `package settings
 
 type Setting = { Key Key; Value Value }
 type Key = node[string]
@@ -55,8 +57,8 @@ func lineStart(text string, line int) int {
 
 // Editor keeps a Document and the last tree that parsed.
 type Editor struct {
-	doc  *engine.Document
-	last *core.Node
+	doc  runtime.Document
+	last *value.Node
 }
 
 // Apply replaces [start, end) with text and reparses.
@@ -74,7 +76,7 @@ func (e *Editor) Apply(start, end int, text string) error {
 	case err == nil:
 		status = fmt.Sprintf("ok, %d entries", node.Elem(0).Len())
 	default:
-		var se *core.SyntaxError
+		var se *value.SyntaxError
 		if errors.As(err, &se) {
 			status = fmt.Sprintf("error at %d:%d, keeping the last good tree", se.Line, se.Col)
 		} else {
@@ -86,7 +88,7 @@ func (e *Editor) Apply(start, end int, text string) error {
 }
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -173,7 +175,7 @@ same as a fresh parse: true
 - Keep one `Document` per open file and one goroutine per `Document`, with the `Parser` shared.
 - Convert your editor's positions to the document's unit before `Edit`. In `Bytes` mode, a position inside a character
   is an error rather than a silent corruption.
-- If the grammar uses `#recover`, `Parse` returns a tree and a `core.SyntaxErrors` together: keep the tree, show the
+- If the grammar uses `#recover`, `Parse` returns a tree and a `value.SyntaxErrors` together: keep the tree, show the
   errors.
 - Debounce: reparse after the user pauses, not after every key, and merge the edits that arrived meanwhile.
 - The kept tree shares its nodes with the document, and later parses move the nodes they reuse to their new

@@ -53,15 +53,18 @@ import (
 	"log"
 	"os"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed settings.zp
-var grammar string
+var grammarSrc string
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,25 +74,25 @@ func main() {
 	}
 
 	// Bytes positions index src directly.
-	tree, err := p.Parse(string(src), engine.WithUnit(core.Bytes))
+	tree, err := p.Parse(string(src), runtime.WithUnit(input.Bytes))
 
 	// With recovery, err is not nil even though there is a tree: SyntaxErrors holds every error that was recovered
 	// from. Any other error means that there is no tree.
-	var errs core.SyntaxErrors
+	var errs value.SyntaxErrors
 	if err != nil && !errors.As(err, &errs) {
-		log.Fatal(err) // a *core.SyntaxError: nothing could be recovered
+		log.Fatal(err) // a *value.SyntaxError: nothing could be recovered
 	}
 	for _, e := range errs {
 		fmt.Printf("app.conf:%d:%d: %s\n", e.Line, e.Col, e.Message())
 	}
 
 	// The tree has the settings that parsed, and an error value where one did not.
-	for _, s := range tree.Field("Settings").(*core.Node).Elems() {
-		if s.Kind() == core.KindError {
+	for _, s := range tree.Field("Settings").(*value.Node).Elems() {
+		if s.Kind() == value.KindError {
 			fmt.Printf("skipped %q\n", src[s.Start():s.End()])
 			continue
 		}
-		fmt.Printf("%s = %s\n", s.Field("Key").(*core.Node).Text(), s.Field("Value").(*core.Node).Text())
+		fmt.Printf("%s = %s\n", s.Field("Key").(*value.Node).Text(), s.Field("Value").(*value.Node).Text())
 	}
 	if len(errs) > 0 {
 		os.Exit(1)
@@ -124,10 +127,10 @@ The program exits with status 1, because there were errors.
   `port = 1;`, `name = 5`, `host = 1;`.)
 - **Types.** `error` is a built-in type that only recovery produces, and `a #recover(...)` has the type `A | error`.
   That is why `setting` is declared `Item`, the join `Setting | error`, and the `Settings` field is a list of `Item`.
-  Go sees `s.Kind() == core.KindError`, with the skipped range in `s.Start()` and `s.End()` and the message, with its
+  Go sees `s.Kind() == value.KindError`, with the skipped range in `s.Start()` and `s.End()` and the message, with its
   position (`2:8: expected ...`), in `s.Text()`.
-- **`core.SyntaxErrors` is the second kind of result.** `Parse` returns the tree and an error that is a
-  `core.SyntaxErrors` (a slice of `*core.SyntaxError`, each with `Line`, `Col` and `Message()`). Do not write
+- **`value.SyntaxErrors` is the second kind of result.** `Parse` returns the tree and an error that is a
+  `value.SyntaxErrors` (a slice of `*value.SyntaxError`, each with `Line`, `Col` and `Message()`). Do not write
   `if err != nil { return err }` first: that throws the tree away. `errors.As` needs a variable of the slice type, not a
   pointer.
 - **The order of the attributes matters**: `@error(...) #recover(...)`, in that order, so that the recorded error carries

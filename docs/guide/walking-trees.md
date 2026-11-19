@@ -1,6 +1,6 @@
 # Walking Trees
 
-`core.Walk` visits a node graph without a hand-written recursion. `core.Cursor` applies point or range filters to node
+`value.Walk` visits a node graph without a hand-written recursion. `value.Cursor` applies point or range filters to node
 spans, in the same order. This program parses a short sequence, visits its nodes, selects the nodes that overlap an
 input range and writes the tree as JSON:
 
@@ -13,36 +13,39 @@ import (
 	"log"
 	"os"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 func main() {
-	parser, err := engine.CompileSource(`@start
-rule start = "a" "b"`, "start")
+	parser, err := compiler.Compile(grammar.FromString("grammar.zp", `@start
+rule start = "a" "b"`), compiler.WithStart("start"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	root, err := parser.Parse("ab", engine.WithUnit(core.CodePoints))
+	root, err := parser.Parse("ab", runtime.WithUnit(input.CodePoints))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = core.Walk(root, func(v core.WalkVisit) (core.WalkAction, error) {
+	err = value.Walk(root, func(v value.WalkVisit) (value.WalkAction, error) {
 		if v.Node != nil {
 			fmt.Printf("%s [%d,%d) depth=%d\n", v.Node.Kind(), v.Node.Start(), v.Node.End(), v.Depth)
 		}
-		return core.WalkContinue, nil
+		return value.WalkContinue, nil
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cursor := core.Cursor{Root: root, Unit: core.CodePoints}
-	err = cursor.Range(0, 1, func(v core.WalkVisit) (core.WalkAction, error) {
+	cursor := value.Cursor{Root: root, Unit: input.CodePoints}
+	err = cursor.Range(0, 1, func(v value.WalkVisit) (value.WalkAction, error) {
 		fmt.Printf("overlap: %s [%d,%d)\n", v.Node.Kind(), v.Node.Start(), v.Node.End())
-		return core.WalkContinue, nil
+		return value.WalkContinue, nil
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -65,11 +68,11 @@ overlap: string [0,1)
 ```
 
 The visit gives you the value reached by the current edge, the node when that value is a node, its parent, its depth
-and the incoming edge. Return `core.WalkSkip` to omit the descendants of a visit, `core.WalkStop` to end the walk
+and the incoming edge. Return `value.WalkSkip` to omit the descendants of a visit, `value.WalkStop` to end the walk
 successfully, or an error to stop with that error. A node's elements are visited before its fields; with source
 information, a capture that labels an element is visited only as that element, so a walk stays linear in the size of
 the tree however deeply operators nest. A shared node is visited once for each incoming edge, and a cycle
-on the active path returns a `*core.CycleError`, which `errors.As` can inspect. The order of the visits, the cursor
+on the active path returns a `*value.CycleError`, which `errors.As` can inspect. The order of the visits, the cursor
 methods `At` and `Range`, and the rule that the unit of the cursor must be the unit of the parse are defined in
 [Traversal](../../spec/runtime/nodes.md#traversal). Generated Go parsers expose the same walker as `Walk`.
 

@@ -21,7 +21,7 @@ it differs from the reference implementation; this guide covers what they have i
 
 The parsers are packages of the one Go module `zeroparse.dev/alpha-parsers`. They depend only on the standard library
 and the ZeroParse library of generated parsers (`zeroparse.dev/zp/pkg/runtime/golib`, which itself needs only
-`zeroparse.dev/zp/core`), not on the ZeroParse engine and not on the language's own implementation (DuckDB's parser does not need DuckDB).
+the packages under `zeroparse.dev/zp/pkg/runtime`), not on the ZeroParse engine and not on the language's own implementation (DuckDB's parser does not need DuckDB).
 
 The alpha-parsers module is not published yet, so `go get zeroparse.dev/alpha-parsers/json` does not work from another
 module. It requires published versions of the ZeroParse modules, so a checkout of the alpha-parsers repository is all
@@ -415,7 +415,7 @@ Do not mix units: if you parse with `Bytes` and report to an editor that counts 
 
 ## Errors
 
-A parse that fails returns a `*SyntaxError` of the parser's own package (not `core.SyntaxError`: the parsers do not
+A parse that fails returns a `*SyntaxError` of the parser's own package (not `value.SyntaxError`: the parsers do not
 import ZeroParse). Use `errors.As`:
 
 ```go
@@ -459,7 +459,7 @@ Limits to plan for:
   `nesting too deep: more than 100000 nested recursive rule calls` instead of exhausting the stack. For JSON that is about 33,000 levels
   of arrays. Generated `Limits.Depth` sets a lower or higher ceiling for one invocation; zero keeps the generated
   default. Ready-made defaults remain 100,000. Raising the limit cannot guarantee host-stack capacity. Use the
-  grammar with the engine's `BytecodeIterative` backend for an explicit parsing stack
+  grammar with the iterative VM (`Iterative` of the `*vm.Parser`) for an explicit parsing stack
   ([Choosing a Backend](backends.md#deep-nesting-and-the-depth-limit)).
 - **Memory.** A tree holds every node of the document. For input of many megabytes, parse in pieces yourself (a log
   file by lines, a JSON stream by documents), or use the engine's streaming below.
@@ -476,7 +476,7 @@ in its module, so you can use it with the engine without copying it. Find it in 
 go list -m -f '{{.Dir}}' zeroparse.dev/alpha-parsers/csv    # the directory of the module, with csv.zp in it
 ```
 
-and give it to `zp parse`, or read it in Go and compile it with `engine.CompileSource`. The CSV grammar marks its
+and give it to `zp parse`, or read it in Go and compile it with `compiler.Compile`. The CSV grammar marks its
 records with `#stream`, so a file larger than memory can be read one record at a time:
 
 ```bash

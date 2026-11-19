@@ -51,21 +51,22 @@ import (
 	"log"
 	"os"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed nested.zp
-var grammar string
+var grammarSrc string
 
 // toMap turns entries into nested maps: an entry with children becomes a map, any other a string.
-func toMap(entries *core.Node) map[string]any {
+func toMap(entries *value.Node) map[string]any {
 	m := map[string]any{}
 	for _, e := range entries.Elems() {
-		key := e.Field("Key").(*core.Node).Text()
-		if kids := e.Field("Children").(*core.Node); kids.Len() > 0 {
+		key := e.Field("Key").(*value.Node).Text()
+		if kids := e.Field("Children").(*value.Node); kids.Len() > 0 {
 			m[key] = toMap(kids)
-		} else if v, ok := e.Field("Value").(*core.Node); ok {
+		} else if v, ok := e.Field("Value").(*value.Node); ok {
 			m[key] = v.Text()
 		} else {
 			m[key] = ""
@@ -76,7 +77,7 @@ func toMap(entries *core.Node) map[string]any {
 
 func main() {
 	log.SetFlags(0) // no time stamps in front of the errors
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -157,7 +158,7 @@ go run . bad.yml
 - **`@error` on the predicate.** A predicate that fails records no expected token, so without the label the message for
   the third line above is `syntax error: expected " ", "\n", [ \t]`, which is true and unhelpful.
 - **`*node[string]` for the optional value.** `v:value?` is a `node[string]` or nothing, which the struct field must say with `*node[string]`;
-  in Go, `Field("Value")` is then a `*core.Node` or `nil`, which `v, ok := ....(*core.Node)` tells apart.
+  in Go, `Field("Value")` is then a `*value.Node` or `nil`, which `v, ok := ....(*value.Node)` tells apart.
 
 ## Variations and Limits
 

@@ -54,7 +54,7 @@ rule streams when it is made the start rule with `Parser.WithStart`.
 
 `zp parse -stream` prints each element on its own line (JSON by default, an
 S-expression with `-f sexpr`) as it is delivered, then reports the final error,
-if any. It cannot be combined with `-check`.
+if any. It cannot be combined with `-recognize`.
 
 `Iterate` is the pull form. It validates the entry point without reading.
 `StreamIterator.Next` advances the parse to one committed element or to the
@@ -105,9 +105,9 @@ element. No construct of the language looks further back.
 
 | Option | Effect in a stream parse |
 |:--|:--|
-| `WithUnit`, `WithBackend`, `Limits.Depth` | Apply |
+| `WithUnit`, `Limits.Depth` | Apply |
 | `WithContext`, `WithLimits` | Apply to the whole stream invocation, including diagnostic callbacks and the budget spent copying a bounded tail. A zero `Compute` selects the [default budget of a stream](parsing.md#default-limits): `max(2^20, 1024 * d)` for the furthest demanded position `d`, which does not depend on how the reader chunks the input; `Unlimited` disables it. A finite `Input` fails the stream with `LimitInput` when the parser asks for a unit beyond it and the stream has one. A finite `Memory` bounds the window of the stream, as [Memory](#memory) describes |
-| `RecognizeOnly` | An error |
+| `Recognize` | An error |
 | `WithDiagnosticCallback`, `WithDiagnosticLimit` | Stream-only; see [Recovered errors](#recovered-errors) |
 
 A `Parser` supports any number of concurrent stream parses; each has its own state.

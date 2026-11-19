@@ -231,25 +231,27 @@ import (
 	"fmt"
 	"os"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 // errorNodes collects the error values of a tree.
-func errorNodes(n *core.Node, out *[]*core.Node) {
+func errorNodes(n *value.Node, out *[]*value.Node) {
 	if n == nil {
 		return
 	}
 	switch n.Kind() {
-	case core.KindError:
+	case value.KindError:
 		*out = append(*out, n)
-	case core.KindStruct:
+	case value.KindStruct:
 		for _, v := range n.Fields() {
-			if child, ok := v.(*core.Node); ok {
+			if child, ok := v.(*value.Node); ok {
 				errorNodes(child, out)
 			}
 		}
-	case core.KindTuple, core.KindList, core.KindTupleValue, core.KindListValue:
+	case value.KindTuple, value.KindList, value.KindTupleValue, value.KindListValue:
 		for _, child := range n.Elems() {
 			errorNodes(child, out)
 		}
@@ -262,7 +264,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	p, err := engine.CompileSource(string(src), "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", string(src)), compiler.WithStart("main"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -274,10 +276,10 @@ func main() {
 		"print 1;\n}\n",
 	} {
 		fmt.Printf("--- %q\n", input)
-		node, err := p.Parse(input, engine.WithExpectations())
+		node, err := p.Parse(input, runtime.WithExpectations())
 
-		var recovered core.SyntaxErrors
-		var failed *core.SyntaxError
+		var recovered value.SyntaxErrors
+		var failed *value.SyntaxError
 		switch {
 		case err == nil:
 			fmt.Println("ok:", node)
@@ -287,7 +289,7 @@ func main() {
 			for _, e := range recovered {
 				fmt.Printf("  line %d, column %d (offset %d): %s\n", e.Line, e.Col, e.Pos, e.Message())
 			}
-			var nodes []*core.Node
+			var nodes []*value.Node
 			errorNodes(node, &nodes)
 			for _, n := range nodes {
 				fmt.Printf("  error value [%d,%d): %s\n", n.Start(), n.End(), n.Text())
@@ -369,7 +371,7 @@ to match at the delimiter that closes the list the element is in.
 ## Inserting a Missing Literal
 
 Use `#missing` on a nonempty literal when an editor needs a tree even though that
-token is absent. In a Closure whole-input parse, `engine.WithMissingTokens(n)`
+token is absent. In a Closure whole-input parse, `runtime.WithMissingTokens(n)`
 enables up to `n` insertion attempts for that call. Without the option, the
 literal remains strict. For example, `rule main = "name" ";" #missing $$`
 parses `name` with a zero-width `missing` value at EOF and returns a recovered
@@ -384,7 +386,7 @@ semicolon was read;
 the message of an inserted token and nothing for a string node.
 
 The limit counts abandoned attempts too. Exhaustion returns
-`*core.MissingTokenLimitError` with no tree. VM backends, generated parsers,
+`*runtime.MissingTokenLimitError` with no tree. VM backends, generated parsers,
 Document, streams and compiled grammar serialization do not support this
 initial feature. The budget includes abandoned attempts and left-recursion seed
 replay, so a limit of 16 does not guarantee acceptance of a tree with 16 missing
@@ -590,7 +592,7 @@ zp: 1:6: expected ',' or ']'
 | `#recover` has no effect | `skip` fails at the start of the expression or matches nothing; the expression is not where the failure occurs; or the parse failed in the end so all recovered errors were dropped | Test `skip` on the broken text alone; check that the error is not outside the `#recover`; check for an unclosed construct |
 | Valid input fails after adding `#recover` | `skip` can match the closing token of the enclosing construct | Exclude the closers from `skip` |
 | Errors recovered inside `&(...)`, `!(...)` or an Operators Rule `skip` are not reported | The end of a lookahead or a skip discards them | Recover outside the lookahead; a capture inside `&(...)` cannot hold a recovered value (compile error `capture k inside a positive lookahead can hold an error value of #recover`) |
-| `err != nil`, yet a tree is wanted | The parse recovered; the error is a `core.SyntaxErrors` | Check for `SyntaxErrors` with `errors.As` before returning |
+| `err != nil`, yet a tree is wanted | The parse recovered; the error is a `value.SyntaxErrors` | Check for `SyntaxErrors` with `errors.As` before returning |
 
 ## Related Topics
 

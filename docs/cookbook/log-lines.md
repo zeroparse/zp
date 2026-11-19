@@ -135,7 +135,7 @@ printf '2026-10-09T11:12:41Z INFO api GET /x 200 12ms\n2026-10-09T11:12:41Z INFO
 
 ## How It Works
 
-- **A generated parser is the fast one.** `zp gen` writes a Go package that needs only ZeroParse's package `core`, not the engine. With `-types`, every
+- **A generated parser is the fast one.** `zp gen` writes a Go package that needs only ZeroParse's `pkg/runtime` packages, not the compiler. With `-types`, every
   rule here has a Go type of its own, so `ParseValue` builds `*Line` values directly, without the generic nodes `Parse`
   would build first. The values are plain structs: `l.Level.Value`, `l.Millis.Value`.
 - **Strings stay strings.** `Millis` is a string node, so its `Value` is the matched digits, and you convert
@@ -146,8 +146,8 @@ printf '2026-10-09T11:12:41Z INFO api GET /x 200 12ms\n2026-10-09T11:12:41Z INFO
 ## How Fast
 
 A benchmark in the same directory parses 100,000 lines (5.7 MB) of the same shape, once per iteration, with each entry
-point in turn (`b.Loop()`, `b.SetBytes(len(input))`): `p.Parse` and `p.Parse(input, engine.RecognizeOnly())` of the engine
-(`engine.CompileSource`), and `Parse`, `ParseValue` and `Recognize` of the generated parser. This is the output of
+point in turn (`b.Loop()`, `b.SetBytes(len(input))`): `p.Parse` and `p.Recognize` of the engine
+(`compiler.Compile`), and `Parse`, `ParseValue` and `Recognize` of the generated parser. This is the output of
 `go test -bench . -benchmem` on an Apple M3 Max with Go 1.27.1, rounded, with the columns that are not used here left
 out:
 
@@ -170,8 +170,8 @@ and inputs; measure your own grammar and input (see [Debugging and Profiling](..
   [error recovery](several-errors.md) so that a bad line becomes an `error` value and parsing goes on.
 - **More input than memory.** The generated parser needs the whole input in memory; use the engine and
   [`#stream`](big-files.md).
-- **Without a generated file.** `p.Parse(text, engine.RecognizeOnly())` is the engine's recognition mode, and the typed
-  structs can be replaced by the `Field` and `Elems` of `*core.Node`.
+- **Without a generated file.** `p.Recognize(text)` is the engine's recognition mode, and the typed
+  structs can be replaced by the `Field` and `Elems` of `*value.Node`.
 
 See [Code generation](../guide/code-generation.md) for what generated parsers support and
 [Running parsers](../guide/running-parsers.md) for recognition mode.

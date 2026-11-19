@@ -15,7 +15,7 @@ the new text from scratch.
 | Saves | Time: unchanged parts are not parsed again |
 
 An engine `Document` works with every backend ([Runtime](running-parsers.md)) and with both position units. It does
-not work with `RecognizeOnly` (`NewDocument` returns an error). Standalone generated Go parsers support an opt-in
+not work with `Recognize` (`NewDocument` returns an error). Standalone generated Go parsers support an opt-in
 Document with the [`-document` option](generated-documents.md). With `-types`, they
 also expose `Document.ParseValue`: eligible grammars use direct typed incremental matching, while other results use
 the existing Node conversion path. Returned typed values belong to that invocation, though Node members may
@@ -65,7 +65,7 @@ reuse.
 
 | | |
 |:--|:--|
-| `p.NewDocument(text, opts...)` | A document holding `text`. `WithUnit` (also the unit of `Edit`), `WithBackend` and `WithExpectations` fix its mode; `WithContext` and `WithLimits` set defaults for initialization and later parses. Fails for `RecognizeOnly`, an unavailable backend, an unknown start rule, or interrupted initialization. Nothing is parsed yet. |
+| `p.NewDocument(text, opts...)` | A document holding `text`. `WithUnit` (also the unit of `Edit`) and `WithExpectations` fix its mode; `WithContext` and `WithLimits` set defaults for initialization and later parses. Fails for an unknown start rule, or interrupted initialization. Nothing is parsed yet. |
 | `doc.Edit(start, end, text)` | Replace `[start, end)` with `text`, in the document's unit. `start == end` inserts, an empty `text` deletes. An error if the range is outside the text, and with `Bytes`, if `start` or `end` is inside a character. Does not parse. |
 | `doc.Parse(opts...)` | Parse the current text using construction defaults plus invocation overrides. Counters reset per call. Results and errors are those of `Parser.Parse`, including recovered `SyntaxErrors`. |
 | `doc.Snapshot(opts...)` | Parse and capture the current revision as an immutable read-only result. Ordinary syntax and recovered errors are stored in the Snapshot; interruption or an option that changes the fixed unit/backend/mode returns no Snapshot. |
@@ -99,8 +99,8 @@ Use `EditBatch` when one editor transaction contains several replacements. All r
 ```go
 base := doc.Version()
 err := doc.EditBatch(base,
-    core.TextEdit{Start: 0, End: 2, Text: "xy"},
-    core.TextEdit{Start: 3, End: 3, Text: "z"},
+    input.TextEdit{Start: 0, End: 2, Text: "xy"},
+    input.TextEdit{Start: 3, End: 3, Text: "z"},
 )
 if err != nil {
     return err
@@ -142,7 +142,7 @@ must keep the exact tree, text, diagnostics, and revision visible while the
 Document advances, capture them together:
 
 ```go
-snapshot, err := doc.Snapshot(engine.WithContext(ctx), engine.WithLimits(limits))
+snapshot, err := doc.Snapshot(runtime.WithContext(ctx), runtime.WithLimits(limits))
 if snapshot == nil {
     return err // cancellation or a compute limit publishes no partial snapshot
 }
@@ -178,8 +178,8 @@ read concurrently while the single-owner Document is edited or parsed.
 | `Fields()` | An owned slice of the fields, in original order |
 
 The snapshot graph preserves shared nodes and cycles. It freezes only field
-values of dynamic type nil, `int`, `string`, `bool`, or `*core.Node`; an
-unsupported custom value returns `*core.SnapshotCaptureError` and no Snapshot.
+values of dynamic type nil, `int`, `string`, `bool`, or `*value.Node`; an
+unsupported custom value returns `*runtime.SnapshotCaptureError` and no Snapshot.
 `Materialize` makes an independently mutable graph, preserving identities,
 cycles, nil slots, and nil versus allocated-empty collections. Use it when an
 existing API requires `*Node`; each call creates a separate graph.
@@ -218,19 +218,21 @@ import (
 	"fmt"
 	"log"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
-const grammar = `@start
+const grammarSrc = `@start
 rule main =  line* $$
 rule line =  [a-z]+ "\n" `
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	doc, err := p.NewDocument("ab\ncd\nef\n", engine.WithExpectations())
+	doc, err := p.NewDocument("ab\ncd\nef\n", runtime.WithExpectations())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -296,19 +298,20 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
-func js(n *core.Node) string {
+func js(n *value.Node) string {
 	b, _ := json.Marshal(n)
 	return string(b)
 }
 
 func main() {
-	p, _ := engine.CompileSource(`@start
+	p, _ := compiler.Compile(grammar.FromString("grammar.zp", `@start
 rule main =  line* $$
-rule line =  [a-z]+ "\n" `, "main")
+rule line =  [a-z]+ "\n" `), compiler.WithStart("main"))
 	d, _ := p.NewDocument(strings.Repeat("ab\n", 100))
 	t1, _ := d.Parse()
 	snapshot := t1.Clone()

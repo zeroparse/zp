@@ -60,14 +60,13 @@ given to a parse replaces the default for that parse.
 
 ## Engine Tracing
 
-`engine.WithTrace(f)` calls `f` at the start and at the end of every rule call of
+`runtime.WithTrace(f)` calls `f` at the start and at the end of every rule call of
 the parse, in order, so that the events nest like the calls.
 Tracing works with every backend, with `Parse`, `ParsePrefix`, recognition,
 `ParseStream` and `Document`. The trace options of generated parsers are those of
 their own package, with the same meaning
 ([Observation Options](#observation-options)). The events are the `TraceEvent`
-of the package `core`, which every producer of events uses; `engine.TraceEvent`
-names the same type.
+of the package `instrument` (`zeroparse.dev/zp/pkg/runtime/instrument`), which every producer of events uses.
 
 The engine reports the calls that its backend makes, as defined in
 [Reported Calls](#reported-calls). It never reports `TraceSkipped`.
@@ -139,9 +138,8 @@ leave out.
 
 ## Engine Profiling
 
-`engine.WithProfile(prof)` adds the cost of a parse to `prof`, a `Profile` of
-the package `core`, which accumulates any number of parses of any producer;
-`engine.Profile` names the same type. The profiled parse is traced. A
+`runtime.WithProfile(prof)` adds the cost of a parse to `prof`, an `instrument.Profile`,
+which accumulates any number of parses of any producer. The profiled parse is traced. A
 `Profile` is not safe for concurrent use and keeps nothing of a parse after it
 returns. A stream parse keeps the memory of the profile bounded: the profile
 forgets the positions that the stream has discarded, where no rule is evaluated
@@ -189,7 +187,7 @@ camel-case field names, and `Time` and `SelfTime` are in nanoseconds.
 ## Generated Go Batch Tracing
 
 Standalone generated Go Node parsers may be generated with tracing enabled by
-`Observability` of `codegen.Go` or `zp gen -observability`. This mode
+`Observability` of `compiler.GoConfig` or `zp gen -observability`. This mode
 supports batch `Parse` and `ParseRule`; it also supports `Recognize` when that
 entry point is generated. With generated types, it additionally supports
 `ParseValue` and `ParseRuleValue`, for both direct typed execution and Node-conversion
@@ -205,7 +203,7 @@ returns an error before the parse instead of delivering partial data. A parser
 generated with observability gives them the meaning that
 [Observation Options](#observation-options) defines.
 
-The generated package re-exports the event types of the package `core`
+The generated package re-exports the event types of the package `instrument`
 (`TraceEvent`, `TraceKind` with `TraceEnter`, `TraceExit` and `TraceSkipped`,
 `SkipReason` and `SkipFirstCharacter`) and the trace options.
 Events observe actual generated execution, not an event-for-event replay of
@@ -242,7 +240,7 @@ cleanup. Trace state is local to one invocation.
 ### Generated Go Batch Profiling
 
 Generated Go Node and typed batch packages generated with
-`Observability` MUST expose `WithProfile` and re-export from the package `core`
+`Observability` MUST expose `WithProfile` and re-export from the package `instrument`
 `Profile`, `ProfileSnapshot`, `RuleProfile`, `Location`, `CallSite` and
 `SkipReasonCount`. A `Profile` is opaque. The zero value of `Profile` MUST be
 ready to use; a nil profile is ignored. A profile sink is not
@@ -325,7 +323,7 @@ Documents and batch `Parse` calls remain allowed from callbacks.
 ## Generated TypeScript Tracing and Profiling
 
 Generated TypeScript parsers observe parses when generated with
-`Observability` of `codegen.TypeScript` or `zp gen -lang ts -observability`.
+`Observability` of `compiler.TSConfig` or `zp gen -lang ts -observability`.
 The observation options are fields of `ParseOptions`, accepted by
 `parseWithOptions`, `parseRuleWithOptions` and, when generated,
 `recognizeWithOptions`, by `parseValueWithOptions` with `-types`, and by
@@ -374,7 +372,7 @@ The generated module exports `Profile` and the types `ProfileSnapshot`,
 [Generated Go Batch Profiling](#generated-go-batch-profiling) defines, keeps
 nothing of a parse after it returns; a parse made by a trace function keeps
 accounting separate from the parse in progress. `snapshot()` returns an owned copy whose fields are those of
-`core.ProfileSnapshot`, each named as its JSON key, with rules sorted by name
+`instrument.ProfileSnapshot`, each named as its JSON key, with rules sorted by name
 and skip reasons sorted by reason, so that its JSON is deterministic and
 matches the JSON of a Go snapshot except for the times: `time` and `selfTime`
 are milliseconds from the host's monotonic `performance.now()` clock. The
