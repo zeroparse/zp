@@ -51,7 +51,7 @@ func testGeneratedMemoJoin(t *testing.T) {
 				codegentest.GeneratePackage(t, dir, pkg, mustParse(r.Src), common.GenOptions{Start: "s", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
 				fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
 				for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
-					fmt.Fprintf(&calls, "\t{ var p zpcore.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
+					fmt.Fprintf(&calls, "\t{ var p zpinstrument.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
 				}
 			}
 			calls.WriteString("\tfmt.Println()\n")
@@ -62,11 +62,11 @@ func testGeneratedMemoJoin(t *testing.T) {
 import (
 	"fmt"
 
-	zprt "zeroparse.dev/zp/codegen/go/lib"
-	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
+	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 ` + imports.String() + `)
 
-func evals(p zpcore.Profile) int {
+func evals(p zpinstrument.Profile) int {
 	for _, r := range p.Snapshot().Rules {
 		if r.Rule == "k" {
 			return r.Evals

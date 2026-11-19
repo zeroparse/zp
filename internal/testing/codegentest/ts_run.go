@@ -564,7 +564,7 @@ func PatchTSLib(t testing.TB, src []byte) []byte {
 	if err := json.Unmarshal([]byte(spec), &m); err != nil {
 		t.Fatalf("%s: %v", TSLibPatchEnv, err)
 	}
-	if !strings.HasPrefix(m.File, "codegen/ts/lib/") {
+	if !strings.HasPrefix(m.File, "internal/backend/codegen/typescript/lib/") {
 		t.Fatalf("%s: %s is not a file of the TypeScript library", TSLibPatchEnv, m.File)
 	}
 	if n := strings.Count(string(src), m.Old); n != 1 {
