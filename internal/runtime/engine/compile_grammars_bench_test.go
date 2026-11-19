@@ -11,7 +11,7 @@ import (
 // BenchmarkCompileBundledGrammars measures the compilation of each grammar of testdata/grammars
 // from its parsed form, which includes the inference of value types.
 func BenchmarkCompileBundledGrammars(b *testing.B) {
-	files, err := filepath.Glob("../../../../testdata/grammars/*/*.zp")
+	files, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
 	if err != nil || len(files) == 0 {
 		b.Fatalf("no bundled grammars: %v", err)
 	}

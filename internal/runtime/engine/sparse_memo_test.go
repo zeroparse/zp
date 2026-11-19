@@ -94,7 +94,7 @@ func TestSparseMemoResetBounds(t *testing.T) {
 
 func TestSparseMemoParseControls(t *testing.T) {
 	t.Parallel()
-	src, err := os.ReadFile("../../../../testdata/grammars/typescript/typescript.zp")
+	src, err := os.ReadFile("../../../testdata/grammars/typescript/typescript.zp")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestSparseMemoParseControls(t *testing.T) {
 
 func TestSparseMemoInputSelection(t *testing.T) {
 	t.Parallel()
-	data, err := os.ReadFile("../../../../testdata/grammars/typescript/typescript.zp")
+	data, err := os.ReadFile("../../../testdata/grammars/typescript/typescript.zp")
 	if err != nil {
 		t.Fatal(err)
 	}

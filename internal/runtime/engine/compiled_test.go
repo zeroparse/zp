@@ -278,7 +278,7 @@ func FuzzLoadProgram(f *testing.F) {
 
 // BenchmarkLoad compares compiling from source with loading a compiled grammar.
 func BenchmarkLoad(b *testing.B) {
-	src, err := os.ReadFile("../../../../examples/minilang/minilang.zp")
+	src, err := os.ReadFile("../../../examples/minilang/minilang.zp")
 	if err != nil {
 		b.Fatal(err)
 	}

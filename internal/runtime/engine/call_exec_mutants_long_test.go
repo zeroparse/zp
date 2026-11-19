@@ -365,7 +365,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 		{"^TestRuleResultChecks$", ".", [][]funcEdit{
 			{{"NudOperand", "LineResult(r, o, st.F, v, st.M0.Pos, nil)", "LineResult(r, o, st.F, v, p.Pos, nil)"}},
 		}},
-		{"^TestSampleCorpus$", "../../../../pkg/sample", [][]funcEdit{
+		{"^TestSampleCorpus$", "../../../pkg/sample", [][]funcEdit{
 			{{"operatorsRuleNud", "\t\tif a.Cut {\n\t\t\treturn nil, false\n\t\t}\n", ""}},
 			{{"operatorsRuleNud", "\t\tp.Reset(m0)\n\t} else if", "\t} else if"}},
 			{{"operatorsRuleNud", "} else if p.cutFailed {", "} else if false {"}},
@@ -728,7 +728,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 	})
 	// The model of a lazy memo and the declared cost of memo.lookup and memo.store, which TestMemoChargesMatchTheModel
 	// holds to what the engine charges.
-	runPrintedMutants(t, "../../../ir/code/exec/ref/ref.go", []printedMutant{
+	runPrintedMutants(t, "../../ir/code/exec/ref/ref.go", []printedMutant{
 		{"ref pending inflated", []printedEdit{{"return m.edits - e.applied\n", "return m.edits - e.applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
 		{"ref held pending inflated", []printedEdit{{"return m.edits - applied\n", "return m.edits - applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
 		{"ref hold start inclusive", []printedEdit{{"case k.pos < start:", "case k.pos <= start:"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
