@@ -40,13 +40,14 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 			// Guards read the First sets that Analyze computes. Without them the alternatives of a choice
 			// get no first-character guard and the Flow form calls the rules of the later alternatives at
 			// every position (duckdb: block_comment, 84,000 calls against none), and nothing reports it.
-			Requires: []pass.Analysis{AttributesAnalysis},
-			// Guards mark the alternatives of choices and add no node: the attributes hold.
-			Preserves:  pass.Preserve(string(AttributesAnalysis)),
+			Requires:   []pass.Analysis{AttributesAnalysis},
 			Obligation: "A guard is the first terminal of its alternative, which the alternative cannot match without.",
-			Run: func(m *core.Module, _ *Env) error {
-				Guards(m)
-				return nil
+			// Guards mark the alternatives of choices and add no node: the attributes, which the copy
+			// keeps, hold.
+			Run: func(m *core.Module, _ *Env) (*core.Module, pass.PreservedSet, error) {
+				c := m.Clone()
+				Guards(c)
+				return c, pass.Preserve(string(AttributesAnalysis)), nil
 			},
 		},
 		{
@@ -54,9 +55,10 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 			// A Stream is replaced as its repetition only where it delivers no elements (Eff).
 			Requires:   []pass.Analysis{AttributesAnalysis},
 			Obligation: "Consumes the same input and records the same expectations as the repetition it replaces.",
-			Run: func(m *core.Module, _ *Env) error {
-				Scans(m)
-				return nil
+			Run: func(m *core.Module, _ *Env) (*core.Module, pass.PreservedSet, error) {
+				c := m.Clone()
+				Scans(c)
+				return c, pass.PreserveNone(), nil
 			},
 		},
 	},
@@ -74,9 +76,9 @@ type RunOptions struct {
 	Dump func(pass string, m *core.Module)
 }
 
-// Run runs the enabled passes of Pipeline on m, and verifies the module. It
-// returns the names of the passes that ran.
-func Run(m *core.Module, e *Env, o RunOptions) ([]string, error) {
+// Run runs the enabled passes of Pipeline on m, and verifies the module. It returns the module after
+// them, and the names of the passes that ran; m is not changed.
+func Run(m *core.Module, e *Env, o RunOptions) (*core.Module, []string, error) {
 	return Pipeline.Run(m, e, o.Options(e))
 }
 

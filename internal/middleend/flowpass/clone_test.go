@@ -49,7 +49,8 @@ func TestCloneKeepsTheForms(t *testing.T) {
 		}
 	}
 	env := &Env{Target: all, Value: values}
-	if _, err := Run(c, env, RunOptions{VerifyEach: true}); err != nil {
+	c, _, err = Run(c, env, RunOptions{VerifyEach: true})
+	if err != nil {
 		t.Fatal(err)
 	}
 	Finish(c)

@@ -55,9 +55,12 @@ func lowerText(name string) Stage[*unit, *text] {
 	return Lower(name, "u", textIR, func(u *unit) (*text, error) { return &text{s: strings.Join(u.log, "+")}, nil })
 }
 
+// exclaim is a required step that appends "!" to a copy of the text.
+func exclaim(x *text) *text { return &text{s: x.s + "!"} }
+
 func TestStageComposition(t *testing.T) {
 	s := Then(Then(transforms(fakePipeline(logging("a", nil, none), logging("b", nil, none)), "u"), lowerText("lower")),
-		Do("finish", textIR, func(x *text) { x.s += "!" }))
+		Do("finish", textIR, exclaim))
 	if err := s.Check(); err != nil {
 		t.Fatal(err)
 	}
@@ -101,11 +104,11 @@ func TestStageNumbering(t *testing.T) {
 	s := transforms(fakePipeline(logging("a", nil, none), logging("b", nil, none)), "")
 	rec := &recorder{skip: map[int]bool{3: true}}
 	r := &Run{Observers: []Observer{rec}, Enabled: func(n string) bool { return true }}
-	u, v := &unit{}, &unit{}
-	if _, err := s.Run(r, Label{Func: "f"}, u); err != nil {
+	if _, err := s.Run(r, Label{Func: "f"}, &unit{}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Run(r, Label{Func: "g"}, v); err != nil {
+	v, err := s.Run(r, Label{Func: "g"}, &unit{})
+	if err != nil {
 		t.Fatal(err)
 	}
 	if want := []string{"1:a:a:f", "2:b:b:f", "4:b:b:g"}; !slices.Equal(rec.events, want) {
@@ -124,18 +127,21 @@ func TestStageNumbering(t *testing.T) {
 // TestStageFailure checks that after a failing pass only the required steps run, and that the
 // first error is the one returned.
 func TestStageFailure(t *testing.T) {
-	failing := Pass[*unit, mode]{Name: "bad", Run: func(u *unit, _ mode) error { return errors.New("no") }}
+	failing := Pass[*unit, mode]{Name: "bad", Run: func(u *unit, _ mode) (*unit, PreservedSet, error) {
+		return u.with("half"), none, errors.New("no")
+	}}
 	later := transforms(fakePipeline(logging("c", nil, none)), "")
 	s := Then(Then(Then(transforms(fakePipeline(logging("a", nil, none), failing), ""), lowerText("lower")),
-		Do("finish", textIR, func(x *text) { x.s += "!" })), Lower("back", "t", unitIR, func(x *text) (*unit, error) { return &unit{log: []string{x.s}}, nil }))
+		Do("finish", textIR, exclaim)), Lower("back", "t", unitIR, func(x *text) (*unit, error) { return &unit{log: []string{x.s}}, nil }))
 	s2 := Then(s, later)
 	rec := &recorder{}
 	out, err := s2.Run(&Run{Observers: []Observer{rec}}, Label{}, &unit{})
 	if err == nil || err.Error() != "pass bad: no" {
 		t.Fatalf("error %v", err)
 	}
+	// The required steps go on with the unit as a left it, not with what bad made before it failed.
 	if !slices.Equal(out.log, []string{"a!"}) {
-		t.Errorf("unit %v: the optional pass c ran after the failure", out.log)
+		t.Errorf("unit %v, want [a!]: the optional pass c ran after the failure, or the failed pass's unit went on", out.log)
 	}
 	if want := []string{"1:a:a:", "0:lower:t:", "0:finish::", "0:back:u:"}; !slices.Equal(rec.events, want) {
 		t.Errorf("events %v, want %v", rec.events, want)
@@ -147,7 +153,7 @@ func TestStageFailure(t *testing.T) {
 func TestStageLoweringPostcondition(t *testing.T) {
 	ran := false
 	s := Then(Lower("lower", "u", textIR, func(u *unit) (*text, error) { return &text{s: "bad"}, nil }),
-		Do("finish", textIR, func(*text) { ran = true }))
+		Do("finish", textIR, func(x *text) *text { ran = true; return x }))
 	out, err := s.Run(&Run{}, Label{}, &unit{})
 	var se *StepError
 	if !errors.As(err, &se) || se.Step.Name != "lower" || err.Error() != "bad text" {
@@ -161,11 +167,51 @@ func TestStageLoweringPostcondition(t *testing.T) {
 // TestStageVerifyEach checks that the verification after every pass names the pass that broke the
 // unit.
 func TestStageVerifyEach(t *testing.T) {
-	breaks := Pass[*unit, mode]{Name: "breaks", Run: func(u *unit, _ mode) error { u.broken = "breaks"; return nil }}
+	breaks := Pass[*unit, mode]{Name: "breaks", Run: func(u *unit, _ mode) (*unit, PreservedSet, error) {
+		v := u.with("breaks")
+		v.broken = "breaks"
+		return v, none, nil
+	}}
 	s := transforms(fakePipeline(logging("a", nil, none), breaks, logging("c", nil, none)), "")
-	u := &unit{}
-	_, err := s.Run(&Run{VerifyEach: true}, Label{}, u)
+	u, err := s.Run(&Run{VerifyEach: true}, Label{}, &unit{})
 	if err == nil || err.Error() != "after pass breaks: broken by breaks" || slices.Contains(u.log, "c") {
 		t.Errorf("error %v, log %v", err, u.log)
+	}
+	if u.broken != "" {
+		t.Errorf("the stage returned the unit that breaks made")
+	}
+}
+
+// pair is a unit with a part, the unit of a projected stage.
+type pair struct {
+	part *unit
+	tag  string
+}
+
+// TestStageProject checks that a projected stage runs on the part, that the unit it returns holds
+// the part the stage returned, and that the input keeps its part.
+func TestStageProject(t *testing.T) {
+	s := Project(func(p *pair) *unit { return p.part }, func(p *pair, u *unit) (*pair, error) { return &pair{part: u, tag: p.tag}, nil },
+		transforms(fakePipeline(logging("a", nil, none)), ""))
+	in := &pair{part: &unit{}, tag: "x"}
+	out, err := s.Run(&Run{}, Label{}, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out == in || out.tag != "x" || !slices.Equal(out.part.log, []string{"a", "analyze"}) || len(in.part.log) != 0 {
+		t.Errorf("out %v (same as in: %v), part log %v, input part log %v", out, out == in, out.part.log, in.part.log)
+	}
+	// A stage that returns its part unchanged returns the unit itself.
+	same := Project(func(p *pair) *unit { return p.part }, func(*pair, *unit) (*pair, error) { panic("put of an unchanged part") },
+		transforms(fakePipeline(), ""))
+	if out, err := same.Run(&Run{}, Label{}, in); err != nil || out != in {
+		t.Errorf("unchanged part: out %v, err %v", out, err)
+	}
+	// A part that put refuses fails the stage, which returns the unit as it was.
+	cause := errors.New("refused")
+	refuses := Project(func(p *pair) *unit { return p.part }, func(*pair, *unit) (*pair, error) { return nil, cause },
+		transforms(fakePipeline(logging("a", nil, none)), ""))
+	if out, err := refuses.Run(&Run{}, Label{}, in); err != cause || out != in {
+		t.Errorf("refused part: out %v, err %v", out, err)
 	}
 }

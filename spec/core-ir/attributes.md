@@ -5,6 +5,7 @@ recomputes them after a rewrite. The analysis also computes the [facts of the ru
 
 | Attribute | Set by | Meaning |
 |:--|:--|:--|
+| ID | Building | Identifies the node in its module. A copy of the module keeps it, and a node that a rewrite puts in the place of another takes the ID of the node it replaces, so what is known about a node by its ID, such as the expression of the grammar it was built from, holds across rewrites |
 | Want | Building | The node's value is used. A node with Want false builds no value |
 | Shape | Building | The static [shape](modules.md#shape) of the node's value |
 | Nullable | Analysis | The node can succeed without consuming input when no token is inserted |

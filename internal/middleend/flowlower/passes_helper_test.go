@@ -18,7 +18,8 @@ func finish(t *testing.T, f *code.Module, target flowpass.Target, inline int) *c
 		}
 		return 0
 	}}
-	if _, err := flowpass.Run(f, env, flowpass.RunOptions{}); err != nil {
+	f, _, err := flowpass.Run(f, env, flowpass.RunOptions{})
+	if err != nil {
 		t.Fatal(err)
 	}
 	flowpass.Finish(f)

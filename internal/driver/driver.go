@@ -146,8 +146,14 @@ func (d *Driver) FlowFunc(table string, u flowlower.Unit, observe bool, target f
 // dumped as "exec" as execlower made it and after each Exec pass, the lowered function after each
 // pass of target, labeled with its table.
 //
+// The lowered function keeps what the printers print: its module holds the function with its
+// variables (execlower.Lowered.Keeps). The module of the Exec passes is taken back only if it does
+// (Lowered.WithModule), and the verifier of the lowered function (execlower.IR) checks it with the
+// module after the passes of target, as Pipeline.Run verifies.
+//
 // A failure of execlower is returned as the *pass.StepError that names it, with no result. A failure
-// of a pass is an internal error that names the pass, returned with the result.
+// of a pass or of a verification is an internal error that names it, returned with the result as the
+// passes before the failure left it.
 func (d *Driver) ExecFunc(table string, m *code.Module, target *TargetPipeline, observe bool) (*execlower.Lowered, error) {
 	p := codepass.Pipeline
 	if d.ExecPipeline != nil {
@@ -155,7 +161,7 @@ func (d *Driver) ExecFunc(table string, m *code.Module, target *TargetPipeline, 
 	}
 	env := func(*pass.Run, pass.Label, any) *codepass.Env { return &codepass.Env{Observe: observe, Flag: d.Opt.On} }
 	s := pass.Then(execlower.Lowering, pass.Then(
-		pass.Project(func(l *execlower.Lowered) *code.Module { return l.Module }, pass.Transforms(pass.Transform[*code.Module, *codepass.Env]{
+		pass.Project(func(l *execlower.Lowered) *code.Module { return l.Module }, (*execlower.Lowered).WithModule, pass.Transforms(pass.Transform[*code.Module, *codepass.Env]{
 			IR: execModuleIR, Pipeline: p, BuiltVerified: true,
 			Env: func(r *pass.Run, l pass.Label, m *code.Module) *codepass.Env { return env(r, l, m) },
 		})),

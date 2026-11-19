@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"zeroparse.dev/zp/internal/frontend/check"
@@ -274,34 +273,17 @@ func (g *Generator) FlowPasses(u flowlower.Unit) (*code.Module, error) {
 // the table being generated as FlowPasses labels it, and returns the lowered function. An error of
 // the conversion to Exec IR is returned; a failure of the passes is kept as the first internal error
 // of the generation (FlowErr), which fails it. The printers print l.Func with the locals l.Vars, so
-// a pass keeps that function in the module and those locals in it (the pipeline contract of Exec
-// IR); a run that breaks this is an internal error too.
+// a pass keeps that function in the module and those locals in it: the verifier of the lowered
+// function checks it at the end of the target's passes (execlower.Lowered.Keeps).
 func (g *Generator) ExecPasses(m *code.Module, target *TargetPipeline) (*execlower.Lowered, error) {
 	l, err := g.runner().ExecFunc(g.IRTable(), m, target, g.Observability)
 	if l == nil {
 		return nil, err
 	}
-	if err == nil {
-		err = keepsLowered(l)
-	}
 	if err != nil && g.FlowErr == nil {
 		g.FlowErr = fmt.Errorf("module %s of table %s: %w", l.Module.Name, g.IRTable(), err)
 	}
 	return l, nil
-}
-
-// keepsLowered reports an error if the module of l no longer holds l.Func, or l.Func no longer
-// declares a local of l.Vars.
-func keepsLowered(l *execlower.Lowered) error {
-	if !slices.Contains(l.Module.Funcs, l.Func) {
-		return fmt.Errorf("internal error: an Exec pass replaced or removed the function %s", l.Func.Name)
-	}
-	for _, v := range l.Vars {
-		if !slices.ContainsFunc(l.Func.Locals, func(p code.Param) bool { return p.Name == v }) {
-			return fmt.Errorf("internal error: an Exec pass removed the local %s of the function %s", v, l.Func.Name)
-		}
-	}
-	return nil
 }
 
 // IRTable is the name of the table being generated in the dumps of the IR: "typed" for the typed

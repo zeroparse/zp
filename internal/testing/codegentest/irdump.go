@@ -57,10 +57,11 @@ func CheckIRPipelines(t *testing.T, dump string, tables ...string) map[string]in
 var BrokenFlowPass = pass.Pass[*code.Module, *flowpass.Env]{
 	Name:       "break-flow",
 	Obligation: "none: it breaks the function on purpose",
-	Run: func(m *code.Module, _ *flowpass.Env) error {
-		a := flow.AttrsOf(flow.FuncOf(m))
+	Run: func(m *code.Module, _ *flowpass.Env) (*code.Module, pass.PreservedSet, error) {
+		c := m.Clone()
+		a := flow.AttrsOf(flow.FuncOf(c))
 		a.Vars = append(a.Vars, "broken", "broken")
-		return nil
+		return c, pass.PreserveNone(), nil
 	},
 }
 
@@ -69,9 +70,10 @@ var BrokenFlowPass = pass.Pass[*code.Module, *flowpass.Env]{
 var BrokenExecPass = pass.Pass[*code.Module, *codepass.Env]{
 	Name:       "break-exec",
 	Obligation: "none: it breaks the module on purpose",
-	Run: func(m *code.Module, _ *codepass.Env) error {
-		m.Funcs = append(m.Funcs, m.Funcs[0])
-		return nil
+	Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
+		c := m.Clone()
+		c.Funcs = append(c.Funcs, c.Funcs[0])
+		return c, pass.PreserveNone(), nil
 	},
 }
 

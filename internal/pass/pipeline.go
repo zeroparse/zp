@@ -1,12 +1,19 @@
 // Package pass runs declared passes over an IR unit, and holds the registry of the optimizations that
 // turn passes and other choices of the pipeline on and off (design 063).
 //
-// A Pass names itself, states the analyses it reads and the analyses it leaves valid, the passes it
-// must follow, the generation modes it applies to and what it preserves. A Pipeline is an ordered list
-// of passes. Run executes the enabled, applicable passes in that order: before each pass it makes the
-// pass's required analyses valid, after it discards every analysis that the pass does not preserve
-// (an AnalysisManager, which the run may share with its caller), and it verifies the unit, once at
-// the end or after every pass. A pass that breaks an invariant is named in the error.
+// A Pass names itself, states the analyses it reads, the passes it must follow, the generation modes
+// it applies to and what it preserves. A Pipeline is an ordered list of passes. Run executes the
+// enabled, applicable passes in that order: before each pass it makes the pass's required analyses
+// valid, after it discards every analysis that the pass does not report preserved (an
+// AnalysisManager, which the run may share with its caller), and it verifies the unit, once at the
+// end or after every pass. A pass that breaks an invariant is named in the error.
+//
+// A pass does not change the unit it is given: it returns the unit after it, which may share with
+// its input the parts it did not change (copy on write), and the analyses that remain valid. The run
+// replaces its current unit by the result only when the pass succeeded, so a failed pass leaves the
+// unit as the passes before it made it. An analysis that refers to parts of the unit by identity
+// (pointers) cannot be preserved across a pass that copies those parts: it keys them by an ID that
+// the copies keep (such as core.Attrs.ID), or its passes do not report it preserved.
 //
 // The package knows nothing about the unit M or the context X that its callers choose: Core IR
 // (internal/middleend/corepass, Pipeline), Flow IR (internal/ir/code/flow, Pipeline) and Exec IR
@@ -32,10 +39,6 @@ type Pass[M, X any] struct {
 	Name string
 	// Requires lists the analyses that must be valid when the pass starts.
 	Requires []Analysis
-	// Preserves is the set of analyses, of the pipeline and of the AnalysisManager of the run,
-	// that the pass leaves valid. The zero value preserves none: an analysis that a pass does not
-	// declare is computed again, never read stale.
-	Preserves PreservedSet
 	// After lists the passes that must precede this one in the pipeline. It orders passes that
 	// share no data (an analysis would otherwise order them).
 	After []string
@@ -44,8 +47,11 @@ type Pass[M, X any] struct {
 	// Applies reports whether the pass is sound in the mode x; nil means always. A pass that does not
 	// apply never runs, whatever its flag says.
 	Applies func(x X) bool
-	// Run transforms the unit.
-	Run func(m M, x X) error
+	// Run transforms the unit m without changing it: it returns the unit after the pass and the set
+	// of analyses, of the pipeline and of the AnalysisManager of the run, that hold for it. A pass
+	// that changed nothing returns m and PreserveAll. The zero set preserves none: an analysis that a
+	// pass does not report is computed again, never read stale.
+	Run func(m M, x X) (M, PreservedSet, error)
 }
 
 // A Pipeline is an ordered list of passes with the analyses they use.
@@ -71,7 +77,7 @@ type Options[M any] struct {
 	// that broke an invariant.
 	VerifyEach bool
 	// Dump, if not nil, is called with Stage before the first pass and with the name of each pass
-	// after it ran, before it is verified.
+	// and the unit it returned after it ran, before it is verified.
 	Dump func(pass string, m M)
 	// Stage names the unit as it reaches the first pass: the stage of the pipeline that made it,
 	// such as "core", "flow" or "exec". A run with a Dump requires it, so that every dump is named.
@@ -135,20 +141,24 @@ func (p *Pipeline[M, X]) Names() []string {
 	return out
 }
 
-// Run runs the passes on m under the mode x and returns the names of the passes that ran, in order.
-// An error names the pass that failed, or "verification" for the final check.
-func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
+// Run runs the passes on m under the mode x and returns the unit after them and the names of the
+// passes that ran, in order. m is not changed. An error names the pass that failed, or "verification"
+// for the final check; with it Run returns the unit as the passes before the failed one left it (with
+// VerifyEach, a pass whose result fails the verification failed), or m if the final verification
+// failed, since it cannot tell which pass broke the unit.
+func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) (M, []string, error) {
 	if err := p.Validate(); err != nil {
-		return nil, err
+		return m, nil, err
 	}
 	if o.Dump != nil && o.Stage == "" {
-		return nil, fmt.Errorf("a run with a dump names no stage for the unit as it reaches the first pass")
+		return m, nil, fmt.Errorf("a run with a dump names no stage for the unit as it reaches the first pass")
 	}
+	in := m
 	am := o.Analyses
 	if am == nil {
 		am = NewAnalysisManager[M](nil)
 	}
-	ensure := func(as []Analysis) error {
+	ensure := func(as []Analysis, m M) error {
 		for _, a := range as {
 			run := p.Analyses[a]
 			if _, err := getNamed(am, m, string(a), func(m M, _ *AnalysisManager[M]) (any, error) {
@@ -160,11 +170,11 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 		}
 		return nil
 	}
-	verify := func(who string) error {
+	verify := func(who string, m M) error {
 		if p.Verify == nil {
 			return nil
 		}
-		if err := ensure(p.VerifyRequires); err != nil {
+		if err := ensure(p.VerifyRequires, m); err != nil {
 			return fmt.Errorf("%s: %w", who, err)
 		}
 		if err := p.Verify(m); err != nil {
@@ -183,31 +193,36 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 		if o.gate != nil && !o.gate(ps.Name) {
 			continue
 		}
-		if err := ensure(ps.Requires); err != nil {
-			return ran, fmt.Errorf("pass %s: %w", ps.Name, err)
+		if err := ensure(ps.Requires, m); err != nil {
+			return m, ran, fmt.Errorf("pass %s: %w", ps.Name, err)
 		}
-		if err := ps.Run(m, x); err != nil {
-			return ran, fmt.Errorf("pass %s: %w", ps.Name, err)
+		out, keep, err := ps.Run(m, x)
+		if err != nil {
+			return m, ran, fmt.Errorf("pass %s: %w", ps.Name, err)
 		}
-		am.Invalidate(ps.Preserves)
 		ran = append(ran, ps.Name)
 		if o.Dump != nil {
-			o.Dump(ps.Name, m)
+			o.Dump(ps.Name, out)
 		}
 		if o.ran != nil {
-			o.ran(ps.Name, m)
+			o.ran(ps.Name, out)
 		}
+		// The analyses the pass preserved hold for its result. A manager bound to the result
+		// discards them when it is asked about another unit, such as m after a failure.
+		am.Invalidate(keep)
+		am.move(out)
 		if o.VerifyEach {
-			if err := verify("after pass " + ps.Name); err != nil {
-				return ran, err
+			if err := verify("after pass "+ps.Name, out); err != nil {
+				return m, ran, err
 			}
 		}
+		m = out
 	}
 	if o.BuiltVerified && len(ran) == 0 {
-		return ran, nil
+		return m, ran, nil
 	}
-	if err := verify("verification"); err != nil {
-		return ran, err
+	if err := verify("verification", m); err != nil {
+		return in, ran, err
 	}
-	return ran, nil
+	return m, ran, nil
 }

@@ -168,7 +168,8 @@ func leanFinish(t *testing.T, f *code.Module) string {
 		}
 		return 0
 	}}
-	if _, err := flowpass.Run(f, env, flowpass.RunOptions{VerifyEach: true}); err != nil {
+	f, _, err := flowpass.Run(f, env, flowpass.RunOptions{VerifyEach: true})
+	if err != nil {
 		t.Fatal(err)
 	}
 	flowpass.Finish(f)

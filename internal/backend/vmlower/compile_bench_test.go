@@ -28,7 +28,7 @@ func BenchmarkBytecodeLowering(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
+			if m, _, err = corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
 				b.Fatal(err)
 			}
 			b.ReportAllocs()

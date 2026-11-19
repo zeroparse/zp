@@ -148,5 +148,12 @@ const FinishName = "flow-finish"
 
 // Finishing is Finish as the required step FinishName that ends the Flow stage of a function: it
 // runs after the Flow passes, also after one of them failed, and before the function leaves the Flow
-// stage.
-var Finishing = pass.Do(FinishName, pass.IR[*code.Module]{Stage: flow.Stage}, Finish)
+// stage. It finishes a copy of the module, and returns a module without forms as it is.
+var Finishing = pass.Do(FinishName, pass.IR[*code.Module]{Stage: flow.Stage}, func(m *code.Module) *code.Module {
+	if a := flow.AttrsOf(flow.FuncOf(m)); a == nil || a.Forms == nil {
+		return m
+	}
+	c := m.Clone()
+	Finish(c)
+	return c
+})

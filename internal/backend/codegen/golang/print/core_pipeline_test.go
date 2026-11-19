@@ -25,7 +25,7 @@ func pipelinedTypedCore(g *print.Generator, verifyEach bool) (*core.Module, erro
 	if err != nil {
 		return nil, err
 	}
-	_, err = corepass.Run(m, typedEnv(g), corepass.RunOptions{VerifyEach: verifyEach})
+	m, _, err = corepass.Run(m, typedEnv(g), corepass.RunOptions{VerifyEach: verifyEach})
 	return m, err
 }
 

@@ -177,7 +177,9 @@ type Transform[M, X any] struct {
 
 // Transforms makes the passes of t.Pipeline a stage. It skips them after a failure; otherwise it
 // runs them as Pipeline.Run does, under the settings and the verification of the Run, numbering each
-// run of an optional pass and telling the observers.
+// run of an optional pass and telling the observers. It returns the unit that Pipeline.Run returns:
+// after a failed pass, the unit as the passes before it left it, on which the required steps after
+// the stage go on.
 func Transforms[M, X any](t Transform[M, X]) Stage[M, M] {
 	var steps []Step
 	for _, ps := range t.Pipeline.Passes {
@@ -187,7 +189,7 @@ func Transforms[M, X any](t Transform[M, X]) Stage[M, M] {
 		if st.err != nil {
 			return m
 		}
-		print := func(after string) func(io.Writer) {
+		print := func(after string, m M) func(io.Writer) {
 			return func(w io.Writer) {
 				if t.IR.Print != nil {
 					t.IR.Print(w, l, after, m)
@@ -195,7 +197,7 @@ func Transforms[M, X any](t Transform[M, X]) Stage[M, M] {
 			}
 		}
 		if t.Entry != "" {
-			r.after(Event{Step: Step{In: t.IR.Stage, Out: t.IR.Stage, Dump: t.Entry}, Label: l}, print(t.Entry), m)
+			r.after(Event{Step: Step{In: t.IR.Stage, Out: t.IR.Stage, Dump: t.Entry}, Label: l}, print(t.Entry, m), m)
 		}
 		seqs := map[string]int{}
 		step := func(name string) Step {
@@ -217,13 +219,14 @@ func Transforms[M, X any](t Transform[M, X]) Stage[M, M] {
 				return true
 			},
 			ran: func(name string, m M) {
-				r.after(Event{Seq: seqs[name], Step: step(name), Label: l}, print(name), m)
+				r.after(Event{Seq: seqs[name], Step: step(name), Label: l}, print(name, m), m)
 			},
 		}
 		if t.Analyses != nil {
 			o.Analyses = t.Analyses(m)
 		}
-		if _, err := t.Pipeline.Run(m, t.Env(r, l, m), o); err != nil {
+		m, _, err := t.Pipeline.Run(m, t.Env(r, l, m), o)
+		if err != nil {
 			st.fail(err)
 		}
 		return m
@@ -255,22 +258,34 @@ func Lower[I, O any](name, in string, out IR[O], f func(I) (O, error)) Stage[I, 
 	}}
 }
 
-// Do makes f a required step on a unit at the stage of ir that changes the unit in place and is
-// never dumped. It runs after a failure too.
-func Do[M any](name string, ir IR[M], f func(m M)) Stage[M, M] {
+// Do makes f a required step on a unit at the stage of ir that is never dumped: f returns the unit
+// after the step and does not change m. It runs after a failure too.
+func Do[M any](name string, ir IR[M], f func(m M) M) Stage[M, M] {
 	s := Step{Name: name, Required: true, In: ir.Stage, Out: ir.Stage}
 	return Stage[M, M]{steps: []Step{s}, run: func(r *Run, l Label, m M, st *state) M {
-		f(m)
+		m = f(m)
 		r.after(Event{Step: s, Label: l}, func(io.Writer) {}, m)
 		return m
 	}}
 }
 
-// Project runs the stage s on the part of a unit M that get returns, and returns the unit.
-func Project[M, P any](get func(m M) P, s Stage[P, P]) Stage[M, M] {
+// Project runs the stage s on the part of a unit M that get returns. If s returns another part, put
+// returns the unit with that part in place of the old one, without changing m; otherwise the unit
+// is m. A part that put cannot take, such as one that lost what the unit refers to, is a failure of
+// the stage, after which the unit is m.
+func Project[M any, P comparable](get func(m M) P, put func(m M, p P) (M, error), s Stage[P, P]) Stage[M, M] {
 	return Stage[M, M]{steps: s.steps, run: func(r *Run, l Label, m M, st *state) M {
-		s.run(r, l, get(m), st)
-		return m
+		p := get(m)
+		q := s.run(r, l, p, st)
+		if q == p {
+			return m
+		}
+		out, err := put(m, q)
+		if err != nil {
+			st.fail(err)
+			return m
+		}
+		return out
 	}}
 }
 

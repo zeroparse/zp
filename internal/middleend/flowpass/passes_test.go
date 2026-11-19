@@ -66,10 +66,11 @@ func forms(t *testing.T) (*core.Module, *core.Rule) {
 	m.Rules = []*core.Rule{r}
 	core.CallGraph(m)
 	core.Analyze(m)
-	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{VerifyEach: true}); err != nil {
+	m, _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{VerifyEach: true})
+	if err != nil {
 		t.Fatal(err)
 	}
-	return m, r
+	return m, m.Rules[0]
 }
 
 // all is a target with every form.
@@ -107,7 +108,7 @@ func lower(t *testing.T, opts flowlower.Options, env *Env) lowered {
 	if env.Value == nil {
 		env.Value = values
 	}
-	ran, err := Run(f, env, RunOptions{VerifyEach: true})
+	f, ran, err := Run(f, env, RunOptions{VerifyEach: true})
 	if err != nil {
 		t.Fatal(err)
 	}

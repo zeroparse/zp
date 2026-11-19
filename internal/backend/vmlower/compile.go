@@ -31,7 +31,7 @@ func Compile(prog *compile.Program) (*bytecode.Module, error) {
 	if err != nil {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}
-	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
+	if m, _, err = corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
 	return CompileCore(prog, m)

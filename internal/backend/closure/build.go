@@ -19,7 +19,8 @@ import (
 // and a cancellation unwinds as cancel.Cancellation. The module returned does not keep the control.
 // A failure is an internal error: the program compiled, so its passes run.
 func Core(m *ir.Module) (*ir.Module, error) {
-	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
+	m, _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{})
+	if err != nil {
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
 	m.Control = nil

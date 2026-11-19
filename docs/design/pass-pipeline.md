@@ -71,8 +71,14 @@ generic over the input and output IR of a pass and has four parts.
   passes, invalidates the cache after each, and verifies and dumps on request. The registry holds the passes and their
   control flags.
 
-When a transform returns a different IR value, the whole cache is invalidated: a preserved set has meaning only for a
-rewrite of the same unit.
+A transform does not change the unit it is given: it returns the unit after it, which may share with its input the
+parts it did not change (copy on write), and a transform that changed nothing returns its input with every analysis
+preserved. The manager replaces the current unit by the result only when the pass succeeded, and, when it verifies after
+every pass, when the result verifies; after a failure the required steps go on with the unit as the passes before the
+failed one left it, never with a half-rewritten one. The returned preserved set is the declaration of what the pass
+kept: the result inherits those analyses, and a lowering, which returns another IR, invalidates the whole cache. An
+analysis whose result refers to parts of the unit by identity (pointers) cannot survive a copy of those parts: it keys
+them by an ID that copies keep (Core IR nodes carry one), or no pass reports it preserved.
 
 Passes run one at a time, in the order of the pipeline. A pass that works on one function reads only analyses of the
 module that were computed before it runs, and never the body of another function, so what it does to a function depends

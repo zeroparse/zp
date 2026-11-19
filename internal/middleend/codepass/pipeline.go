@@ -42,8 +42,9 @@ type RunOptions struct {
 }
 
 // RunPasses runs the enabled passes of Pipeline that apply to e on the module m, which the lowering has
-// verified, and verifies it again if a pass ran. It returns the names of the passes that ran.
-func RunPasses(m *code.Module, e *Env, o RunOptions) ([]string, error) {
+// verified, and verifies it again if a pass ran. It returns the module after them and the names of
+// the passes that ran; m is not changed.
+func RunPasses(m *code.Module, e *Env, o RunOptions) (*code.Module, []string, error) {
 	return Pipeline.Run(m, e, o.Options(e))
 }
 

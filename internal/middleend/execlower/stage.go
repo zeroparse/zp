@@ -26,11 +26,18 @@ func LowerFunc(m *code.Module) (*Lowered, error) {
 	return &Lowered{Module: x, Func: fn, Vars: flow.AttrsOf(fn).Vars}, nil
 }
 
-// IR describes a lowered function to the manager of the pipeline: its module is verified by Verify,
-// and it is dumped as the listing of each function of its module, labeled with its table.
+// IR describes a lowered function to the manager of the pipeline: its module is verified by Verify
+// and must hold the function with its variables (Lowered.Keeps), and it is dumped as the listing of
+// each function of its module, labeled with its table.
 var IR = pass.IR[*Lowered]{
-	Stage:  Stage,
-	Verify: func(l *Lowered) error { return Verify(l.Module) },
+	Stage: Stage,
+	// The module verifies, and holds the function with its variables (Lowered.Keeps).
+	Verify: func(l *Lowered) error {
+		if err := Verify(l.Module); err != nil {
+			return err
+		}
+		return l.Keeps()
+	},
 	Print: func(w io.Writer, lb pass.Label, after string, l *Lowered) {
 		PrintModule(w, lb, after, l.Module)
 	},

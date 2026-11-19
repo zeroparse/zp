@@ -34,7 +34,7 @@ func TestDriverRunCore(t *testing.T) {
 	for i := range p.Passes {
 		run := p.Passes[i].Run
 		name := p.Passes[i].Name
-		p.Passes[i].Run = func(m *core.Module, e *corepass.Env) error {
+		p.Passes[i].Run = func(m *core.Module, e *corepass.Env) (*core.Module, pass.PreservedSet, error) {
 			ran = append(ran, name)
 			return run(m, e)
 		}
@@ -83,7 +83,9 @@ func TestDriverRunCoreError(t *testing.T) {
 	cause := errors.New("broken")
 	p := &pass.Pipeline[*core.Module, *corepass.Env]{Passes: []pass.Pass[*core.Module, *corepass.Env]{{
 		Name: "test-core-fail", Obligation: "none: it fails",
-		Run: func(*core.Module, *corepass.Env) error { return cause }}}}
+		Run: func(m *core.Module, _ *corepass.Env) (*core.Module, pass.PreservedSet, error) {
+			return m, pass.PreserveAll(), cause
+		}}}}
 	d := &Driver{CorePipeline: func(string) *pass.Pipeline[*core.Module, *corepass.Env] { return p }, TestPasses: []string{"test-core-fail"}}
 	_, err := d.RunCore("typed", &core.Module{})
 	if !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "internal error: ") {
@@ -103,10 +105,11 @@ func withTestFlowPass(t *testing.T) func(string) *pass.Pipeline[*code.Module, *f
 	p := *flowpass.Pipeline
 	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flowpass.Env]{
 		Name: testFlowPass, Obligation: "a comment changes nothing",
-		Run: func(m *code.Module, _ *flowpass.Env) error {
+		Run: func(m *code.Module, _ *flowpass.Env) (*code.Module, pass.PreservedSet, error) {
+			m = m.Clone()
 			b := flow.FuncOf(m).Body
 			b.Stmts = append(b.Stmts, &code.Comment{Text: "tested"})
-			return nil
+			return m, pass.PreserveNone(), nil
 		}})
 	return func(string) *pass.Pipeline[*code.Module, *flowpass.Env] { return &p }
 }
@@ -199,7 +202,9 @@ func TestDriverFlowFuncErrors(t *testing.T) {
 	cause := errors.New("broken")
 	p := *flowpass.Pipeline
 	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flowpass.Env]{
-		Name: "test-flow-fail", Obligation: "none: it fails", Run: func(*code.Module, *flowpass.Env) error { return cause }})
+		Name: "test-flow-fail", Obligation: "none: it fails", Run: func(m *code.Module, _ *flowpass.Env) (*code.Module, pass.PreservedSet, error) {
+			return m, pass.PreserveAll(), cause
+		}})
 	d := &Driver{FlowPipeline: func(string) *pass.Pipeline[*code.Module, *flowpass.Env] { return &p }, TestPasses: []string{"test-flow-fail"}}
 	f, err := d.FlowFunc("rules", framed(), false, flowpass.Target{})
 	if f == nil || !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "internal error: pass test-flow-fail: ") {
@@ -239,16 +244,18 @@ func TestDriverExecFunc(t *testing.T) {
 	p := *codepass.Pipeline
 	p.Passes = append(slices.Clone(p.Passes),
 		pass.Pass[*code.Module, *codepass.Env]{Name: testExecPass, Obligation: "a comment changes nothing",
-			Run: func(m *code.Module, _ *codepass.Env) error {
+			Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
+				m = m.Clone()
 				for _, f := range m.Funcs {
 					f.Doc = "tested"
 				}
-				return nil
+				return m, pass.PreserveNone(), nil
 			}},
 		pass.Pass[*code.Module, *codepass.Env]{Name: testExecBreak, Obligation: "none: it breaks the module",
-			Run: func(m *code.Module, _ *codepass.Env) error {
+			Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
+				m = m.Clone()
 				m.Funcs = append(m.Funcs, m.Funcs[0])
-				return nil
+				return m, pass.PreserveNone(), nil
 			}})
 	run := func(string) *pass.Pipeline[*code.Module, *codepass.Env] { return &p }
 	var dump strings.Builder

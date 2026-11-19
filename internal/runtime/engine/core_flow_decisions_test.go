@@ -108,9 +108,9 @@ func recordingHooks(rec *flowRecord) *print.Hooks {
 			p := *flowpass.Pipeline
 			p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *flowpass.Env]{
 				Name: recordPass, Obligation: "none: it records the decisions and changes nothing",
-				Run: func(m *code.Module, _ *flowpass.Env) error {
+				Run: func(m *code.Module, _ *flowpass.Env) (*code.Module, pass.PreservedSet, error) {
 					rec.record(x, m)
-					return nil
+					return m, pass.PreserveAll(), nil
 				}})
 			d := driverOf(x)
 			d.FlowPipeline = func(string) *pass.Pipeline[*code.Module, *flowpass.Env] { return &p }

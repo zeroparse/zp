@@ -144,7 +144,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				case "core-analysis":
 					ir.Analyze(m)
 				case "core-passes":
-					_, _ = corepass.Run(m, &corepass.Env{}, corepass.RunOptions{})
+					_, _, _ = corepass.Run(m, &corepass.Env{}, corepass.RunOptions{})
 				case "core-pass-guards":
 					corepass.Guards(m)
 				case "core-pass-scans":

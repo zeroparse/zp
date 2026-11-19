@@ -43,7 +43,7 @@ func TestPipelineAppliesByFlag(t *testing.T) {
 	for _, c := range cases {
 		env := c.env
 		m := &core.Module{}
-		got, err := Run(m, &env, RunOptions{})
+		_, got, err := Run(m, &env, RunOptions{})
 		if err != nil {
 			t.Errorf("%s: %v", c.name, err)
 			continue

@@ -40,25 +40,28 @@ var Pipeline = &pass.Pipeline[*execlower.Lowered, *codepass.Env]{
 		{
 			Name:       PassSpendRuns,
 			Obligation: "One spend of n units charges what the n charges in a row it replaces charge, in the same place.",
-			Run: func(l *execlower.Lowered, _ *codepass.Env) error {
-				spendRuns(l)
-				return nil
+			Run: func(l *execlower.Lowered, _ *codepass.Env) (*execlower.Lowered, pass.PreservedSet, error) {
+				c := l.Clone()
+				spendRuns(c)
+				return c, pass.PreserveNone(), nil
 			},
 		},
 		{
 			Name:       PassMergedRecords,
 			Obligation: "unisolateMerge ends the expectation record and merges its expectations into the enclosing record, as the end and the merge it replaces do.",
-			Run: func(l *execlower.Lowered, _ *codepass.Env) error {
-				mergedRecords(l)
-				return nil
+			Run: func(l *execlower.Lowered, _ *codepass.Env) (*execlower.Lowered, pass.PreservedSet, error) {
+				c := l.Clone()
+				mergedRecords(c)
+				return c, pass.PreserveNone(), nil
 			},
 		},
 		{
 			Name:       PassTestedInits,
 			Obligation: "The condition reports that the call of the If's Init failed, as the negation of the bool the Init sets does.",
-			Run: func(l *execlower.Lowered, _ *codepass.Env) error {
-				testedInits(l)
-				return nil
+			Run: func(l *execlower.Lowered, _ *codepass.Env) (*execlower.Lowered, pass.PreservedSet, error) {
+				c := l.Clone()
+				testedInits(c)
+				return c, pass.PreserveNone(), nil
 			},
 		},
 	},

@@ -22,7 +22,8 @@ var brokenGuards = pass.Pass[*core.Module, *corepass.Env]{
 	Name:       "break-guard",
 	After:      []string{corepass.PassGuards},
 	Obligation: "none: it breaks the module on purpose",
-	Run: func(m *core.Module, _ *corepass.Env) error {
+	Run: func(m *core.Module, _ *corepass.Env) (*core.Module, pass.PreservedSet, error) {
+		m = m.Clone()
 		for _, r := range m.Rules {
 			if r == nil {
 				continue
@@ -44,10 +45,10 @@ var brokenGuards = pass.Pass[*core.Module, *corepass.Env]{
 				}
 			})
 			if broke {
-				return nil
+				break
 			}
 		}
-		return nil
+		return m, pass.PreserveNone(), nil
 	},
 }
 
@@ -185,8 +186,9 @@ func TestPrintAfterNeedsAWriter(t *testing.T) {
 }
 
 // An Exec pass keeps the function that the lowering made and the locals of the Flow IR function in
-// it, which the printers print: a pass that replaces the function or drops such a local fails the
-// generation, though the module it leaves is well formed.
+// it, which the printers print: a pass that removes the function or drops such a local fails the
+// generation, though the module it leaves is well formed. (A pass returns a copy of the function it
+// changes, so a function in the place of the lowered one with its name is that function.)
 func TestExecPassKeepsTheLoweredFunction(t *testing.T) {
 	pg, err := parseTest(`rule main = (word / num / -" ")* $$
 rule word = "if" / "else" / [a-z]+
@@ -199,9 +201,8 @@ rule num = [0-9]+
 		name, want string
 		run        func(m *code.Module)
 	}{
-		{"replace", "replaced or removed the function", func(m *code.Module) {
-			f := *m.Funcs[0]
-			m.Funcs[0] = &f
+		{"remove", "replaced or removed the function", func(m *code.Module) {
+			m.Funcs = m.Funcs[1:]
 		}},
 		{"drop local", "removed the local", func(m *code.Module) {
 			for _, f := range m.Funcs {
@@ -216,9 +217,10 @@ rule num = [0-9]+
 			p.Verify = nil
 			p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *codepass.Env]{
 				Name: "test-exec-mutant", Obligation: "none: it breaks the lowered function on purpose",
-				Run: func(m *code.Module, _ *codepass.Env) error {
+				Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
+					m = m.Clone()
 					c.run(m)
-					return nil
+					return m, pass.PreserveNone(), nil
 				}})
 			hooks := generate.Hooks{
 				ExecPipeline: func(string) *pass.Pipeline[*code.Module, *codepass.Env] { return &p },

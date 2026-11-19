@@ -70,14 +70,16 @@ var passes = []pass.Pass[*code.Module, *Env]{
 	},
 }
 
-// run adapts a pass over the function of a module.
-func run(f func(fn *code.Func, a *flow.Attrs, e *Env)) func(*code.Module, *Env) error {
-	return func(m *code.Module, e *Env) error {
-		fn := flow.FuncOf(m)
-		if a := flow.AttrsOf(fn); a != nil && a.Forms != nil {
-			f(fn, a, e)
+// run adapts a pass over the function of a module: it runs on a copy of the module.
+func run(f func(fn *code.Func, a *flow.Attrs, e *Env)) func(*code.Module, *Env) (*code.Module, pass.PreservedSet, error) {
+	return func(m *code.Module, e *Env) (*code.Module, pass.PreservedSet, error) {
+		if a := flow.AttrsOf(flow.FuncOf(m)); a == nil || a.Forms == nil {
+			return m, pass.PreserveAll(), nil
 		}
-		return nil
+		c := m.Clone()
+		fn := flow.FuncOf(c)
+		f(fn, flow.AttrsOf(fn), e)
+		return c, pass.PreserveNone(), nil
 	}
 }
 

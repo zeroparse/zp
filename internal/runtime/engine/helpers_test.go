@@ -326,18 +326,19 @@ func closureExprNode(t *testing.T, prog *compile.Program, e ast.Expr) ir.Node {
 
 func closureExprCore(t *testing.T, prog *compile.Program, e ast.Expr) (*ir.Module, ir.Node) {
 	t.Helper()
-	origin := map[ir.Node]ast.Expr{}
-	m, err := irbuild.CoreFrom(prog, origin)
+	built := map[ir.Node]ast.Expr{}
+	m, err := irbuild.CoreFrom(prog, built)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
+	origin := irbuild.OriginByID(built)
+	if m, _, err = corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	var found ir.Node
 	for _, r := range m.Rules {
 		ir.Walk(r.Body, func(n ir.Node) {
-			if found == nil && origin[n] == e {
+			if found == nil && origin.Of(n) == e {
 				found = n
 			}
 		})
