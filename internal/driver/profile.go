@@ -191,7 +191,8 @@ const (
 )
 
 // PrintNames returns the names that select what to print after, in the order the steps run: "core",
-// the Core passes, "flow", the Flow passes, "exec", the Exec passes, and "all".
+// the Core passes, "flow", the Flow passes, "exec", the Exec passes and those of the registered
+// targets (golang/pass, typescript/pass), and "all".
 func PrintNames() []string {
 	out := []string{PrintCore}
 	out = append(out, corepass.Pipeline.Names()...)
@@ -199,6 +200,9 @@ func PrintNames() []string {
 	out = append(out, flowpass.Pipeline.Names()...)
 	out = append(out, PrintExec)
 	out = append(out, codepass.Pipeline.Names()...)
+	for _, p := range targets {
+		out = append(out, p.Names()...)
+	}
 	return append(out, PrintAll)
 }
 

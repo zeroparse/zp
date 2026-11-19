@@ -75,6 +75,9 @@ var optimizationTests = map[string]string{
 	"typed-list-slabs":       "TestGeneratedTypedOutputRetentionFixture",
 	"typed-output-bootstrap": "TestGeneratedTypedOutputRetentionFixture",
 	"sparse-memo":            "TestGeneratedTSSparseMemoControls (print)",
+	"ts-merged-records":      "TestTSExecPassesKeepResultsAndSpends (typescript/print)",
+	"ts-spend-runs":          "TestTSExecPassesKeepResultsAndSpends (typescript/print)",
+	"ts-tested-inits":        "TestTSExecPassesKeepResultsAndSpends (typescript/print)",
 }
 
 // outputFlagTests says for each registered optimization that changes the output (ChangesOutput) the
@@ -169,6 +172,7 @@ func TestRegistryOfTheGenerators(t *testing.T) {
 		"guards", "scans",
 		"field-compare", "text-dispatch",
 		"class-runs", "class-tables", "guarded-classes", "inline-literals", "terminals",
+		"ts-merged-records", "ts-spend-runs", "ts-tested-inits",
 		"literal-sharing", "method-sharing", "ts-literal-sharing", "used-features",
 		"sparse-memo", "typed-list-slabs", "typed-object-slabs", "typed-output-bootstrap",
 	}

@@ -551,7 +551,7 @@ position is the end of the rule's match, on failure it is unchanged. The body ch
 	op(&code.Op{Name: OpIsolate, Results: []code.Type{expmark}, Reads: pos, Writes: []string{State},
 		Contract: "Begins an expectation scope at the position and returns its mark."})
 	op(&code.Op{Name: OpUnisolate, Params: []code.Param{P("m", expmark)}, Results: []code.Type{i, expids}, Writes: []string{State},
-		Contract: "Ends the expectation scope m. Its results are the farthest failure inside it and its expectations.",
+		Contract: "Ends the expectation scope m. Its results are the farthest failure inside it and its expectations. It charges nothing, as exp.unisolate (spec/exec-ir/operations.md): each expectation was charged when it was recorded, and a merge of them charges each again.",
 		Requires: "m is the innermost scope that has not ended."})
 	op(&code.Op{Name: OpText, Params: []code.Param{P("start", i)}, Results: []code.Type{value}, Reads: pos, Cost: plus(unit, QText),
 		Contract: "Returns the input from start to the position. In a stream parse it charges at most a unit and the length of its result, and elsewhere at most a unit (spec/runtime/parsing.md#cost).", Laws: []string{pure}})

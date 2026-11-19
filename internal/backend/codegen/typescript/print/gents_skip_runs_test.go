@@ -55,8 +55,8 @@ func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]str
 }
 
 // tsSpends is tsSkipRunSpends with the least budget of the entry point entry, recognizeWithOptions
-// or parseWithOptions.
-func tsSpends(t *testing.T, node string, sources []string, inputs [][]string, results []string, mutation [][2]string, entry string) (spends [][]uint64, out []string) {
+// or parseWithOptions, of parsers generated without the optimizations noOpt.
+func tsSpends(t *testing.T, node string, sources []string, inputs [][]string, results []string, mutation [][2]string, entry string, noOpt ...string) (spends [][]uint64, out []string) {
 	t.Helper()
 	dir := t.TempDir()
 	var imports, entries strings.Builder
@@ -65,7 +65,7 @@ func tsSpends(t *testing.T, node string, sources []string, inputs [][]string, re
 		if err != nil {
 			t.Fatal(err)
 		}
-		files, err := codegentest.GenerateTS(g, common.GenOptions{Start: "main", LimitControls: true, Recognize: true})
+		files, err := codegentest.GenerateTS(g, common.GenOptions{Start: "main", LimitControls: true, Recognize: true, NoOpt: noOpt})
 		if err != nil {
 			t.Fatal(err)
 		}

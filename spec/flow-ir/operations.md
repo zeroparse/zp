@@ -68,7 +68,7 @@ the Exec stage and the backends rely on.
 | `flow.callRule` |  | value, bool | `rulecall` | Calls the rule from the Operators Rule level. Its results are the rule's value and whether it matched; on a match the position is the end of the rule's match, on failure it is unchanged. |
 | `flow.callOutline` |  | value, bool | `outline` | Runs the node, which a function of its own lowers, under the current frame. Its results are the value of the node, built if Build, and whether it matched. |
 | `flow.isolate` |  | expmark |  | Begins an expectation scope at the position and returns its mark. |
-| `flow.unisolate` | m expmark | int, expids |  | Ends the expectation scope m. Its results are the farthest failure inside it and its expectations. |
+| `flow.unisolate` | m expmark | int, expids |  | Ends the expectation scope m. Its results are the farthest failure inside it and its expectations. It charges nothing, as `exp.unisolate` (the [Exec operations](../exec-ir/operations.md)): each expectation was charged when it was recorded, and a merge of them charges each again. |
 | `flow.text` | start int | value |  | Returns the input from start to the position. |
 | `flow.literalText` | start int | value | `chars` | Returns the text of the literal matched from start, which differs from the literal where it holds the replacement character. |
 | `flow.str` |  | value | `chars` | Returns the string constant. |

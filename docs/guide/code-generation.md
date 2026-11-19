@@ -309,7 +309,8 @@ the table, is always an opt-in, and is never part of a profile. Two uses of the 
 
 The kind says what the optimization changes: a `pass` rewrites the parser before it is lowered, a `lowering` is an
 option of the lowering to the code, a `flow pass` replaces the form in which the lowered code matches a construct with
-another where the target language prints it, a `printer` is a choice of what the Go and TypeScript printers emit, and a `runtime`
+another where the target language prints it, an `exec pass` replaces operations of the lowered code with a form
+that one target prints more compactly, a `printer` is a choice of what the Go and TypeScript printers emit, and a `runtime`
 optimization is a control of the runtime structures the parser emits. The names are the following, by kind and by name within a kind, as the usage text lists them, and an unknown name in `-opt` or `-no-opt` is an error that lists them. No flag in this
 table changes output yet:
 
@@ -324,6 +325,9 @@ table changes output yet:
 | `guarded-classes` | flow pass | on | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers). Saves a second read and test of that character |
 | `inline-literals` | flow pass | 4 | Compare literals of at most four code points in place first; the number is the longest literal, and 0 turns it off. Code against calls: faster, with more code |
 | `terminals` | flow pass | on | Value-free choices of many literals and classes run as one program (lean typed Go). Data against code: the choice becomes a table in the parser instead of nested alternatives |
+| `ts-merged-records` | exec pass | on | Ending an expectation record and merging its expectations into the enclosing record are one call that merges in place (TypeScript). Saves a copy of the expectations and a local per merge |
+| `ts-spend-runs` | exec pass | on | Charges in a row are one call that charges them as that many units (TypeScript). One call against several |
+| `ts-tested-inits` | exec pass | on | An `if` that tests whether its first call matched tests the call's result in its condition (TypeScript). Saves the boolean local that the call sets |
 | `literal-sharing` | printer | on | Emit one table for equal literals (Go; TypeScript also needs `ts-literal-sharing`). Smaller source against an indirection to the table |
 | `method-sharing` | printer | on | Emit one helper for generated bodies that are exactly equal (Go and TypeScript). Code against calls: smaller source, with a call where a body was |
 | `ts-literal-sharing` | printer | off | Share literal tables in TypeScript parsers. Smaller code against speed: a small cold parse measured about 1.5 times slower. It is an opt-in: turn it on with `-opt ts-literal-sharing` |

@@ -4,8 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	tspass "zeroparse.dev/zp/internal/backend/codegen/typescript/pass"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
+	"zeroparse.dev/zp/internal/pass"
 )
 
 // TestFlowExecPrintsStepRunAsUnits checks that charges in a row, which the printer joins into one
@@ -20,6 +22,23 @@ func TestFlowExecPrintsStepRunAsUnits(t *testing.T) {
 	}
 	if !strings.Contains(readLib(t, tsLibFileName), "spendUnits(n: number): void { this.control?.chargeUnits(n); }") {
 		t.Error("the library's spendUnits does not charge a run of units")
+	}
+}
+
+// TestFlowExecStepRunFlag checks that the flag of the pass that joins charges in a row turns it off:
+// the charges then print one by one.
+func TestFlowExecStepRunFlag(t *testing.T) {
+	t.Parallel()
+	opt, err := pass.Settings{}.Without(tspass.PassSpendRuns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := framed(t, "steps", nil, &code.Do{Call: &code.Call{Callee: flow.OpStep}}, &code.Do{Call: &code.Call{Callee: flow.OpStep}}, &code.Do{Call: &code.Call{Callee: flow.OpStep}})
+	g := &Generator{}
+	g.Opt = opt
+	text, _, _ := g.printTSFlowExec(f)
+	if strings.Count(text, "p.spend();") != 3 || strings.Contains(text, "p.spendUnits(") {
+		t.Errorf("without the pass, three charges in a row do not print one by one:\n%s", text)
 	}
 }
 
