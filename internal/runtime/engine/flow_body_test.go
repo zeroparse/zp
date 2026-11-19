@@ -2,10 +2,12 @@ package engine
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime/debug"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/backend/vmlower"
 	"zeroparse.dev/zp/internal/compile"
@@ -56,23 +58,30 @@ func parseChargedWith(t *testing.T, prog *Program, input string, b Backend) (str
 // value rule from its Flow form. mutate, if not nil, changes the selected body before it is installed.
 func jsonFlowPrograms(t *testing.T, mutate func(*bytecode.Flow)) (*Program, *Program) {
 	t.Helper()
-	src, err := os.ReadFile("../../../testdata/grammars/json/json.zp")
+	old, flows, n := flowPrograms(t, "../../../testdata/grammars/json/json.zp", func(name string) bool { return name == "value" }, func(_ string, f *bytecode.Flow) {
+		if mutate != nil {
+			mutate(f)
+		}
+	})
+	if n != 1 {
+		t.Fatalf("the value rule has no Flow body (%d bodies)", n)
+	}
+	return old, flows
+}
+
+// flowPrograms returns the grammar of the file path compiled as usual, and the same grammar whose VM
+// runs from its Flow form each rule that pick accepts and that has a Flow body with the operations
+// selected so far; n is the number of such rules. A rule without one keeps its match code. mutate, if
+// not nil, changes the body of each selected rule before it is installed.
+func flowPrograms(t *testing.T, path string, pick func(rule string) bool, mutate func(rule string, f *bytecode.Flow)) (old, flows *Program, n int) {
+	t.Helper()
+	src, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	old := mustCompile(t, string(src))
+	old = mustCompile(t, string(src))
 	cp := old.src.(interface{ Checked() *compile.Program }).Checked()
 	coreFlow, err := vmlower.CoreOf(cp)
-	if err != nil {
-		t.Fatal(err)
-	}
-	value := -1
-	for i, r := range coreFlow.Rules {
-		if r.Name == "value" {
-			value = i
-		}
-	}
-	fm, err := vmlower.FlowModule(coreFlow, value, "value")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,13 +93,22 @@ func jsonFlowPrograms(t *testing.T, mutate func(*bytecode.Flow)) (*Program, *Pro
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := vmlower.SelectFlows(bc, cp, coreFlow, map[int]*code.Module{value: fm}); err != nil {
-		t.Fatal(err)
+	for i, r := range coreFlow.Rules {
+		if !pick(r.Name) {
+			continue
+		}
+		fm, err := vmlower.FlowModule(coreFlow, i, r.Name)
+		if err != nil {
+			continue // a rule whose Flow form the VM's options do not have
+		}
+		if err := vmlower.SelectFlows(bc, cp, coreFlow, map[int]*code.Module{i: fm}); err != nil {
+			continue // an operation without a bytecode Flow form yet
+		}
+		if mutate != nil {
+			mutate(r.Name, bc.Flows[i])
+		}
 	}
-	if mutate != nil {
-		mutate(bc.Flows[value])
-	}
-	return old, New(flowSource{Source: old.src, m: bc})
+	return old, New(flowSource{Source: old.src, m: bc}), len(bc.Flows)
 }
 
 // mutateCall changes the first call of a Flow body to call main, a different rule than the one the
@@ -246,5 +264,60 @@ func TestFlowBodyIterativeDeepNesting(t *testing.T) {
 	debug.SetMaxStack(prev)
 	if ot != st || oe != se || ou != su {
 		t.Errorf("match code err %s spend %d; flow err %s spend %d; trees equal: %v", oe, ou, se, su, ot == st)
+	}
+}
+
+// grammarCorpus returns the inputs of the grammar of the file path: the sample files next to it, and
+// prefixes of each, which end the input inside its constructs and so take the failing paths.
+func grammarCorpus(t *testing.T, path string) []string {
+	t.Helper()
+	files, err := filepath.Glob(filepath.Join(filepath.Dir(path), "*.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	for _, f := range files {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		in := string(data)
+		out = append(out, in)
+		for _, k := range []int{1, 2, 3, 5, 8} {
+			if cut := len(in) * k / 9; cut > 0 && utf8.ValidString(in[:cut]) {
+				out = append(out, in[:cut])
+			}
+		}
+	}
+	return out
+}
+
+// TestFlowBodiesTestdataGrammars runs the samples of the testdata grammars, and prefixes of them,
+// through both VM models with every rule that has a Flow body running it: the trees, the errors and
+// the spends must be those of the match code.
+func TestFlowBodiesTestdataGrammars(t *testing.T) {
+	paths, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
+	if err != nil || len(paths) == 0 {
+		t.Fatalf("no grammars: %v", err)
+	}
+	total := 0
+	for _, path := range paths {
+		t.Run(filepath.Base(filepath.Dir(path)), func(t *testing.T) {
+			old, flows, n := flowPrograms(t, path, func(string) bool { return true }, nil)
+			total += n
+			for _, in := range grammarCorpus(t, path) {
+				for _, b := range []Backend{Bytecode, BytecodeIterative} {
+					ot, oe, ou := parseChargedWith(t, old, in, b)
+					ft, fe, fu := parseChargedWith(t, flows, in, b)
+					if ot != ft || oe != fe || ou != fu {
+						t.Errorf("%v, input of %d bytes: match code err %s spend %d; flow err %s spend %d; trees equal: %v", b, len(in), oe, ou, fe, fu, ot == ft)
+					}
+				}
+			}
+			t.Logf("%d rules run their Flow bodies", n)
+		})
+	}
+	if total == 0 {
+		t.Fatal("no rule of the testdata grammars has a Flow body")
 	}
 }
