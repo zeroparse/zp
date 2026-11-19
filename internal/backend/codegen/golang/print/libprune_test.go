@@ -156,3 +156,47 @@ func TestImplicitMethodsCoverCore(t *testing.T) {
 		}
 	}
 }
+
+// dropUnusedImports cuts whole lines and leaves at most one blank line, between two groups, in the
+// import blocks that it shortens: a cut that leaves indentation, a trailing comment or the blank
+// line of an emptied group behind splits or pads the import group (the import rule of
+// docs/development.md, "Go Style").
+func TestDropUnusedImportsKeepsGroups(t *testing.T) {
+	t.Parallel()
+	const body = "\nvar _, _ = fmt.Sprint, strings.ToUpper\n" // the source never names os
+	for _, c := range []struct{ name, src, want string }{
+		{"indented import in a group", "import (\n\t\"fmt\"\n\t\"os\"\n\t\"strings\"\n)\n", "import (\n\t\"fmt\"\n\t\"strings\"\n)\n"},
+		{"first group emptied", "import (\n\t\"os\"\n\n\t\"fmt\"\n)\n", "import (\n\t\"fmt\"\n)\n"},
+		{"last group emptied", "import (\n\t\"fmt\"\n\n\t\"os\"\n)\n", "import (\n\t\"fmt\"\n)\n"},
+		{"middle group emptied", "import (\n\t\"fmt\"\n\n\t\"os\"\n\n\t\"strings\"\n)\n", "import (\n\t\"fmt\"\n\n\t\"strings\"\n)\n"},
+		{"trailing comment goes with the import", "import (\n\t\"fmt\"\n\t\"os\" // for the tests\n\t\"strings\"\n)\n", "import (\n\t\"fmt\"\n\t\"strings\"\n)\n"},
+		{"trailing comment of an emptied group", "import (\n\t\"os\" // for the tests\n\n\t\"fmt\"\n)\n", "import (\n\t\"fmt\"\n)\n"},
+		{"single import", "import \"os\"\nimport \"fmt\"\nimport \"strings\"\n", "import \"fmt\"\nimport \"strings\"\n"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := dropUnusedImports("x.go", []byte("package x\n\n"+c.src+body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := "package x\n\n" + c.want + body
+			if string(got) != want {
+				t.Errorf("got:\n%s\nwant:\n%s", got, want)
+			}
+		})
+	}
+}
+
+// Only the import declarations are rewritten: a line "import (" in a raw string, and the blank lines
+// of a function or of the raw string, stay as they are.
+func TestDropUnusedImportsLeavesOtherText(t *testing.T) {
+	t.Parallel()
+	src := "package x\n\nimport (\n\t\"fmt\"\n)\n\nvar text = `\nimport (\n\n\n)\n`\n\nvar _ = fmt.Sprint\n"
+	got, err := dropUnusedImports("x.go", []byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != src {
+		t.Errorf("got:\n%s\nwant it unchanged", got)
+	}
+}

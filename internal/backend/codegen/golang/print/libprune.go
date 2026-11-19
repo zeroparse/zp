@@ -551,12 +551,16 @@ func dropUnusedImports(name string, src []byte) ([]byte, error) {
 				node = g
 			}
 			start, end := fset.Position(node.Pos()).Offset, fset.Position(node.End()).Offset
-			// Cut whole lines: a cut that leaves the indentation behind leaves a blank line, which splits
-			// the import group.
+			// Cut whole lines, with a comment that ends the line: a cut that leaves the indentation or the
+			// comment behind leaves a blank or a stray line, which splits the import group.
 			if ls := bytes.LastIndexByte(src[:start], '\n') + 1; len(bytes.TrimSpace(src[ls:start])) == 0 {
 				start = ls
-				if len(bytes.TrimSpace(src[end:bytes.IndexByte(src[end:], '\n')+end])) == 0 {
-					end += bytes.IndexByte(src[end:], '\n') + 1
+				le := len(src)
+				if i := bytes.IndexByte(src[end:], '\n'); i >= 0 {
+					le = end + i
+				}
+				if rest := bytes.TrimSpace(src[end:le]); len(rest) == 0 || bytes.HasPrefix(rest, []byte("//")) {
+					end = min(le+1, len(src))
 				}
 			}
 			cuts = append(cuts, cut{start, end})
@@ -566,31 +570,7 @@ func dropUnusedImports(name string, src []byte) ([]byte, error) {
 		c := cuts[i]
 		src = append(append([]byte(nil), src[:c.start]...), src[c.end:]...)
 	}
-	return format.Source(trimImportBlanks(src))
-}
-
-// trimImportBlanks removes the blank lines that dropping every import of a group leaves at the start
-// or the end of an import block, so that the block keeps at most one blank line, between two groups.
-func trimImportBlanks(src []byte) []byte {
-	lines := strings.Split(string(src), "\n")
-	out := lines[:0:0]
-	inBlock := false
-	for i, l := range lines {
-		switch {
-		case l == "import (":
-			inBlock = true
-		case inBlock && l == ")":
-			inBlock = false
-			for len(out) > 0 && strings.TrimSpace(out[len(out)-1]) == "" {
-				out = out[:len(out)-1]
-			}
-		case inBlock && strings.TrimSpace(l) == "":
-			prev := out[len(out)-1]
-			if prev == "import (" || strings.TrimSpace(prev) == "" || strings.TrimSpace(lines[i+1]) == ")" {
-				continue
-			}
-		}
-		out = append(out, l)
-	}
-	return []byte(strings.Join(out, "\n"))
+	// format.Source drops the blank lines that an emptied group leaves at the start or the end of the
+	// block and joins the two that its neighbours leave.
+	return format.Source(src)
 }

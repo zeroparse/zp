@@ -5,8 +5,9 @@
 //	hack/fix-imports.sh [-n] [path ...]
 //
 // Without paths it rewrites every Go file that git tracks. With -n it only lists the
-// files it would change. Generated files are listed with a "generated" mark: fix the
-// generator and regenerate instead of keeping the rewrite.
+// files it would change and exits with status 1 if there are any, so it can serve as a check.
+// Generated files are listed with a "generated" mark: fix the generator and regenerate instead
+// of keeping the rewrite.
 package main
 
 import (
@@ -62,7 +63,9 @@ func main() {
 			mark = " (generated)"
 		}
 		fmt.Println(p + mark)
-		if !*dry {
+		if *dry {
+			status = max(status, 1)
+		} else {
 			if err := os.WriteFile(p, fixed, 0o644); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				status = 2
