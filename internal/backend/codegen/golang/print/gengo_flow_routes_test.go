@@ -150,7 +150,7 @@ rule o = #operators {
 				seq.Items[len(seq.Items)-1] = w(op)
 			}
 		}
-		if _, err = print.GenerateParser(g, compileForGenerator, codegentest.WithLib(common.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p"}), nil); err == nil {
+		if _, err = print.GenerateParser(g, compileForGenerator, codegentest.Passes(common.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p"}), codegentest.WithLib(common.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p"}), nil); err == nil {
 			t.Errorf("generate with an Operators Rule spliced into a %s inside a leader: accepted", name)
 		}
 	}

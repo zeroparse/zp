@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"regexp"
 	"slices"
@@ -13,15 +14,11 @@ import (
 	"strings"
 	"sync"
 	"unicode"
-	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
-	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/middleend/codepass"
 	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -29,7 +26,8 @@ import (
 // tsLibMarker starts the part of lib.ts in the TypeScript library that is copied into generated code.
 const tsLibMarker = "// --- Library ---\n"
 
-// Generate generates the files of a TypeScript parser for g, compiling it with c, that behaves
+// Generate generates the files of a TypeScript parser for g, compiling it with c and running the
+// passes with p, which the driver resolved from opts, that behaves
 // exactly like the engine (and the generated Go parsers): lib.ts, with the library
 // (LibEmbed), parser.ts, with the code generated from the grammar, and with opts.Types
 // types.ts, with the declarations of the grammar's types. LibImport imports the library from
@@ -44,24 +42,18 @@ const tsLibMarker = "// --- Library ---\n"
 // clear: a negative present set is the identity of a larger one (Parser.presentOf).
 const maxLeaderBits = 31
 
-func Generate(g *ast.Grammar, c common.Compiler, opts common.GenOptions) ([]common.GeneratedFile, error) {
-	return GenerateParser(g, c, opts, nil)
+func Generate(g *ast.Grammar, c common.Compiler, p common.Passes, opts common.GenOptions) ([]common.GeneratedFile, error) {
+	return GenerateParser(g, c, p, opts, nil)
 }
 
 // Hooks change how GenerateParser generates, for tests.
 type Hooks struct {
 	// Generator, if not nil, is called with the generator once it has generated.
 	Generator func(*Generator)
-	// FlowRun runs the Flow passes in place of flowpass.Run (driver.Driver.FlowRun), so that a test
-	// generates with a pipeline of its own, for example one with a pass that breaks a function added.
-	FlowRun func(table string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error)
-	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as FlowRun does
-	// for the Flow passes.
-	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)
 }
 
 // GenerateParser generates the files of Generate with the hooks h, which may be nil.
-func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *Hooks) ([]common.GeneratedFile, error) {
+func GenerateParser(g *ast.Grammar, c common.Compiler, p common.Passes, opts common.GenOptions, h *Hooks) ([]common.GeneratedFile, error) {
 	if h == nil {
 		h = &Hooks{}
 	}
@@ -86,11 +78,10 @@ func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h
 	if err := opts.ValidateDefaultValue(); err != nil {
 		return nil, err
 	}
-	settings, err := opts.Optimizations()
+	settings, err := p.Settings()
 	if err != nil {
 		return nil, err
 	}
-	printAfter, _ := driver.ParsePrintAfter(opts.PrintAfter)
 	view, recognizer, err := c(g, common.CompileOptions{SourceInfo: opts.SourceInfo, DefaultValue: opts.DefaultValue, LeftRecursionBindings: opts.LeftRecursionBindings})
 	if err != nil {
 		return nil, err
@@ -119,11 +110,13 @@ func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h
 	var dumped *bytes.Buffer
 	newGen := func(live *tsLive) (*Generator, error) {
 		dumped = &bytes.Buffer{}
-		tsg := &Generator{Generator: common.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, Document: opts.Document, TypeScript: true, Opt: settings, VerifyEach: opts.VerifyEachPass, FlowRun: h.FlowRun, ExecRun: h.ExecRun}, plainUsed: map[*common.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
+		tsg := &Generator{Generator: common.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, Document: opts.Document, TypeScript: true, Opt: settings}, plainUsed: map[*common.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
 		tsg.NoBudget = !opts.LimitControls
+		var dumps io.Writer
 		if opts.PrintTo != nil {
-			tsg.PrintAfter, tsg.PrintTo = printAfter, dumped
+			dumps = dumped
 		}
+		tsg.Runner = p.Runner(dumps)
 		tsg.optionsType = "ParseOptions"
 		if !opts.LimitControls {
 			tsg.optionsType = "PlainParseOptions"

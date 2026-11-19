@@ -199,6 +199,9 @@ func TestNegativeControls(t *testing.T) {
 	// Rule 2: a printer of the Exec stage, which imports the Exec and Action dialects, imports the
 	// Flow dialect too.
 	addEdge(mod("internal/backend/codegen/golang/libprint"), mod("internal/ir/code/flow"))
+	// Rule 2: a printer imports the driver, which resolves the pass settings and runs the passes
+	// for it (common.Passes).
+	addEdge(mod("internal/backend/codegen/golang/print"), mod("internal/driver"))
 	// Rule 2: a pass imports the dialects of the Flow stage, Flow and Action: no failure.
 	addEdge(mod("internal/middleend/corepass"), mod("internal/ir/code/flow"))
 	addEdge(mod("internal/middleend/corepass"), mod("internal/fakeaction"))
@@ -250,6 +253,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: internal/ir/code/flow -> internal/fakeaction", []string{"within internal/ir, code/flow imports only code and ir/core"}},
 		{"rule 2: internal/ir/code/flow -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import the dialects of more than one stage (internal/ir/code/flow)"}},
 		{"rule 2: internal/backend/codegen/golang/libprint -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import the dialects of more than one stage (internal/backend/codegen/golang/libprint)"}},
+		{"rule 2: internal/backend/codegen/golang/print -> internal/driver", []string{"the back end layer does not import the driver layer"}},
 		{"rule 2: internal/fakeaction -> internal/ir/code/exec", []string{"within internal/ir, code/action imports only code (internal/ir/code/action -> internal/ir/code/exec)"}},
 		{"rule 1a: internal/bench/parsers/json -> example.org/thirdparty", []string{"a generated parser imports no third-party package"}},
 		{"internal/unplaced: no row of layout places the package", nil},

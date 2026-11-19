@@ -37,7 +37,9 @@ flowchart LR
    dead stores and share identical helpers and literal tables.
 3. The enabled passes of the host language run in order, as the last part of the same pipeline and under the same
    manager as every other pass. Their flags are in the registry, and their dumps and verification work as for the other
-   stages.
+   stages. The driver resolves the settings of a generation (`internal/driver/generate`) and hands the generator the
+   optimizations and a runner of the pipelines (`Passes` and `Runner` of `internal/backend/codegen/common`), so the
+   generators run the passes that a profile or a flag selects without importing the driver.
 4. The printer prints the legalized Exec stage. The generated parser and the library it uses come from the same
    representation, so the rules of a generated parser and the mechanisms they call agree.
 

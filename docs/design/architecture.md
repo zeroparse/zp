@@ -267,7 +267,7 @@ in [Package Layering](layering.md), and the public packages are described in [Th
 | `internal/backend/closure` | The reference parser, built from Core IR |
 | `internal/backend/vmlower` | Instruction selection from the Flow stage to bytecode |
 | `internal/backend/llvm` | The future native-code backend |
-| `internal/backend/codegen/common` | Options and parts shared by the host languages, and the view of a checked grammar that the generators read (`Program`, which `internal/driver/checked` builds from the semantic model, the checker and the runtime program); see [Code Generation for Host Languages](host-code-generation.md) |
+| `internal/backend/codegen/common` | Options and parts shared by the host languages, the view of a checked grammar that the generators read (`Program`, which `internal/driver/checked` builds from the semantic model, the checker and the runtime program), and the pass settings and pipeline runner that the driver hands the generators (`Passes`, `Runner`, which `internal/driver/generate` builds); see [Code Generation for Host Languages](host-code-generation.md) |
 | `internal/backend/codegen/golang/pass` | The Go passes on the Exec stage |
 | `internal/backend/codegen/golang/print` | The printer of Go parsers |
 | `internal/backend/codegen/golang/libprint` | The printer of the Exec compositions into the Go library and the shared engine state |

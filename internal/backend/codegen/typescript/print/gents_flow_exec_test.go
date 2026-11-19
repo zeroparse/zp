@@ -20,7 +20,7 @@ func execGenerate(src string, opts common.GenOptions) (string, int, bool) {
 	}
 	n := 0
 	h := &print.Hooks{Generator: func(x *print.Generator) { n = x.ExecFuncs }}
-	files, err := print.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h)
+	files, err := print.GenerateParser(g, compileForGenerator, codegentest.Passes(opts), codegentest.WithLib(opts), h)
 	if err != nil {
 		return "", 0, false
 	}

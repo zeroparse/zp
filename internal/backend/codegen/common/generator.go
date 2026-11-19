@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/check"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/types"
@@ -51,9 +50,11 @@ type Generator struct {
 	literalNames map[string]string
 	methodKeys   []generatedMethod
 	literalKeys  []string
-	// Driver runs the pipelines of the IR with the optimizations that are on (GenOptions.Optimize, Opt
-	// and NoOpt), the dumps of GenOptions.PrintAfter and the verification of GenOptions.VerifyEachPass.
-	driver.Driver
+	// Opt holds the optimizations that are on (Passes.Settings).
+	Opt pass.Settings
+	// Runner runs the pipelines of the IR with those optimizations, the dumps of
+	// GenOptions.PrintAfter and the verification of GenOptions.VerifyEachPass (Passes.Runner).
+	Runner
 	// Flow holds the Core IR of the typed rules while they are printed from Flow IR, or nil;
 	// flowRules counts the rules printed from Flow IR as flat rules and flowFrames the bodies
 	// and lines printed as matchers of runtime-owned frames.
@@ -267,7 +268,7 @@ func LowerFlow(m *code.Module) (*execlower.Lowered, error) {
 // the generation (FlowErr), which fails it. The printers print l.Func with the locals l.Vars, so a
 // pass keeps that function in the module and those locals in it (the pipeline contract of Exec IR); a
 // run that breaks this is an internal error too.
-func (g *Generator) ExecPasses(l *execlower.Lowered, target *driver.TargetPipeline) {
+func (g *Generator) ExecPasses(l *execlower.Lowered, target *TargetPipeline) {
 	err := g.RunExec(g.IRTable(), l.Module, g.Observability)
 	if err == nil {
 		err = g.RunTarget(g.IRTable(), target, l, g.Observability)

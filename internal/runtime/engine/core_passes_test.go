@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/driver/checked"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
@@ -368,7 +369,7 @@ func TestCoreScans(t *testing.T) {
 	if !ok {
 		t.Fatal("does not compile")
 	}
-	g := &print.Generator{Prog: checked.Of(prog.Static()).Generator(), Table: "trules"}
+	g := &print.Generator{Prog: checked.Of(prog.Static()).Generator(), Table: "trules", Runner: &driver.Driver{}}
 	m, err := g.TypedCore(nil)
 	if err != nil {
 		t.Fatal(err)

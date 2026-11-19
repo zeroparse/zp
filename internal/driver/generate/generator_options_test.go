@@ -1,10 +1,11 @@
-package generate
+package generate_test
 
 import (
 	"reflect"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/generate"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
@@ -33,7 +34,7 @@ func TestGeneratorRecognizerCarriesEveryOption(t *testing.T) {
 				t.Fatalf("option %s is a %s: the test must say how to set it", name, f.Kind())
 			}
 			o.LeftRecursionBindings = true // the grammar needs it
-			prog, recognizer, err := checkForGenerator(g, o)
+			prog, recognizer, err := generate.CheckForGenerator(g, o)
 			if err != nil {
 				t.Fatal(err)
 			}

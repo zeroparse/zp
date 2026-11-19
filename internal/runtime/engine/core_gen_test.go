@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/driver/checked"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
@@ -76,6 +77,10 @@ func (c *coreGenCase) altOrigin(x *core.Choice, i int) (ast.Expr, bool) {
 	return altOriginIn(c.origin, x, i)
 }
 
+// driverOf returns the driver that runs the passes of the generator g (codegentest.Passes), whose
+// hooks a test sets to observe or change a pipeline.
+func driverOf(g *print.Generator) *driver.Driver { return g.Runner.(*driver.Driver) }
+
 // coreGenerate generates the parser of the grammar source with the options and returns the
 // generator that wrote it, for the Core IR of the same options (print.Generator.TypedCore), in the
 // state of its traced pass with observability, and records the decisions of its Flow passes
@@ -87,7 +92,7 @@ func coreGenerate(src string, opts common.GenOptions) (*print.Generator, bool) {
 	}
 	rec := &flowRecord{}
 	opts.Module = "example.com/p"
-	if _, err := print.GenerateParser(g, checked.GeneratorCompiler(compileForGenerator), codegentest.WithLib(opts), recordingHooks(rec)); err != nil || rec.gen == nil {
+	if _, err := print.GenerateParser(g, checked.GeneratorCompiler(compileForGenerator), codegentest.Passes(opts), codegentest.WithLib(opts), recordingHooks(rec)); err != nil || rec.gen == nil {
 		return nil, false
 	}
 	gen := rec.gen
@@ -120,7 +125,8 @@ func coreTypedCase(name, mode string, gen *print.Generator, breaks func(c *coreG
 	c.flow = flowRecordOf(gen).decisions(c.table, gen)
 	c.rules = typedRules(gen)
 	var repeats []func()
-	gen.CoreHook = func(pass string, m *core.Module) {
+	d := driverOf(gen)
+	d.CoreHook = func(pass string, m *core.Module) {
 		if breaks != nil {
 			breaks(c, pass, m)
 		}
@@ -137,7 +143,7 @@ func coreTypedCase(name, mode string, gen *print.Generator, breaks func(c *coreG
 			}
 		}
 	}
-	defer func() { gen.CoreHook = nil }()
+	defer func() { d.CoreHook = nil }()
 	m, err := gen.TypedCore(c.origin)
 	if err != nil {
 		return nil, err
@@ -147,7 +153,7 @@ func coreTypedCase(name, mode string, gen *print.Generator, breaks func(c *coreG
 }
 
 // coreGenerated holds the corpus grammars generated in each mode, by mode name. The tests that read
-// it change its generators (Generator.Table, Generator.CoreHook), so they do not run in parallel.
+// it change its generators (Generator.Table, the CoreHook of driverOf), so they do not run in parallel.
 var coreGenerated = map[string][]coreGenerated1{}
 
 type coreGenerated1 struct {

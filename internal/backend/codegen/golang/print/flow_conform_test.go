@@ -339,7 +339,7 @@ func TestFlowOperationsConform(t *testing.T) {
 		opts := c.opts
 		opts.Lib, opts.LimitControls, opts.KeepComments, opts.Expectations = common.LibImport, !c.noLimits, true, true
 		opts.Package, opts.Module = c.name, "flowconf/"+c.name
-		files, err := print.GenerateParser(g, codegentest.Compile, codegentest.WithLib(opts), &print.Hooks{FlowTarget: pr.target})
+		files, err := print.GenerateParser(g, codegentest.Compile, codegentest.Passes(opts), codegentest.WithLib(opts), &print.Hooks{FlowTarget: pr.target})
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}

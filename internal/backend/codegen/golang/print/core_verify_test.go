@@ -7,6 +7,8 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
+	"zeroparse.dev/zp/internal/driver"
+	"zeroparse.dev/zp/internal/driver/generate"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/codepass"
@@ -82,14 +84,14 @@ rule num = [0-9]+
 		t.Fatal(err)
 	}
 	opts := common.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p", Lib: common.LibImport}
-	hooks := &print.Hooks{CoreRun: withBrokenGuards()}
+	hooks := driver.Driver{CoreRun: withBrokenGuards()}
 
-	_, err = print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
+	_, err = print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 	if err == nil || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-guard") {
 		t.Fatalf("without VerifyEachPass: %v", err)
 	}
 	opts.VerifyEachPass = true
-	_, err = print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
+	_, err = print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 	if err == nil || !strings.Contains(err.Error(), "after pass break-guard:") {
 		t.Fatalf("with VerifyEachPass: %v", err)
 	}
@@ -124,9 +126,9 @@ rule num = [0-9]+
 	for _, c := range pipelineTables {
 		t.Run(c.table, func(t *testing.T) {
 			seen := 0
-			hooks := &print.Hooks{FlowRun: codegentest.BrokenFlowRun(c.table, &seen)}
+			hooks := driver.Driver{FlowRun: codegentest.BrokenFlowRun(c.table, &seen)}
 			opts := c.opts
-			_, err := print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
+			_, err := print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-flow") {
 				t.Fatalf("without VerifyEachPass: %v", err)
 			}
@@ -134,7 +136,7 @@ rule num = [0-9]+
 				t.Fatal("no function ran through the Flow pipeline")
 			}
 			opts.VerifyEachPass = true
-			_, err = print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
+			_, err = print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "after pass break-flow:") {
 				t.Fatalf("with VerifyEachPass: %v", err)
 			}
@@ -156,9 +158,9 @@ rule num = [0-9]+
 	for _, c := range pipelineTables {
 		t.Run(c.table, func(t *testing.T) {
 			seen := 0
-			hooks := &print.Hooks{ExecRun: codegentest.BrokenExecRun(c.table, &seen)}
+			hooks := driver.Driver{ExecRun: codegentest.BrokenExecRun(c.table, &seen)}
 			opts := c.opts
-			_, err := print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
+			_, err := print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-exec") {
 				t.Fatalf("without VerifyEachPass: %v", err)
 			}
@@ -166,7 +168,7 @@ rule num = [0-9]+
 				t.Fatal("no module ran through the Exec pipeline")
 			}
 			opts.VerifyEachPass = true
-			_, err = print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
+			_, err = print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "after pass break-exec:") {
 				t.Fatalf("with VerifyEachPass: %v", err)
 			}
@@ -181,7 +183,7 @@ func TestPrintAfterNeedsAWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	opts := common.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p", Lib: common.LibImport, PrintAfter: "guards"}
-	if _, err := print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), nil); err == nil || !strings.Contains(err.Error(), "PrintTo") {
+	if _, err := print.GenerateParser(pg, codegentest.Compile, codegentest.Passes(opts), codegentest.WithLib(opts), nil); err == nil || !strings.Contains(err.Error(), "PrintTo") {
 		t.Fatalf("err %v", err)
 	}
 }
@@ -212,13 +214,13 @@ rule num = [0-9]+
 		}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			hooks := &print.Hooks{ExecRun: func(_ string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error) {
+			hooks := driver.Driver{ExecRun: func(_ string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error) {
 				ran, err := codepass.RunPasses(m, env, o)
 				c.run(m)
 				return ran, err
 			}}
 			opts := common.GenOptions{Module: "example.com/p", Lib: common.LibImport}
-			if _, err := print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks); err == nil || !strings.Contains(err.Error(), c.want) {
+			if _, err := print.GenerateParser(pg, codegentest.Compile, generate.Passes(opts, hooks), codegentest.WithLib(opts), nil); err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err %v, want %q", err, c.want)
 			}
 		})

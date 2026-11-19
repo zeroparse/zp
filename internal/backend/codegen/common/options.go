@@ -7,12 +7,8 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"maps"
-	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/internal/driver"
-	"zeroparse.dev/zp/internal/pass"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -110,7 +106,10 @@ type GenOptions struct {
 	// DisableKeepNodes leaves the Node rule functions out of a typed-only parser that needs them
 	// (a negative control for tests).
 	DisableKeepNodes bool
-	// Optimize selects the optimization profile (driver.Profiles); empty selects
+	// The driver resolves Optimize, Opt, NoOpt, PrintAfter and VerifyEachPass to the Passes of the
+	// generation (internal/driver/generate), which the generators read instead of these fields.
+	//
+	// Optimize selects the optimization profile (internal/driver: Profiles); empty selects
 	// speed. Opt then gives optimizations (pass.Names) a value other than the profile's: 1 turns on
 	// one that the profile leaves off, 0 turns one off, and a count sets an integer one. NoOpt
 	// finally turns the named optimizations off, for isolating a miscompilation, for differential
@@ -120,7 +119,7 @@ type GenOptions struct {
 	Optimize string
 	Opt      map[string]int
 	NoOpt    []string
-	// PrintAfter lists the steps and passes (driver.PrintNames) after which the IR is written to PrintTo,
+	// PrintAfter lists the steps and passes (internal/driver: PrintNames) after which the IR is written to PrintTo,
 	// as text: the Core IR once for each Core module the generator builds, and the Flow IR and the
 	// Exec IR once for each function it prints from them.
 	PrintAfter string
@@ -129,33 +128,6 @@ type GenOptions struct {
 	// internal error names the first pass that broke an invariant. Tests and diagnosis set it; it
 	// costs generation time and changes no output.
 	VerifyEachPass bool
-}
-
-// Optimizations returns the settings that Optimize, Opt and NoOpt select, in that order, or an error for a
-// profile or an optimization that does not exist, a value that it does not take, or a name that Opt gives twice
-// (keys that are the same once their spaces are trimmed), and validates PrintAfter.
-func (o GenOptions) Optimizations() (pass.Settings, error) {
-	s, err := driver.Profile(o.Optimize)
-	if err != nil {
-		return pass.Settings{}, err
-	}
-	if names, err := driver.ParsePrintAfter(o.PrintAfter); err != nil {
-		return pass.Settings{}, err
-	} else if len(names) > 0 && o.PrintTo == nil {
-		return pass.Settings{}, fmt.Errorf("PrintAfter %q needs a PrintTo writer", o.PrintAfter)
-	}
-	given := map[string]string{}
-	for _, n := range slices.Sorted(maps.Keys(o.Opt)) {
-		name := strings.TrimSpace(n)
-		if prev, dup := given[name]; dup {
-			return pass.Settings{}, fmt.Errorf("optimization %s is given twice in Opt (%q and %q)", name, prev, n)
-		}
-		given[name] = n
-		if s, err = s.With(name, o.Opt[n]); err != nil {
-			return pass.Settings{}, err
-		}
-	}
-	return s.Without(o.NoOpt...)
 }
 
 // ValidateDefaultValue rejects typed output with default values: the types come from the actions and

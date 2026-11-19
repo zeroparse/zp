@@ -62,7 +62,7 @@ func TestCorePipelineVerifiesEveryPass(t *testing.T) {
 				var g *print.Generator
 				opts := mode.opts
 				opts.Module = "example.com/p"
-				if _, err := print.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), &print.Hooks{Generator: func(x *print.Generator) { g = x }}); err != nil || g == nil {
+				if _, err := print.GenerateParser(pg, codegentest.Compile, codegentest.Passes(opts), codegentest.WithLib(opts), &print.Hooks{Generator: func(x *print.Generator) { g = x }}); err != nil || g == nil {
 					return
 				}
 				want, err := pipelinedTypedCore(g, false)

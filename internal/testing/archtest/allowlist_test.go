@@ -10,14 +10,6 @@ var allowlist = []string{
 	// reports the structural errors from them. The edge goes when the facts are corepass analyses
 	// that the driver asks for, and the front end no longer computes them.
 	"rule 2: internal/frontend -> internal/middleend/corepass",
-	// The generators resolve the optimization profile and run the pass pipelines through the
-	// driver, against the arrow from the driver to the back end. The back-end regroup (S4, #279)
-	// moves them under internal/backend, and the runtime separation (S5, #280) moves the compile
-	// entry into the driver, which then resolves the settings and calls the back ends; the edges
-	// go with it.
-	"rule 2: internal/backend/codegen/common -> internal/driver",
-	"rule 2: internal/backend/codegen/golang/print -> internal/driver",
-	"rule 2: internal/backend/codegen/typescript/print -> internal/driver",
 	// The Go and TypeScript generators drive the lowering to Flow and print Exec. With Flow
 	// and Action as dialects and the control decisions in Flow passes (S7a, S7b), the driver runs
 	// flowlower and the printers print the Exec stage only.

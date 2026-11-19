@@ -13,6 +13,7 @@ package compiler
 import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/driver/entry"
+	"zeroparse.dev/zp/internal/driver/generate"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/grammar"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -91,7 +92,7 @@ func WithOptimize(o Optimize) Option { return func(opts *options) { opts.optimiz
 
 // check reports an invalid optimization setting.
 func (o options) check() error {
-	_, err := common.GenOptions{Optimize: o.optimize.Profile, Opt: o.optimize.Values, NoOpt: o.optimize.Off}.Optimizations()
+	_, err := generate.Settings(common.GenOptions{Optimize: o.optimize.Profile, Opt: o.optimize.Values, NoOpt: o.optimize.Off})
 	return err
 }
 

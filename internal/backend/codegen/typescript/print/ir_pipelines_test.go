@@ -9,6 +9,8 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/typescript/print"
+	"zeroparse.dev/zp/internal/driver"
+	"zeroparse.dev/zp/internal/driver/generate"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -39,7 +41,7 @@ func TestEveryFlowFunctionRunsTheIRPipelines(t *testing.T) {
 			var dump bytes.Buffer
 			o := c.opts
 			o.PrintAfter, o.PrintTo, o.VerifyEachPass = "flow,exec", &dump, true
-			if _, err := print.GenerateParser(g, compileForGenerator, codegentest.WithLib(o), nil); err != nil {
+			if _, err := print.GenerateParser(g, compileForGenerator, codegentest.Passes(o), codegentest.WithLib(o), nil); err != nil {
 				t.Fatal(err)
 			}
 			codegentest.CheckIRPipelines(t, dump.String(), "rules", "recRules")
@@ -62,14 +64,14 @@ rule num = [0-9]+
 		for _, ir := range []string{"flow", "exec"} {
 			t.Run(table+"/"+ir, func(t *testing.T) {
 				seen := 0
-				h := &print.Hooks{}
+				h := driver.Driver{}
 				if ir == "flow" {
 					h.FlowRun = codegentest.BrokenFlowRun(table, &seen)
 				} else {
 					h.ExecRun = codegentest.BrokenExecRun(table, &seen)
 				}
 				opts := common.GenOptions{Recognize: true}
-				_, err := print.GenerateParser(pg, compileForGenerator, codegentest.WithLib(opts), h)
+				_, err := print.GenerateParser(pg, compileForGenerator, generate.Passes(opts, h), codegentest.WithLib(opts), nil)
 				if err == nil || !strings.Contains(err.Error(), "of table "+table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-"+ir) {
 					t.Fatalf("without VerifyEachPass: %v", err)
 				}
@@ -77,7 +79,7 @@ rule num = [0-9]+
 					t.Fatalf("no function of the %s table ran through the %s pipeline", table, ir)
 				}
 				opts.VerifyEachPass = true
-				_, err = print.GenerateParser(pg, compileForGenerator, codegentest.WithLib(opts), h)
+				_, err = print.GenerateParser(pg, compileForGenerator, generate.Passes(opts, h), codegentest.WithLib(opts), nil)
 				if err == nil || !strings.Contains(err.Error(), "of table "+table+": ") || !strings.Contains(err.Error(), "after pass break-"+ir+":") {
 					t.Fatalf("with VerifyEachPass: %v", err)
 				}

@@ -4,9 +4,18 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/backend/codegen/common"
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
+	"zeroparse.dev/zp/internal/pass"
 )
+
+// testGenerator returns a generator whose settings are opt and whose runner runs the pipelines with
+// them, as the driver makes it for a generation (common.Passes).
+func testGenerator(opt pass.Settings) *Generator {
+	return &Generator{Generator: common.Generator{Opt: opt, Runner: &driver.Driver{Opt: opt}}}
+}
 
 // markInIfFunc returns a framed function whose mark of the parser state is set in the body of an If
 // and reset there (resetInIf) or by a later If, with the position and a capture changed in between.
@@ -42,7 +51,7 @@ func TestFlowExecPrintsMarkInIfBody(t *testing.T) {
 	for name, resetInIf := range map[string]bool{"reset in the If": true, "reset after the If": false} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			g := &Generator{}
+			g := testGenerator(pass.Settings{})
 			text, decls, _ := g.printTSFlowExec(markInIfFunc(t, resetInIf))
 			for _, want := range []string{"x1Pos = p.pos", "x1Env = p.env", "x1Trail = p.trail.length", "p.reset(x1Pos, x1Env, x1Trail,"} {
 				if !strings.Contains(text, want) {
@@ -66,7 +75,7 @@ func TestFlowExecOmitsUnreadMarkInIfBody(t *testing.T) {
 	// The body of the function is its block of failure; the If is its first statement.
 	then := flow.FuncOf(f).Body.Stmts[0].(*code.Block).Stmts[0].(*code.If).Then
 	then.Stmts = then.Stmts[:len(then.Stmts)-1] // without the Reset
-	text, decls, _ := (&Generator{}).printTSFlowExec(f)
+	text, decls, _ := testGenerator(pass.Settings{}).printTSFlowExec(f)
 	if strings.Contains(text, "x1") || strings.Contains(strings.Join(decls, ""), "x1") {
 		t.Errorf("an unread mark prints:\n%s%q", text, decls)
 	}

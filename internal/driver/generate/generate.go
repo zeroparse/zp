@@ -12,24 +12,25 @@ import (
 	tslib "zeroparse.dev/zp/internal/backend/codegen/typescript/lib"
 	tsprint "zeroparse.dev/zp/internal/backend/codegen/typescript/print"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/driver/checked"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-// Go generates the files of a Go parser for g with o, and the embedded copy of the Go library
-// (pkg/runtime/golib) with LibEmbed and LibOnly. g is not read with LibOnly and may be nil.
+// Go generates the files of a Go parser for g with o, running the passes that o selects (Passes),
+// and the embedded copy of the Go library (pkg/runtime/golib) with LibEmbed and LibOnly. g is not read with LibOnly and may be nil.
 func Go(g *ast.Grammar, o common.GenOptions) ([]common.GeneratedFile, error) {
 	o.GoLib = goLib
-	return goprint.Generate(g, compileForGenerator, o)
+	return goprint.Generate(g, compileForGenerator, Passes(o, driver.Driver{}), o)
 }
 
-// TypeScript generates the files of a TypeScript parser for g with o, and lib.ts with LibEmbed
-// and LibOnly. g is not read with LibOnly and may be nil.
+// TypeScript generates the files of a TypeScript parser for g with o, running the passes that o
+// selects (Passes), and lib.ts with LibEmbed and LibOnly. g is not read with LibOnly and may be nil.
 func TypeScript(g *ast.Grammar, o common.GenOptions) ([]common.GeneratedFile, error) {
 	o.TSLib = tsLib
-	return tsprint.Generate(g, compileForGenerator, o)
+	return tsprint.Generate(g, compileForGenerator, Passes(o, driver.Driver{}), o)
 }
 
 // compileForGenerator is the common.Compiler that the generators compile grammars with: it gives

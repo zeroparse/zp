@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/format"
 	"go/token"
+	"io"
 	"maps"
 	"math"
 	"path"
@@ -13,17 +14,13 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
-	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/middleend/codepass"
-	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/middleend/flowpass"
 	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -42,7 +39,8 @@ func defaultPackageName(module string) string {
 	return base
 }
 
-// Generate generates the files of a Go parser for g, compiling it with c: parser.go with the code
+// Generate generates the files of a Go parser for g, compiling it with c and running the passes
+// with p, which the driver resolved from opts: parser.go with the code
 // generated from the grammar, api.go, which re-exports the names the library defines for the users
 // of the parser, with opts.Types types/types.go, the package of the Go types of the typed values,
 // and, with opts.Lib LibEmbed, a copy of the library in internal/libgo. Paths are
@@ -51,11 +49,11 @@ func defaultPackageName(module string) string {
 // Eligible rule bodies inline their expressions; other expressions become Go functions. Actions
 // and predicates become Go expressions, and the library (package golib of this module) behaves
 // exactly like the engine. Without opts.Stream, #stream is a plain repetition.
-func Generate(g *ast.Grammar, c common.Compiler, opts common.GenOptions) ([]common.GeneratedFile, error) {
+func Generate(g *ast.Grammar, c common.Compiler, p common.Passes, opts common.GenOptions) ([]common.GeneratedFile, error) {
 	if opts.Lib == common.LibOnly {
 		return libFiles(opts)
 	}
-	return GenerateParser(g, c, opts, nil)
+	return GenerateParser(g, c, p, opts, nil)
 }
 
 // Hooks let a test observe or change the decisions of one generation. The zero value, like nil,
@@ -94,15 +92,6 @@ type Hooks struct {
 	// functions printed from Exec IR (execRoute) it leaves undeclared the locals that no statement
 	// other than an assignment reads.
 	FlowVarsMutantUses bool
-	// CoreRun runs the Core passes in place of corepass.Run (driver.Driver.CoreRun), so that a test
-	// generates with a pipeline of its own, for example one with a pass that breaks the module added.
-	CoreRun func(m *core.Module, env *corepass.Env, o corepass.RunOptions) ([]string, error)
-	// FlowRun runs the Flow passes in place of flowpass.Run (driver.Driver.FlowRun), as CoreRun does for the
-	// Core passes.
-	FlowRun func(table string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error)
-	// ExecRun runs the Exec passes in place of codepass.RunPasses (driver.Driver.ExecRun), as CoreRun does
-	// for the Core passes.
-	ExecRun func(table string, m *code.Module, env *codepass.Env, o codepass.RunOptions) ([]string, error)
 	// FlowTarget replaces the Go implementation of the primitive operations of grammar code at the Exec
 	// stage (flowPrinter.execTarget), given the printer's own and the address of the statements that the
 	// expression printed last needs before it (those of the term of an Eval), so that the conformance
@@ -116,26 +105,26 @@ type Hooks struct {
 // without Node rules has no Node or recognizer rule to leave out (keepTableRules); one that keeps
 // Node rules for its converting entry points prints those that the entry points reach, like any
 // other output.
-func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *Hooks) ([]common.GeneratedFile, error) {
+func GenerateParser(g *ast.Grammar, c common.Compiler, p common.Passes, opts common.GenOptions, h *Hooks) ([]common.GeneratedFile, error) {
 	if h == nil {
 		h = &Hooks{}
 	}
 	if opts.KeepUnreachable {
-		return generateOnce(g, c, opts, h, nil, nil)
+		return generateOnce(g, c, p, opts, h, nil, nil)
 	}
 	var lv liveRules
-	if _, err := generateOnce(g, c, opts, h, nil, &lv); err != nil {
+	if _, err := generateOnce(g, c, p, opts, h, nil, &lv); err != nil {
 		return nil, err
 	}
 	if h.Reach != nil {
 		h.Reach(&lv)
 	}
-	return generateOnce(g, c, opts, h, &lv, nil)
+	return generateOnce(g, c, p, opts, h, &lv, nil)
 }
 
 // generateOnce is one pass of GenerateParser. A pass with collect records the reachable rules into it;
 // a pass with live omits the rules that are not reachable in live.
-func generateOnce(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *Hooks, live, collect *liveRules) (files []common.GeneratedFile, err error) {
+func generateOnce(g *ast.Grammar, c common.Compiler, p common.Passes, opts common.GenOptions, h *Hooks, live, collect *liveRules) (files []common.GeneratedFile, err error) {
 	if collect != nil {
 		*collect = liveRules{}
 	}
@@ -176,14 +165,14 @@ func generateOnce(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *
 	if err := opts.ValidateDefaultValue(); err != nil {
 		return nil, err
 	}
-	settings, err := opts.Optimizations()
+	settings, err := p.Settings()
 	if err != nil {
 		return nil, err
 	}
 	// Only the pass that writes the output prints the Core IR.
-	var printAfter []string
+	var dumps io.Writer
 	if collect == nil {
-		printAfter, _ = driver.ParsePrintAfter(opts.PrintAfter)
+		dumps = opts.PrintTo
 	}
 	info, err := loadLib(opts)
 	if err != nil {
@@ -206,7 +195,7 @@ func generateOnce(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *
 			return nil, fmt.Errorf("stream generation needs a #stream repetition at the top level of the start rule %s", start.Name)
 		}
 	}
-	genGo := &Generator{typedOnly: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes, Document: opts.Document, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, CoreRun: h.CoreRun, FlowRun: h.FlowRun, ExecRun: h.ExecRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, VerifyEach: opts.VerifyEachPass, hooks: *h, live: live, collect: collect, keepTableRules: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes}
+	genGo := &Generator{typedOnly: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes, Document: opts.Document, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, Runner: p.Runner(dumps), hooks: *h, live: live, collect: collect, keepTableRules: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes}
 	// Go prints every form of the Flow passes.
 	genGo.FlowTarget = flowpass.Target{Terminals: true, ClassRuns: true, ClassTables: true, GuardedClasses: true, InlineLiterals: true}
 	if live != nil {
@@ -273,7 +262,7 @@ func generateOnce(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *
 		genGo.convertsNodes = typed.needNodes
 		if opts.TypedOnly && typed.needNodes && !opts.KeepNodes && !opts.DisableKeepNodes {
 			opts.KeepNodes = true
-			return generateOnce(g, c, opts, h, live, collect)
+			return generateOnce(g, c, p, opts, h, live, collect)
 		}
 		return nil, genGo.finishReach(prog, rec)
 	}
@@ -383,7 +372,7 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 			// A typed entry point converts the Node result of its rule, so the Node rule functions
 			// are needed; generate again with them.
 			opts.KeepNodes = true
-			return generateOnce(g, c, opts, h, live, collect)
+			return generateOnce(g, c, p, opts, h, live, collect)
 		}
 		if opts.TypedOnly {
 			// The expectations of the typed bodies are known only now.

@@ -9,6 +9,8 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	goprint "zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	tsprint "zeroparse.dev/zp/internal/backend/codegen/typescript/print"
+	"zeroparse.dev/zp/internal/driver"
+	"zeroparse.dev/zp/internal/driver/generate"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -77,9 +79,9 @@ func GenerateRaw(t testing.TB, g *ast.Grammar, opts common.GenOptions) ([]common
 	opts.FeatureWitness = true
 	opts = WithLib(opts)
 	if opts.Lib == common.LibOnly {
-		return goprint.Generate(g, Compile, opts)
+		return goprint.Generate(g, Compile, Passes(opts), opts)
 	}
-	return goprint.GenerateParser(g, Compile, opts, testGenHooks(t))
+	return goprint.GenerateParser(g, Compile, Passes(opts), opts, testGenHooks(t))
 }
 
 // GenerateTS generates a TypeScript parser for g that records expectations, as
@@ -112,7 +114,13 @@ func GenerateTSRaw(g *ast.Grammar, opts common.GenOptions) ([]common.GeneratedFi
 	}
 	opts.VerifyEachPass = true
 	opts = WithLib(opts)
-	return tsprint.Generate(g, Compile, opts)
+	return tsprint.Generate(g, Compile, Passes(opts), opts)
+}
+
+// Passes returns the passes that the driver resolves from opts (generate.Passes), as the generators of
+// package generate run them.
+func Passes(opts common.GenOptions) common.Passes {
+	return generate.Passes(opts, driver.Driver{})
 }
 
 // NoOptIf returns the optimizations to turn off (common.GenOptions.NoOpt) if cond holds, and none

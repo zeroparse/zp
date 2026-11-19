@@ -18,7 +18,7 @@ rule a = "(" #missing a "x" / "y"`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := print.GenerateParser(g, compileForGenerator, codegentest.WithLib(common.GenOptions{Start: "main"}), nil); err == nil || !strings.Contains(err.Error(), "missing") {
+	if _, err := print.GenerateParser(g, compileForGenerator, codegentest.Passes(common.GenOptions{Start: "main"}), codegentest.WithLib(common.GenOptions{Start: "main"}), nil); err == nil || !strings.Contains(err.Error(), "missing") {
 		t.Fatal("generated a parser for the grammar:", err)
 	}
 }

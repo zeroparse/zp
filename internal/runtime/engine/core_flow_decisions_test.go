@@ -100,7 +100,7 @@ func recordingHooks(rec *flowRecord) *print.Hooks {
 	return &print.Hooks{
 		Generator: func(x *print.Generator) {
 			rec.gen = x
-			x.FlowRun = func(_ string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error) {
+			driverOf(x).FlowRun = func(_ string, m *code.Module, env *flowpass.Env, o flowpass.RunOptions) ([]string, error) {
 				ran, err := flowpass.Run(m, env, o)
 				if err == nil {
 					rec.record(x, m)
