@@ -347,3 +347,66 @@ func TestGateDocsDetection(t *testing.T) {
 		t.Errorf("a base that cannot be diffed skips the site steps:\n%s", out)
 	}
 }
+
+// TestAffectedTestsDeletedPackages runs hack/affected-tests.sh in a scratch module whose change deletes a
+// package that the base had. The set lists only packages that exist at the head: go test fails on the
+// deleted one ("no required module provides package"), although the script's own rules (the generated-program
+// packages that a pkg/runtime change selects) name it. A package that imported it at the base and still exists
+// is listed, and a go list that fails fails the script instead of emptying the set.
+func TestAffectedTestsDeletedPackages(t *testing.T) {
+	needTools(t)
+	for _, tool := range []string{"go", "python3"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skipf("%s is not installed", tool)
+		}
+	}
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "hack", "affected-tests.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := t.TempDir()
+	env := append(scriptEnv(t, t.TempDir()), "GOFLAGS=-mod=mod", "GOWORK=off", "GOTOOLCHAIN=local")
+	const mod = "zeroparse.dev/zp"
+	write(t, filepath.Join(w, "hack", "affected-tests.sh"), string(b), 0o755)
+	write(t, filepath.Join(w, "go.mod"), "module "+mod+"\n\ngo 1.21\n", 0o644)
+	write(t, filepath.Join(w, "pkg", "runtime", "golib", "g.go"), "package golib\n", 0o644)
+	write(t, filepath.Join(w, "codegen", "c.go"), "package codegen\n", 0o644)
+	write(t, filepath.Join(w, "user", "u.go"), "package user\n\nimport _ \""+mod+"/codegen\"\n", 0o644)
+	write(t, filepath.Join(w, "dep", "d.go"), "package dep\n\nimport _ \""+mod+"/pkg/runtime/golib\"\n", 0o644)
+	mustRun(t, w, env, "git", "init", "-q", "-b", "main")
+	mustRun(t, w, env, "git", "add", ".")
+	mustRun(t, w, env, "git", "commit", "-q", "-m", "Seed")
+	base := strings.TrimSpace(mustRun(t, w, env, "git", "rev-parse", "HEAD"))
+
+	// The change deletes codegen, drops user's import of it and touches the runtime library.
+	mustRun(t, w, env, "git", "rm", "-q", "-r", "codegen")
+	write(t, filepath.Join(w, "user", "u.go"), "package user\n", 0o644)
+	write(t, filepath.Join(w, "pkg", "runtime", "golib", "g.go"), "package golib\n\nconst X = 1\n", 0o644)
+	mustRun(t, w, env, "git", "add", "-u")
+	mustRun(t, w, env, "git", "commit", "-q", "-m", "Delete codegen")
+
+	out := mustRun(t, w, env, "sh", filepath.Join(w, "hack", "affected-tests.sh"), base, "HEAD")
+	got := map[string]bool{}
+	for _, l := range strings.Fields(out) {
+		got[l] = true
+	}
+	if got[mod+"/codegen"] {
+		t.Errorf("the deleted package is listed:\n%s", out)
+	}
+	for _, p := range []string{"user", "dep", "pkg/runtime/golib"} {
+		if !got[mod+"/"+p] {
+			t.Errorf("%s still exists at the head and is affected, but is not listed:\n%s", p, out)
+		}
+	}
+	for l := range got {
+		if strings.HasPrefix(l, mod) {
+			mustRun(t, w, env, "go", "list", l)
+		}
+	}
+
+	// A head whose packages cannot be listed fails the script; it does not print an empty set.
+	write(t, filepath.Join(w, "go.mod"), "module "+mod+"\n\ngo 1.21\nbogus\n", 0o644)
+	if out, err := runIn(t, w, env, "sh", filepath.Join(w, "hack", "affected-tests.sh"), base, "HEAD"); err == nil {
+		t.Errorf("a failing go list succeeded with %q", out)
+	}
+}

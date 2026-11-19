@@ -20,13 +20,17 @@ base=${1:-origin/main}
 head=${2:-HEAD}
 root=$(git rev-parse --show-toplevel)
 cd "$root"
-git diff --name-only "$base" "$head" > "${TMPDIR:-/tmp}/affected.$$.files"
-trap 'rm -f "${TMPDIR:-/tmp}/affected.$$.files"' EXIT
-go list -json ./... | python3 -I -c '
+tmp=${TMPDIR:-/tmp}/affected.$$
+trap 'rm -f "$tmp.files" "$tmp.pkgs"' EXIT
+git diff --name-only "$base" "$head" > "$tmp.files"
+# The packages are those of the checked-out tree. go list runs to a file, not into the pipe: a failing go list
+# must fail the script, not leave an empty package set that selects nothing.
+go list -json ./... > "$tmp.pkgs"
+python3 -I -c '
 import json, sys, os, re, subprocess
 why = int(sys.argv[1]); files = [l.strip() for l in open(sys.argv[2]) if l.strip()]
 root = os.getcwd(); mod = "zeroparse.dev/zp"
-dec = json.JSONDecoder(); s = sys.stdin.read(); i = 0; pk = {}
+dec = json.JSONDecoder(); s = open(sys.argv[3]).read(); i = 0; pk = {}
 while i < len(s):
     while i < len(s) and s[i].isspace(): i += 1
     if i >= len(s): break
@@ -86,9 +90,10 @@ while work:
     p = work.pop()
     for r in rev.get(p, ()):
         if r not in sel: sel[r] = sel[p]; work.append(r)
-if allp: pass
-for p in sorted(sel):
+# A package that the change deleted is no longer in pk: it has no tests to run (the HEAVY list and the rules
+# above can still name it), and its reverse dependencies at the head were selected through pk.
+for p in sorted(p for p in sel if p in pk):
     print((p + "\t" + sel[p]) if why else p)
 if gen: print("# generate")
 if alpha: print("# alpha")
-' "$why" "${TMPDIR:-/tmp}/affected.$$.files"
+' "$why" "$tmp.files" "$tmp.pkgs"
