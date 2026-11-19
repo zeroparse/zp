@@ -283,7 +283,7 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 			if len(sc.Names) != len(f.Vals) {
 				p.Fail("vm: a scope of %d names attached from a frame of %d slots", len(sc.Names), len(f.Vals))
 			}
-			fr.set(in.Dst[0], p.AttachFrame(asNode(regs[in.Args[0]]), sc, f, regs[in.Args[1]].(int), p.Pos))
+			fr.set(in.Dst[0], p.AttachCaptures(asNode(regs[in.Args[0]]), sc, f, regs[in.Args[1]].(int), p.Pos))
 		case bytecode.FlowShapeCapture:
 			// As the Go library's ShapeCapture: ShapeSingle, or the unit node of the range, which
 			// charges a unit for the value (spec/runtime/parsing.md#cost).

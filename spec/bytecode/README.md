@@ -434,8 +434,8 @@ An instruction named after an operation of the [Flow dialect](../flow-ir/operati
 and charges what its cost bound names, and no more; the other instructions charge nothing. A Flow body therefore charges
 what its Flow function charges.
 
-The match code of the same rule charges by its own instructions: it builds nodes without a charge, including the tuple
-node that wraps a value to attach the captures of a scope to, charges each child
+The match code of the same rule charges by its own instructions: it builds nodes without a charge, except the tuple
+node that wraps a value to attach the captures of a scope to, which charges a unit as `flow.attachFrame` does, charges each child
 that a sequence gathers, and peeks and unwinds as its instructions do. A parse can therefore spend different numbers of
 units with a rule's Flow body and with its match code, as compute counts are implementation-specific
 ([Cancellation and Compute Limits](../runtime/parsing.md#cancellation-and-compute-limits)); the code generated from the
