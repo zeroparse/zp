@@ -13,7 +13,8 @@ import (
 )
 
 // flowModule returns a module of two rules, the second with a Flow body that uses every operation
-// and every kind of immediate, and a class for its guard.
+// and every kind of immediate, and a class for its guard and class test. The instructions after
+// the first RETURN are unreachable; they are there for the encoding.
 func flowModule() *bytecode.Module {
 	f := &bytecode.Flow{Regs: 8, Code: []bytecode.FlowInstr{
 		{Op: bytecode.FlowConst, Dst: []int{0}},
@@ -34,6 +35,23 @@ func flowModule() *bytecode.Module {
 		{Op: bytecode.FlowUnfresh, Args: []int{0}},
 		{Op: bytecode.FlowNot, Dst: []int{2}, Args: []int{7}},
 		{Op: bytecode.FlowMove, Dst: []int{3}, Args: []int{2}},
+		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
+		{Op: bytecode.FlowAdd, Dst: []int{1}, Args: []int{1, 1}},
+		{Op: bytecode.FlowSub, Dst: []int{1}, Args: []int{1, 1}},
+		{Op: bytecode.FlowEq, Dst: []int{2}, Args: []int{1, 1}},
+		{Op: bytecode.FlowNe, Dst: []int{2}, Args: []int{1, 1}},
+		{Op: bytecode.FlowLt, Dst: []int{2}, Args: []int{5, 1}},
+		{Op: bytecode.FlowLe, Dst: []int{2}, Args: []int{1, 1}},
+		{Op: bytecode.FlowStep},
+		{Op: bytecode.FlowSilent, Imm: bytecode.FlowSilenceOf{Delta: 1, Site: 3}},
+		{Op: bytecode.FlowSilent, Imm: bytecode.FlowSilenceOf{Delta: -1, Site: -1, Ok: true}},
+		{Op: bytecode.FlowAdvance, Args: []int{1}},
+		{Op: bytecode.FlowInClass, Dst: []int{2}, Args: []int{5}, Imm: 0},
+		{Op: bytecode.FlowAtAnchor, Dst: []int{2}, Imm: 3},
+		{Op: bytecode.FlowMatchLit, Dst: []int{0, 2}, Imm: bytecode.FlowLitOf{Str: 0, Exp: bytecode.FixedExps, Fold: true}},
+		{Op: bytecode.FlowIsolate, Dst: []int{4}},
+		{Op: bytecode.FlowUnisolate, Dst: []int{1, 6}, Args: []int{4}},
+		{Op: bytecode.FlowMergeExpected, Args: []int{1, 6}},
 		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
 	}}
 	return &bytecode.Module{
@@ -148,6 +166,26 @@ func TestFlowBodyValidation(t *testing.T) {
 		}, "expectation 8 out of range"},
 		{"called rule", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[14].Imm = bytecode.FlowCallOf{Rule: 2} }, "rule 2 out of range"},
 		{"level", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[14].Imm = bytecode.FlowCallOf{Level: -1} }, "invalid binding level"},
+		{"tested class", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[29].Imm = 1 }, "class 1 out of range"},
+		{"class kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[29].Imm = true }, "invalid immediate"},
+		{"anchor", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[30].Imm = 4 }, "invalid anchor 4"},
+		{"negative anchor", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[30].Imm = -1 }, "invalid anchor -1"},
+		{"literal", func(m *bytecode.Module, f *bytecode.Flow) {
+			f.Code[31].Imm = bytecode.FlowLitOf{Str: len(m.Strings), Exp: bytecode.FixedExps}
+		}, "literal 3 out of range"},
+		{"literal expectation", func(m *bytecode.Module, f *bytecode.Flow) {
+			f.Code[31].Imm = bytecode.FlowLitOf{Exp: bytecode.FixedExps + len(m.Strings)}
+		}, "expectation 8 out of range"},
+		{"literal kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[31].Imm = bytecode.FlowExpectOf{} }, "invalid immediate"},
+		{"lookahead delta", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[26].Imm = bytecode.FlowSilenceOf{Delta: 2} }, "invalid lookahead"},
+		{"lookahead site", func(m *bytecode.Module, f *bytecode.Flow) {
+			f.Code[26].Imm = bytecode.FlowSilenceOf{Delta: 1, Site: -2}
+		}, "invalid lookahead"},
+		{"lookahead entered matched", func(m *bytecode.Module, f *bytecode.Flow) {
+			f.Code[26].Imm = bytecode.FlowSilenceOf{Delta: 1, Ok: true}
+		}, "invalid lookahead"},
+		{"lookahead kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[27].Imm = 1 }, "invalid immediate"},
+		{"immediate of a step", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[25].Imm = 1 }, "invalid immediate"},
 	} {
 		m := flowModule()
 		c.edit(m, m.Flows[1])
@@ -185,6 +223,14 @@ func TestFlowBodyDisassembly(t *testing.T) {
 		"    10  EXPECT     r1 \"b\" message\n",
 		"    14  CALL       r0,r7 = a level=3\n",
 		"    18  RETURN     r0 r3\n",
+		"    19  ADD        r1 = r1 r1\n",
+		"    25  STEP       \n",
+		"    26  SILENT     delta=1 site=3 ok=false\n",
+		"    29  INCLASS    r2 = r5 \"[a-z]\"\n",
+		"    30  ATANCHOR   r2 = 3\n",
+		"    31  MATCHLIT   r0,r2 = \"a\" fold \"a\"\n",
+		"    33  UNISOLATE  r1,r6 = r4\n",
+		"    34  MERGEEXPECTED r1 r6\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("disassembly has no %q:\n%s", want, got)
