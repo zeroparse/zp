@@ -10,7 +10,6 @@ package recoveryquality_test
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,12 +18,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/enginetest"
 	"zeroparse.dev/zp/pkg/runtime/value"
 	"zeroparse.dev/zp/pkg/sample"
 )
 
-var update = flag.Bool("update", false, "regenerate the corpora and the results table")
+var update = codegentest.UpdateGoldens // -update regenerates the corpora and the table; enginetest links codegentest, which defines the flag
 
 // A case is one invalid input: a valid Base changed by one mutation at byte offset Off.
 type testCase struct {
