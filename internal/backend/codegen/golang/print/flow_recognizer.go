@@ -2,8 +2,8 @@ package print
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 )
@@ -24,7 +24,7 @@ import (
 //   - the printed function would read its start or its context, which a value-free flat rule has
 //     no parameters for;
 //   - a variable of the function has a type that untypedGoType cannot name.
-func (g *Generator) flowRecRule(r *compile.Rule) *flatRule {
+func (g *Generator) flowRecRule(r *common.Rule) *flatRule {
 	if g.hooks.RefuseFlowRecRule != nil && g.hooks.RefuseFlowRecRule(r) {
 		return nil
 	}

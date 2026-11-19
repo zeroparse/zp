@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -68,7 +69,7 @@ var (
 )
 
 // typedDecisionsWalk returns the expressions of the rule's body in walk order, and their indexes.
-func typedDecisionsWalk(r *compile.Rule) ([]ast.Expr, map[ast.Expr]int) {
+func typedDecisionsWalk(r *common.Rule) ([]ast.Expr, map[ast.Expr]int) {
 	var exprs []ast.Expr
 	idx := map[ast.Expr]int{}
 	if e := r.BodyExpr(); e != nil {
@@ -323,16 +324,16 @@ func (gd *decisionsGolden) freeze(t *testing.T, modes []coreGenMode, cases func(
 }
 
 // typedRules returns the rules of the program of the generator by ID, value-free twins included.
-func typedRules(g *print.Generator) []*compile.Rule {
-	return append(append([]*compile.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...)
+func typedRules(g *print.Generator) []*common.Rule {
+	return append(append([]*common.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...)
 }
 
 // recognizerRules returns the rules of the recognizer program of the generator by ID, value-free
 // twins included.
-func recognizerRules(g *print.Generator) []*compile.Rule {
+func recognizerRules(g *print.Generator) []*common.Rule {
 	rec, err := recognizerOf(g)
 	if err != nil {
 		panic(err)
 	}
-	return append(append([]*compile.Rule(nil), rec.RuleList...), rec.Twins...)
+	return append(append([]*common.Rule(nil), rec.RuleList...), rec.Twins...)
 }

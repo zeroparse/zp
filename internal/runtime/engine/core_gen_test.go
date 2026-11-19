@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
 	"zeroparse.dev/zp/internal/driver/checked"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
@@ -51,7 +52,7 @@ type coreGenCase struct {
 	m      *core.Module
 	origin map[core.Node]ast.Expr
 	// rules holds the rules of the program by ID, value-free twins included.
-	rules []*compile.Rule
+	rules []*common.Rule
 	// passErrs holds the violations Verify found after a pass.
 	passErrs []string
 	// broken is set where a negative control broke a pass of this case.
@@ -99,14 +100,15 @@ func coreGenerate(src string, opts common.GenOptions) (*print.Generator, bool) {
 	return gen, true
 }
 
-// recognizerOf returns the recognizer of the program that the generator g prints, compiled as
-// Program.Recognizer compiles it.
-func recognizerOf(g *print.Generator) (*compile.Program, error) {
-	rec, err := checkedProgram(g.Prog).Recognizer()
+// recognizerOf returns the view of the recognizer of the program that the generator g prints,
+// compiled as Program.Recognizer compiles it. The view's elaboration input is the checked program
+// that the test compiled.
+func recognizerOf(g *print.Generator) (*common.Program, error) {
+	rec, err := checkedProgram(g.Prog.Elab.(*compile.Program)).Recognizer()
 	if err != nil {
 		return nil, err
 	}
-	return rec.Static(), nil
+	return checked.Of(rec.Static()).Generator(), nil
 }
 
 // coreTypedCase builds the Core IR of the typed rules of the generated parser with the passes of

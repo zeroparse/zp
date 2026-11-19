@@ -3,8 +3,8 @@ package print
 import (
 	"fmt"
 	"sort"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 
-	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -94,7 +94,7 @@ func (l *liveRules) missingBodies(table string, printed map[ruleKey]bool) []rule
 }
 
 // pruned reports whether the second pass leaves out everything of rule r of the current table.
-func (g *Generator) pruned(r *compile.Rule) bool {
+func (g *Generator) pruned(r *common.Rule) bool {
 	if g.live == nil || g.keepTableRules && g.Table == "rules" {
 		return false
 	}
@@ -103,13 +103,13 @@ func (g *Generator) pruned(r *compile.Rule) bool {
 
 // slotReached reports whether the Body of rule r is printed: something enters the rule through its
 // slot, and not only through its wrapper.
-func (g *Generator) slotReached(r *compile.Rule) bool {
+func (g *Generator) slotReached(r *common.Rule) bool {
 	return g.live == nil || g.Table == "trules" || g.live.Reach[ruleKey{g.Table, r.ID, false}]
 }
 
 // callWrapper reports whether a call of the rule r of the table is printed as a call of its wrapper
 // function, which does not run the Body of its table entry, rather than through the entry (ruleCall).
-func (g *Generator) callWrapper(table string, r *compile.Rule) bool {
+func (g *Generator) callWrapper(table string, r *common.Rule) bool {
 	_, operatorsRule := r.Def.Expr.(*ast.OperatorsRule)
 	switch {
 	case g.Document && table == "rules":
@@ -126,7 +126,7 @@ func (g *Generator) callWrapper(table string, r *compile.Rule) bool {
 
 // checkCall checks in the second pass that the callee of a printed call, through its wrapper or its
 // slot, was not left out.
-func (g *Generator) checkCall(r *compile.Rule, wrapper bool) {
+func (g *Generator) checkCall(r *common.Rule, wrapper bool) {
 	to := ruleKey{g.Table, r.ID, wrapper}
 	if g.live != nil && !g.live.Reach[to] && g.reachErr == nil && (g.Table != "rules" || !g.keepTableRules) {
 		g.reachErr = fmt.Errorf("internal error: a generated call reaches the rule %s of %s, whose body is left out", r.Name, g.Table)
@@ -134,7 +134,7 @@ func (g *Generator) checkCall(r *compile.Rule, wrapper bool) {
 }
 
 // printedBody records that the Body of rule r of the current table is printed.
-func (g *Generator) printedBody(r *compile.Rule) {
+func (g *Generator) printedBody(r *common.Rule) {
 	if g.bodySet == nil {
 		g.bodySet = map[ruleKey]bool{}
 	}
@@ -144,7 +144,7 @@ func (g *Generator) printedBody(r *compile.Rule) {
 // finishReach ends a pass: the first pass computes the reachable rules from the start rules and
 // the calls outside rule bodies; the second checks that no printed call reaches a rule left out and
 // that every reachable rule has its Body.
-func (g *Generator) finishReach(prog, rec *compile.Program) error {
+func (g *Generator) finishReach(prog, rec *common.Program) error {
 	if g.collect != nil {
 		var roots []ruleKey
 		for _, name := range prog.StartRules {
@@ -156,21 +156,21 @@ func (g *Generator) finishReach(prog, rec *compile.Program) error {
 		roots = append(roots, g.typedRoots...)
 		g.collect.Roots = roots
 		mods := map[string]*core.Module{}
-		progs := map[string]*compile.Program{"rules": prog, "trules": prog}
+		progs := map[string]*common.Program{"rules": prog, "trules": prog}
 		if rec != nil {
 			progs["recRules"] = rec
 		}
-		byID := map[string][]*compile.Rule{}
+		byID := map[string][]*common.Rule{}
 		for table, pr := range progs {
 			if table == "trules" && len(g.typedRoots) == 0 {
 				continue
 			}
-			m, err := irbuild.CoreFrom(pr, nil)
+			m, err := irbuild.CoreFrom(pr.Elab, nil)
 			if err != nil {
 				return err
 			}
 			mods[table] = m
-			byID[table] = append(append([]*compile.Rule(nil), pr.RuleList...), pr.Twins...)
+			byID[table] = append(append([]*common.Rule(nil), pr.RuleList...), pr.Twins...)
 		}
 		g.collect.mods = mods
 		g.collect.enter = func(table string, id int) bool { return g.callWrapper(table, byID[table][id]) }

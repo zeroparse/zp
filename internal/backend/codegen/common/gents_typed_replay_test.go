@@ -15,6 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/checked"
 	"zeroparse.dev/zp/internal/driver/entry"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -134,8 +135,9 @@ rule num Num = t:([0-9]) #atomic => Num{$t}`, Inputs: []string{"", "a1", "a1b2"}
 		if err != nil {
 			t.Fatal(err)
 		}
-		meta := &print.TypedGen{G: &print.Generator{Prog: entry.Checked(prog)}, Info: entry.Checked(prog).Typed, Joins: map[string]string{}, Anon: map[string]types.JoinTy{}}
-		meta.ValueResolver = common.NewValueResolver(entry.Checked(prog), func(x types.Ty) bool { _, ok := meta.Joins[x.String()]; return ok })
+		view := checked.Of(entry.Checked(prog)).Generator()
+		meta := &print.TypedGen{G: &print.Generator{Prog: view}, Info: view.Typed, Joins: map[string]string{}, Anon: map[string]types.JoinTy{}}
+		meta.ValueResolver = common.NewValueResolver(view, func(x types.Ty) bool { _, ok := meta.Joins[x.String()]; return ok })
 		if err := meta.Name(); err != nil {
 			t.Fatal(err)
 		}

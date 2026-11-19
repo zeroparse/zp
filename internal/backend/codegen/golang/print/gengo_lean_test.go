@@ -11,7 +11,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/runtime"
@@ -54,7 +53,7 @@ rule left = left "+" "é" / "é"
 	taken := map[string]bool{}
 	gh := &print.Hooks{}
 	codegentest.SetGenHooks(t, gh)
-	gh.LeanRoute = func(table string, r *compile.Rule) { taken[table+"/"+r.Name] = true }
+	gh.LeanRoute = func(table string, r *common.Rule) { taken[table+"/"+r.Name] = true }
 	code, err := codegentest.GenerateCode(t, g, common.GenOptions{Package: "depth", Start: "main", Recognize: true})
 	gh.LeanRoute = nil
 	if err != nil {

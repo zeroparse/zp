@@ -1,8 +1,8 @@
 package common
 
 import (
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -18,6 +18,7 @@ import (
 //   - Run, the tables a parser runs (rules, expectations, sites, kinds): the run-time program
 //     (program.Program).
 //   - RuleList, Twins and ByName: the views of the rules of Run, in the same order (Rule).
+//   - Elab, the input of the Core IR builder: the elaboration's contract (elaborate.Program).
 type Program struct {
 	*check.Model
 	// Check is the checker of the grammar's types, which Checker returns.
@@ -31,13 +32,22 @@ type Program struct {
 	RuleList []*Rule
 	Twins    []*Rule
 	ByName   map[string]*Rule
-	// Checked is the checked program the view was built from. The printers read it until they read
-	// the view; it goes when they do.
-	Checked *compile.Program
+	// Elab is the input of the elaboration to Core IR (elaborate.Program): the rules, sites and
+	// casts of the grammar as the Core IR builder reads them, for the generators that build Core IR.
+	Elab elaborate.Program
 }
 
 // Checker returns the checker of the grammar's types.
 func (p *Program) Checker() *check.Checker { return p.Check }
+
+// StartRule returns the view of the start rule that name selects (program.Program.StartRule).
+func (p *Program) StartRule(name string) (*Rule, error) {
+	r, err := p.Run.StartRule(name)
+	if err != nil {
+		return nil, err
+	}
+	return p.RuleList[r.ID], nil
+}
 
 // Rule is a rule as the generators read it. It embeds the rule of the run-time program (ID, name,
 // memoization, left recursion, variables and the other facts a parser runs it with) and points to

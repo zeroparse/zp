@@ -12,7 +12,7 @@ import (
 // (opt.Driver.CoreHook, tests), it calls the hook with the module after it is built and after each
 // pass.
 func (g *Generator) TypedCore(origin map[core.Node]ast.Expr) (*core.Module, error) {
-	m, err := irbuild.CoreFrom(g.Prog, origin)
+	m, err := irbuild.CoreFrom(g.Prog.Elab, origin)
 	if err != nil {
 		return nil, err
 	}

@@ -18,7 +18,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -75,7 +74,7 @@ func testFlowStreamBodyIsBatchBody(t *testing.T) {
 	var cur string
 	gh := &print.Hooks{}
 	codegentest.SetGenHooks(t, gh)
-	gh.StreamRoute = func(table string, r *compile.Rule) { flowN++; flowed = append(flowed, cur) }
+	gh.StreamRoute = func(table string, r *common.Rule) { flowN++; flowed = append(flowed, cur) }
 	for _, form := range streamForms {
 		for _, c := range streamCases(t) {
 			t.Run(c.Name+"/"+form.name, func(t *testing.T) {
@@ -206,7 +205,7 @@ func testGeneratedFlowStreamMatchesEngine(t *testing.T) {
 	taken := 0
 	gh := &print.Hooks{}
 	codegentest.SetGenHooks(t, gh)
-	gh.StreamRoute = func(table string, r *compile.Rule) { taken++ }
+	gh.StreamRoute = func(table string, r *common.Rule) { taken++ }
 	for _, form := range streamForms {
 		t.Run(form.name, func(t *testing.T) {
 			before := taken

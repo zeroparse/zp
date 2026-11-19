@@ -41,14 +41,14 @@ func TestFlowRecognizerPrintsCapturesFromFlow(t *testing.T) {
 			var mu sync.Mutex
 			gh := &print.Hooks{}
 			codegentest.SetGenHooks(t, gh)
-			gh.LeanRoute = func(table string, r *compile.Rule) {
+			gh.LeanRoute = func(table string, r *common.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
 				if c, _ := hasCaptureOfRepeat(r.BodyExpr()); c {
 					taken[table+" lean with captures"]++
 				}
 			}
-			gh.FramedRoute = func(table string, r *compile.Rule) {
+			gh.FramedRoute = func(table string, r *common.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
 				c, rep := hasCaptureOfRepeat(r.BodyExpr())

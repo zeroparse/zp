@@ -6,7 +6,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
@@ -23,8 +22,8 @@ func coreRecognizeCase(name, mode string, g *print.Generator) (*coreGenCase, err
 		return nil, err
 	}
 	c := &coreGenCase{name: name, mode: mode, table: "recRules", golden: recognizerGolden, gen: g, origin: map[core.Node]ast.Expr{}}
-	c.rules = append(append([]*compile.Rule(nil), rec.RuleList...), rec.Twins...)
-	m, err := irbuild.CoreFrom(rec, c.origin)
+	c.rules = append(append([]*common.Rule(nil), rec.RuleList...), rec.Twins...)
+	m, err := irbuild.CoreFrom(rec.Elab, c.origin)
 	if err != nil {
 		return nil, err
 	}

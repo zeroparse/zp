@@ -1,7 +1,6 @@
 package common
 
 import (
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
@@ -16,7 +15,7 @@ import (
 // no cut, recovery, Operators Rule or semantic predicate. Captures unused by recognition are omitted;
 // a predicate keeps the general form because it can require values, capture frames and variable
 // bindings.
-func RecEligible(r *compile.Rule) bool {
+func RecEligible(r *Rule) bool {
 	if !r.Plain || !r.Lean || !r.Novalue || r.Leader || !flowlower.BodyOK(r.BodyExpr(), false, false) {
 		return false
 	}
@@ -44,7 +43,7 @@ func RecEligible(r *compile.Rule) bool {
 // IR makes, so a Core-lowered body agrees with them. The recognizer's table writes its actions
 // without projections, so its Core IR is built without them and agrees with them as well; either
 // table's body is eligible when its action reads only captures of the frame.
-func NodeFrameOK(r *compile.Rule, cr *core.Rule) bool {
+func NodeFrameOK(r *Rule, cr *core.Rule) bool {
 	if !flowlower.BodyOK(r.BodyExpr(), true, true) || !flowlower.FramedBody(cr.Body) {
 		return false
 	}

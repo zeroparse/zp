@@ -4,7 +4,6 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -19,7 +18,7 @@ func (r Vrule) String() string { return r.Name }
 
 // ValueResolver resolves the value types of the rules whose typed values come from them.
 type ValueResolver struct {
-	Prog *compile.Program
+	Prog *Program
 	info *check.TypeInfo
 	// values holds the value types of the rules and ruleDefs their definitions; Vres holds the
 	// resolved value types of the rules whose typed values come from them, and resolving the rules
@@ -34,8 +33,8 @@ type ValueResolver struct {
 
 // NewValueResolver returns a resolver for the rules of p; ownType reports the legacy types that
 // have a typed representation of their own.
-func NewValueResolver(p *compile.Program, ownType func(types.Ty) bool) ValueResolver {
-	r := ValueResolver{Prog: p, info: p.Typed, values: p.ValueTypes(), ruleDefs: map[string]*ast.RuleDef{}, Vres: map[string]types.Ty{}, resolving: map[string]bool{}, ownType: ownType}
+func NewValueResolver(p *Program, ownType func(types.Ty) bool) ValueResolver {
+	r := ValueResolver{Prog: p, info: p.Typed, values: p.Check.ValueTypes(), ruleDefs: map[string]*ast.RuleDef{}, Vres: map[string]types.Ty{}, resolving: map[string]bool{}, ownType: ownType}
 	for _, rl := range p.RuleList {
 		r.ruleDefs[rl.Name] = rl.Def
 	}

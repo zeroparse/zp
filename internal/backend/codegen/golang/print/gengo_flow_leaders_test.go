@@ -7,7 +7,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -27,7 +26,7 @@ func TestFlowLeadersPrintFromFlow(t *testing.T) {
 			var mu sync.Mutex
 			gh := &print.Hooks{}
 			codegentest.SetGenHooks(t, gh)
-			gh.FramedRoute = func(table string, r *compile.Rule) {
+			gh.FramedRoute = func(table string, r *common.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
 				if r.Leader {

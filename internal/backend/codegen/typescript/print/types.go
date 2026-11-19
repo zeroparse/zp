@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
@@ -36,7 +35,7 @@ func qualifyTypes(typ string) string {
 }
 
 // typedTS returns the declarations of types.ts and the code that parser.ts adds for typed values.
-func (g *Generator) typedTS(start *compile.Rule) (typesSrc, parser string, err error) {
+func (g *Generator) typedTS(start *common.Rule) (typesSrc, parser string, err error) {
 	if g.Prog.Typed == nil {
 		return "", "", fmt.Errorf("typed values need the grammar's types (type checking did not run)")
 	}
@@ -73,7 +72,7 @@ func (g *Generator) typedTS(start *compile.Rule) (typesSrc, parser string, err e
 		switch spec := g.Prog.Types[name].(type) {
 		case *ast.TypeDef:
 			open = append(open, t.names[name])
-			if n, ok := g.Prog.NodeTypeOf(name); ok && spec.Struct() == nil {
+			if n, ok := g.Prog.Check.NodeTypeOf(name); ok && spec.Struct() == nil {
 				under := strings.TrimSuffix(t.tsType(n.Underlying()), " | null")
 				fmt.Fprintf(&b, "/** Grammar node type %s = %s. */\nexport interface %s extends %s {\n  readonly type: %s;\n}\n\n", name, n.Underlying(), t.names[name], under, TsString(name))
 				t.recipe(n)
@@ -132,7 +131,7 @@ func (g *Generator) typedTS(start *compile.Rule) (typesSrc, parser string, err e
 	}
 	for _, name := range t.all {
 		if td, ok := g.Prog.Types[name].(*ast.TypeDef); ok {
-			if n, ok := g.Prog.NodeTypeOf(name); ok && td.Struct() == nil {
+			if n, ok := g.Prog.Check.NodeTypeOf(name); ok && td.Struct() == nil {
 				fmt.Fprintf(&b, "  [%s, %d],\n", TsString(name), t.recipe(n))
 				continue
 			}
@@ -343,7 +342,7 @@ func (t *tsTypedGen) recipe(x types.Ty) int {
 		kind, key = "tnode", t.conversionKey(a)
 		if a.Name != "" {
 			// The type's definition gives its value, also inside the type itself.
-			x, _ = t.Prog.NodeTypeOf(a.Name)
+			x, _ = t.Prog.Check.NodeTypeOf(a.Name)
 		}
 	case types.NamedTy:
 		kind, key = "terminal", "named:"+a.Name

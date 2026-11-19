@@ -7,13 +7,14 @@ import (
 )
 
 // Generator returns the view of the checked program that the generators read (common.Program): the
-// semantic model, the checker and the run-time program of the checked program, and a view of each
-// rule over its run-time rule, with the facts that only the checked program holds copied (Lean, the
-// twin and the projections).
+// semantic model, the checker and the run-time program of the checked program, the checked program
+// as the input of the elaboration to Core IR (elaborate.Program), and a view of each rule over its
+// run-time rule, with the facts that only the checked program holds copied (Lean, the twin and the
+// projections).
 func (s *Source) Generator() *common.Program {
 	p := s.prog
 	run := p.Runtime()
-	v := &common.Program{Model: p.Model, Check: p.Checker(), Typed: p.Typed, Run: run, Checked: p,
+	v := &common.Program{Model: p.Model, Check: p.Checker(), Typed: p.Typed, Run: run, Elab: p,
 		RuleList: make([]*common.Rule, len(p.RuleList)), Twins: make([]*common.Rule, len(p.Twins)),
 		ByName: make(map[string]*common.Rule, len(p.RuleList))}
 	view := func(r *compile.Rule) *common.Rule {

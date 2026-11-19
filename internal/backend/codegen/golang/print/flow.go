@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -40,7 +39,7 @@ func (g *Generator) startFlow() error {
 	if err != nil {
 		return err
 	}
-	g.Flow = &common.FlowState{M: m, Origin: origin, Rules: append(append([]*compile.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...),
+	g.Flow = &common.FlowState{M: m, Origin: origin, Rules: append(append([]*common.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...),
 		Opts: g.FlowOptions(m)}
 	return nil
 }
@@ -56,7 +55,7 @@ func (g *Generator) FlowOptions(m *core.Module) flowlower.Options {
 
 // flowTypedRule prints the rule r from Flow IR as a flat rule, or returns nil if r is not
 // printed from Flow IR.
-func (g *Generator) flowTypedRule(r *compile.Rule) *flatRule {
+func (g *Generator) flowTypedRule(r *common.Rule) *flatRule {
 	if g.Flow == nil || g.Table != "trules" {
 		return nil
 	}
@@ -77,7 +76,7 @@ func (g *Generator) flowTypedRule(r *compile.Rule) *flatRule {
 
 // flowFrameBody prints the body of the typed rule r from Flow IR as the matcher of its frame
 // body, or returns "" if Flow IR does not print r that way.
-func (g *Generator) flowFrameBody(r *compile.Rule, scope *check.Scope) string {
+func (g *Generator) flowFrameBody(r *common.Rule, scope *check.Scope) string {
 	if g.Flow == nil || g.Table != "trules" {
 		return ""
 	}
@@ -106,7 +105,7 @@ func (g *Generator) flowFrameBody(r *compile.Rule, scope *check.Scope) string {
 // (Options.Budget) the method that holds the body charges one step on entry (flow.Attrs.Entered) and the
 // body charges one on each iteration of a repetition, plus the input spend of each Peek; the limits
 // of a parse hold at these charges.
-func (g *Generator) flowNodeFrameBody(r *compile.Rule, scope *check.Scope) string {
+func (g *Generator) flowNodeFrameBody(r *common.Rule, scope *check.Scope) string {
 	cr, ok := g.FlowNodeFrameOK(r)
 	if !ok {
 		return ""
@@ -127,7 +126,7 @@ func (g *Generator) flowNodeFrameBody(r *compile.Rule, scope *check.Scope) strin
 // frame body, with the repetition of its #stream delivering the elements (flowlower.Options.Stream), or
 // returns "" if the rule is not printed that way: a rule is eligible as for flowNodeFrameBody. The
 // capture layout of the printed body must be the batch body's, which the action addresses by slot.
-func (g *Generator) flowStreamBody(r *compile.Rule, scope *check.Scope) string {
+func (g *Generator) flowStreamBody(r *common.Rule, scope *check.Scope) string {
 	cr, ok := g.FlowNodeFrameOK(r)
 	if !ok || !g.Flow.Opts.Node {
 		return ""
@@ -178,7 +177,7 @@ func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e ast.Expr, scope *che
 // flowOperatorsRule returns the Core IR of the Operators Rule r, or nil if its lines are not
 // printed from Flow IR: the typed table prints them all from it, the Node and recognizer tables
 // when their Flow route is on (flowOperatorsRuleBody decides each line).
-func (g *Generator) flowOperatorsRule(r *compile.Rule) *core.OperatorsRule {
+func (g *Generator) flowOperatorsRule(r *common.Rule) *core.OperatorsRule {
 	if g.Flow == nil || g.Table != "trules" && !g.Flow.Opts.Node {
 		return nil
 	}

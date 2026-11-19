@@ -11,7 +11,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -41,19 +40,19 @@ func TestFlowTypedOnlyNodeRulesPrintFromFlow(t *testing.T) {
 			var generated atomic.Int64
 			gh := &print.Hooks{}
 			codegentest.SetGenHooks(t, gh)
-			gh.LeanRoute = func(table string, r *compile.Rule) {
+			gh.LeanRoute = func(table string, r *common.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
 				if table == "rules" {
 					taken++
 				}
 			}
-			gh.FramedRoute = func(table string, r *compile.Rule) {
+			gh.FramedRoute = func(table string, r *common.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
 				framed++
 			}
-			gh.OperatorsRoute = func(table string, r *compile.Rule) {
+			gh.OperatorsRoute = func(table string, r *common.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
 				operators++
@@ -151,13 +150,13 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 			taken := 0
 			gh := &print.Hooks{}
 			codegentest.SetGenHooks(t, gh)
-			gh.LeanRoute = func(table string, r *compile.Rule) {
+			gh.LeanRoute = func(table string, r *common.Rule) {
 				if table == "rules" {
 					taken++
 				}
 			}
-			gh.FramedRoute = func(table string, r *compile.Rule) { taken++ }
-			gh.OperatorsRoute = func(table string, r *compile.Rule) { taken++ }
+			gh.FramedRoute = func(table string, r *common.Rule) { taken++ }
+			gh.OperatorsRoute = func(table string, r *common.Rule) { taken++ }
 			var pkgs []string
 			for i, c := range codegentest.TypedOnlyConverted {
 				base := common.GenOptions{Types: true, LimitControls: form.controls}

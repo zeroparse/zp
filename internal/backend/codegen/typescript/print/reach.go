@@ -3,8 +3,8 @@ package print
 import (
 	"fmt"
 	"slices"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 
-	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -31,17 +31,17 @@ type tsLive struct {
 // parse can enter: every start rule of the Node table, which parseRule can name, and the rule start
 // that parse and recognize run. document tells whether the parser has a Document, whose calls all
 // enter rules through their constants (callsPlain).
-func reachableRules(prog, rec *compile.Program, start *compile.Rule, document bool) (*tsLive, error) {
-	return reachFrom(prog, rec, start, document, func(table string, p *compile.Program) (*core.Module, error) {
-		return irbuild.CoreFrom(p, nil)
+func reachableRules(prog, rec *common.Program, start *common.Rule, document bool) (*tsLive, error) {
+	return reachFrom(prog, rec, start, document, func(table string, p *common.Program) (*core.Module, error) {
+		return irbuild.CoreFrom(p.Elab, nil)
 	})
 }
 
 // printedReach returns the rules that a parse can enter through the calls that the generated code
 // prints (checkCall), from the roots of reachableRules. Printing leaves out the calls that Core IR
 // has at points that the lowered code never reaches, such as after a lookahead that always fails.
-func (g *Generator) printedReach(prog, rec *compile.Program, start *compile.Rule) *tsLive {
-	l, _ := reachFrom(prog, rec, start, g.Document, func(table string, p *compile.Program) (*core.Module, error) {
+func (g *Generator) printedReach(prog, rec *common.Program, start *common.Rule) *tsLive {
+	l, _ := reachFrom(prog, rec, start, g.Document, func(table string, p *common.Program) (*core.Module, error) {
 		m := &core.Module{Calls: make([][]int, len(p.RuleList)+len(p.Twins))}
 		for from, to := range g.printed[table] {
 			m.Calls[from] = to
@@ -54,9 +54,9 @@ func (g *Generator) printedReach(prog, rec *compile.Program, start *compile.Rule
 
 // reachFrom computes the reach of reachableRules over the call graph of the module that module
 // returns for each table.
-func reachFrom(prog, rec *compile.Program, start *compile.Rule, document bool, module func(table string, p *compile.Program) (*core.Module, error)) (*tsLive, error) {
+func reachFrom(prog, rec *common.Program, start *common.Rule, document bool, module func(table string, p *common.Program) (*core.Module, error)) (*tsLive, error) {
 	l := &tsLive{reach: map[string][]core.Entry{}}
-	for table, p := range map[string]*compile.Program{"rules": prog, "recRules": rec} {
+	for table, p := range map[string]*common.Program{"rules": prog, "recRules": rec} {
 		if p == nil {
 			continue
 		}
@@ -71,7 +71,7 @@ func reachFrom(prog, rec *compile.Program, start *compile.Rule, document bool, m
 			}
 		}
 		roots = append(roots, core.Root{Rule: p.ByName[start.Name].ID, Entry: core.EnterSlot})
-		rules := append(append([]*compile.Rule(nil), p.RuleList...), p.Twins...)
+		rules := append(append([]*common.Rule(nil), p.RuleList...), p.Twins...)
 		l.reach[table] = m.Reach(roots, func(id int) core.Entry {
 			if callsPlain(rules[id], document) {
 				return core.EnterWrapper
@@ -98,31 +98,31 @@ func (l *tsLive) equal(o *tsLive) bool {
 // callsPlain reports whether a call of the rule r is printed as a call of its plain function
 // (tsFlowPrinter.call) rather than through its constant. A parser with a Document calls every rule
 // through its constant, since a Document parse memoizes plain rules too.
-func callsPlain(r *compile.Rule, document bool) bool {
+func callsPlain(r *common.Rule, document bool) bool {
 	_, operatorsRule := r.Def.Expr.(*ast.OperatorsRule)
 	return !document && r.Plain && !operatorsRule
 }
 
 // pruned reports whether the rule r of the current table is left out.
-func (g *Generator) pruned(r *compile.Rule) bool {
+func (g *Generator) pruned(r *common.Rule) bool {
 	return g.live != nil && g.live.reach[g.Table][r.ID] == 0
 }
 
 // slotReached reports whether something enters the rule r through its constant (and so its body
 // assignment), and not only through its plain function.
-func (g *Generator) slotReached(r *compile.Rule) bool {
+func (g *Generator) slotReached(r *common.Rule) bool {
 	return g.live == nil || g.live.reach[g.Table][r.ID]&core.EnterSlot != 0
 }
 
 // tableRow reports whether the constant of the rule r is declared: something reads it, which is
 // the entry through its slot, or the plain function of a rule with a value (it finishes the value
 // with the rule). A rule without a value that only its plain function enters needs no constant.
-func (g *Generator) tableRow(r *compile.Rule) bool {
+func (g *Generator) tableRow(r *common.Rule) bool {
 	return g.slotReached(r) || !r.Novalue
 }
 
 // checkCall checks that the callee of a printed call was not left out.
-func (g *Generator) checkCall(r *compile.Rule) {
+func (g *Generator) checkCall(r *common.Rule) {
 	if g.Cur != nil {
 		calls := g.printed[g.Table]
 		if calls == nil {

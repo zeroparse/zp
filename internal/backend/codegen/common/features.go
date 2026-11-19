@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
@@ -84,7 +83,7 @@ const UsedFeatures = "used-features"
 // entry points can enter: every start rule (ParseRule and the typed entry points name any) and the
 // start rule of opts, followed through the calls of the Core IR of each program, value-free twins
 // included.
-func Analyze(prog, rec *compile.Program, opts GenOptions) (FeatureSet, error) {
+func Analyze(prog, rec *Program, opts GenOptions) (FeatureSet, error) {
 	var f Feature
 	if opts.Document {
 		f |= FeatureDocument
@@ -98,7 +97,7 @@ func Analyze(prog, rec *compile.Program, opts GenOptions) (FeatureSet, error) {
 	if opts.LimitControls {
 		f |= FeatureBudget
 	}
-	for _, p := range []*compile.Program{prog, rec} {
+	for _, p := range []*Program{prog, rec} {
 		if p == nil {
 			continue
 		}
@@ -112,10 +111,10 @@ func Analyze(prog, rec *compile.Program, opts GenOptions) (FeatureSet, error) {
 		if p.Vars != nil {
 			f |= FeatureVars
 		}
-		if p.NumSkipSites+p.NumRunSites > 0 {
+		if p.Run.NumSkipSites+p.Run.NumRunSites > 0 {
 			f |= FeatureSkipRuns
 		}
-		if p.NumScanSites > 0 {
+		if p.Run.NumScanSites > 0 {
 			f |= FeatureScanSites
 		}
 	}
@@ -123,7 +122,7 @@ func Analyze(prog, rec *compile.Program, opts GenOptions) (FeatureSet, error) {
 }
 
 // ruleFeatures returns the features that a call of r can use.
-func ruleFeatures(r *compile.Rule) Feature {
+func ruleFeatures(r *Rule) Feature {
 	var f Feature
 	if r.Memo || r.Leader {
 		f |= FeatureMemo
@@ -154,8 +153,8 @@ func ruleFeatures(r *compile.Rule) Feature {
 
 // reachedRules returns the rules of p, value-free twins included, that a parse can enter from the
 // start rules of p and the start rule named start.
-func reachedRules(p *compile.Program, start string) ([]*compile.Rule, error) {
-	m, err := irbuild.CoreFrom(p, nil)
+func reachedRules(p *Program, start string) ([]*Rule, error) {
+	m, err := irbuild.CoreFrom(p.Elab, nil)
 	if err != nil {
 		return nil, fmt.Errorf("feature analysis: %w", err)
 	}
@@ -163,11 +162,11 @@ func reachedRules(p *compile.Program, start string) ([]*compile.Rule, error) {
 	for _, name := range p.StartRules {
 		roots = append(roots, core.Root{Rule: p.ByName[name].ID, Entry: core.EnterSlot})
 	}
-	if s, err := p.StartRule(start); err == nil {
+	if s, err := p.Run.StartRule(start); err == nil {
 		roots = append(roots, core.Root{Rule: s.ID, Entry: core.EnterSlot})
 	}
-	rules := append(append([]*compile.Rule(nil), p.RuleList...), p.Twins...)
-	var out []*compile.Rule
+	rules := append(append([]*Rule(nil), p.RuleList...), p.Twins...)
+	var out []*Rule
 	for id, e := range m.Reach(roots, func(int) core.Entry { return core.EnterSlot }) {
 		if e != 0 {
 			out = append(out, rules[id])
@@ -178,7 +177,7 @@ func reachedRules(p *compile.Program, start string) ([]*compile.Rule, error) {
 
 // ParserFeatures returns the features of the parser generated with opts and the optimization settings
 // s: those Analyze finds, or AllFeatures with the optimization UsedFeatures off.
-func ParserFeatures(prog, rec *compile.Program, opts GenOptions, s pass.Settings) (FeatureSet, error) {
+func ParserFeatures(prog, rec *Program, opts GenOptions, s pass.Settings) (FeatureSet, error) {
 	if !s.On(UsedFeatures) {
 		return FeatureSet(AllFeatures), nil
 	}

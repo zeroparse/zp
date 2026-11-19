@@ -45,7 +45,7 @@ func TestFlowRecoveryPrintsFromFlow(t *testing.T) {
 			var mu sync.Mutex
 			gh := &print.Hooks{}
 			codegentest.SetGenHooks(t, gh)
-			gh.FramedRoute = func(table string, r *compile.Rule) {
+			gh.FramedRoute = func(table string, r *common.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
 				if !hasRecovery(r.BodyExpr()) {
@@ -59,7 +59,7 @@ func TestFlowRecoveryPrintsFromFlow(t *testing.T) {
 					taken[table+" recovery with a leader"]++
 				}
 			}
-			gh.OperatorsRoute = func(table string, r *compile.Rule) {
+			gh.OperatorsRoute = func(table string, r *common.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
 				taken[table+" operators line"]++

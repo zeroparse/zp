@@ -16,7 +16,6 @@ import (
 	"zeroparse.dev/zp/internal/middleend/flowpass"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
@@ -96,21 +95,21 @@ func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h
 	if err != nil {
 		return nil, err
 	}
-	prog := view.Checked
-	if prog.HasMissing {
+	prog := view
+	if prog.Run.HasMissing {
 		return nil, rprogram.MissingUnsupported("generated parsers")
 	}
 	start, err := prog.StartRule(opts.Start)
 	if err != nil {
 		return nil, err
 	}
-	var rec *compile.Program
+	var rec *common.Program
 	if opts.Recognize {
 		recView, err := recognizer()
 		if err != nil {
 			return nil, err
 		}
-		rec = recView.Checked
+		rec = recView
 	}
 	live, err := reachableRules(prog, rec, start, opts.Document)
 	if err != nil {
@@ -120,7 +119,7 @@ func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h
 	var dumped *bytes.Buffer
 	newGen := func(live *tsLive) (*Generator, error) {
 		dumped = &bytes.Buffer{}
-		tsg := &Generator{Generator: common.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, Document: opts.Document, TypeScript: true, Opt: settings, VerifyEach: opts.VerifyEachPass, FlowRun: h.FlowRun, ExecRun: h.ExecRun}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
+		tsg := &Generator{Generator: common.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, Document: opts.Document, TypeScript: true, Opt: settings, VerifyEach: opts.VerifyEachPass, FlowRun: h.FlowRun, ExecRun: h.ExecRun}, plainUsed: map[*common.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
 		tsg.NoBudget = !opts.LimitControls
 		if opts.PrintTo != nil {
 			tsg.PrintAfter, tsg.PrintTo = printAfter, dumped
@@ -257,7 +256,7 @@ export function recognizeWithOptions(input: string | Uint8Array, options?: %[1]s
 	if opts.Expectations {
 		fmt.Fprintf(&out, "\nG.descs = %s;\nG.expectations = true;\n", TsStrings(tsg.Descs))
 	}
-	if prog.RecordsSourceInfo {
+	if prog.Run.RecordsSourceInfo {
 		out.WriteString("G.sourceInfo = true;\n")
 	}
 	for _, v := range prog.Vars.All() {
@@ -334,7 +333,7 @@ func tsFieldType(t *types.FieldType) string {
 type Generator struct {
 	common.Generator
 	// plainUsed holds the plain rules whose function (plainCall) is called.
-	plainUsed map[*compile.Rule]bool
+	plainUsed map[*common.Rule]bool
 	// keyUsed holds the run sites of the rule table being generated whose key constant
 	// (runKeyName) the emitted code refers to; runKeys writes only those.
 	keyUsed map[int]bool
@@ -396,7 +395,7 @@ func (g *Generator) seenVar() string {
 }
 
 // ruleVar returns the constant that holds the rule r of the table being generated.
-func (g *Generator) ruleVar(r *compile.Rule) string {
+func (g *Generator) ruleVar(r *common.Rule) string {
 	if g.Table == "rules" {
 		return fmt.Sprintf("R%d", r.ID)
 	}
@@ -463,10 +462,10 @@ func (g *Generator) action(ct core.ActionExpr, s *check.Scope, locals map[string
 func (g *Generator) rules() {
 	g.startTSFlow()
 	init := &g.Init
-	bodies := map[*compile.Rule]string{}
-	scopes := map[*compile.Rule]*check.Scope{}
-	var all []*compile.Rule
-	for _, r := range append(append([]*compile.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...) {
+	bodies := map[*common.Rule]string{}
+	scopes := map[*common.Rule]*check.Scope{}
+	var all []*common.Rule
+	for _, r := range append(append([]*common.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...) {
 		if !g.pruned(r) {
 			all = append(all, r)
 		}
@@ -547,7 +546,7 @@ func (g *Generator) rules() {
 		fmt.Fprintf(init, "const starts = %s;\n", TsStrings(g.Prog.StartRules))
 		fmt.Fprintf(init, "const defaultStart = %s;\n", TsString(g.Prog.DefaultStartRule))
 	}
-	fmt.Fprintf(init, "const %s = %d;\n", g.seenVar(), g.Prog.NSeen)
+	fmt.Fprintf(init, "const %s = %d;\n", g.seenVar(), g.Prog.Run.NSeen)
 	for _, r := range all {
 		if pr, ok := r.Def.Expr.(*ast.OperatorsRule); ok {
 			g.Cur = r
@@ -586,7 +585,7 @@ func (g *Generator) rules() {
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		sz := g.Prog.StructZeroOf(name)
+		sz := g.Prog.Run.StructZeroOf(name)
 		var fields []string
 		for _, f := range sz.Names {
 			fields = append(fields, "["+TsString(f)+", "+TsString(sz.Zeros[f])+"]")
@@ -597,7 +596,7 @@ func (g *Generator) rules() {
 
 // plainCall writes the function r<id>, which does what invokePlain does for the rule r (a rule never
 // memoized and without captures) with a direct call of its body.
-func (g *Generator) plainCall(r *compile.Rule, body string) {
+func (g *Generator) plainCall(r *common.Rule, body string) {
 	m := &g.Methods
 	name := g.tracePlainCall(r, fmt.Sprintf("%s%d", g.plainPrefix(), r.ID))
 	fmt.Fprintf(m, "// %s, called as by invokePlain\nfunction %s(p: Parser): R {\n", r.Name, name)
@@ -640,7 +639,7 @@ func (g *Generator) plainCall(r *compile.Rule, body string) {
 
 // tsShaper returns the library shaper of the expression e, its static shape (internal/compile/value_shape.go), packed
 // as the library's Shaper.
-func tsShaper(prog *compile.Program, e ast.Expr) int {
+func tsShaper(prog *common.Program, e ast.Expr) int {
 	s := int(check.SingleModeOf(prog.Checker(), e))<<2 | check.ValuedCount(prog.Checker(), e)<<5
 	if check.IsElems(prog.Checker(), e) {
 		s |= 1
@@ -654,7 +653,7 @@ func tsShaper(prog *compile.Program, e ast.Expr) int {
 	return s
 }
 
-func (g *Generator) operatorsRule(r *compile.Rule, e *ast.OperatorsRule) {
+func (g *Generator) operatorsRule(r *common.Rule, e *ast.OperatorsRule) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s.operatorsRule = {\n", g.ruleVar(r))
 	// The lines of the rule's Core IR, in the order of e, if the printer prints them from Flow IR.
@@ -762,7 +761,7 @@ func tsIntList(xs []int) string {
 
 // document writes the Document of the start rule: createDocument and, with types, the Document's
 // parseValue, which converts the Node result as parseValue does.
-func (g *Generator) document(out *strings.Builder, start *compile.Rule, types bool) {
+func (g *Generator) document(out *strings.Builder, start *common.Rule, types bool) {
 	fmt.Fprintf(out, `/**
  * Document is an incremental Document of the start rule %[1]s: a text that edit changes, and parse,
  * which returns what parse of the whole current text returns. It is mutable and parses its whole
@@ -795,7 +794,7 @@ export function createDocument(input: string | Uint8Array, options?: %[1]s): { d
 // whose code the rules emitted refer to (keyUsed), so that no constant goes unread. It runs after
 // the rules of the table, and the constants are initialized before a parse starts.
 func (g *Generator) runKeys() {
-	keys := g.Prog.RunKeys()
+	keys := g.Prog.Run.RunKeys
 	for _, site := range slices.Sorted(maps.Keys(keys)) {
 		if !g.keyUsed[site] {
 			continue

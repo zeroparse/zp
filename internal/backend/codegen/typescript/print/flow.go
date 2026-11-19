@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -53,7 +52,7 @@ func (g *Generator) startTSFlow() bool {
 // flowlower.LocalRule accepts prints as a flat function; a rule whose body is a framed body prints under the
 // frame the library owns, which also runs its action and finish. On success it sets scope to the
 // capture scope of the printed body.
-func (g *Generator) flowRule(r *compile.Rule, scope *check.Scope) (call string, ok bool) {
+func (g *Generator) flowRule(r *common.Rule, scope *check.Scope) (call string, ok bool) {
 	if g.Flow == nil {
 		return "", false
 	}
@@ -280,7 +279,7 @@ func (p *tsFlowPrinter) decl(name, s string) {
 }
 
 // call returns the call of the rule r from the Operators Rule level min.
-func (p *tsFlowPrinter) call(r *compile.Rule, min int) string {
+func (p *tsFlowPrinter) call(r *common.Rule, min int) string {
 	g := p.g
 	g.checkCall(r)
 	switch {

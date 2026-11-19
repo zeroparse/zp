@@ -31,8 +31,8 @@ rule item = [a-z]+
 	p := s.Checked()
 	v := s.Generator()
 	run := p.Runtime()
-	if v.Model != p.Model || v.Checker() != p.Checker() || v.Typed != p.Typed || v.Run != run || v.Checked != p {
-		t.Fatal("the view does not hold the program's model, checker, types and run-time program")
+	if v.Model != p.Model || v.Checker() != p.Checker() || v.Typed != p.Typed || v.Run != run || v.Elab != p {
+		t.Fatal("the view does not hold the program's model, checker, types, run-time program and elaboration input")
 	}
 	if len(v.RuleList) != len(p.RuleList) || len(v.Twins) != len(p.Twins) || len(v.ByName) != len(p.ByName) {
 		t.Fatalf("rules %d/%d, twins %d/%d, names %d/%d", len(v.RuleList), len(p.RuleList), len(v.Twins), len(p.Twins), len(v.ByName), len(p.ByName))

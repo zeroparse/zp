@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -94,7 +94,7 @@ type flatRule struct {
 
 // flatMethod writes the method name that calls the flat rule r: as invokePlain does if plain
 // (restoring the position and the recovered errors when it fails), otherwise as invoke does.
-func (g *Generator) flatMethod(r *compile.Rule, d *flatRule, name, comment string, plain bool) {
+func (g *Generator) flatMethod(r *common.Rule, d *flatRule, name, comment string, plain bool) {
 	observeBody := g.Observability && g.Table == "trules" && (!r.Plain || g.directTypedDocument)
 	if g.Observability && !observeBody {
 		name = g.tracePlainWrapper(r, name)
@@ -158,7 +158,7 @@ func (g *Generator) flatMethod(r *compile.Rule, d *flatRule, name, comment strin
 
 // leanRuleBody provides the rule-table body for external entry and generic
 // fallback calls. Its caller owns depth and failure rollback, so it adds neither.
-func (g *Generator) leanRuleBody(r *compile.Rule, d *flatRule) string {
+func (g *Generator) leanRuleBody(r *common.Rule, d *flatRule) string {
 	return g.bodyMethod(r.Name+" (value-free body inlined)", g.leanRuleText(d))
 }
 

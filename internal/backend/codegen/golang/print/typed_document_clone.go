@@ -185,7 +185,7 @@ func (t *TypedGen) documentClone(b *strings.Builder, result types.Ty) string {
 		fmt.Fprintf(&methods, " case *%s: return c.%s(v)\n", t.ref(name), convName(name))
 	}
 	for _, name := range t.NodeTypes {
-		n, _ := t.G.Prog.NodeTypeOf(name)
+		n, _ := t.G.Prog.Check.NodeTypeOf(name)
 		fmt.Fprintf(&methods, " case *%s: return %s\n", t.ref(name), clone(n, "v"))
 	}
 	methods.WriteString(` }

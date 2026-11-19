@@ -153,7 +153,7 @@ func TestAnalyzeFeatures(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := common.Analyze(view.Checked, nil, tc.opts)
+		got, err := common.Analyze(view, nil, tc.opts)
 		if err != nil {
 			t.Fatal(err)
 		}

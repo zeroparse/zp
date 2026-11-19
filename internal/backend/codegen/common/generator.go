@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/check"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
@@ -59,9 +58,9 @@ type Generator struct {
 	// flowRules counts the rules printed from Flow IR as flat rules and flowFrames the bodies
 	// and lines printed as matchers of runtime-owned frames.
 	Flow  *FlowState
-	Prog  *compile.Program
-	Table string        // the rule table being generated: rules, or recRules for Recognize
-	Cur   *compile.Rule // the rule being generated
+	Prog  *Program
+	Table string // the rule table being generated: rules, or recRules for Recognize
+	Cur   *Rule  // the rule being generated
 	// Proj holds the projected repetition captures of the rule being generated (Projections).
 	Proj    map[string]string
 	Vars    strings.Builder
@@ -98,8 +97,8 @@ func (g *Generator) FieldTypeVar(key any, ft types.Ty, decl func(v string, t *ty
 
 // UseSparseMemo removes the representation selector entirely when neither
 // emitted rule table can cross the sparse-storage threshold.
-func UseSparseMemo(o pass.Settings, prog, rec *compile.Program) bool {
-	return o.On("sparse-memo") && (prog.NSeen > 64 || rec != nil && rec.NSeen > 64)
+func UseSparseMemo(o pass.Settings, prog, rec *Program) bool {
+	return o.On("sparse-memo") && (prog.Run.NSeen > 64 || rec != nil && rec.Run.NSeen > 64)
 }
 
 // GeneratedMaxDepth returns the maximum depth that a generated parser enforces: o.MaxDepth, or the
@@ -185,11 +184,11 @@ func (g *Generator) Name(prefix string) string {
 
 // Projections returns the projected repetition captures of the rule r (see ruleProjections), none
 // in the recognizer.
-func (g *Generator) Projections(r *compile.Rule) map[string]string {
+func (g *Generator) Projections(r *Rule) map[string]string {
 	if g.Table == "recRules" {
 		return nil
 	}
-	return compile.RuleProjections(g.Prog, r)
+	return r.Projections
 }
 
 // FlowState holds the Core IR of the typed rules while they are printed from Flow IR.
@@ -198,12 +197,12 @@ type FlowState struct {
 	Origin map[core.Node]ast.Expr
 	Opts   flowlower.Options
 	// Rules holds the rules of the program by ID, value-free twins included.
-	Rules []*compile.Rule
+	Rules []*Rule
 }
 
 // CoreAction returns the action of Core IR of the rule r, the term that its value is made of, or nil
 // if it has none or the table has no Core IR.
-func (g *Generator) CoreAction(r *compile.Rule) core.ActionExpr {
+func (g *Generator) CoreAction(r *Rule) core.ActionExpr {
 	if g.Flow == nil || r.ID >= len(g.Flow.M.Rules) {
 		return nil
 	}
@@ -224,7 +223,7 @@ func (g *Generator) FailFlow(what string) {
 
 // FlowNodeFrameOK reports whether the rule r of the Node or recognizer table is printed from Flow IR as
 // a framed body (NodeFrameOK), with its Core rule. The typed table has no framed bodies.
-func (g *Generator) FlowNodeFrameOK(r *compile.Rule) (*core.Rule, bool) {
+func (g *Generator) FlowNodeFrameOK(r *Rule) (*core.Rule, bool) {
 	if g.Flow == nil || g.Table == "trules" {
 		return nil, false
 	}
@@ -331,9 +330,9 @@ func FrameScope(names []string) *check.Scope {
 // scans, with the repeats that irbuild.FollowRepeats keeps in step with them. Terminals and class runs
 // apply only to lean typed rules (the Flow passes, flowpass.Target): the Node recognizer writes its
 // terminals and classes as inline tests.
-func (g *Generator) StartRecFlow(rec *compile.Program) error {
+func (g *Generator) StartRecFlow(rec *Program) error {
 	origin := map[core.Node]ast.Expr{}
-	m, err := irbuild.CoreProjecting(rec, origin, g.Table != "recRules")
+	m, err := irbuild.CoreProjecting(rec.Elab, origin, g.Table != "recRules")
 	if err != nil {
 		return err
 	}
@@ -352,7 +351,7 @@ func (g *Generator) StartRecFlow(rec *compile.Program) error {
 	// Classes are inline tests, as the Node library's generated code writes them.
 	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), Observe: g.Observability, Node: true,
 		Document: g.RecordsExamined(), Traced: g.Traced}
-	g.Flow = &FlowState{M: m, Origin: origin, Opts: opts, Rules: append(append([]*compile.Rule(nil), rec.RuleList...), rec.Twins...)}
+	g.Flow = &FlowState{M: m, Origin: origin, Opts: opts, Rules: append(append([]*Rule(nil), rec.RuleList...), rec.Twins...)}
 	return nil
 }
 

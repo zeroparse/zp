@@ -16,7 +16,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -37,12 +36,12 @@ func testGeneratedFlowRecognizerParity(t *testing.T) {
 	taken, framed := 0, 0
 	gh := &print.Hooks{}
 	codegentest.SetGenHooks(t, gh)
-	gh.LeanRoute = func(table string, r *compile.Rule) {
+	gh.LeanRoute = func(table string, r *common.Rule) {
 		if table == "recRules" {
 			taken++
 		}
 	}
-	gh.FramedRoute = func(table string, r *compile.Rule) {
+	gh.FramedRoute = func(table string, r *common.Rule) {
 		if table == "recRules" {
 			framed++
 		}
@@ -275,14 +274,14 @@ func TestFlowRecognizerFallbackMatchesEngine(t *testing.T) {
 	refused, framed := map[string]bool{}, map[string]bool{}
 	gh := &print.Hooks{}
 	codegentest.SetGenHooks(t, gh)
-	gh.RefuseFlowRecRule = func(r *compile.Rule) bool {
+	gh.RefuseFlowRecRule = func(r *common.Rule) bool {
 		if common.RecEligible(r) {
 			refused[r.Name] = true
 			return true
 		}
 		return false
 	}
-	gh.FramedRoute = func(table string, r *compile.Rule) {
+	gh.FramedRoute = func(table string, r *common.Rule) {
 		if table == "recRules" {
 			framed[r.Name] = true
 		}

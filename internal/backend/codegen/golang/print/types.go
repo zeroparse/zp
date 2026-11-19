@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
@@ -50,7 +49,7 @@ type typedOutput struct {
 // their names; that of the parser package refers to the types of the grammar as types.Name, and the
 // names that only the types package declares (Error, TNode, Unit, TupleN, ZPHooks) unqualified,
 // which qualifyLib resolves.
-func (g *Generator) typedGo(start *compile.Rule, conv bool) (typedOutput, error) {
+func (g *Generator) typedGo(start *common.Rule, conv bool) (typedOutput, error) {
 	info := g.Prog.Typed
 	if info == nil {
 		return typedOutput{}, fmt.Errorf("typed values need the grammar's types (type checking did not run)")
@@ -81,7 +80,7 @@ func (g *Generator) typedGo(start *compile.Rule, conv bool) (typedOutput, error)
 `
 	st := ruleType(start)
 	directStart := t.direct
-	enter := func(r *compile.Rule) {
+	enter := func(r *common.Rule) {
 		g.typedRoots = append(g.typedRoots, ruleKey{"trules", r.ID, true})
 		if g.typedEntry == nil {
 			g.typedEntry = map[int]bool{}
@@ -201,7 +200,7 @@ func (it *StreamValueIterator) Close() { it.pull.Close() }
 `, r.Name, t.goType(et), newConv, result)
 	}
 	// Only start rules are entries, so only they need a case and its converters.
-	starts := make([]*compile.Rule, len(g.Prog.StartRules))
+	starts := make([]*common.Rule, len(g.Prog.StartRules))
 	for i, name := range g.Prog.StartRules {
 		starts[i] = g.Prog.ByName[name]
 	}
@@ -690,7 +689,7 @@ func (t *TypedGen) decls(b *strings.Builder) {
 		b.WriteString("}\n\n")
 	}
 	for _, name := range t.NodeTypes {
-		n, _ := t.G.Prog.NodeTypeOf(name)
+		n, _ := t.G.Prog.Check.NodeTypeOf(name)
 		fmt.Fprintf(b, "// %s is the node type %s = %s.\n", name, name, n.Underlying())
 		fmt.Fprintf(b, "type %s struct{ %s }\n\n", name, strings.TrimPrefix(t.goType(n.Underlying()), "*"))
 	}
@@ -827,7 +826,7 @@ func (a *astConv) toError(n *Node) *Error {
 	b.WriteString("\t}\n\treturn n\n}\n\n")
 	for _, name := range t.NodeTypes {
 		// A node of a named node type converts as the node it was converted from (baseNode).
-		n, _ := t.G.Prog.NodeTypeOf(name)
+		n, _ := t.G.Prog.Check.NodeTypeOf(name)
 		fmt.Fprintf(b, "func (a *astConv) %[4]s(n *Node) *%[1]s {\n\ta.spend()\n\tif n == nil || n.Type() != %[2]q {\n\t\treturn nil\n\t}\n\tif v, ok := a.values[n]; ok { return v.(*%[1]s) }\n\tu := %[3]s\n\tif u == nil {\n\t\treturn nil\n\t}\n\tv := &%[1]s{%[5]s: *u}\n\ta.remember(n, v)\n\treturn v\n}\n\n", t.ref(name), name, t.conv(n.Underlying(), "BaseNode(n)"), convName(name), embeddedName(t.goType(n.Underlying())))
 	}
 	for _, name := range t.structs {
@@ -1013,7 +1012,7 @@ func (t *TypedGen) fieldType(st, name string) (types.Ty, bool) {
 //
 // Each place converts the value it holds to its type and nothing else reads it.
 func (t *TypedGen) transfers() map[*ast.Member]bool {
-	rec := t.G.Prog.ValueRecord()
+	rec := t.G.Prog.Check.ValueRecord()
 	out := map[*ast.Member]bool{}
 	if rec == nil {
 		return out
@@ -1065,7 +1064,7 @@ func (t *TypedGen) transfers() map[*ast.Member]bool {
 			if !ok {
 				return
 			}
-			st, def := t.G.Prog.StructType(n.Type)
+			st, def := t.G.Prog.Check.StructType(n.Type)
 			if def == nil {
 				return
 			}
@@ -1316,7 +1315,7 @@ func (t *TypedGen) zeroKind(ty types.Ty) string {
 func (t *TypedGen) backNodeTypes(b *strings.Builder) {
 	var cases strings.Builder
 	for _, name := range t.NodeTypes {
-		if n, ok := t.G.Prog.NodeTypeOf(name); ok {
+		if n, ok := t.G.Prog.Check.NodeTypeOf(name); ok {
 			fmt.Fprintf(&cases, "\t\tcase *%s:\n\t\t\treturn %s\n", name, t.back(n, "x"))
 		}
 	}
@@ -1487,13 +1486,13 @@ func (t *TypedGen) typedLib(b *strings.Builder) {
 		// (nodeTypesName holds the registered indexes, nt, by the generated index).
 		reg.WriteString("\ttnamedPub := func(a any, x TVal) any {\n\ts, _ := a.(*tslabs)\n\tif s == nil {\n\t\ts = &tslabs{}\n\t}\n\tswitch x.TName() {\n")
 		for _, name := range t.NodeTypes {
-			n, _ := t.G.Prog.NodeTypeOf(name)
+			n, _ := t.G.Prog.Check.NodeTypeOf(name)
 			fmt.Fprintf(&reg, "\tcase %q:\n\t\treturn %s\n", name, t.dconv(n, "x", "s"))
 		}
 		reg.WriteString("\t}\n\treturn nil\n\t}\n")
 		fmt.Fprintf(&reg, "\tfor i, name := range %s {\n\t\t%s[i+1] = TRegisterNodeType(name, tnamedPub)\n\t}\n", goStrings(t.NodeTypes), nodeTypesName)
 	}
-	for _, r := range append(append([]*compile.Rule(nil), t.G.Prog.RuleList...), t.G.Prog.Twins...) {
+	for _, r := range append(append([]*common.Rule(nil), t.G.Prog.RuleList...), t.G.Prog.Twins...) {
 		if r.OpNodeType != "" {
 			fmt.Fprintf(&reg, "\ttrules[%d].OpNt = %s\n", r.ID, t.G.nodeTypeID(r.OpNodeType))
 		}
@@ -1545,7 +1544,7 @@ func (t *TypedGen) typedLib(b *strings.Builder) {
 	// remembered by their values; string nodes are their own public forms (tmatchAs).
 	var remembered []string
 	for _, name := range t.NodeTypes {
-		if n, _ := t.G.Prog.NodeTypeOf(name); n.Value != types.TyString {
+		if n, _ := t.G.Prog.Check.NodeTypeOf(name); n.Value != types.TyString {
 			remembered = append(remembered, name)
 		}
 	}

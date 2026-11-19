@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
@@ -56,7 +55,7 @@ func (h *vhelpers) get(prefix, key string, x types.Ty) string {
 
 // ruleType returns the type that selects the Go type of the values of rule r: its declared type, or
 // a vrule for a rule whose Go type comes from its value type.
-func (t *TypedGen) ruleType(r *compile.Rule) types.Ty {
+func (t *TypedGen) ruleType(r *common.Rule) types.Ty {
 	return t.RuleRef(r.Name)
 }
 
@@ -226,7 +225,7 @@ func (t *TypedGen) typedHelpers(b *strings.Builder, done *int) bool {
 }
 
 // streamValue returns the value type of the elements of the #stream repetition of the rule rd.
-func streamValue(p *compile.Program, rd *ast.RuleDef) (types.Ty, bool) {
+func streamValue(p *common.Program, rd *ast.RuleDef) (types.Ty, bool) {
 	var rep *ast.Repeat
 	astfacts.WalkExpr(rd.Expr, func(e ast.Expr) {
 		if a, ok := e.(*ast.Attributed); ok {

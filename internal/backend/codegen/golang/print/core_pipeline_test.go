@@ -21,7 +21,7 @@ func typedEnv(g *print.Generator) *corepass.Env {
 
 // pipelinedTypedCore runs the pipeline on the typed rules of g.
 func pipelinedTypedCore(g *print.Generator, verifyEach bool) (*core.Module, error) {
-	m, err := irbuild.CoreFrom(g.Prog, map[core.Node]ast.Expr{})
+	m, err := irbuild.CoreFrom(g.Prog.Elab, map[core.Node]ast.Expr{})
 	if err != nil {
 		return nil, err
 	}

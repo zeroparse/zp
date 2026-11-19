@@ -10,7 +10,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -36,10 +35,10 @@ func testGeneratedFlowNodeParity(t *testing.T) {
 	taken := map[string]int{}
 	gh := &print.Hooks{}
 	codegentest.SetGenHooks(t, gh)
-	gh.LeanRoute = func(table string, r *compile.Rule) { taken[table]++ }
+	gh.LeanRoute = func(table string, r *common.Rule) { taken[table]++ }
 	framed, operators := map[string]int{}, map[string]int{}
-	gh.FramedRoute = func(table string, r *compile.Rule) { framed[table]++ }
-	gh.OperatorsRoute = func(table string, r *compile.Rule) { operators[table]++ }
+	gh.FramedRoute = func(table string, r *common.Rule) { framed[table]++ }
+	gh.OperatorsRoute = func(table string, r *common.Rule) { operators[table]++ }
 	for _, c := range cases {
 		g, err := parseTest(c.Src)
 		if err != nil {
@@ -100,13 +99,13 @@ func TestFlowNodeRulesPrintFromFlow(t *testing.T) {
 				taken, framed, operators := 0, 0, 0
 				gh := &print.Hooks{}
 				codegentest.SetGenHooks(t, gh)
-				gh.LeanRoute = func(table string, r *compile.Rule) {
+				gh.LeanRoute = func(table string, r *common.Rule) {
 					if table == "rules" {
 						taken++
 					}
 				}
-				gh.FramedRoute = func(table string, r *compile.Rule) { framed++ }
-				gh.OperatorsRoute = func(table string, r *compile.Rule) { operators++ }
+				gh.FramedRoute = func(table string, r *common.Rule) { framed++ }
+				gh.OperatorsRoute = func(table string, r *common.Rule) { operators++ }
 				files, err := codegentest.Generate(t, g, o)
 				if err != nil {
 					t.Fatal(err)

@@ -5,7 +5,6 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -27,7 +26,7 @@ func TestOperatorsLinesWithRecoveryPrintFromFlow(t *testing.T) {
 			flowed := map[string]int{}
 			gh := &print.Hooks{}
 			codegentest.SetGenHooks(t, gh)
-			gh.OperatorsRoute = func(table string, r *compile.Rule) { flowed[table+"/"+r.Name]++ }
+			gh.OperatorsRoute = func(table string, r *common.Rule) { flowed[table+"/"+r.Name]++ }
 			if _, err := codegentest.GenerateCode(t, g, common.GenOptions{Start: "main", Package: "gen", Recognize: true}); err != nil {
 				t.Fatal(err)
 			}

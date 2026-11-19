@@ -80,7 +80,7 @@ type TermOptions struct {
 	// otherwise. It applies to a term that the function returns (Result is empty).
 	TextDispatch bool
 	// Proj are the projected captures of the rule of the term, by name, with the capture of an element
-	// that each stands for (compile.RuleProjections). A call map($x, (e) => e.$f) of a projected capture
+	// that each stands for (the projections of the rule's view, common.Rule.Projections). A call map($x, (e) => e.$f) of a projected capture
 	// x whose elements stand for f takes the elements of x as they are (term.copyList).
 	Proj map[string]string
 }

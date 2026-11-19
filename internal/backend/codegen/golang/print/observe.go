@@ -2,16 +2,16 @@ package print
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func (g *Generator) tracePlainWrapper(r *compile.Rule, name string) string {
+func (g *Generator) tracePlainWrapper(r *common.Rule, name string) string {
 	return g.traceCallWrapper(r, name, true)
 }
 
-func (g *Generator) traceCallWrapper(r *compile.Rule, name string, evaluated bool) string {
+func (g *Generator) traceCallWrapper(r *common.Rule, name string, evaluated bool) string {
 	body := name + "ObservedBody"
 	eval := ""
 	if evaluated {

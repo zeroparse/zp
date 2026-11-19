@@ -2,12 +2,12 @@ package print
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/backend/codegen/common"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func (g *Generator) tracePlainCall(r *compile.Rule, name string) string {
+func (g *Generator) tracePlainCall(r *common.Rule, name string) string {
 	if !g.Observability {
 		return name
 	}
