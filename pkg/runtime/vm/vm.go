@@ -40,9 +40,9 @@ func init() {
 // newParser returns the vm parser of p, on the recursive VM.
 func newParser(p *engine.Parser) *Parser { return &Parser{p.OnBackend(engine.Bytecode)} }
 
-// LoadParser loads a parser saved by MarshalBinary or Marshal. Corruption is detected by a checksum and
-// structural validation, but types are not checked again: load only data from trusted sources, such as
-// the output of zp compile or MarshalBinary. The parser runs on the bytecode backends and serves
+// LoadParser loads a parser saved by compiler.Marshal or zp compile. Corruption is detected by a
+// checksum and structural validation, but types are not checked again: load only data from trusted
+// sources, such as the output of zp compile or compiler.Marshal. The parser runs on the bytecode backends and serves
 // the parses of the file's mode only; any other parse returns an error that names the mode it needs.
 func LoadParser(data []byte) (*Parser, error) {
 	p, err := engine.LoadParser(data)
@@ -52,7 +52,7 @@ func LoadParser(data []byte) (*Parser, error) {
 	return newParser(p), nil
 }
 
-// IsCompiled reports whether data is a compiled grammar written by Marshal.
+// IsCompiled reports whether data is a compiled grammar written by compiler.Marshal or zp compile.
 func IsCompiled(data []byte) bool { return engine.IsCompiled(data) }
 
 // Iterative returns a parser that shares the program and the start rule and runs on the VM that
@@ -185,12 +185,12 @@ type CompiledMode uint8
 const (
 	// CompiledParse serves Parse, ParsePrefix, ParseStream and Iterate without WithTrace or
 	// WithProfile.
-	CompiledParse = CompiledMode(engine.CompiledParse)
+	CompiledParse CompiledMode = iota
 	// CompiledRecognize serves Recognize without WithTrace or WithProfile.
-	CompiledRecognize = CompiledMode(engine.CompiledRecognize)
+	CompiledRecognize
 	// CompiledDocument serves NewDocument, and Parse, ParsePrefix, ParseStream and Iterate with
 	// WithTrace or WithProfile.
-	CompiledDocument = CompiledMode(engine.CompiledDocument)
+	CompiledDocument
 )
 
 // String returns the name of the mode: "parse", "recognize" or "document".
