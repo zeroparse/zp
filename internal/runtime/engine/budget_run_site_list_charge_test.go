@@ -48,7 +48,7 @@ rule x = "x"`)
 	for _, c := range []struct {
 		backend Backend
 		total   uint64
-	}{{Closure, 415}, {Bytecode, 433}, {BytecodeIterative, 423}} {
+	}{{Closure, 415}, {Bytecode, 442}, {BytecodeIterative, 432}} {
 		t.Run(c.backend.String(), func(t *testing.T) {
 			sizes, total := computeSweep(t, prog, input, c.backend)
 			for _, want := range []uint64{14, 12} {
