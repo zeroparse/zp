@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
-	"zeroparse.dev/zp/internal/syntax/fmt"
 )
 
 // Formatting has two potentially large phases: AST printing and deriving a
@@ -25,7 +25,7 @@ func formatEditsContext(ctx context.Context, a *analysis) ([]protocol.TextEdit, 
 		}
 		return []protocol.TextEdit{}, nil
 	}
-	out, err := fmt.FormatContext(ctx, a.g)
+	out, err := tooling.FormatContext(ctx, a.g)
 	if err != nil {
 		return nil, err
 	}

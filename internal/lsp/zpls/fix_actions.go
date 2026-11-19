@@ -9,12 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/analysis/lint"
-	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
-// A lint fix is offered for a finding only when lint.Rewrites proves its kind of change, and then
+// A lint fix is offered for a finding only when tooling.LintRewritesOf proves its kind of change, and then
 // only if the edited grammar passes the same checks as a suppression and two more: no other
 // finding appears or disappears, and no rule changes its type or its status as a start rule.
 // Positions inside the messages of the findings shift with an edit, so they are not compared.
@@ -30,8 +29,8 @@ type lintFix struct {
 type lintFixer struct {
 	d        *document
 	ctx      context.Context
-	findings []lint.Finding
-	rewrites []lint.Rewrite
+	findings []tooling.LintFinding
+	rewrites []tooling.LintRewrite
 }
 
 // fixer returns the fixer of d, or nil if the document has no findings to fix.
@@ -48,13 +47,13 @@ func (d *document) fixer(ctx context.Context) *lintFixer {
 	return &lintFixer{d: d, ctx: ctx, findings: findings, rewrites: rewrites}
 }
 
-// rewrites returns the rewrites of the findings, which lint.Rewrites proves on the compiled grammar.
-func (a *analysis) rewrites(ctx context.Context, findings []lint.Finding) ([]lint.Rewrite, error) {
+// rewrites returns the rewrites of the findings, which tooling.LintRewritesOf proves on the compiled grammar.
+func (a *analysis) rewrites(ctx context.Context, findings []tooling.LintFinding) ([]tooling.LintRewrite, error) {
 	res, err := a.frontResult()
 	if err != nil {
 		return nil, err
 	}
-	return lint.RewritesChecked(ctx, res, a.g, findings)
+	return tooling.LintRewritesOf(ctx, res, a.g, findings)
 }
 
 // fixerFor returns the fixer of the finding at index i alone, computing only its rewrite.
@@ -68,12 +67,12 @@ func (d *document) fixerFor(ctx context.Context, i int) *lintFixer {
 	if err != nil {
 		return nil
 	}
-	rewrites := make([]lint.Rewrite, len(findings))
+	rewrites := make([]tooling.LintRewrite, len(findings))
 	rewrites[i] = one[0]
 	return &lintFixer{d: d, ctx: ctx, findings: findings, rewrites: rewrites}
 }
 
-// hasRewrite reports whether lint.Rewrites proves a rewrite for the finding at index i. It does
+// hasRewrite reports whether tooling.LintRewritesOf proves a rewrite for the finding at index i. It does
 // not verify the edited document.
 func (d *document) hasRewrite(ctx context.Context, i int) bool {
 	x := d.fixerFor(ctx, i)
@@ -82,13 +81,13 @@ func (d *document) hasRewrite(ctx context.Context, i int) bool {
 
 // fixTitle returns the title of the fix that a finding can have, without computing the fix. A
 // title does not depend on the rewrite, so it is the same before and after the fix is resolved.
-func (d *document) fixTitle(f lint.Finding) (string, bool) {
+func (d *document) fixTitle(f tooling.LintFinding) (string, bool) {
 	switch f.Check {
-	case lint.CheckCharClass:
+	case tooling.CheckCharClass:
 		return "Merge the overlapping ranges of this character class", true
-	case lint.CheckUselessLookahead:
+	case tooling.CheckUselessLookahead:
 		return "Remove the lookahead that always succeeds", true
-	case lint.CheckUnreachableRule:
+	case tooling.CheckUnreachableRule:
 		return "Remove the unused rule " + f.Rule, path.Base(d.uri) != "zp.zp"
 	}
 	return "", false
@@ -118,14 +117,14 @@ var positionText = regexp.MustCompile(`\d+:\d+`)
 // findingKeys counts the findings by check, rule and message, without the positions in the message
 // (and, for an unused rule, without the message). The finding at index skip and the findings of the
 // rule gone, which is deleted, are left out.
-func findingKeys(findings []lint.Finding, skip int, gone string) map[string]int {
+func findingKeys(findings []tooling.LintFinding, skip int, gone string) map[string]int {
 	keys := map[string]int{}
 	for i, f := range findings {
 		if i == skip || gone != "" && f.Rule == gone {
 			continue
 		}
 		message := positionText.ReplaceAllString(f.Message, "")
-		if f.Check == lint.CheckUnreachableRule {
+		if f.Check == tooling.CheckUnreachableRule {
 			// The message names the rules that call the rule, and removing one of them changes it.
 			message = ""
 		}
@@ -134,7 +133,7 @@ func findingKeys(findings []lint.Finding, skip int, gone string) map[string]int 
 	return keys
 }
 
-func (d *document) verifiedFix(ctx context.Context, findings []lint.Finding, i int, rw lint.Rewrite, control *renderControl) (lintFix, bool) {
+func (d *document) verifiedFix(ctx context.Context, findings []tooling.LintFinding, i int, rw tooling.LintRewrite, control *renderControl) (lintFix, bool) {
 	a := d.analysis()
 	f := findings[i]
 	start, end := a.idx.zpOffset(rw.Start), a.idx.zpOffset(rw.End)
@@ -148,9 +147,9 @@ func (d *document) verifiedFix(ctx context.Context, findings []lint.Finding, i i
 	}
 	removed := ""
 	switch f.Check {
-	case lint.CheckUselessLookahead:
+	case tooling.CheckUselessLookahead:
 		start, end = lookaheadSpan(d.text, start, end)
-	case lint.CheckUnreachableRule:
+	case tooling.CheckUnreachableRule:
 		removed = f.Rule
 		start, end = ruleSpan(d.text, start, end)
 	}
@@ -362,11 +361,11 @@ func commentLinesAbove(text string, lastStart, end int) int {
 // name that does not depend on the edit (the holder and its number), and the lowered grammars are
 // compared like the declared ones. The inline actions of removed are gone and are not compared.
 func (d *document) inlineActionsAgree(ctx context.Context, candidate *analysis, removed string, control *renderControl) bool {
-	before, names, err := desugar.LowerInlineActions(d.analysis().g)
+	before, names, err := tooling.LowerInlineActions(d.analysis().g)
 	if err != nil {
 		return false
 	}
-	after, afterNames, err := desugar.LowerInlineActions(candidate.g)
+	after, afterNames, err := tooling.LowerInlineActions(candidate.g)
 	if err != nil {
 		return false
 	}

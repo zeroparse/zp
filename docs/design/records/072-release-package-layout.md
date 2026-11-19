@@ -121,6 +121,8 @@ compiler side. The rules, which a test enforces, are these.
      diagnostics carry source positions. The grammar AST imports only the standard library, and `pkg/grammar` is in the
      layer of the public tool packages and imports only the parser, the formatter, the AST and the bytecode package. The fixture suite of `zp test` is a tool that uses the
      compiler, in the same layer as the public tool packages.
+   - The language server uses the compiler only through the driver (`internal/driver/tooling`) and the grammar AST; it
+     imports no layer below the driver.
    - Only the commands and the repository's test support import the language server packages, and only test support imports
      the test-support packages from non-test code.
 
@@ -159,8 +161,7 @@ flowchart TD
   util["utilities: diagnostics, cancellation, command-line flag names"] --> gram["pkg/grammar/ast"]
   ir --> gram
   cmd --> lsp["internal/lsp: protocol, zpls"] --> driver
-  lsp --> analysis["internal/analysis: lint, complexity"]
-  driver --> analysis
+  driver --> analysis["internal/analysis: lint, complexity"]
   analysis --> backend
   backend --> middle
   middle --> front

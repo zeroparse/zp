@@ -9,10 +9,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
-	"zeroparse.dev/zp/internal/runtime/engine"
-	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -71,9 +69,9 @@ func (c *renderControl) check() {
 
 func (c *renderControl) formatType(t ast.TypeExpr) string {
 	if c == nil {
-		return fmt.FormatType(t)
+		return tooling.FormatType(t)
 	}
-	out, err := fmt.FormatTypeContext(c.ctx, t)
+	out, err := tooling.FormatTypeContext(c.ctx, t)
 	if err != nil {
 		panic(renderCancellation{err})
 	}
@@ -81,15 +79,15 @@ func (c *renderControl) formatType(t ast.TypeExpr) string {
 }
 func (c *renderControl) formatGrammar(g *ast.Grammar) string {
 	if c == nil {
-		return fmt.Format(g)
+		return tooling.Format(g)
 	}
-	out, err := fmt.FormatContext(c.ctx, g)
+	out, err := tooling.FormatContext(c.ctx, g)
 	if err != nil {
 		panic(renderCancellation{err})
 	}
 	return out
 }
-func (c *renderControl) ruleType(p *engine.Program, name string) (string, bool) {
+func (c *renderControl) ruleType(p *tooling.Program, name string) (string, bool) {
 	if c == nil {
 		return p.RuleType(name)
 	}
@@ -97,7 +95,7 @@ func (c *renderControl) ruleType(p *engine.Program, name string) (string, bool) 
 }
 func (c *renderControl) isIdentifier(s string) bool {
 	if c == nil {
-		return parser.IsIdentifier(s)
+		return tooling.IsIdentifier(s)
 	}
 	if s == "" {
 		return false
@@ -114,10 +112,10 @@ func (c *renderControl) isIdentifier(s string) bool {
 }
 
 // isRuleName is isIdentifier for the name of a rule, which may begin with an underscore that
-// hides the rule (see parser.IsRuleName).
+// hides the rule (see tooling.IsRuleName).
 func (c *renderControl) isRuleName(s string) bool {
 	if c == nil {
-		return parser.IsRuleName(s)
+		return tooling.IsRuleName(s)
 	}
 	if len(s) < 2 || s[0] != '_' {
 		return c.isIdentifier(s)

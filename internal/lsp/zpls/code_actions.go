@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"zeroparse.dev/zp/internal/driver/entry"
 
-	"zeroparse.dev/zp/internal/analysis/lint"
-	"zeroparse.dev/zp/internal/frontend"
+	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
@@ -57,12 +55,12 @@ func suppressTitle(check string) string { return "Suppress " + check + " on this
 
 // lintFindings shares the already successful compilation with the linter.
 // Reachability is checked from the grammar's default start rule.
-func (a *analysis) lintFindings() []lint.Finding {
+func (a *analysis) lintFindings() []tooling.LintFinding {
 	findings, _ := a.lintFindingsContext(context.Background())
 	return findings
 }
 
-func (a *analysis) lintFindingsContext(ctx context.Context) ([]lint.Finding, error) {
+func (a *analysis) lintFindingsContext(ctx context.Context) ([]tooling.LintFinding, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -76,13 +74,13 @@ func (a *analysis) lintFindingsContext(ctx context.Context) ([]lint.Finding, err
 	if err != nil {
 		return nil, err
 	}
-	return lint.RunChecked(ctx, res, a.g, a.prog.DefaultStart())
+	return tooling.RunLint(ctx, res, a.g, a.prog.DefaultStart())
 }
 
 // frontResult returns the front-end result of the compiled grammar, built from the program that
 // the analysis already has, so that the grammar is not compiled again.
-func (a *analysis) frontResult() (*frontend.Result, error) {
-	a.front.once.Do(func() { a.front.res, a.front.err = frontend.FromProgram(entry.Checked(a.prog), nil) })
+func (a *analysis) frontResult() (*tooling.FrontResult, error) {
+	a.front.once.Do(func() { a.front.res, a.front.err = tooling.FrontResultOf(a.prog) })
 	return a.front.res, a.front.err
 }
 
@@ -158,11 +156,11 @@ func (d *document) lintDiagnosticsContext(ctx context.Context) ([]Diagnostic, er
 }
 
 // lintDiagnostic is the diagnostic of the finding f at index i of the findings of the document.
-func (d *document) lintDiagnostic(i int, f lint.Finding) Diagnostic {
+func (d *document) lintDiagnostic(i int, f tooling.LintFinding) Diagnostic {
 	severity := 4
-	if f.Severity == lint.Error {
+	if f.Severity == tooling.LintError {
 		severity = 1
-	} else if f.Severity == lint.Warning {
+	} else if f.Severity == tooling.LintWarning {
 		severity = 2
 	}
 	return Diagnostic{Range: d.analysis().errorRange(f.Pos, false), Severity: severity, Source: "zp-lint", Message: f.Message, Code: f.Check,
@@ -214,7 +212,7 @@ func (s *Server) codeActionsControlled(params json.RawMessage, control *renderCo
 	var fixer *lintFixer
 	fixerDone := false
 	lazy := s.client.resolvesEdits()
-	var findings []lint.Finding
+	var findings []tooling.LintFinding
 	if lazy {
 		findings, _ = d.analysis().lintFindingsContext(ctx)
 	}
@@ -239,7 +237,7 @@ func (s *Server) codeActionsControlled(params json.RawMessage, control *renderCo
 		}
 		if s.client.Experimental.ZP.ShowExplanation {
 			explanation := ""
-			for _, check := range lint.Checks() {
+			for _, check := range tooling.LintChecks() {
 				control.poll()
 				if check.Name == diagnostic.Code {
 					explanation = check.Summary
@@ -258,7 +256,7 @@ func (s *Server) codeActionsControlled(params json.RawMessage, control *renderCo
 			data := func(action string) *actionData {
 				return &actionData{findingData: *diagnostic.Data, Action: action}
 			}
-			if diagnostic.Code != lint.CheckDirective && d.suppressionPlausible(diagnostic, control) {
+			if diagnostic.Code != tooling.CheckDirective && d.suppressionPlausible(diagnostic, control) {
 				out = append(out, codeAction{Title: suppressTitle(diagnostic.Code), Kind: "quickfix", Diagnostics: []Diagnostic{diagnostic}, Data: data(actionSuppress)})
 			}
 			if i, ok := findingIndex(diagnostic.Data.Key); ok && i < len(findings) {
@@ -393,7 +391,7 @@ func (d *document) suppressionEdit(ctx context.Context, diagnostic Diagnostic, c
 	if ctx.Err() != nil {
 		return protocol.TextEdit{}, false
 	}
-	if diagnostic.Code == lint.CheckDirective {
+	if diagnostic.Code == tooling.CheckDirective {
 		return protocol.TextEdit{}, false
 	}
 	a := d.analysis()
@@ -440,7 +438,7 @@ func (d *document) suppressionEdit(ctx context.Context, diagnostic Diagnostic, c
 				return protocol.TextEdit{}, false
 			}
 		}
-		if finding.Check == lint.CheckDirective && finding.Pos.Line == line+1 {
+		if finding.Check == tooling.CheckDirective && finding.Pos.Line == line+1 {
 			return protocol.TextEdit{}, false
 		}
 		if finding.Check == diagnostic.Code && finding.Message == diagnostic.Message && candidate.errorRange(finding.Pos, false).Start.Line == line+1 {

@@ -10,11 +10,13 @@
 //   - Rule 2: the layers of the compiler side. Each layer imports only the layers that the
 //     layer graph puts below it: cmd over the public tool API (pkg/compiler, pkg/lint,
 //     pkg/sample, pkg/editfuzz and the fixture suites of zp test) and the LSP, the public tool API
-//     over the driver, the LSP and the driver over analysis, analysis over the back end, the back
+//     and the LSP over the driver, the driver over analysis, analysis over the back end, the back
 //     end over the middle end, the middle end over the front end, and those over internal/ir,
 //     which is over internal/pass and the grammar AST (pkg/grammar/ast); every layer may import the
 //     runtime side and the utilities (diagnostic, cancel, cliflag), which import only the grammar
-//     AST and which the grammar AST does not import. Test support and the packages outside the
+//     AST and which the grammar AST does not import. The LSP imports of the compiler side only
+//     the driver and the grammar AST, not the layers below the driver. Test support and the
+//     packages outside the
 //     graph (benchmarks, examples, the specification's tests) may import any layer except the
 //     LSP, and only test support imports test support outside tests.
 //     internal/pass imports nothing of the module; internal/ir/** imports only internal/ir/**,

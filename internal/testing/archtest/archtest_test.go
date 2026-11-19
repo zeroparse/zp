@@ -285,7 +285,7 @@ func TestNegativeControls(t *testing.T) {
 // TestLayerGraph adds an edge between every two layers of the compiler side and checks that the
 // layer check fails exactly the edges that the layer graph of the design does not allow. The
 // allowed layers are written out here, closed under the arrows, apart from the arrows in
-// layerArrows.
+// layerArrows; the language server imports only the driver and the grammar AST (layerOnly).
 func TestLayerGraph(t *testing.T) {
 	g := loadAll(t)[0].clone()
 	// One package of each layer.
@@ -300,7 +300,7 @@ func TestLayerGraph(t *testing.T) {
 	allowed := map[layer][]layer{
 		layerCmd:      append([]layer{layerPublic, layerLSP}, below...),
 		layerPublic:   below,
-		layerLSP:      below,
+		layerLSP:      {layerDriver, layerGrammar},
 		layerDriver:   below[1:],
 		layerAnalysis: below[2:],
 		layerBackend:  below[3:],

@@ -8,14 +8,10 @@ import (
 	"strings"
 	"sync"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/diagnostic"
-	"zeroparse.dev/zp/internal/lsp/protocol"
 
-	"zeroparse.dev/zp/internal/analysis/lint"
-	"zeroparse.dev/zp/internal/driver/entry"
-	"zeroparse.dev/zp/internal/frontend"
-	"zeroparse.dev/zp/internal/frontend/parser"
-	"zeroparse.dev/zp/internal/runtime/engine"
+	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/driver/tooling"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -60,9 +56,9 @@ type occurrence struct {
 	def *definition
 }
 
-// token is a parser.Token with its byte span.
+// token is a tooling.Token with its byte span.
 type token struct {
-	parser.Token
+	tooling.Token
 	start, end int
 }
 
@@ -74,15 +70,15 @@ type analysis struct {
 	// tokAt maps the byte offset at which a token starts to its index in toks.
 	tokAt             map[int]int
 	declarationStarts []bool
-	// g is the grammar, partial if there are syntax errors (see parser.ParsePartial).
+	// g is the grammar, partial if there are syntax errors (see tooling.ParsePartial).
 	g          *ast.Grammar
-	syntaxErrs parser.ErrorList
+	syntaxErrs tooling.ParseErrorList
 	// prog is the compiled grammar, nil if the source has errors.
-	prog *engine.Program
+	prog *tooling.Program
 	// front is the front-end result of prog, built once for the linter; nil without prog.
 	front      *frontCell
 	diags      []Diagnostic
-	lintCache  []lint.Finding
+	lintCache  []tooling.LintFinding
 	lintCached bool
 	// publicationDiags is built by the responsive worker for its immutable snapshot.
 	publicationDiags []Diagnostic
@@ -126,7 +122,7 @@ func analyzeContextSafely(ctx context.Context, text string) (a *analysis, err er
 // share it.
 type frontCell struct {
 	once sync.Once
-	res  *frontend.Result
+	res  *tooling.FrontResult
 	err  error
 }
 
@@ -144,7 +140,7 @@ func failedAnalysis(text string, good *analysis, err error) *analysis {
 		a.g = &ast.Grammar{}
 	}
 	a.publicationDiags = nil
-	a.syntaxErrs = parser.ErrorList{&parser.Error{Msg: msg}}
+	a.syntaxErrs = tooling.ParseErrorList{&tooling.ParseError{Msg: msg}}
 	a.diags = []Diagnostic{{Range: protocol.Range{}, Severity: protocol.SeverityError, Source: "zp", Message: msg}}
 	return &a
 }
@@ -176,7 +172,7 @@ func analyzeContext(ctx context.Context, text string) (*analysis, error) {
 		return nil, err
 	}
 	a := newAnalysisWithIndex(text, idx)
-	tokens, err := parser.TokenizeContext(ctx, text)
+	tokens, err := tooling.TokenizeContext(ctx, text)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +189,7 @@ func analyzeContext(ctx context.Context, text string) (*analysis, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	a.g, a.syntaxErrs, err = parser.ParsePartialContext(ctx, text)
+	a.g, a.syntaxErrs, err = tooling.ParsePartialContext(ctx, text)
 	if err != nil {
 		return nil, err
 	}
@@ -234,17 +230,17 @@ func (a *analysis) compileContextControlled(ctx context.Context, control *render
 
 // compileSafely compiles g, turning a panic of the compiler into an error so that a bug in it
 // cannot stop the server.
-func compileSafely(g *ast.Grammar) (*engine.Program, error) {
+func compileSafely(g *ast.Grammar) (*tooling.Program, error) {
 	return compileContextSafely(context.Background(), g)
 }
 
-func compileContextSafely(ctx context.Context, g *ast.Grammar) (prog *engine.Program, err error) {
+func compileContextSafely(ctx context.Context, g *ast.Grammar) (prog *tooling.Program, err error) {
 	defer func() {
 		if x := recover(); x != nil {
 			prog, err = nil, fmt.Errorf("internal error while compiling the grammar: %v", x)
 		}
 	}()
-	return entry.CompileContext(ctx, g, entry.Options{})
+	return tooling.CompileContext(ctx, g, tooling.CompileOptions{})
 }
 
 // errorRange returns the range to report an error at pos at: the token at pos, or else the
@@ -282,7 +278,7 @@ func (a *analysis) tokenIndex(pos ast.Pos) (int, bool) {
 // Other tokens, including punctuation, retain their place in the syntax.
 func (a *analysis) significantTokenControlled(i int, control *renderControl) int {
 	control.poll()
-	for i < len(a.toks) && a.toks[i].Kind == parser.TokenComment {
+	for i < len(a.toks) && a.toks[i].Kind == tooling.TokenComment {
 		control.poll()
 		i++
 	}
@@ -292,7 +288,7 @@ func (a *analysis) significantTokenControlled(i int, control *renderControl) int
 // previousSignificantToken skips comments backwards; -1 means the start of input.
 func (a *analysis) previousSignificantTokenControlled(i int, control *renderControl) int {
 	control.poll()
-	for i >= 0 && a.toks[i].Kind == parser.TokenComment {
+	for i >= 0 && a.toks[i].Kind == tooling.TokenComment {
 		control.poll()
 		i--
 	}
@@ -399,7 +395,7 @@ func (a *analysis) mark(pos ast.Pos, typ semTokenType, mods int) {
 }
 
 func (a *analysis) markToken(i int, typ semTokenType, mods int) {
-	if i >= 0 && i < len(a.toks) && a.toks[i].Kind == parser.TokenIdent {
+	if i >= 0 && i < len(a.toks) && a.toks[i].Kind == tooling.TokenIdent {
 		a.sem[a.toks[i].start] = semClass{typ, mods}
 	}
 }
@@ -417,7 +413,7 @@ func (a *analysis) define(kind symKind, name string, start, pos ast.Pos, control
 		first = i
 	}
 	next := a.significantTokenControlled(i+1, control)
-	if next >= len(a.toks) || a.toks[next].Kind != parser.TokenIdent || a.toks[next].Text != name {
+	if next >= len(a.toks) || a.toks[next].Kind != tooling.TokenIdent || a.toks[next].Text != name {
 		return nil
 	}
 	kw, n := a.toks[i], a.toks[next]
@@ -432,10 +428,10 @@ func (a *analysis) define(kind symKind, name string, start, pos ast.Pos, control
 		if depth == 0 && (a.isDefKeyword(j) || a.declarationStart(j) && (a.isIdent(j, "package") || a.isPunct(j, "@")) || a.isPunct(j, ";")) {
 			break
 		}
-		if t.Kind != parser.TokenComment {
+		if t.Kind != tooling.TokenComment {
 			last = j
 		}
-		if t.Kind == parser.TokenPunct {
+		if t.Kind == tooling.TokenPunct {
 			switch t.Text {
 			case "(", "(?", "{", "[":
 				depth++
@@ -462,14 +458,14 @@ func (a *analysis) docComment(first, last int, control *renderControl) string {
 	for k := first - 1; k >= 0; k-- {
 		control.poll()
 		t := a.toks[k]
-		if t.Kind != parser.TokenComment || t.End.Line != line-1 || k > 0 && a.toks[k-1].End.Line == t.Pos.Line {
+		if t.Kind != tooling.TokenComment || t.End.Line != line-1 || k > 0 && a.toks[k-1].End.Line == t.Pos.Line {
 			break
 		}
 		lines = append(lines, commentText(t.Text, control))
 		line = t.Pos.Line
 	}
 	if len(lines) == 0 && a.toks[last].Pos.Line == a.toks[first].Pos.Line && last+1 < len(a.toks) {
-		if t := a.toks[last+1]; t.Kind == parser.TokenComment && t.Pos.Line == a.toks[last].End.Line {
+		if t := a.toks[last+1]; t.Kind == tooling.TokenComment && t.Pos.Line == a.toks[last].End.Line {
 			return commentText(t.Text, control)
 		}
 	}
@@ -501,7 +497,7 @@ func (a *analysis) refToken(kind symKind, name string, i int) {
 		return
 	}
 	t := a.toks[i]
-	if t.Kind != parser.TokenIdent || t.Text != name {
+	if t.Kind != tooling.TokenIdent || t.Text != name {
 		return
 	}
 	a.occs = append(a.occs, occurrence{kind: kind, name: name, start: t.start, end: t.end})

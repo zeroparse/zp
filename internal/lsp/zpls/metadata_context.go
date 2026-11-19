@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sort"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
 
-	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -93,7 +93,7 @@ func (control *renderControl) expressionArgs(a *ast.Attribute) []ast.Expr {
 	if control == nil {
 		return a.ExpressionArgs()
 	}
-	return astfacts.ExpressionArgsWithPoll(a, control.poll)
+	return tooling.ExpressionArgsWithPoll(a, control.poll)
 }
 
 func (a *analysis) collect()                { a.collectControlled(nil) }

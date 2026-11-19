@@ -3,7 +3,7 @@ package zpls
 import (
 	"encoding/json"
 
-	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
@@ -115,17 +115,17 @@ func (a *analysis) classify(i int, occ *int, control *renderControl) (semClass, 
 	control.poll()
 	t := a.toks[i]
 	switch t.Kind {
-	case parser.TokenComment:
+	case tooling.TokenComment:
 		return semClass{semComment, 0}, true
-	case parser.TokenString:
+	case tooling.TokenString:
 		return semClass{semString, 0}, true
-	case parser.TokenInt:
+	case tooling.TokenInt:
 		return semClass{semNumber, 0}, true
-	case parser.TokenCharClass:
+	case tooling.TokenCharClass:
 		return semClass{semRegexp, 0}, true
-	case parser.TokenCapture, parser.TokenIndex:
+	case tooling.TokenCapture, tooling.TokenIndex:
 		return semClass{semParameter, 0}, true
-	case parser.TokenIdent:
+	case tooling.TokenIdent:
 		if i > 0 && (a.isPunct(i-1, "@") || a.isPunct(i-1, "#")) {
 			return semClass{semDecorator, 0}, true
 		}
