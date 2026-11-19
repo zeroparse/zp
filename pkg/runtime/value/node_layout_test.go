@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
-// The parsers convert a *Node to a *coreimpl.Data[Node] and back; that needs Data to be the only
+// The parsers convert a *Node to a *valueimpl.Data[Node] and back; that needs Data to be the only
 // field of Node.
 func TestNodeLayout(t *testing.T) {
 	var n Node

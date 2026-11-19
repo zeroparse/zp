@@ -137,8 +137,9 @@ grammar. The reference parser needs Core IR, so it belongs to the compiler side 
 package.
 
 The test lists the dependencies of every package under the default tags and under the reference tags, and prints the
-shortest import chain of a violation. It has no allowlist: a violation fails it. A deliberately wrong edge in the test
-is a negative control.
+shortest import chain of a violation. A violation fails it unless an exact-match allowlist names it; an entry names the
+stage that removes the edge, and an entry that matches no edge fails the test too, so the list only shrinks. A
+deliberately wrong edge in the test is a negative control.
 
 ### The Internal Tree
 
