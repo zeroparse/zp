@@ -22,6 +22,11 @@ type Checker struct {
 	nodeTypeCache sync.Map
 	// structHasZero caches whether the struct types have a zero value (HasZero) by name.
 	structHasZero sync.Map
+	// kinds are the run-time kinds of the types (Kinds), made once under kindsMu.
+	kindsMu sync.Mutex
+	kinds   *Kinds
+	// castTypes caches the types of casts (CastType) by cast.
+	castTypes sync.Map
 }
 
 // NewChecker returns the checker of the program p.

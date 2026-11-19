@@ -91,7 +91,7 @@ func TestOutputSchemaRejectsUnresolvedShapes(t *testing.T) {
 		&ast.JoinType{Types: []ast.TypeExpr{&ast.TypeRef{Name: "Known"}, &ast.TypeRef{Name: "UnknownShape"}}},
 		&ast.TypeGroup{},
 	} {
-		shape, err := declared(p, expr)
+		shape, err := declared(p.Checker(), expr)
 		if err != nil || shape.Kind != "top" && (shape.Kind != "list" || shape.Element.Kind != "top") {
 			data, _ := json.Marshal(shape)
 			t.Errorf("unresolved declared shape %T: %s %v", expr, data, err)

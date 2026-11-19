@@ -7,37 +7,49 @@ import (
 	"slices"
 	"sort"
 
-	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
-// ErrUnavailable reports missing checked grammar metadata: it is compile.ErrSchemaUnavailable,
+// ErrUnavailable reports missing checked grammar metadata: it is program.ErrSchemaUnavailable,
 // which the runtime returns for a program that has no schema.
-var ErrUnavailable = compile.ErrSchemaUnavailable
+var ErrUnavailable = program.ErrSchemaUnavailable
 
-// Export exports the schema of the checked program p for the start rule start: the rule, the rules
+// Source is the checked grammar that a schema is exported from.
+type Source struct {
+	// Model is the grammar's semantic model, and Checker the checker of its types; its Typed is nil
+	// if the types were not checked, and then the grammar has no schema.
+	Model   *check.Model
+	Checker *check.Checker
+	// SourceInfo reports that the values record source information.
+	SourceInfo bool
+}
+
+// Export exports the schema of the checked grammar p for the start rule start: the rule, the rules
 // it calls or whose values its values contain, and the struct types they refer to; or every rule
-// and type with allRules. entry.SchemaProgram checks the start rule first.
-func Export(p *compile.Program, start string, allRules bool) (*schema.Output, error) {
-	if p.Grammar == nil || p.Typed == nil {
+// and type with allRules. entry.SchemaSource checks the start rule first.
+func Export(p Source, start string, allRules bool) (*schema.Output, error) {
+	if p.Model == nil || p.Model.Grammar == nil || p.Checker == nil || p.Checker.Typed == nil {
 		return nil, ErrUnavailable
 	}
-	if p.ByName[start] == nil {
+	g, c := p.Model.Grammar, p.Checker
+	if c.Rule(start).Def == nil {
 		return nil, fmt.Errorf("unknown schema start rule %q", start)
 	}
 	// Without all rules, the export is the start rule's reachable part, which is stored per start rule.
-	if !allRules && !slices.Contains(p.StartRules, start) {
+	if !allRules && !slices.Contains(p.Model.StartRules, start) {
 		return nil, fmt.Errorf("unknown schema start rule %q", start)
 	}
-	values := p.ValueTypes()
+	values := c.ValueTypes()
 	if values == nil {
 		return nil, ErrUnavailable
 	}
 	all := map[string]schema.Type{}
-	for _, td := range p.Grammar.Types() {
+	for _, td := range g.Types() {
 		spec, ok := td.(*ast.TypeDef)
 		if !ok {
 			continue // aliases name other types
@@ -45,7 +57,7 @@ func Export(p *compile.Program, start string, allRules bool) (*schema.Output, er
 		id := "declared/" + td.DeclName()
 		if spec.Struct() == nil {
 			// A named node type has the shape of its underlying node type.
-			n, ok := p.NodeTypeOf(td.DeclName())
+			n, ok := c.NodeTypeOf(td.DeclName())
 			if !ok {
 				return nil, fmt.Errorf("schema type %q: unresolved node type", td.DeclName())
 			}
@@ -58,7 +70,7 @@ func Export(p *compile.Program, start string, allRules bool) (*schema.Output, er
 		}
 		shape := schema.Shape{Kind: "struct"}
 		for _, f := range check.DefFields(spec) {
-			fieldShape, err := declared(p, f.Type)
+			fieldShape, err := declared(c, f.Type)
 			if err != nil {
 				return nil, fmt.Errorf("schema type %q field %q: %w", td.DeclName(), f.Name, err)
 			}
@@ -67,7 +79,7 @@ func Export(p *compile.Program, start string, allRules bool) (*schema.Output, er
 		sort.Slice(shape.Fields, func(i, j int) bool { return shape.Fields[i].Name < shape.Fields[j].Name })
 		all[id] = schema.Type{ID: id, Name: td.DeclName(), Origin: "declared", Shape: shape}
 	}
-	s := &schema.Output{Format: schema.Format, Version: schema.Version, Start: start, PositionUnitIndependent: true, SourceInfo: p.RecordsSourceInfo, Types: []schema.Type{}, Rules: []schema.Rule{}}
+	s := &schema.Output{Format: schema.Format, Version: schema.Version, Start: start, PositionUnitIndependent: true, SourceInfo: p.SourceInfo, Types: []schema.Type{}, Rules: []schema.Rule{}}
 	selected := map[string]bool{}
 	noType := map[string]bool{}
 	wanted := map[string]bool{}
@@ -101,7 +113,7 @@ func Export(p *compile.Program, start string, allRules bool) (*schema.Output, er
 	}
 	todo = append(todo, start)
 	if allRules {
-		for _, r := range p.Grammar.Rules() {
+		for _, r := range g.Rules() {
 			todo = append(todo, r.Name)
 		}
 	}
@@ -112,17 +124,17 @@ func Export(p *compile.Program, start string, allRules bool) (*schema.Output, er
 			continue
 		}
 		selected[name] = true
-		rd := p.ByName[name]
+		rd := c.Rule(name).Def
 		if rd == nil {
 			return nil, fmt.Errorf("unresolved schema rule %q", name)
 		}
-		for _, ref := range compile.AllCalls(rd.Def.Expr, nil) {
-			if !selected[ref] {
-				todo = append(todo, ref)
+		astfacts.WalkExpr(rd.Expr, func(x ast.Expr) {
+			if r, ok := x.(*ast.Ref); ok && !selected[r.Name] {
+				todo = append(todo, r.Name)
 			}
-		}
+		})
 		t, ok := values[name]
-		if _, splice := p.SpliceBody(name); splice && !ok {
+		if _, splice := c.SpliceBody(name); splice && !ok {
 			noType[name] = true // a rule that makes no node has a type only where another type refers to it
 			continue
 		}
@@ -138,7 +150,7 @@ func Export(p *compile.Program, start string, allRules bool) (*schema.Output, er
 		wanted[id] = true
 		collect(shape)
 	}
-	for _, rd := range p.Grammar.Rules() {
+	for _, rd := range g.Rules() {
 		if !selected[rd.Name] || noType[rd.Name] {
 			continue
 		}
@@ -173,8 +185,8 @@ func cutPrefix(s, prefix string) (string, bool) {
 }
 
 // declared describes the type a field declares.
-func declared(p *compile.Program, t ast.TypeExpr) (schema.Shape, error) {
-	k := &check.TypeResolver{Prog: p.Checker()}
+func declared(c *check.Checker, t ast.TypeExpr) (schema.Shape, error) {
+	k := &check.TypeResolver{Prog: c}
 	return shapeOf(k.Resolve(t))
 }
 

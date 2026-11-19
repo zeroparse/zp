@@ -48,7 +48,7 @@ func CompileCore(prog *compile.Program, m *ir.Module) (*bytecode.Module, error) 
 	// The term code comes after the match code, so the strings the terms add follow those of the
 	// rules.
 	for i, s := range c.terms {
-		tp, err := actionlower.Compile(s.term, actionlower.Env{Prog: prog, Scope: scopeOf(s.scope), Proj: s.proj})
+		tp, err := actionlower.Compile(s.term, actionlower.Env{Checker: prog.Checker(), Vars: prog.Vars, Scope: scopeOf(s.scope), Proj: s.proj})
 		if err != nil {
 			return nil, fmt.Errorf("internal error: %w", err)
 		}

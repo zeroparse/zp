@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
@@ -60,6 +61,11 @@ func Of(prog *compile.Program) *Source { return &Source{prog: prog} }
 // Checked returns the checked program, which the generators, the analyses and the output schema
 // read.
 func (s *Source) Checked() *compile.Program { return s.prog }
+
+// Schema returns the checked grammar that the output schema is exported from.
+func (s *Source) Schema() schemaexport.Source {
+	return schemaexport.Source{Model: s.prog.Model, Checker: s.prog.Checker(), SourceInfo: s.prog.RecordsSourceInfo}
+}
 
 // Grammar returns the grammar the program was compiled from: the grammar as written, without the
 // hidden rules that inline actions are lowered to.

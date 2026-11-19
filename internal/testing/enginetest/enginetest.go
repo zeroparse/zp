@@ -155,7 +155,7 @@ func CompileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program
 
 // OutputSchema exports the output schema of p for start, as Parser.OutputSchema does.
 func OutputSchema(p *engine.Program, start string, allRules bool) (*schema.Output, error) {
-	sp, err := entry.SchemaProgram(p, start)
+	sp, err := entry.SchemaSource(p, start)
 	if err != nil {
 		return nil, err
 	}
