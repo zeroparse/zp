@@ -140,8 +140,13 @@ func CoreAPISource(fsys fs.FS) ([]byte, error) {
 	return format.Source([]byte(b.String()))
 }
 
+// compiledParserFiles are the files of package runtime that declare the API of compiled parsers
+// (the Parser and Document interfaces and the parse options), which generated code does not use:
+// a generated parser has its own Parser, Document and options, so the index leaves them out.
+var compiledParserFiles = map[string]bool{"parser.go": true, "options.go": true}
+
 // packageDecls returns the exported top-level declarations (other than methods) of the package pkg
-// whose files are in fsys.
+// whose files are in fsys, without the compiledParserFiles of package runtime.
 func packageDecls(fsys fs.FS, pkg string) ([]coreDecl, error) {
 	entries, err := fs.ReadDir(fsys, ".")
 	if err != nil {
@@ -156,7 +161,7 @@ func packageDecls(fsys fs.FS, pkg string) ([]coreDecl, error) {
 	var decls []coreDecl
 	for _, e := range entries {
 		name := e.Name()
-		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || pkg == "runtime" && compiledParserFiles[name] {
 			continue
 		}
 		data, err := fs.ReadFile(fsys, name)

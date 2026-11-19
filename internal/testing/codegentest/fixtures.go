@@ -213,7 +213,7 @@ func LibCopyWith(t testing.TB, patch func(name, src string) string, extra map[st
 // module root: the library first, then the packages it imports, which are copied
 // unchanged. A copy holds only them, so a test module that requires it builds generated code
 // against them and nothing else of this module.
-var copiedPackages = []string{"pkg/runtime/golib", "pkg/runtime", "pkg/runtime/input", "pkg/runtime/value", "pkg/runtime/value/impl", "pkg/runtime/instrument"}
+var copiedPackages = []string{"pkg/runtime/golib", "pkg/runtime", "pkg/runtime/input", "pkg/runtime/value", "pkg/runtime/value/impl", "pkg/runtime/instrument", "pkg/runtime/schema"}
 
 func writeLibCopy(dir string, patch func(name, src string) string, extra map[string]string) {
 	must := func(err error) {
