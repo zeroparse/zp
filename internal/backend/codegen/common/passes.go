@@ -53,6 +53,11 @@ type Runner interface {
 	// FlowFunc. A failure of the conversion is a *pass.StepError, returned with no result; a failure
 	// of a pass is returned with the result.
 	ExecFunc(table string, m *code.Module, p *TargetPipeline, observe bool) (*execlower.Lowered, error)
+	// PlanExec runs the Exec step of the plan of the table named table (flowplan.Plan) on its
+	// function u: the lowering of u, flow-finish with no Flow pass, the conversion to Exec IR and the
+	// Exec passes that every target runs; observe is as for FlowFunc. A failure of a required step is
+	// a *pass.StepError, returned with no result; a failure of a pass is returned with the result.
+	PlanExec(table string, u flowlower.Unit, observe bool) (*execlower.Lowered, error)
 }
 
 // TargetPipeline is the pipeline of the Exec passes of one target (golang/pass, typescript/pass), which

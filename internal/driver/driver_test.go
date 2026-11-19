@@ -144,6 +144,43 @@ func comments(m *code.Module) int {
 	return n
 }
 
+// The plan's Exec step lowers a function and ends it with flow-finish without running a Flow pass,
+// even one whose flag is on, then converts it and runs the Exec passes, all under the manager: the
+// dumps show every step labeled with the table, and the manager numbers the run of the Exec pass.
+func TestDriverPlanExec(t *testing.T) {
+	const record = "test-plan-exec"
+	p := *codepass.Pipeline
+	p.Passes = append(slices.Clone(p.Passes), pass.Pass[*code.Module, *codepass.Env]{Name: record, Obligation: "it changes nothing",
+		Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
+			return m, pass.PreserveAll(), nil
+		}})
+	var dump strings.Builder
+	d := &Driver{FlowPipeline: withTestFlowPass(t), ExecPipeline: func(string) *pass.Pipeline[*code.Module, *codepass.Env] { return &p },
+		TestPasses: []string{record}, PrintAfter: []string{PrintAll}, PrintTo: &dump}
+	l, err := d.PlanExec("rules", framed(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l.Func.Name != "r" {
+		t.Fatalf("lowered %s, want r", l.Func.Name)
+	}
+	want := []string{"-- Flow IR of r in the rules table after " + flowlower.Name + " --",
+		"-- Flow IR of r in the rules table after " + flowpass.FinishName + " --",
+		"-- Exec IR of r in the rules table after " + execlower.Name + " --",
+		"-- Exec IR of r in the rules table after " + record + " --"}
+	for _, h := range want {
+		if !strings.Contains(dump.String(), h) {
+			t.Errorf("the dump lacks %q", h)
+		}
+	}
+	if strings.Contains(dump.String(), testFlowPass) {
+		t.Errorf("a Flow pass ran in the plan's Exec step:\n%s", dump.String())
+	}
+	if n := d.run.Runs(); n != 1 {
+		t.Errorf("the manager numbered %d runs of optional passes, want the one of %s", n, record)
+	}
+}
+
 // The driver lowers a function, runs a Flow pass when its flag is on, and a profile or a flag turns
 // it off; the dumps show the function as lowered under "flowlower" and after each selected pass, labeled
 // with its table.

@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
-	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
@@ -38,7 +38,8 @@ func TestPlanTakesTheFallbackOfARefusedFunction(t *testing.T) {
 		}
 	}
 	refuse := func(l *execlower.Lowered) bool { return l.Func.Name == "a" }
-	p, err := plan(ir, rules, nil, pass.Settings{}, refuse)
+	d := &driver.Driver{}
+	p, err := plan(ir, rules, nil, func(u flowlower.Unit) (*execlower.Lowered, error) { return d.PlanExec("rules", u, false) }, refuse)
 	if err != nil {
 		t.Fatal(err)
 	}

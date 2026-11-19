@@ -7,6 +7,8 @@ import (
 	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/execlower"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/middleend/flowpass"
 	"zeroparse.dev/zp/internal/middleend/flowplan"
 )
@@ -24,8 +26,8 @@ type FlowTable struct {
 // FlowTable builds the Node table of the program the way the generated Go parser with budget
 // controls builds its Node table, so that the VM runs the same functions: the same Core IR and
 // lowering options (flowplan.BuildTable), the same plan, with its decisions (flowplan.Plan), and
-// the Core and Flow steps of the driver at the default optimizations, for the VM's target
-// (flowpass.Bytecode).
+// the Core step, the plan's Exec step and the Flow steps of the driver at the default
+// optimizations, for the VM's target (flowpass.Bytecode).
 func (s *Source) FlowTable() (*FlowTable, error) {
 	p := s.prog
 	d := &driver.Driver{}
@@ -36,7 +38,9 @@ func (s *Source) FlowTable() (*FlowTable, error) {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}
 	rules := append(append([]*compile.Rule(nil), p.RuleList...), p.Twins...)
-	plan, err := flowplan.Plan(t, planRules(rules), nil, d.Opt)
+	plan, err := flowplan.Plan(t, planRules(rules), nil, func(u flowlower.Unit) (*execlower.Lowered, error) {
+		return d.PlanExec("rules", u, false)
+	})
 	if err != nil {
 		return nil, err
 	}

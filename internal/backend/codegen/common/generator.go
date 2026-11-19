@@ -286,6 +286,21 @@ func (g *Generator) ExecPasses(m *code.Module, target *TargetPipeline) (*execlow
 	return l, nil
 }
 
+// PlanExec runs the Exec step of the plan of the table being generated (Runner.PlanExec) on its
+// function u, labeled as FlowPasses labels it, for flowplan.Plan. A failure of a required step is
+// returned; a failure of the passes is kept as the first internal error of the generation (FlowErr),
+// as ExecPasses keeps it, and the lowered function is returned for the plan to go on.
+func (g *Generator) PlanExec(u flowlower.Unit) (*execlower.Lowered, error) {
+	l, err := g.runner().PlanExec(g.IRTable(), u, g.Observability)
+	if l == nil {
+		return nil, err
+	}
+	if err != nil && g.FlowErr == nil {
+		g.FlowErr = fmt.Errorf("module %s of table %s: %w", l.Module.Name, g.IRTable(), err)
+	}
+	return l, nil
+}
+
 // IRTable is the name of the table being generated in the dumps of the IR: "typed" for the typed
 // rules, as Core IR names it, and the name of the table otherwise; with TracedSuffix in the traced pass.
 func (g *Generator) IRTable() string {
