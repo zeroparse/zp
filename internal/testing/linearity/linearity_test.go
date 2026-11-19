@@ -1,6 +1,10 @@
 package linearity
 
-import "testing"
+import (
+	"runtime"
+	"sync/atomic"
+	"testing"
+)
 
 // TestLinearSeesQuadraticCost checks the verdict on costs of a known growth: a cost that grows with
 // the size passes, and one that grows with its square fails.
@@ -37,6 +41,8 @@ func TestLeastLimitIsExact(t *testing.T) {
 
 var sink []*[64]byte
 
+var finalizerSink atomic.Pointer[[64]byte]
+
 // TestAllocsCountsExactly checks that the counts are those of the work, and the same on every run.
 func TestAllocsCountsExactly(t *testing.T) {
 	work := func() {
@@ -53,5 +59,32 @@ func TestAllocsCountsExactly(t *testing.T) {
 		if o, b := Allocs(work); o != objects || b != bytes {
 			t.Errorf("a run counted %d objects and %d bytes, the first %d and %d", o, b, objects, bytes)
 		}
+	}
+}
+
+// TestAllocsIgnoresPendingFinalizers checks that finalizers queued before the measurement, which
+// allocate when they run, do not run inside it. Without the wait for them, the finalizer goroutine
+// runs them during the measured work and its allocations are counted as the work's.
+func TestAllocsIgnoresPendingFinalizers(t *testing.T) {
+	var ran atomic.Int64
+	const garbage = 2000
+	for range garbage {
+		o := new([32]byte)
+		runtime.SetFinalizer(o, func(*[32]byte) {
+			finalizerSink.Store(new([64]byte)) // allocates, as a finalizer that closes a file does
+			ran.Add(1)
+		})
+	}
+	work := func() {
+		sink = make([]*[64]byte, 0, 100)
+		for range 100 {
+			sink = append(sink, new([64]byte))
+		}
+	}
+	if objects, _ := Allocs(work); objects != 101 {
+		t.Errorf("%d objects with finalizers pending; want 101", objects)
+	}
+	if n := ran.Load(); n != garbage {
+		t.Errorf("%d of %d finalizers had run when Allocs returned", n, garbage)
 	}
 }

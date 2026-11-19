@@ -67,6 +67,10 @@ func LeastLimit(t testing.TB, completes func(limit uint64) bool) uint64 {
 // allocated again and the counters of the runtime are exact: a run gives the same counts every
 // time, whatever the load.
 //
+// A collection only queues finalizers; the goroutine that runs them is scheduled later, and under
+// load it can run in the middle of the measured work and allocate there. So Allocs waits until the
+// queue is empty before it measures (drainFinalizers).
+//
 // The counters are those of the process, so the caller must not run in parallel with other tests,
 // and the work must not leave goroutines that allocate after it returns. Allocs does not see work
 // that allocates nothing, such as a loop that rescans its input; a counter of that work must cover
@@ -74,6 +78,7 @@ func LeastLimit(t testing.TB, completes func(limit uint64) bool) uint64 {
 func Allocs(work func()) (objects, bytes uint64) {
 	work()
 	runtime.GC()
+	drainFinalizers()
 	runtime.GC()
 	defer debug.SetGCPercent(debug.SetGCPercent(-1))
 	var before, after runtime.MemStats
@@ -81,4 +86,17 @@ func Allocs(work func()) (objects, bytes uint64) {
 	work()
 	runtime.ReadMemStats(&after)
 	return after.Mallocs - before.Mallocs, after.TotalAlloc - before.TotalAlloc
+}
+
+// drainFinalizers returns when every finalizer queued by a collection before the call has run. The
+// finalizers run one after the other on one goroutine, in the order they were queued, so a marker
+// that is queued by a later collection runs after all that the earlier collection queued.
+func drainFinalizers() {
+	runtime.GC() // queues the finalizers of everything that is garbage now
+	done := make(chan struct{})
+	marker := new([16]byte)
+	runtime.SetFinalizer(marker, func(*[16]byte) { close(done) })
+	marker = nil
+	runtime.GC() // queues the marker behind them
+	<-done
 }
