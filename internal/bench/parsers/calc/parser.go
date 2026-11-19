@@ -512,6 +512,12 @@ func e14(p *rt.Parser) (*zpvalue.Node, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 45)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 11)
 		goto L10
@@ -565,6 +571,12 @@ func e18(p *rt.Parser) (*zpvalue.Node, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 13)
 		goto L10
@@ -581,6 +593,12 @@ L6:
 L11:
 	p.Reset(x1)
 L10:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 37)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 14)
 		goto L14
@@ -634,6 +652,12 @@ func e19(p *rt.Parser) (*zpvalue.Node, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 43)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 10)
 		goto L10
@@ -814,6 +838,12 @@ func e26(p *rt.Parser) (*zpvalue.Node, bool) {
 L6:
 	p.Reset(x1)
 L5:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x3, _, x4 = p.In[p.Pos], 1, true
+	} else {
+		x3, _, x4 = p.Peek()
+	}
 	if !(x4 && (x3 == 45)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 11)
 		goto L7
@@ -859,6 +889,12 @@ func e27(p *rt.Parser) (*zpvalue.Node, bool) {
 L6:
 	p.Reset(x1)
 L5:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x3, _, x4 = p.In[p.Pos], 1, true
+	} else {
+		x3, _, x4 = p.Peek()
+	}
 	if !(x4 && (x3 == 47)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 13)
 		goto L7
@@ -872,6 +908,12 @@ L5:
 L8:
 	p.Reset(x1)
 L7:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x3, _, x4 = p.In[p.Pos], 1, true
+	} else {
+		x3, _, x4 = p.Peek()
+	}
 	if !(x4 && (x3 == 37)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 14)
 		goto L9
@@ -917,6 +959,12 @@ func e28(p *rt.Parser) (*zpvalue.Node, bool) {
 L6:
 	p.Reset(x1)
 L5:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x3, _, x4 = p.In[p.Pos], 1, true
+	} else {
+		x3, _, x4 = p.Peek()
+	}
 	if !(x4 && (x3 == 43)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 10)
 		goto L7
@@ -1180,6 +1228,12 @@ func e33(p *rt.TParser) (any, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 45)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 11)
 		goto L10
@@ -1233,6 +1287,12 @@ func e34(p *rt.TParser) (any, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 13)
 		goto L10
@@ -1249,6 +1309,12 @@ L6:
 L11:
 	p.Reset(x1)
 L10:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 37)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 14)
 		goto L14
@@ -1302,6 +1368,12 @@ func e35(p *rt.TParser) (any, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 43)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 10)
 		goto L10

@@ -44,8 +44,10 @@ func TestCloneKeepsTheForms(t *testing.T) {
 		}
 	}
 	for _, ch := range a.Forms.Choices {
-		if ch.Peek != nil && !copied[ch.Peek] {
-			t.Errorf("a choice of the copy refers to a peek outside it")
+		for _, p := range ch.Peeks {
+			if !copied[p] {
+				t.Errorf("a choice of the copy refers to a peek outside it")
+			}
 		}
 	}
 	env := &Env{Target: all, Value: values}
