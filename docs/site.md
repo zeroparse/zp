@@ -226,7 +226,7 @@ ZeroSite's Markdown math chapter, `spec/markdown-math.md`. To upgrade KaTeX, upd
 
 | Test | What it checks |
 |:--|:--|
-| `go test ./cmd/playground` | The API natively (it has no build tags), and `TestWasmSmoke`: it builds `zp.wasm` and the `zp` command, and runs [`cmd/playground/testdata/smoke.mjs`](../cmd/playground/testdata/smoke.mjs) in Node, which compares every example of [`cmd/playground/examples.txt`](../cmd/playground/examples.txt) with the command: JSON, S-expression, errors, `-check`, every backend, byte positions, `zp fmt` and `zp gen -types`. It is skipped when `node` is not installed and in `-short` mode |
+| `go test ./cmd/playground` | The API natively (it has no build tags), and `TestWasmSmoke`: it builds `zp.wasm` and the `zp` command, and runs [`cmd/playground/testdata/smoke.mjs`](../cmd/playground/testdata/smoke.mjs) in Node, which compares every example of [`cmd/playground/examples.txt`](../cmd/playground/examples.txt) with the command: JSON, S-expression, errors, `-recognize`, every backend, byte positions, `zp fmt` and `zp gen -types`. It is skipped when `node` is not installed and in `-short` mode |
 | `cd site && go test ./...` | Builds the whole site and checks that every Markdown file of `docs/` and `spec/` became a page, that the generated pages and the search index are complete, that no page needs inline scripts or styles, and that every internal link and anchor resolves. It also enforces the documentation rules of the
 [style sheet](documentation-style.md): the directions in which pages may link (`TestDocumentLinkDirections`) and the
 capitalization of headings (`TestHeadingTitleCase`), and the tags and prompts of code blocks (`TestCodeFenceLanguages`,

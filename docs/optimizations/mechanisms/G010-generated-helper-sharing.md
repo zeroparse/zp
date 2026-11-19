@@ -34,7 +34,7 @@ universal speedup.
 Evidence records: [090](../090-share-identical-generated-helpers.md).
 
 Source owners: [`Generator.Method`](../../../internal/backend/codegen/golang/print/generator.go),
-[`codegen.Generator.LiteralName interning`](../../../internal/backend/codegen/common/generator.go),
+[literal interning in the generator state](../../../internal/backend/codegen/common/generator.go),
 [`TypeScript sharing policy`](../../../internal/backend/codegen/typescript/print/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
