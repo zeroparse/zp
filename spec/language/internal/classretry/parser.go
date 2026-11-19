@@ -201,6 +201,12 @@ func e7(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	L17:
 		p.Reset(x11)
 	L16:
+		if p.Pos < len(p.In) {
+			p.Control.Take(1)
+			x14, _, x15 = p.In[p.Pos], 1, true
+		} else {
+			x14, _, x15 = p.Peek()
+		}
 		if !(x15 && (!(x14 == 93 || x14 == 92 || x14 == 10))) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 7)
 			goto L26

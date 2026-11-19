@@ -744,6 +744,12 @@ func e8(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 L15:
 	p.Reset(x9)
 L14:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x12, _, x13 = p.In[p.Pos], 1, true
+	} else {
+		x12, _, x13 = p.Peek()
+	}
 	if !(x13 && (x12 == 102)) && p.Depth+1 <= p.MaxDepth {
 		p.Expect(p.Pos, 8)
 		goto L17
@@ -756,6 +762,12 @@ L14:
 L18:
 	p.Reset(x9)
 L17:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x12, _, x13 = p.In[p.Pos], 1, true
+	} else {
+		x12, _, x13 = p.Peek()
+	}
 	if !(x13 && (x12 == 105)) && p.Depth+1 <= p.MaxDepth {
 		p.Expect(p.Pos, 9)
 		goto L20
@@ -768,6 +780,12 @@ L17:
 L21:
 	p.Reset(x9)
 L20:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x12, _, x13 = p.In[p.Pos], 1, true
+	} else {
+		x12, _, x13 = p.Peek()
+	}
 	if !(x13 && (x12 == 119)) && p.Depth+1 <= p.MaxDepth {
 		p.Expect(p.Pos, 10)
 		goto L23
@@ -780,6 +798,12 @@ L20:
 L24:
 	p.Reset(x9)
 L23:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x12, _, x13 = p.In[p.Pos], 1, true
+	} else {
+		x12, _, x13 = p.Peek()
+	}
 	if !(x13 && (x12 == 114)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 11)
 		goto L26
@@ -792,6 +816,12 @@ L23:
 L27:
 	p.Reset(x9)
 L26:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x12, _, x13 = p.In[p.Pos], 1, true
+	} else {
+		x12, _, x13 = p.Peek()
+	}
 	if !(x13 && (x12 == 123)) && p.Depth+1 <= p.MaxDepth {
 		p.Expect(p.Pos, 5)
 		goto L29
@@ -1049,6 +1079,12 @@ func e13(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 L8:
 	p.Reset(x2)
 L7:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x5, _, x6 = p.In[p.Pos], 1, true
+	} else {
+		x5, _, x6 = p.Peek()
+	}
 	if !(x6 && (x5 == 123)) && p.Depth+1 <= p.MaxDepth {
 		p.Expect(p.Pos, 5)
 		goto L10
@@ -1566,6 +1602,12 @@ func e33(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	L12:
 		p.Reset(x7)
 	L11:
+		if p.Document == nil && p.Pos < len(p.In) {
+			p.SpendRead(1)
+			x9, _, x10 = p.In[p.Pos], 1, true
+		} else {
+			x9, _, x10 = p.Peek()
+		}
 		if !(x10 && (x9 == 92)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 29)
 			goto L13
@@ -1639,6 +1681,12 @@ func e36(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 L7:
 	p.Reset(x2)
 L6:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 102)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 23)
 		goto L8
@@ -1723,6 +1771,12 @@ func e40(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	L13:
 		p.Reset(x7)
 	L12:
+		if p.Document == nil && p.Pos < len(p.In) {
+			p.SpendRead(1)
+			x10, _, x11 = p.In[p.Pos], 1, true
+		} else {
+			x10, _, x11 = p.Peek()
+		}
 		if !(x11 && (x10 == 47)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 31)
 			goto L16
@@ -1847,6 +1901,12 @@ func e41(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 	L13:
 		p.Restore(x7, x8)
 	L12:
+		if p.Document == nil && p.Pos < len(p.In) {
+			p.SpendRead(1)
+			x10, _, x11 = p.In[p.Pos], 1, true
+		} else {
+			x10, _, x11 = p.Peek()
+		}
 		if !(x11 && (x10 == 47)) && p.Depth <= p.MaxDepth {
 			p.Expect(p.Pos, 31)
 			goto L14
@@ -2105,6 +2165,12 @@ func e54(p *rt.Parser, _ int) (*zpvalue.Node, bool) {
 L7:
 	p.Restore(x1, x2)
 L6:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 102)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 8)
 		goto L8
@@ -2118,6 +2184,12 @@ L6:
 L9:
 	p.Restore(x1, x2)
 L8:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 105)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 9)
 		goto L10
@@ -2131,6 +2203,12 @@ L8:
 L11:
 	p.Restore(x1, x2)
 L10:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 101)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 21)
 		goto L12
@@ -2144,6 +2222,12 @@ L10:
 L13:
 	p.Restore(x1, x2)
 L12:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 119)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 10)
 		goto L14
@@ -2155,6 +2239,12 @@ L12:
 L15:
 	p.Restore(x1, x2)
 L14:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 114)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 11)
 		goto L16
@@ -2166,6 +2256,12 @@ L14:
 L17:
 	p.Restore(x1, x2)
 L16:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 116)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 22)
 		goto L18
@@ -2179,6 +2275,12 @@ L16:
 L19:
 	p.Restore(x1, x2)
 L18:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 102)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 23)
 		goto L20
@@ -2457,6 +2559,12 @@ func e86(p *rt.Parser) (*zpvalue.Node, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 33)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 40)
 		goto L10
@@ -2473,6 +2581,12 @@ L6:
 L11:
 	p.Reset(x1)
 L10:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 60)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 41)
 		goto L14
@@ -2489,6 +2603,12 @@ L10:
 L15:
 	p.Reset(x1)
 L14:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 62)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 42)
 		goto L18
@@ -2505,6 +2625,12 @@ L14:
 L19:
 	p.Reset(x1)
 L18:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 60)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 43)
 		goto L22
@@ -2521,6 +2647,12 @@ L18:
 L23:
 	p.Reset(x1)
 L22:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 62)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 44)
 		goto L26
@@ -2574,6 +2706,12 @@ func e89(p *rt.Parser) (*zpvalue.Node, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 45)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 46)
 		goto L10
@@ -2627,6 +2765,12 @@ func e93(p *rt.Parser) (*zpvalue.Node, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 48)
 		goto L10
@@ -2643,6 +2787,12 @@ L6:
 L11:
 	p.Reset(x1)
 L10:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 37)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 49)
 		goto L14
@@ -2696,6 +2846,12 @@ func e95(p *rt.Parser) (*zpvalue.Node, bool) {
 L7:
 	p.Reset(x1)
 L6:
+	if p.Document == nil && p.Pos < len(p.In) {
+		p.SpendRead(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
 	if !(x5 && (x4 == 33)) && p.Depth <= p.MaxDepth {
 		p.Expect(p.Pos, 50)
 		goto L10
