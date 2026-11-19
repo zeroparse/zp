@@ -218,10 +218,11 @@ for(const unit of [p.CodePoints,p.Bytes]) {
 
 func TestGeneratedTSBudgetControlWideClassSteps(t *testing.T) {
 	t.Parallel()
-	// A wide class is tested by comparisons that cost no spend of their own: a character is charged
-	// once, by the peek that reads it, and each repetition by its step. The budgets that parse and
-	// recognition need for one character and for a run of them are pinned, so that a long input of
-	// wide-class matches still reaches the limits.
+	// A wide class is tested by comparisons that cost no spend of their own: each peek that reads a
+	// character charges it, and each repetition charges its step. The guard of an alternative is a
+	// terminal that reads the character again, so the peek of the guard charges once per alternative
+	// (spec/runtime/parsing.md#cost). The budgets that parse and recognition need for one character and
+	// for a run of them are pinned, so that a long input of wide-class matches still reaches the limits.
 	var class strings.Builder
 	for i := 0; i < 800; i++ {
 		class.WriteRune(rune(0x1000 + i*2))
@@ -236,8 +237,8 @@ function threshold(run:(n:number)=>Error|null):number {
 }
 const wide=String.fromCodePoint(0x1000);
 // The budgets of recognition and of parsing: for "z", fifty "z" and fifty wide characters.
-const budgets=new Map<p.Unit,number[][]>([[p.CodePoints,[[10],[353],[303]]],[p.Bytes,[[17],[605],[1006]]]]);
-const parseBudgets=new Map<p.Unit,number[][]>([[p.CodePoints,[[12],[453],[453]]],[p.Bytes,[[19],[705],[1156]]]]);
+const budgets=new Map<p.Unit,number[][]>([[p.CodePoints,[[12],[404],[304]]],[p.Bytes,[[19],[656],[1007]]]]);
+const parseBudgets=new Map<p.Unit,number[][]>([[p.CodePoints,[[14],[504],[454]]],[p.Bytes,[[21],[756],[1157]]]]);
 for(const unit of [p.CodePoints,p.Bytes]) {
  check(p.parse("z",unit).error===null&&p.recognize("z",unit)===null,"wide class fallback succeeds without controls");
  check(stable(p.parseWithOptions("z",{unit,signal:{aborted:false}}).node)===stable(p.parse("z",unit).node),"controlled class fallback preserves result");

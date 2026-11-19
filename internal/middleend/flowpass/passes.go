@@ -111,8 +111,8 @@ func guardedClasses(fn *code.Func, a *flow.Attrs, _ *Env) {
 		}
 		size := newVar(fn, a, flow.TypeInt, c.Event)
 		sizes[c] = size
-		if c.Peek != nil {
-			c.Peek.Dst[1] = code.Place{Name: size}
+		for _, p := range c.Peeks {
+			p.Dst[1] = code.Place{Name: size}
 		}
 	}
 	for _, cl := range a.Forms.Classes {
