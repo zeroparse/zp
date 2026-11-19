@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/middleend/flowplan"
+	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
@@ -43,7 +44,12 @@ func plan(t *testing.T, src string, rec compile.Recognition, live func(int) bool
 		t.Fatal(err)
 	}
 	rules := append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...)
-	return m, rules, flowplan.Plan(m, planRules(rules), live)
+	opts := flowlower.Options{Budget: true, Recovers: flowlower.Recovers(m), Node: true}
+	p, err := flowplan.Plan(&flowplan.TableIR{M: m, Opts: opts}, planRules(rules), live, pass.Settings{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return m, rules, p
 }
 
 // planRules returns what the plan reads of the compiled rules.
