@@ -88,6 +88,7 @@ func flowModule() *bytecode.Module {
 		{Op: bytecode.FlowScanEnd, Args: []int{1, 1}, Imm: 4},
 		{Op: bytecode.FlowScanKids, Dst: []int{4}, Args: []int{1, 1, 1}, Imm: 5},
 		{Op: bytecode.FlowPred, Dst: []int{2}, Imm: 0},
+		{Op: bytecode.FlowBind, Dst: []int{2}, Imm: bytecode.FlowBindOf{Var: 0, Term: 0}},
 		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
 	}}
 	return &bytecode.Module{
@@ -102,6 +103,7 @@ func flowModule() *bytecode.Module {
 		Code:    []bytecode.Instr{{Op: bytecode.OpReturn}},
 		Starts:  []int{0},
 		Terms:   []bytecode.Term{{}},
+		Vars:    []bytecode.VarInfo{{Str: -1}},
 		Flows:   map[int]*bytecode.Flow{1: f},
 	}
 }
@@ -254,6 +256,9 @@ func TestFlowBodyValidation(t *testing.T) {
 		{"scan site zero", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[69].Imm = 0 }, "invalid scan site 0"},
 		{"term", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[70].Imm = 1 }, "term 1 out of range"},
 		{"term kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[70].Imm = nil }, "invalid immediate"},
+		{"bind variable", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[71].Imm = bytecode.FlowBindOf{Var: 1} }, "variable 1 out of range"},
+		{"bind term", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[71].Imm = bytecode.FlowBindOf{Term: -1} }, "term -1 out of range"},
+		{"bind kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[71].Imm = 0 }, "invalid immediate"},
 		{"unmarked cycle", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[14].Imm = bytecode.FlowCallOf{Rule: 1} }, "rule b is on a cycle of calls but is not marked recursive"},
 	} {
 		m := flowModule()
@@ -324,6 +329,7 @@ func TestFlowBodyDisassembly(t *testing.T) {
 		"    66  RUNWALKED  r1 site=1\n",
 		"    69  SCANKIDS   r4 = r1 r1 r1 site=5\n",
 		"    70  PRED       r2 = term=0\n",
+		"    71  BIND       r2 = var=0 term=0\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("disassembly has no %q:\n%s", want, got)

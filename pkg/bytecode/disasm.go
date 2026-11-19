@@ -178,6 +178,8 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 		parts = append(parts, fmt.Sprint(x))
 	case FlowRunWalkOf:
 		parts = append(parts, fmt.Sprintf("site=%d build=%t keyenv=%t", x.Site, x.Build, x.KeyEnv))
+	case FlowBindOf:
+		parts = append(parts, fmt.Sprintf("var=%d term=%d", x.Var, x.Term))
 	case FlowGuardOf:
 		g := fmt.Sprintf("class=%d", x.Class)
 		switch {

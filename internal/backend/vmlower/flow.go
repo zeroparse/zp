@@ -68,7 +68,7 @@ func SelectFlows(bc *bytecode.Module, prog *compile.Program, m *ir.Module, plan 
 // flow returns the Flow body of the function fn, the flow form of rule index rule.
 func (c *compiler) flow(fn *code.Func, rule int) (*bytecode.Flow, error) {
 	a := flowpkg.AttrsOf(fn)
-	if a.Cut != "" || a.Binds {
+	if a.Cut != "" {
 		return nil, fmt.Errorf("a function of this shape has no bytecode Flow body yet")
 	}
 	if a.Rule == nil || a.Rule.ID != rule {
@@ -704,6 +704,16 @@ func (s *flowSel) call(c *code.Call, dst []int) error {
 			return err
 		}
 		return s.op(bytecode.FlowPred, c, dst, t)
+	case flowpkg.OpBind:
+		x := c.Imm.(flowpkg.Binding)
+		if !x.Frame {
+			return fmt.Errorf("a binding whose captures are arguments has no bytecode Flow form")
+		}
+		t, err := s.term(x.Node.Term, x.Names)
+		if err != nil {
+			return err
+		}
+		return s.op(bytecode.FlowBind, c, dst, bytecode.FlowBindOf{Var: s.c.prog.Vars.Index(x.Node.Var), Term: t})
 	case flowpkg.OpDeclareNames:
 		// It does nothing to the state: the names are those of the frame's scope.
 		return nil
