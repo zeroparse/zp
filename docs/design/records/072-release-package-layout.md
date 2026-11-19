@@ -363,6 +363,24 @@ of [Naming](#naming).
 | `NewReferenceParser` | Makes the closure reference parser for differential tests. It is the only public access to the closure backend. |
 | `Optimize` with `Speed`, `Memory` and `Size` | The one optimization setting. A value of `Optimize` holds a profile, and `Speed`, `Memory` and `Size` are the three profiles. Overrides of individual flags are part of the value. |
 | `WithOptimize` | The option that gives a setting to a compile call. |
+| `WithStart`, `WithSourceInfo`, `WithDefaultValue` | The other options of a compile call: the start rule, source positions in values, and the default value of rules. They are options of every entry point, not fields of a configuration. |
+| `Marshal` | Writes the compiled file of a source in one of the modes of `vm.CompiledMode` (parse, recognize or document). |
+| `OutputSchema` | Exports the output schema of a source without making a parser. |
+| `GenerateGo` with `GoConfig`, `GenerateTypeScript` with `TSConfig` | Generate host-language parsers from a source. The configuration holds what selects the generated API (module, library mode, typed, document, stream, recognition); the compile options above apply as to `Compile`. |
+| `GenerateGoLib`, `GenerateTypeScriptLib` | Write the library of generated parsers for the import library mode. |
+
+`Compile`, `CompileGrammar` and `NewReferenceParser` return a `runtime.Parser`. The dynamic type of the first two is
+`*vm.Parser`, which also offers the choice of start rule, prefix parsing, iteration, the iterative VM (`Iterative`) and
+`Marshal`.
+
+### Runtime Interfaces
+
+| Name | Role |
+|:--|:--|
+| `runtime.Parser` | The interface of every compiled parser: `Parse`, `Recognize` (which returns only an error), `ParseStream`, `NewDocument` and `OutputSchema`. |
+| `runtime.Document` | The interface of an incremental document: `Text`, `Unit`, `Edit`, `Parse`, `Stats`, `CacheStats` and `ResetHistory`. `*vm.Document` adds versions, batch edits, snapshots and change notifications. |
+| `runtime.ParseOptions`, `runtime.ParseOption` | The settings of one parse as an exported struct, set by option functions such as `WithLimits`, `WithContext`, `WithUnit`, `WithExpectations`, `WithTrace` and `WithProfile`. No option selects recognition or a backend. |
+| `vm.LoadParser` | Loads a compiled file into a `*vm.Parser`, without the grammar and the compiler. Its `OutputSchema` returns `runtime.ErrSchemaUnavailable`. |
 
 ### Structural Queries and Instrumentation
 
