@@ -326,6 +326,9 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 			p.ScanEnd(in.Imm.(int), regs[in.Args[0]].(int), regs[in.Args[1]].(int))
 		case bytecode.FlowScanKids:
 			fr.set(in.Dst[0], p.ScanKids(in.Imm.(int), regs[in.Args[0]].(int), regs[in.Args[1]].(int), regs[in.Args[2]].(int)))
+		case bytecode.FlowPred:
+			// As the match code's PRED, in the current frame.
+			fr.set(in.Dst[0], vm.predicate(p, in.Imm.(int)))
 		default:
 			panic(fmt.Sprintf("internal error: vm: flow operation %d", in.Op))
 		}

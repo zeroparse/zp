@@ -44,15 +44,25 @@ func CompileCore(prog *compile.Program, m *ir.Module) (*bytecode.Module, error) 
 	// The term code comes after the match code, so the strings the terms add follow those of the
 	// rules.
 	for i, s := range c.terms {
-		tp, err := actionlower.Compile(s.term, actionlower.Env{Checker: prog.Checker(), Vars: prog.Vars, Scope: scopeOf(s.scope), Proj: s.proj})
-		if err != nil {
-			return nil, fmt.Errorf("internal error: %w", err)
-		}
-		if c.m.Terms[i], err = tp.Export(func(s string) int { return int(c.str(s)) }); err != nil {
-			return nil, fmt.Errorf("internal error: %w", err)
+		var err error
+		if c.m.Terms[i], err = c.termCode(s); err != nil {
+			return nil, err
 		}
 	}
 	return c.m, nil
+}
+
+// termCode returns the term code of the term of s, adding the strings it uses to the module.
+func (c *compiler) termCode(s termSite) (bytecode.Term, error) {
+	tp, err := actionlower.Compile(s.term, actionlower.Env{Checker: c.prog.Checker(), Vars: c.prog.Vars, Scope: scopeOf(s.scope), Proj: s.proj})
+	if err != nil {
+		return bytecode.Term{}, fmt.Errorf("internal error: %w", err)
+	}
+	t, err := tp.Export(func(s string) int { return int(c.str(s)) })
+	if err != nil {
+		return bytecode.Term{}, fmt.Errorf("internal error: %w", err)
+	}
+	return t, nil
 }
 
 // compiler emits a bytecode module from Core IR (CompileCore): m is the module it fills and strs

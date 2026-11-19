@@ -87,6 +87,7 @@ func flowModule() *bytecode.Module {
 		{Op: bytecode.FlowScanReach, Dst: []int{1}, Args: []int{1, 1}, Imm: 5},
 		{Op: bytecode.FlowScanEnd, Args: []int{1, 1}, Imm: 4},
 		{Op: bytecode.FlowScanKids, Dst: []int{4}, Args: []int{1, 1, 1}, Imm: 5},
+		{Op: bytecode.FlowPred, Dst: []int{2}, Imm: 0},
 		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
 	}}
 	return &bytecode.Module{
@@ -99,8 +100,9 @@ func flowModule() *bytecode.Module {
 		Scopes:  [][]int{{0, 1}},
 		RunKeys: []bytecode.RunKeyInfo{{Site: 1}},
 		Code:    []bytecode.Instr{{Op: bytecode.OpReturn}},
-		Starts: []int{0},
-		Flows:  map[int]*bytecode.Flow{1: f},
+		Starts:  []int{0},
+		Terms:   []bytecode.Term{{}},
+		Flows:   map[int]*bytecode.Flow{1: f},
 	}
 }
 
@@ -249,6 +251,8 @@ func TestFlowBodyValidation(t *testing.T) {
 		{"run walk kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[60].Imm = 1 }, "invalid immediate"},
 		{"scan site", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[67].Imm = 6 }, "invalid scan site 6"},
 		{"scan site zero", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[69].Imm = 0 }, "invalid scan site 0"},
+		{"term", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[70].Imm = 1 }, "term 1 out of range"},
+		{"term kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[70].Imm = nil }, "invalid immediate"},
 	} {
 		m := flowModule()
 		c.edit(m, m.Flows[1])
@@ -309,6 +313,7 @@ func TestFlowBodyDisassembly(t *testing.T) {
 		"    60  RUNBEGIN   site=1 build=true keyenv=true\n",
 		"    66  RUNWALKED  r1 site=1\n",
 		"    69  SCANKIDS   r4 = r1 r1 r1 site=5\n",
+		"    70  PRED       r2 = term=0\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("disassembly has no %q:\n%s", want, got)
