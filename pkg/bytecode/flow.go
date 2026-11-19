@@ -130,6 +130,31 @@ const (
 	// FlowScopeValue sets Dst[0] to the value of a scope whose body, of the shape of the immediate
 	// FlowShapeOf, matched Args[0] from the int Args[1] (flow.scopeValue).
 	FlowScopeValue
+	// FlowSetCapture sets the capture slot of the immediate, a slot, of the current frame to the
+	// value Args[0], recording the old value on the capture trail (flow.setCapture).
+	FlowSetCapture
+	// FlowMarkPos sets Dst[0] to the position of the mark Args[0] (flow.markPos).
+	FlowMarkPos
+	// FlowFrame sets Dst[0] to the current capture frame (flow.frame).
+	FlowFrame
+	// FlowNewFrame sets Dst[0] to a new capture frame with a slot for each name of the scope of the
+	// immediate (flow.newFrame).
+	FlowNewFrame
+	// FlowSetFrame makes the frame Args[0] the current capture frame (flow.setFrame).
+	FlowSetFrame
+	// FlowClearVals sets the values of the frame Args[0] to nil (flow.clearVals).
+	FlowClearVals
+	// FlowFrameVal sets Dst[0] to the value of the slot of the immediate of the frame Args[0]
+	// (flow.frameVal).
+	FlowFrameVal
+	// FlowAttachFrame sets Dst[0] to the value Args[0], matched from the int Args[1], with the values
+	// of the frame Args[2] attached as the fields named by the scope of the immediate
+	// (flow.attachFrame).
+	FlowAttachFrame
+	// FlowShapeCapture sets Dst[0] to the value of Args[0], matched from the int Args[1] by a
+	// captured expression of the shape of the immediate FlowShapeOf: as FlowShapeSingle, or the unit
+	// node of the range matched where the expression has no value (flow.shapeCapture).
+	FlowShapeCapture
 )
 
 // FlowImm is the kind of immediate of an operation.
@@ -160,6 +185,11 @@ const (
 	FlowImmStr
 	// FlowImmShape is a FlowShapeOf.
 	FlowImmShape
+	// FlowImmSlot is a capture slot: an int that is not negative, below the number of slots of the
+	// largest frame the body may run with (its rule's scope or a scope of its FlowNewFrame).
+	FlowImmSlot
+	// FlowImmScope is a scope: an int index of Module.Scopes.
+	FlowImmScope
 )
 
 // FlowShape is what the instructions of an operation hold: the number of destination and argument
@@ -220,6 +250,15 @@ var FlowShapes = [...]FlowShape{
 	FlowPushKid:       {Name: "PUSHKID", Args: 1},
 	FlowShapeSingle:   {Name: "SHAPESINGLE", Dst: 2, Args: 2, Imm: FlowImmShape},
 	FlowScopeValue:    {Name: "SCOPEVALUE", Dst: 1, Args: 2, Imm: FlowImmShape},
+	FlowSetCapture:    {Name: "SETCAPTURE", Args: 1, Imm: FlowImmSlot},
+	FlowMarkPos:       {Name: "MARKPOS", Dst: 1, Args: 1},
+	FlowFrame:         {Name: "FRAME", Dst: 1},
+	FlowNewFrame:      {Name: "NEWFRAME", Dst: 1, Imm: FlowImmScope},
+	FlowSetFrame:      {Name: "SETFRAME", Args: 1},
+	FlowClearVals:     {Name: "CLEARVALS", Args: 1},
+	FlowFrameVal:      {Name: "FRAMEVAL", Dst: 1, Args: 1, Imm: FlowImmSlot},
+	FlowAttachFrame:   {Name: "ATTACHFRAME", Dst: 1, Args: 3, Imm: FlowImmScope},
+	FlowShapeCapture:  {Name: "SHAPECAPTURE", Dst: 1, Args: 2, Imm: FlowImmShape},
 }
 
 // Shape returns the shape of o; ok is false for an operation that does not exist.
@@ -285,7 +324,7 @@ type FlowSilenceOf struct {
 	Ok    bool
 }
 
-// FlowShapeOf is the immediate of FlowShapeSingle and FlowScopeValue, the shape of an expression's
+// FlowShapeOf is the immediate of FlowShapeSingle, FlowShapeCapture and FlowScopeValue, the shape of an expression's
 // value: Elems if the value is the tuple node of its elements, Shared if that node is shared through
 // a splice rule's memo entry, K the number of valued elements, Mode how the value where it takes one
 // element is made (0 no value, 1 the element itself, 2 the tuple node of the elements), and Tuple if

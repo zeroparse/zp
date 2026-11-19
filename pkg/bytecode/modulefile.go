@@ -230,7 +230,7 @@ func (w *Encoder) flowImm(k FlowImm, v any) {
 		w.Int(x.Delta)
 		w.Int(x.Site)
 		w.Bool(x.Ok)
-	case FlowImmCount, FlowImmStr:
+	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope:
 		x, ok := v.(int)
 		if !ok {
 			bad()
@@ -528,7 +528,7 @@ func (r *Decoder) flowImm(k FlowImm) any {
 		return FlowLitOf{Str: int(r.int32()), Exp: int(r.int32()), Fold: r.Bool()}
 	case FlowImmSilence:
 		return FlowSilenceOf{Delta: int(r.int32()), Site: int(r.int32()), Ok: r.Bool()}
-	case FlowImmCount, FlowImmStr:
+	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope:
 		return int(r.int32())
 	case FlowImmShape:
 		x := FlowShapeOf{Elems: r.Bool(), Shared: r.Bool(), Tuple: r.Bool()}
@@ -1052,28 +1052,36 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 // validateFlows checks the Flow bodies of m: each belongs to a rule of the rule table; each
 // instruction has a known operation with the registers, target and immediate of its shape; every
 // register is within the frame (a destination may be -1, which discards); every target is an
-// instruction of the body; every immediate refers to a class, rule or expectation in range; and the
-// body ends with JUMP or RETURN, so that running it cannot pass its end. As for match code, a
-// runtime does not check that registers hold what an instruction reads.
+// instruction of the body; every immediate refers to a class, rule, expectation or scope in range,
+// and every capture slot to a slot of the largest frame the body may run with (its rule's scope or a
+// scope of its NEWFRAME); and the body ends with JUMP or RETURN, so that running it cannot pass its
+// end. As for match code, a runtime does not check that registers hold what an instruction reads;
+// it checks that a slot is in the frame it indexes.
 func validateFlows(m *Module) error {
 	for _, rule := range slices.Sorted(maps.Keys(m.Flows)) {
 		f := m.Flows[rule]
 		if rule < 0 || rule >= len(m.Rules) {
 			return fmt.Errorf("flow body of rule %d out of range", rule)
 		}
-		if err := validateFlow(m, f); err != nil {
+		if err := validateFlow(m, rule, f); err != nil {
 			return fmt.Errorf("flow body of rule %s: %w", m.Strings[m.Rules[rule].Name], err)
 		}
 	}
 	return nil
 }
 
-func validateFlow(m *Module, f *Flow) error {
+func validateFlow(m *Module, rule int, f *Flow) error {
 	if f == nil || f.Regs < 0 {
 		return fmt.Errorf("invalid frame")
 	}
 	if n := len(f.Code); n == 0 || f.Code[n-1].Op != FlowJump && f.Code[n-1].Op != FlowReturn {
 		return fmt.Errorf("the body does not end with JUMP or RETURN")
+	}
+	slots := len(m.Rules[rule].Scope) // the number of slots of the largest frame the body may run with
+	for _, in := range f.Code {
+		if sc, ok := in.Imm.(int); ok && in.Op == FlowNewFrame && sc >= 0 && sc < len(m.Scopes) {
+			slots = max(slots, len(m.Scopes[sc]))
+		}
 	}
 	for pc := range f.Code {
 		in := &f.Code[pc]
@@ -1097,14 +1105,16 @@ func validateFlow(m *Module, f *Flow) error {
 		if s.Target && (in.Target < 0 || in.Target >= len(f.Code)) || !s.Target && in.Target != 0 {
 			return fmt.Errorf("invalid jump from %d to %d", pc, in.Target)
 		}
-		if err := validateFlowImm(m, s.Imm, in.Imm); err != nil {
+		if err := validateFlowImm(m, slots, s.Imm, in.Imm); err != nil {
 			return fmt.Errorf("%v at %d: %w", in.Op, pc, err)
 		}
 	}
 	return nil
 }
 
-func validateFlowImm(m *Module, k FlowImm, v any) error {
+// validateFlowImm checks the immediate v of kind k of an instruction of a body whose largest frame
+// has the number of slots slots.
+func validateFlowImm(m *Module, slots int, k FlowImm, v any) error {
 	ok := false
 	switch k {
 	case FlowImmNone:
@@ -1171,6 +1181,16 @@ func validateFlowImm(m *Module, k FlowImm, v any) error {
 		var x int
 		if x, ok = v.(int); ok && (x < 0 || x >= len(m.Strings)) {
 			return fmt.Errorf("string %d out of range", x)
+		}
+	case FlowImmSlot:
+		var x int
+		if x, ok = v.(int); ok && (x < 0 || x >= slots) {
+			return fmt.Errorf("capture slot %d out of range", x)
+		}
+	case FlowImmScope:
+		var x int
+		if x, ok = v.(int); ok && (x < 0 || x >= len(m.Scopes)) {
+			return fmt.Errorf("scope %d out of range", x)
 		}
 	case FlowImmShape:
 		var x FlowShapeOf

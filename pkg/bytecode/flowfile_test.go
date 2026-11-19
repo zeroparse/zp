@@ -67,6 +67,15 @@ func flowModule() *bytecode.Module {
 		{Op: bytecode.FlowDropKids, Args: []int{1}},
 		{Op: bytecode.FlowShapeSingle, Dst: []int{0, 2}, Args: []int{0, 1}, Imm: bytecode.FlowShapeOf{Elems: true, Shared: true, K: 2, Mode: 2}},
 		{Op: bytecode.FlowScopeValue, Dst: []int{0}, Args: []int{0, 1}, Imm: bytecode.FlowShapeOf{Tuple: true, K: 1}},
+		{Op: bytecode.FlowSetCapture, Args: []int{0}, Imm: 0},
+		{Op: bytecode.FlowMarkPos, Dst: []int{1}, Args: []int{4}},
+		{Op: bytecode.FlowFrame, Dst: []int{5}},
+		{Op: bytecode.FlowNewFrame, Dst: []int{6}, Imm: 0},
+		{Op: bytecode.FlowSetFrame, Args: []int{6}},
+		{Op: bytecode.FlowClearVals, Args: []int{6}},
+		{Op: bytecode.FlowFrameVal, Dst: []int{0}, Args: []int{6}, Imm: 1},
+		{Op: bytecode.FlowAttachFrame, Dst: []int{0}, Args: []int{0, 1, 6}, Imm: 0},
+		{Op: bytecode.FlowShapeCapture, Dst: []int{0}, Args: []int{0, 1}, Imm: bytecode.FlowShapeOf{K: 1, Mode: 1}},
 		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
 	}}
 	return &bytecode.Module{
@@ -74,8 +83,9 @@ func flowModule() *bytecode.Module {
 		Classes: []bytecode.Class{{Ranges: []rune{'a', 'z'}, Desc: 2}},
 		Rules: []bytecode.RuleInfo{
 			{Name: 0, Action: -1, NodeType: -1, OperatorsRule: -1, Where: -1},
-			{Name: 1, Action: -1, NodeType: -1, OperatorsRule: -1, Where: -1},
+			{Name: 1, Action: -1, NodeType: -1, OperatorsRule: -1, Where: -1, Scope: []int{0}},
 		},
+		Scopes: [][]int{{0, 1}},
 		Code:   []bytecode.Instr{{Op: bytecode.OpReturn}},
 		Starts: []int{0},
 		Flows:  map[int]*bytecode.Flow{1: f},
@@ -210,6 +220,16 @@ func TestFlowBodyValidation(t *testing.T) {
 		{"shape count", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[49].Imm = bytecode.FlowShapeOf{K: -1} }, "invalid shape"},
 		{"shape kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[49].Imm = 1 }, "invalid immediate"},
 		{"immediate of a push", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[45].Imm = 1 }, "invalid immediate"},
+		{"slot", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[56].Imm = 2 }, "capture slot 2 out of range"},
+		{"negative slot", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[50].Imm = -1 }, "capture slot -1 out of range"},
+		{"slot past the rule's frame", func(m *bytecode.Module, f *bytecode.Flow) {
+			f.Code[53] = bytecode.FlowInstr{Op: bytecode.FlowFrame, Dst: []int{6}}
+			f.Code[56].Imm = 1
+		}, "capture slot 1 out of range"},
+		{"slot kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[50].Imm = bytecode.FlowShapeOf{} }, "invalid immediate"},
+		{"scope", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[57].Imm = 1 }, "scope 1 out of range"},
+		{"scope of a frame", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[53].Imm = -1 }, "scope -1 out of range"},
+		{"scope kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[57].Imm = nil }, "invalid immediate"},
 	} {
 		m := flowModule()
 		c.edit(m, m.Flows[1])
@@ -260,6 +280,12 @@ func TestFlowBodyDisassembly(t *testing.T) {
 		"    43  STR        r0 = \"b\"\n",
 		"    48  SHAPESINGLE r0,r2 = r0 r1 elems=true shared=true tuple=false k=2 mode=2\n",
 		"    49  SCOPEVALUE r0 = r0 r1 elems=false shared=false tuple=true k=1 mode=0\n",
+		"    50  SETCAPTURE r0 slot=0\n",
+		"    51  MARKPOS    r1 = r4\n",
+		"    53  NEWFRAME   r6 = scope=[a b]\n",
+		"    56  FRAMEVAL   r0 = r6 slot=1\n",
+		"    57  ATTACHFRAME r0 = r0 r1 r6 scope=[a b]\n",
+		"    58  SHAPECAPTURE r0 = r0 r1 elems=false shared=false tuple=false k=1 mode=1\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("disassembly has no %q:\n%s", want, got)

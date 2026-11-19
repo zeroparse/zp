@@ -26,6 +26,9 @@ type Program struct {
 	scopes   [][]string // names in the scope table
 	ascii    []asciiSet // the ASCII part of each class, as a bitmap
 	descs    []string   // expectation table: fixedDescs followed by the string table (string i has index numFixedDescs+i)
+	// scopeOf holds the scope of each entry of the scope table, which the Flow bodies' ATTACHFRAME
+	// attaches.
+	scopeOf []*program.Scope
 	// runSites holds, at the index of each REPEAT that a Document can resume, how to resume it.
 	runSites []*vmRunSite
 	// terms holds the programs of the module's terms (Module.Terms).
@@ -144,6 +147,7 @@ func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Fami
 	}
 	for _, sc := range m.Scopes {
 		vm.scopes = append(vm.scopes, vm.names(sc))
+		vm.scopeOf = append(vm.scopeOf, &program.Scope{Names: vm.scopes[len(vm.scopes)-1]})
 	}
 	for i := range m.Classes {
 		vm.ascii = append(vm.ascii, newASCIISet(&m.Classes[i]))
