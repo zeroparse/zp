@@ -56,12 +56,14 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed filter.zp
-var grammar string
+var grammarSrc string
 
 // Record is what a filter looks at.
 type Record map[string]any
@@ -70,10 +72,10 @@ type Record map[string]any
 type value func(Record) any
 
 // text returns the text of a Num, Str, Bool or Field node.
-func text(n *core.Node) string { return n.Text() }
+func text(n *value.Node) string { return n.Text() }
 
 // compile turns a tree into closures, so that the tree is walked once, not once per record.
-func compile(n *core.Node) value {
+func compile(n *value.Node) value {
 	switch n.Type() {
 	case "Num":
 		v, _ := strconv.ParseFloat(text(n), 64)
@@ -88,13 +90,13 @@ func compile(n *core.Node) value {
 		name := text(n)
 		return func(r Record) any { return r[name] }
 	case "Not":
-		x := compile(n.Field("X").(*core.Node))
+		x := compile(n.Field("X").(*value.Node))
 		return func(r Record) any { return x(r) != true }
 	}
 	// Binary
-	op := n.Field("Op").(*core.Node).Text()
-	l := compile(n.Field("Left").(*core.Node))
-	r := compile(n.Field("Right").(*core.Node))
+	op := n.Field("Op").(*value.Node).Text()
+	l := compile(n.Field("Left").(*value.Node))
+	r := compile(n.Field("Right").(*value.Node))
 	switch op {
 	case "and":
 		return func(rec Record) any { return l(rec) == true && r(rec) == true }
@@ -149,7 +151,7 @@ func compare(op string, a, b any) bool {
 }
 
 // Compile parses a filter and returns a predicate.
-func Compile(p *engine.Parser, src string) (func(Record) bool, error) {
+func Compile(p runtime.Parser, src string) (func(Record) bool, error) {
 	tree, err := p.Parse(src)
 	if err != nil {
 		return nil, err
@@ -159,7 +161,7 @@ func Compile(p *engine.Parser, src string) (func(Record) bool, error) {
 }
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}

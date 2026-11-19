@@ -48,7 +48,7 @@ rule ws = [ \t\n]*
 ```
 
 The tests live in a Go module next to it. Each file below is part of the package `pairs_test`, and the grammar is
-embedded and compiled once, because a `*engine.Parser` is safe for concurrent use:
+embedded and compiled once, because a `runtime.Parser` is safe for concurrent use:
 
 ```text
 example.com/pairs
@@ -81,16 +81,18 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed pairs.zp
 var grammarSrc string
 
-// parser is shared by every test: a *engine.Parser is safe for concurrent use.
-var parser = func() *engine.Parser {
-	p, err := engine.CompileSource(grammarSrc, "main")
+// parser is shared by every test: a runtime.Parser is safe for concurrent use.
+var parser = func() runtime.Parser {
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		panic(err)
 	}
@@ -126,7 +128,7 @@ func TestRejects(t *testing.T) {
 		{"a=1\nb=x", 2, 3, []string{"[0-9]"}},
 	} {
 		_, err := parser.Parse(tc.in)
-		var se *core.SyntaxError
+		var se *value.SyntaxError
 		if !errors.As(err, &se) {
 			t.Errorf("%q: got %v, want a syntax error", tc.in, err)
 			continue
@@ -244,9 +246,9 @@ Notes:
 
 - Golden tests are only as good as the review of `-update`. Read the diff: a golden file that is regenerated without
   looking proves nothing.
-- Print what you care about. `node.String()` has no positions; `json.MarshalIndent(node, "", "  ")` has them (and, when the parser is compiled with `engine.WithSourceInfo()`, the
+- Print what you care about. `node.String()` has no positions; `json.MarshalIndent(node, "", "  ")` has them (and, when the parser is compiled with `compiler.WithSourceInfo()`, the
   rule of each node), at the price of larger files. A grammar with `#recover` should also print the recovered errors
-  (`var recovered core.SyntaxErrors; errors.As(err, &recovered)`): a parse can return a tree and an error together.
+  (`var recovered value.SyntaxErrors; errors.As(err, &recovered)`): a parse can return a tree and an error together.
 - Keep a few inputs that **fail**, with the error in the golden file. Error messages are part of a parser's interface.
 - The same layout is used by [examples/](../../examples/) and by every module of [parsers/](https://github.com/zeroparse/alpha-parsers); the zp
   command makes a golden file too: `zp parse -g pairs.zp -f sexpr < testdata/basic.txt`.
@@ -334,8 +336,10 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/runtime/input"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
+	"zeroparse.dev/zp/pkg/runtime/vm"
 )
 
 // checkInput checks what must hold for every input, valid or not.
@@ -343,24 +347,22 @@ func checkInput(t testing.TB, in string) {
 	t.Helper()
 
 	// Byte positions, so that a node's text is input[Start:End].
-	node, err := parser.Parse(in, engine.WithUnit(core.Bytes))
+	node, err := parser.Parse(in, runtime.WithUnit(input.Bytes))
 
 	// Every backend returns the same tree and the same error.
-	for _, b := range []engine.Backend{engine.Bytecode, engine.BytecodeIterative} {
-		other, oerr := parser.Parse(in, engine.WithUnit(core.Bytes), engine.WithBackend(b))
-		if fmt.Sprint(node, err) != fmt.Sprint(other, oerr) {
-			t.Fatalf("%q: backend %v returned %v, %v; the closure backend %v, %v", in, b, other, oerr, node, err)
-		}
+	other, oerr := parser.(*vm.Parser).Iterative().Parse(in, runtime.WithUnit(input.Bytes))
+	if fmt.Sprint(node, err) != fmt.Sprint(other, oerr) {
+		t.Fatalf("%q: the iterative VM returned %v, %v; the default VM %v, %v", in, other, oerr, node, err)
 	}
 
 	// Recognition agrees with parsing.
-	if _, rerr := parser.Parse(in, engine.RecognizeOnly(), engine.WithUnit(core.Bytes)); fmt.Sprint(rerr) != fmt.Sprint(err) {
-		t.Fatalf("%q: Parse returned %v, RecognizeOnly %v", in, err, rerr)
+	if rerr := parser.Recognize(in, runtime.WithUnit(input.Bytes)); fmt.Sprint(rerr) != fmt.Sprint(err) {
+		t.Fatalf("%q: Parse returned %v, Recognize %v", in, err, rerr)
 	}
 
 	if err != nil {
 		// A syntax error points into the input.
-		if se, ok := err.(*core.SyntaxError); ok && (se.Pos < 0 || se.Pos > len(in)) {
+		if se, ok := err.(*value.SyntaxError); ok && (se.Pos < 0 || se.Pos > len(in)) {
 			t.Fatalf("%q: error position %d is outside the input", in, se.Pos)
 		}
 		return
@@ -369,13 +371,13 @@ func checkInput(t testing.TB, in string) {
 }
 
 // checkNode checks that a node lies within its parent and that a string node's text is the input it covers.
-func checkNode(t testing.TB, in string, n *core.Node, lo, hi int) {
+func checkNode(t testing.TB, in string, n *value.Node, lo, hi int) {
 	t.Helper()
 	if n == nil {
 		return
 	}
 	switch n.Kind() {
-	case core.KindTupleValue, core.KindListValue, core.KindValue:
+	case value.KindTupleValue, value.KindListValue, value.KindValue:
 		// Built by an action, without a range of its own: the elements lie in the enclosing range.
 	default:
 		if n.Start() < lo || n.Start() > n.End() || n.End() > hi {
@@ -383,14 +385,14 @@ func checkNode(t testing.TB, in string, n *core.Node, lo, hi int) {
 		}
 		lo, hi = n.Start(), n.End()
 	}
-	if n.Kind() == core.KindString && n.Text() != in[n.Start():n.End()] {
+	if n.Kind() == value.KindString && n.Text() != in[n.Start():n.End()] {
 		t.Fatalf("%q: string node %s has text %q, but [%d,%d) is %q", in, n, n.Text(), n.Start(), n.End(), in[n.Start():n.End()])
 	}
 	for _, c := range n.Elems() {
 		checkNode(t, in, c, lo, hi)
 	}
 	for _, v := range n.Fields() {
-		if c, ok := v.(*core.Node); ok {
+		if c, ok := v.(*value.Node); ok {
 			checkNode(t, in, c, lo, hi)
 		}
 	}
@@ -409,17 +411,17 @@ Each check came from a kind of bug:
 |:--|:--|
 | The parse returns, with a tree or an error | A panic or an endless loop, reported by the test run |
 | All backends return the same tree and error | A bug in one of the three engines, or an action that depends on something other than its inputs (the three are specified to agree: see the [Choosing a Backend](backends.md)) |
-| `RecognizeOnly` agrees with `Parse` | Recognition and a full parse that diverge: a bug in one of them, or an action whose value no predicate needs and that fails at run time (recognition skips it) |
+| `Recognize` agrees with `Parse` | Recognition and a full parse that diverge: a bug in one of them, or an action whose value no predicate needs and that fails at run time (recognition skips it) |
 | The error position lies inside the input | Off-by-one positions of errors, most often at the end of input |
 | Every node lies inside its parent, and a string node's `Text()` is the input at its position | Wrong `Start` and `End`, such as a rule that consumes trailing space but reports a range without it |
 
 Add the properties of your own grammar. Typical ones: formatting the tree back to text and parsing it again gives the
 same tree; the elements of a tree come in order of position; every identifier of the tree is a word, not a keyword.
 
-`RecognizeOnly` skips the actions whose values no predicate needs; the actions that predicates need still run. If a
+`Recognize` skips the actions whose values no predicate needs; the actions that predicates need still run. If a
 skipped action can fail at run time (`division by zero`), `Parse` fails and recognition succeeds, and the check above
 fails for the right reason. For such a grammar, compare only the syntax
-errors, or skip inputs that fail with an error that is not a `*core.SyntaxError`.
+errors, or skip inputs that fail with an error that is not a `*value.SyntaxError`.
 
 ## Generated Inputs
 
@@ -623,17 +625,17 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime/vm"
 	"zeroparse.dev/zp/pkg/sample"
 )
 
 // TestLoadedMatchesCompiled checks that a grammar saved and loaded again behaves like the one compiled from source.
 func TestLoadedMatchesCompiled(t *testing.T) {
-	data, err := parser.Marshal(engine.CompiledParse)
+	data, err := parser.(*vm.Parser).Marshal(vm.CompiledParse)
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := engine.LoadParser(data)
+	loaded, err := vm.LoadParser(data)
 	if err != nil {
 		t.Fatal(err)
 	}

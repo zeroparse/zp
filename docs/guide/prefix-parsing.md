@@ -16,16 +16,17 @@ import (
     "fmt"
     "log"
 
-    "zeroparse.dev/zp/engine"
+    "zeroparse.dev/zp/pkg/compiler"
+    "zeroparse.dev/zp/pkg/grammar"
 )
 
 func main() {
-    parser, err := engine.CompileSource(`
+    parser, err := compiler.Compile(grammar.FromString("grammar.zp", `
 @start(default)
 rule main = value $$
 @start
 rule value = x:"é😀" "!" => $x
-`, "main")
+`), compiler.WithStart("main"))
     if err != nil {
         log.Fatal(err)
     }
@@ -58,7 +59,7 @@ supplied input. Add the fragment's starting byte offset to `ConsumedBytes` to
 obtain the consumed endpoint in the complete source. To translate a code-point
 node span, first convert that local span to source bytes; adding a byte base
 directly to a code-point span gives incorrect coordinates for multibyte text.
-With `WithUnit(core.Bytes)`, node spans and both consumption fields use bytes.
+With `WithUnit(input.Bytes)`, node spans and both consumption fields use bytes.
 
 ## Recovery and Failure
 
@@ -68,7 +69,7 @@ Inspect the error type before discarding a recovered result:
 
 ```go
 result, err := parser.ParsePrefix("value", input)
-var recovered core.SyntaxErrors
+var recovered value.SyntaxErrors
 switch {
 case err == nil:
     // Successful prefix; use result and its consumption fields.

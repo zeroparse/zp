@@ -3,7 +3,7 @@
 Package `ast` (`zeroparse.dev/zp/pkg/grammar/ast`) is the grammar AST: use it when a tool builds
 a grammar in Go or reads its JSON representation. Package `grammar` (`zeroparse.dev/zp/pkg/grammar`)
 loads a grammar source in grammar syntax or JSON into the AST, and validates, formats and converts
-it. `engine.Compile` checks a grammar and returns a parser; Go and TypeScript generation use the
+it. `compiler.CompileGrammar` checks a grammar and returns a parser; Go and TypeScript generation use the
 same compiler.
 
 ## Load a Grammar Source
@@ -289,7 +289,7 @@ AST. An `InlineAction` node is formatted and serialized as written; compilation
 lowers it to a hidden rule called at its position. The grammar of a parser
 (`Parser.Grammar`) and the formatter keep the inline action as written.
 
-After loading, use `engine.Compile(g, "main")` to perform semantic checking.
+After loading, use `compiler.CompileGrammar(g, compiler.WithStart("main"))` to perform semantic checking.
 Compile and the generators also run structural validation themselves. A
 compiled file holds no AST; its trust and bytecode validation rules are in
 [compiled grammars](compiled-grammars.md).

@@ -171,7 +171,7 @@ an environment that flows **down** the call tree.
 | Backtracking undoes definitions | Returning to an earlier point in the input forgets what was defined after it |
 | A read sees the nearest binding | Before any rule binds the variable, it reads its initial value |
 
-The following grammar has one start rule for each row. All the rules are pure predicates, so the commands use `-check`,
+The following grammar has one start rule for each row. All the rules are pure predicates, so the commands use `-recognize`,
 which prints `ok` on success:
 
 ```zp
@@ -211,7 +211,7 @@ rule peeked = &{p := 1} {p == 1}
 ```
 
 ```bash
-zp parse -g lab.zp -s inherit -check -i ''
+zp parse -g lab.zp -s inherit -recognize -i ''
 ```
 
 ```text
@@ -219,7 +219,7 @@ ok
 ```
 
 ```bash
-zp parse -g lab.zp -s shadow -check -i ''
+zp parse -g lab.zp -s shadow -recognize -i ''
 ```
 
 ```text
@@ -227,7 +227,7 @@ ok
 ```
 
 ```bash
-zp parse -g lab.zp -s hidden -check -i ''
+zp parse -g lab.zp -s hidden -recognize -i ''
 ```
 
 ```text
@@ -235,7 +235,7 @@ zp: 1:1: syntax error
 ```
 
 ```bash
-zp parse -g lab.zp -s undone -check -i 'ac'
+zp parse -g lab.zp -s undone -recognize -i 'ac'
 ```
 
 ```text
@@ -243,7 +243,7 @@ ok
 ```
 
 ```bash
-zp parse -g lab.zp -s stays -check -i 'aa'
+zp parse -g lab.zp -s stays -recognize -i 'aa'
 ```
 
 ```text
@@ -251,7 +251,7 @@ ok
 ```
 
 ```bash
-zp parse -g lab.zp -s kept -check -i 'a'
+zp parse -g lab.zp -s kept -recognize -i 'a'
 ```
 
 ```text
@@ -259,7 +259,7 @@ ok
 ```
 
 ```bash
-zp parse -g lab.zp -s peeked -check -i ''
+zp parse -g lab.zp -s peeked -recognize -i ''
 ```
 
 ```text
@@ -301,7 +301,7 @@ rule main = &s:[a-z]+ {len($s) == 3} [a-z]+ $$
 ```
 
 ```bash
-zp parse -g peek.zp -check -i 'abc'
+zp parse -g peek.zp -recognize -i 'abc'
 ```
 
 ```text
@@ -309,7 +309,7 @@ ok
 ```
 
 ```bash
-zp parse -g peek.zp -check -i 'abcd'
+zp parse -g peek.zp -recognize -i 'abcd'
 ```
 
 ```text
@@ -370,7 +370,7 @@ rule group = "(" group ")" "x" {mode == 1} / "(" group ")" "y" {mode == 1} / "z"
 ```
 
 ```bash
-zp parse -g memo.zp -check -i "$(printf '(%.0s' {1..40})z$(printf ')y%.0s' {1..40})"
+zp parse -g memo.zp -recognize -i "$(printf '(%.0s' {1..40})z$(printf ')y%.0s' {1..40})"
 ```
 
 ```text
@@ -614,7 +614,7 @@ rule number = [0-9]+ #atomic
 ```
 
 ```bash
-zp parse -g nl.zp -check -i $'x = (1 +\n  2)\ny = 3\n'
+zp parse -g nl.zp -recognize -i $'x = (1 +\n  2)\ny = 3\n'
 ```
 
 ```text
@@ -770,7 +770,7 @@ rule group = "(" {depth := depth + 1} {depth <= 3} @error(message="nested too de
 ```
 
 ```bash
-zp parse -g depth.zp -check -i '((()()))'
+zp parse -g depth.zp -recognize -i '((()()))'
 ```
 
 ```text
@@ -778,7 +778,7 @@ ok
 ```
 
 ```bash
-zp parse -g depth.zp -check -i '(((())))'
+zp parse -g depth.zp -recognize -i '(((())))'
 ```
 
 ```text

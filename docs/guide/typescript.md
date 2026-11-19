@@ -36,7 +36,7 @@ the other side would have built.
 | Runs in | Go programs | Go programs | Node.js, Deno, Bun, browsers (tested under Node.js only) |
 | Dependencies | `zeroparse.dev/zp` | Standard library | None |
 | Trees and errors | Reference | Identical | Identical (also as JSON, byte for byte) |
-| Recognition (no tree) | `RecognizeOnly` | `Recognize` | `recognize`, with `-recognize` |
+| Recognition (no tree) | `Recognize` | `Recognize` | `recognize`, with `-recognize` |
 | Typed values (`-types`) | — | Yes | Yes: Node conversion |
 | Streaming, incremental, backends | Yes | No | No |
 
@@ -141,16 +141,17 @@ zp gen -lang ts -g <grammar> -o <directory> [-s <rule>] [-lib embed|import|only]
 `-pkg` and `-nodoc` are for Go and are rejected with `-lang ts`. As for Go, the output is deterministic (generating
 twice gives identical files), and grammar errors are reported with positions before any file is written.
 
-The same generator is available from Go, in package `zeroparse.dev/zp/codegen`, for build tools:
+The same generator is available from Go, in package `zeroparse.dev/zp/pkg/compiler`, for build tools:
 
 ```go
-files, err := codegen.TypeScript{}.Generate(g, "main") // grammar, start rule: lib.ts and parser.ts
-files, err = codegen.TypeScript{Recognize: true, MaxDepth: 600_000}.Generate(g, "main")
-files, err = codegen.TypeScript{Lib: codegen.LibImport, LibModule: "../shared/lib.ts"}.Generate(g, "main")
-lib, err := codegen.TypeScript{}.GenerateLib() // lib.ts alone
+src := grammar.FromString("grammar.zp", grammarText)
+files, err := compiler.GenerateTypeScript(src, compiler.TSConfig{}, compiler.WithStart("main")) // grammar, config, start rule: lib.ts and parser.ts
+files, err = compiler.GenerateTypeScript(src, compiler.TSConfig{Recognize: true, MaxDepth: 600_000}, compiler.WithStart("main"))
+files, err = compiler.GenerateTypeScript(src, compiler.TSConfig{Lib: compiler.LibImport, LibModule: "../shared/lib.ts"}, compiler.WithStart("main"))
+lib, err := compiler.GenerateTypeScriptLib() // lib.ts alone
 ```
 
-`Types: true` enables typed TypeScript declarations and result conversion: `codegen.TypeScript{Types: true}.Generate(g, "main")`.
+`Types: true` enables typed TypeScript declarations and result conversion: `compiler.GenerateTypeScript(src, compiler.TSConfig{Types: true}, compiler.WithStart("main"))`.
 
 ## The Generated API
 
@@ -496,7 +497,7 @@ that you terminate for cancellation. The units of the limits are explained in
 ## Deep Nesting and the JavaScript Stack
 
 The generated parser calls rules recursively, like the generated Go parser, and defaults to the same limit of 100,000 nested
-recursive rule calls. `-max-depth` / `codegen.TypeScript.MaxDepth` set a generated default; `parseWithOptions`,
+recursive rule calls. `-max-depth` / `compiler.TSConfig.MaxDepth` set a generated default; `parseWithOptions`,
 `parseRuleWithOptions` and `recognizeWithOptions` accept `limits.depth` for one invocation, with or without `-limits`.
 Omitted or zero selects the generated default; a positive safe integer overrides it. `Unlimited`, negative values,
 fractions, NaN, infinity and unsafe integers return a configuration error through the normal result, before matching

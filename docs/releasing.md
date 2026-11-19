@@ -14,11 +14,11 @@ Go modules give a v0 version no compatibility guarantee. ZeroParse states its in
 |:--|:--|
 | The grammar language: `.zp` syntax and meaning ([specification](../spec/README.md)) | Stable in intent. A change that breaks a grammar is announced with how to update the grammar |
 | The API of generated Go parsers (`Parse`, `ParseValue`, the options and the error types) | Stable in intent. A generated parser carries the library of the generator that produced it, so regenerate it after upgrading ZeroParse |
-| The module API, including the `engine`, `codegen` and `pkg/grammar` packages | May change in any release; changes are announced |
+| The module API, including the `pkg/compiler`, `pkg/runtime` and `pkg/grammar` packages | May change in any release; changes are announced |
 | The testing packages `sample` (input generation) and `editfuzz` (incremental-parsing fuzzing), and the sequence files of `editfuzz` | Public so that Go programs can test their own grammars and documents; unstable: may change in any release |
 | The fixture suites of `zp test` (the JSON format) | Unstable: may change in any release; the runner is internal, not a Go API |
-| The package `zeroparse.dev/zp/core`: the nodes, limits, positions, errors, edits and statistics that `zp` and generated Go parsers share | Stable in intent, as part of the API of generated parsers |
-| The packages `zeroparse.dev/zp/codegen/go/lib` and `zeroparse.dev/zp/core/impl`, as generated code uses them with `zp gen -lib import` | Not a stable API. Judged by the protocol version (see [the library protocol](#the-library-protocol)), not by the release version |
+| The packages `zeroparse.dev/zp/pkg/runtime`, `zeroparse.dev/zp/pkg/runtime/value`, `zeroparse.dev/zp/pkg/runtime/input` and `zeroparse.dev/zp/pkg/runtime/instrument`: the nodes, limits, positions, errors, edits and statistics that `zp` and generated Go parsers share | Stable in intent, as part of the API of generated parsers |
+| The packages `zeroparse.dev/zp/pkg/runtime/golib` and `zeroparse.dev/zp/pkg/runtime/value/impl`, as generated code uses them with `zp gen -lib import` | Not a stable API. Judged by the protocol version (see [the library protocol](#the-library-protocol)), not by the release version |
 | Compiled grammars (`.zpc`) and the bytecode: container version 8, instruction-set version 36 ([bytecode specification](../spec/bytecode/README.md)) | Unstable: may change in any release. A loader accepts only its own versions and asks for the grammar to be compiled again |
 | The JSON forms of grammars and nodes | Unstable: may change in any release |
 | Ready-made parsers (`zeroparse.dev/alpha-parsers`) | Not part of a release: a separate repository, used from a checkout next to this one with a `go.work` |
@@ -38,10 +38,10 @@ pass to the library.
 - The library declares a constant `ProtocolN` for each protocol version N it implements.
 - A parser generated with `-lib import` refers to the constant of the protocol it was generated for, so a parser
   and a library that do not match fail to build (`undefined: rt.Protocol21`), never at run time.
-- The package `zeroparse.dev/zp/core/impl` declares exactly one constant `ProtocolN`, where N is the protocol
+- The package `zeroparse.dev/zp/pkg/runtime/value/impl` declares exactly one constant `ProtocolN`, where N is the protocol
   version that introduced the node representation it serves, and the library refers to that constant. A copy of the
-  library embedded in a generated parser and a `core` that do not match therefore fail to build
-  (`undefined: coreimpl.Protocol15`), in either direction. A test of `coreimpl` records the representation (the layout
+  library embedded in a generated parser and a `value/impl` package that do not match therefore fail to build
+  (`undefined: valueimpl.Protocol15`), in either direction. A test of `valueimpl` records the representation (the layout
   of its types, the values of its constants and the signatures of its functions) with the constant, and fails when
   the representation changes while the constant does not.
 - The protocol version increases whenever that interface changes; a test of the library compares the declarations
@@ -85,9 +85,9 @@ benchmarks run it under Node.js 24.13.0. It is written to run in Deno, Bun and b
 
 ## Go Versions
 
-**ZeroParse requires Go 1.27.1 or later, and so does the Go code it generates.** That covers the `zp` command, the engine
+**ZeroParse requires Go 1.27.1 or later, and so does the Go code it generates.** That covers the `zp` command, the compiler and runtime
 API and generated Go with either library mode: the default `-lib embed`, which copies the library into the generated
-package, and `-lib import`; with both, the consumer depends on the ZeroParse module for `core`. Generated Go is required to build
+package, and `-lib import`; with both, the consumer depends on the ZeroParse module for its `pkg/runtime` packages. Generated Go is required to build
 with Go 1.27.1 or later; no lower version is promised.
 
 **Recording `zp` as a tool raises the module's `go` line to 1.27.1.** `go get -tool zeroparse.dev/zp/cmd/zp` adds

@@ -296,11 +296,11 @@ parser rejects" (`sample.ErrNoInvalid` in Go), not with the error for grammars t
 parser's start rule (use `Parser.WithStart` for another).
 
 ```go
-p, err := engine.CompileSource(`@start
+p, err := compiler.Compile(grammar.FromString("grammar.zp", `@start
 rule main =  pair ("," " "? pair)*
 rule pair =  key "=" value
 rule key =  [a-z]+ #atomic
-rule value =  [0-9]+ #atomic / "\"" [^"\n]* #atomic "\"" / "true" / "false" `, "main")
+rule value =  [0-9]+ #atomic / "\"" [^"\n]* #atomic "\"" / "true" / "false" `), compiler.WithStart("main"))
 if err != nil {
 	log.Fatal(err)
 }
@@ -417,7 +417,7 @@ func FuzzCalculator(f *testing.F) {
 	if err != nil {
 		f.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", string(src)), compiler.WithStart("main"))
 	if err != nil {
 		f.Fatal(err)
 	}
@@ -442,11 +442,9 @@ func FuzzCalculator(f *testing.F) {
 		if valid[in] && err != nil {
 			t.Fatalf("generated input %q does not parse: %v", in, err)
 		}
-		for _, b := range []engine.Backend{engine.Bytecode, engine.BytecodeIterative} {
-			m, err2 := p.Parse(in, engine.WithBackend(b))
-			if fmt.Sprint(n, err) != fmt.Sprint(m, err2) {
-				t.Fatalf("%q: backend %v returned %v, %v; the closure backend %v, %v", in, b, m, err2, n, err)
-			}
+		m, err2 := p.(*vm.Parser).Iterative().Parse(in)
+		if fmt.Sprint(n, err) != fmt.Sprint(m, err2) {
+			t.Fatalf("%q: the iterative VM returned %v, %v; the default VM %v, %v", in, m, err2, n, err)
 		}
 	})
 }
@@ -579,7 +577,7 @@ src, err := os.ReadFile("grammar.zp")
 if err != nil {
 	t.Fatal(err)
 }
-err = editfuzz.Fuzz(src, editfuzz.Options{Start: "main", Backend: engine.BytecodeIterative, Unit: core.Bytes,
+err = editfuzz.Fuzz(src, editfuzz.Options{Start: "main", Backend: editfuzz.BytecodeIterative, Unit: input.Bytes,
 	Seed: 1, SaveFailures: t.TempDir()})
 if err != nil {
 	t.Fatal(err) // a *editfuzz.Failure, with the saved path

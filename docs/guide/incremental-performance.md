@@ -19,11 +19,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"runtime"
+	goruntime "runtime"
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
 )
 
 // Three grammars for a file of "key = value" lines.
@@ -69,19 +71,19 @@ func avg(n int, f func()) time.Duration {
 
 // live returns how many MiB of heap are still reachable after build has run and the garbage was collected.
 func live(build func() any) float64 {
-	runtime.GC()
-	var before, after runtime.MemStats
-	runtime.ReadMemStats(&before)
+	goruntime.GC()
+	var before, after goruntime.MemStats
+	goruntime.ReadMemStats(&before)
 	keep := build()
-	runtime.GC()
-	runtime.ReadMemStats(&after)
-	runtime.KeepAlive(keep)
+	goruntime.GC()
+	goruntime.ReadMemStats(&after)
+	goruntime.KeepAlive(keep)
 	return float64(after.HeapAlloc-before.HeapAlloc) / (1 << 20)
 }
 
 func main() {
 	for _, g := range grammars {
-		p, err := engine.CompileSource(g.grammar, "main")
+		p, err := compiler.Compile(grammar.FromString("grammar.zp", g.grammar), compiler.WithStart("main"))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -201,7 +203,8 @@ import (
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
 )
 
 // Run it from the root of the repository: go run ./jsondoc testdata/grammars/json/json.zp
@@ -210,7 +213,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", string(src)), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -286,7 +289,7 @@ Keep these in mind:
   Go's Node Document has no reset method.
 - `Parse` returns a complete tree each time. The engine Document can report conservative changes through
   [opt-in notifications](document-changes.md); generated Go's Node Document has no change-notification API.
-- The engine Document is unavailable with `RecognizeOnly` or [streams](streaming.md). Generated Go offers the
+- The engine Document is unavailable with `Recognize` or [streams](streaming.md). Generated Go offers the
   smaller [`-document` API](generated-documents.md); `-types` adds
   `Document.ParseValue`, with direct matching for grammars eligible for batch typed parsing and Node conversion
   otherwise. It does not include the history, batch-edit or snapshot APIs of [Incremental Parsing](incremental.md).

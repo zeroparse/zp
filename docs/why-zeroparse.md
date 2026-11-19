@@ -124,7 +124,7 @@ errors, not by the input length ([Streaming](guide/streaming.md)).
 **Typed values from the grammar.** Rule types are inferred and checked when the grammar compiles. The node type is
 `node[T]`. `zp gen -types` emits Go structs, `TNode[T]` values and sealed interfaces for join types, and builds them
 directly during the parse when every value has a Go type. For TypeScript it emits interfaces and a `parseValue`
-conversion ([Generated Typed Values](guide/generated-typed-values.md)). The engine API returns dynamic `*core.Node`
+conversion ([Generated Typed Values](guide/generated-typed-values.md)). The engine API returns dynamic `*value.Node`
 values.
 
 **Recovery is declared in the grammar.** `#recover(skip=e)` resumes after a broken construct and leaves an error value
@@ -149,7 +149,7 @@ Moving every backend onto the Core IR is an accepted design, not implemented yet
 both generators to the engine's results are the bar for every target and engine that follows.
 
 **No cgo and no runtime dependencies.** The module uses only the Go standard library. Generated Go needs only the
-standard library and the module's small package `core`, and generated TypeScript has no dependencies. The toolchain itself runs in the browser as WebAssembly
+standard library and the module's small `pkg/runtime` packages, and generated TypeScript has no dependencies. The toolchain itself runs in the browser as WebAssembly
 ([Playground](guide/playground.md)). The bytecode has a [published specification](../spec/bytecode/README.md); only the
 Go VMs implement it today.
 

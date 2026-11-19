@@ -32,9 +32,9 @@ From a checkout of the repository, `go run ./cmd/zp ...` is equivalent to `zp ..
 ## The Pipeline
 
 ```text
- ZeroParse source (.zp) ──ParseGrammar──▶ grammar AST ──Compile──▶ *engine.Parser ──Parse──▶ *core.Node
+ ZeroParse source (.zp) ──grammar.Load──▶ grammar AST ──Compile──▶ runtime.Parser ──Parse──▶ *value.Node
  grammar JSON (.json) ──UnmarshalJSON─▶     ▲                        │  ▲
- grammar package (Go values) ───────────────┘             MarshalBinary  LoadParser
+ grammar package (Go values) ───────────────┘             compiler.Marshal vm.LoadParser
                                                                      ▼  │
                                                               compiled grammar (.zpc)
 ```
@@ -42,7 +42,7 @@ From a checkout of the repository, `go run ./cmd/zp ...` is equivalent to `zp ..
 - The **grammar AST** (package `ast`, under `pkg/grammar`) is the in-memory form of a grammar. It can come from ZeroParse source, from JSON, or
   be built by hand.
 - **Compiling** analyzes the AST, type-checks it (reporting grammar errors), and prepares it for execution. A
-  `*engine.Parser` is the result: a compiled grammar plus a start rule.
+  `runtime.Parser` is the result: a compiled grammar plus a start rule.
 - A **compiled grammar** (`.zpc`) is the saved bytecode of a `Parser` for one mode of parsing. Loading one skips
   parsing, analysis and type checking, and gives a parser without the grammar AST
   ([Compiled Grammars](compiled-grammars.md)).
@@ -53,7 +53,7 @@ From a checkout of the repository, `go run ./cmd/zp ...` is equivalent to `zp ..
 
 ### From Source
 
-`engine.CompileSource(src, start)` does everything in one call:
+`compiler.Compile(grammar.FromString("grammar.zp", src), compiler.WithStart(start))` does everything in one call:
 
 ```go
 package main
@@ -63,14 +63,15 @@ import (
 	"fmt"
 	"log"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
 )
 
 //go:embed pairs.zp
 var src string
 
 func main() {
-	p, err := engine.CompileSource(src, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", src), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,30 +89,30 @@ func main() {
 
 Embedding the grammar with `go:embed` keeps it in a real `.zp` file that `zp fmt` and `zp parse` can also use.
 
-Compile once and keep the `*engine.Parser`. Compilation is the expensive step, and a `Parser` is cheap to call.
+Compile once and keep the `runtime.Parser`. Compilation is the expensive step, and a `Parser` is cheap to call.
 
-Errors in the grammar (syntax errors, undefined rules, type errors) are reported by `CompileSource`, with positions
+Errors in the grammar (syntax errors, undefined rules, type errors) are reported by `compiler.Compile`, with positions
 when the grammar came from source:
 
 ```go
-_, err = engine.CompileSource("@start\nrule main = (", "main")
+_, err = compiler.Compile(grammar.FromString("grammar.zp", "@start\nrule main = ("), compiler.WithStart("main"))
 fmt.Println(err) // A source position and syntax error.
-_, err = engine.CompileSource("@start\nrule main =  other ", "main")
+_, err = compiler.Compile(grammar.FromString("grammar.zp", "@start\nrule main =  other "), compiler.WithStart("main"))
 fmt.Println(err) // A source position and undefined-rule error.
 ```
 
 ### From an AST
 
-`CompileSource` is `ParseGrammar` followed by `Compile`. Use the two steps when you want to look at or change the AST
+`compiler.Compile` is `grammar.Load` followed by `compiler.CompileGrammar`. Use the two steps when you want to look at or change the AST
 (for example, to list the rules with `g.Rules()` or to reformat with `grammar.Format(g)`) before compiling:
 
 ```go
-g, err := engine.ParseGrammar(src)
+g, err := grammar.Load(grammar.FromString("grammar.zp", src))
 if err != nil {
 	log.Fatal(err)
 }
 fmt.Println(len(g.Rules()), "rules")
-p, err := engine.Compile(g, "main")
+p, err := compiler.CompileGrammar(g, compiler.WithStart("main"))
 ```
 
 ### From Go Values (Programmatic Grammars)
@@ -140,7 +141,7 @@ g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{
 }}}
 fmt.Print(grammar.Format(g))
 
-p, err := engine.Compile(g, "main")
+p, err := compiler.CompileGrammar(g, compiler.WithStart("main"))
 if err != nil {
 	log.Fatal(err)
 }
@@ -164,7 +165,7 @@ errors have no line numbers because there is no source:
 bad := &ast.Grammar{File: ast.File{Decls: []ast.Decl{
 	&ast.RuleDef{Name: "main", Expr: &ast.Ref{Name: "missing"}},
 }}}
-_, err = engine.Compile(bad, "main")
+_, err = compiler.CompileGrammar(bad, compiler.WithStart("main"))
 fmt.Println(err) // undefined rule missing
 ```
 
@@ -175,21 +176,21 @@ An AST can be exchanged as JSON with `ast.MarshalJSON` and `ast.UnmarshalJSON`, 
 ## Choosing a Start Rule
 
 Only the rules marked `@start` are start rules, and an empty name selects the grammar's default start rule. The
-second argument of `Compile` and `CompileSource` names one:
+`compiler.WithStart` option of `compiler.Compile` and `compiler.CompileGrammar` names one:
 
 ```go
-_, err = engine.CompileSource(src, "nope")
+_, err = compiler.Compile(grammar.FromString("grammar.zp", src), compiler.WithStart("nope"))
 fmt.Println(err) // rule nope is not defined
-_, err = engine.CompileSource(src, "pair")
+_, err = compiler.Compile(grammar.FromString("grammar.zp", src), compiler.WithStart("pair"))
 fmt.Println(err) // rule pair is not a start rule; parsing can begin only at a rule marked @start
 ```
 
-`Parser.WithStart(name)` returns a parser for another start rule, and `WithStart("")` one for the default start rule. It shares the compiled grammar, so it costs almost
+`WithStart(name)` of the `*vm.Parser` behind a compiled `runtime.Parser` returns a parser for another start rule, and `WithStart("")` one for the default start rule. It shares the compiled grammar, so it costs almost
 nothing, and it is how you expose several entry points of one grammar (for instance `expr` for an expression
 evaluator and `main` for a whole file):
 
 ```go
-keyParser, err := p.WithStart("key")
+keyParser, err := p.(*vm.Parser).WithStart("key")
 if err != nil {
 	log.Fatal(err)
 }
@@ -214,22 +215,22 @@ On the command line, `-s` selects the start rule for `parse`, `compile` and `gen
 ## Parsing, Errors and Concurrency
 
 ```go
-func (p *Parser) Parse(input string, opts ...ParseOption) (*Node, error)
+func (p Parser) Parse(input string, opts ...ParseOption) (*value.Node, error)
 ```
 
 `Parse` returns the value of the start rule, or an error. The error types, like the limits, position units and
-other types that both the engine and generated parsers use, are in the package `zeroparse.dev/zp/core`:
+other types that both the engine and generated parsers use, are in the packages `zeroparse.dev/zp/pkg/runtime` (limits and statistics), `zeroparse.dev/zp/pkg/runtime/value` (nodes and errors) and `zeroparse.dev/zp/pkg/runtime/input` (position units and edits):
 
 | Result | Meaning |
 |:--|:--|
 | `node, nil` | The input matched. |
-| `nil, *core.SyntaxError` | The input does not match. The error holds the farthest position reached and what was expected there. |
-| `node, core.SyntaxErrors` | The input matched after recovering from errors with `#recover`. The tree contains `error` values. See [Recovering from Errors](recovery.md). |
-| `nil, error` | Anything else that stops the parse: a run-time error in an action (such as `action in main: division by zero`), or a [limit](cancellation-and-limits.md) such as the [nesting limit](backends.md#deep-nesting-and-the-depth-limit) (a `*core.LimitError`). These are not syntax errors, and they are not subject to backtracking. |
+| `nil, *value.SyntaxError` | The input does not match. The error holds the farthest position reached and what was expected there. |
+| `node, value.SyntaxErrors` | The input matched after recovering from errors with `#recover`. The tree contains `error` values. See [Recovering from Errors](recovery.md). |
+| `nil, error` | Anything else that stops the parse: a run-time error in an action (such as `action in main: division by zero`), or a [limit](cancellation-and-limits.md) such as the [nesting limit](backends.md#deep-nesting-and-the-depth-limit) (a `*runtime.LimitError`). These are not syntax errors, and they are not subject to backtracking. |
 
 ```go
 _, err = p.Parse("abc=x")
-var se *core.SyntaxError
+var se *value.SyntaxError
 if errors.As(err, &se) {
 	fmt.Println(se.Pos, se.Line, se.Col, se.Expected, se.Messages)
 	fmt.Println(err)
@@ -246,17 +247,17 @@ have been accepted, and `Messages` holds the messages set with `@error`. `se.Mes
 position. Use [`@diagnostic`](../../spec/language/attributes.md#diagnostic) to give an expression a concise expected-item name
 while preserving its failure position and explicit `@error` messages.
 
-A `*engine.Parser` is **safe for concurrent use**: share one among goroutines and call `Parse` on all of them (each call
+A `runtime.Parser` is **safe for concurrent use**: share one among goroutines and call `Parse` on all of them (each call
 has its own state). A `Document`, in contrast, is not. Concurrent first use of different backends and of recognition
 mode is also safe. A call can be cancelled and bounded with `WithContext` and `WithLimits`; see [Cancellation and
 Compute limits](cancellation-and-limits.md).
 
 ## Compiled Grammars
 
-A compiled grammar is the saved bytecode of a `*engine.Parser` for one mode: `parse` for `Parse`, `ParsePrefix` and
-`ParseStream`, `recognize` for `RecognizeOnly`, or `document` for documents, traces and profiles. Loading one skips
+A compiled grammar is the saved bytecode of a `runtime.Parser` for one mode: `parse` for `Parse`, `ParsePrefix` and
+`ParseStream`, `recognize` for `Recognize`, or `document` for documents, traces and profiles. Loading one skips
 parsing, analysis, type checking and compilation, so a program starts faster and a grammar can ship as data.
-`p.MarshalBinary()` saves the parse mode, `p.Marshal(mode)` any mode, and `engine.LoadParser` restores it; on the command
+`compiler.Marshal(src, vm.CompiledParse)` saves the parse mode, or any other mode with its `vm.CompiledMode`, and `vm.LoadParser` restores it; on the command
 line, `zp compile -mode` writes the file and `parse`, `trace`, `profile` and `explain` accept it. A loaded parser runs
 only on the bytecode backends and only the operations of its mode. The [Compiled Grammars](compiled-grammars.md) guide
 covers the modes, sizes, embedding, versions and loading files you did not produce.

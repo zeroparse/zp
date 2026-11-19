@@ -46,15 +46,16 @@ import (
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed settings.zp
-var grammar string
+var grammarSrc string
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,7 +87,7 @@ func main() {
 		_, err := doc.Parse() // an editor would show the errors and use the tree where it can
 		elapsed := time.Since(start)
 		var n int
-		if errs, ok := err.(core.SyntaxErrors); ok {
+		if errs, ok := err.(value.SyntaxErrors); ok {
 			n = len(errs)
 		}
 		fmt.Printf("typed %-12q %8s  evaluated %5d  reused %5d  errors %d\n",
@@ -137,9 +138,9 @@ parse from scratch  5.243ms
   takes the number of lines as an argument). Reuse is about four times faster here, not independent of the size, and
   the grammar decides how much: see below.
 - **Errors are part of the result.** A half-typed line is an error, and `Parse` returns the tree together with a
-  `core.SyntaxErrors`, as in the previous recipe. After `timeout = 30;` is complete, the errors are gone.
+  `value.SyntaxErrors`, as in the previous recipe. After `timeout = 30;` is complete, the errors are gone.
 - **`Edit(start, end, text)` counts in the position unit of the document** (code points by default; `Bytes` with
-  `engine.WithUnit(core.Bytes)` when `NewDocument` is created). It only records the change; the next `Parse` does the work, and
+  `runtime.WithUnit(input.Bytes)` when `NewDocument` is created). It only records the change; the next `Parse` does the work, and
   several edits can come before one.
 
 ## Writing a Grammar That Reuses Well
@@ -161,7 +162,7 @@ The unit of reuse is the rule call, so:
 - **Concurrency.** A `Document` is not safe for concurrent use; a `Parser` is. Use one document per editor buffer.
 - **Time limit per keystroke.** If a parse can take long, parse after the user pauses, and apply the edits made
   meanwhile together, with several `Edit` calls before one `Parse`.
-- **Only the errors.** A `Document` cannot be used with `RecognizeOnly`; it always builds the tree.
+- **Only the errors.** A `Document` cannot be used with `Recognize`; it always builds the tree.
 
 See the guide on [incremental parsing](../guide/incremental.md) for
 the model of reuse, the full API, and more on writing grammars that reuse well.

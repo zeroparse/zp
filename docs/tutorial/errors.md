@@ -114,8 +114,8 @@ zp: 2:7: expected a number, a string or true/false
 3:9: expected a number, a string or true/false
 ```
 
-From Go, a recovered parse returns the tree together with an error of type `core.SyntaxErrors`, and a parse that could
-not recover returns a `*core.SyntaxError`. Tell them apart with `errors.As`, as this program, which reads `robust.zp`
+From Go, a recovered parse returns the tree together with an error of type `value.SyntaxErrors`, and a parse that could
+not recover returns a `*value.SyntaxError`. Tell them apart with `errors.As`, as this program, which reads `robust.zp`
 from the same directory, does:
 
 ```go
@@ -127,15 +127,16 @@ import (
 	"fmt"
 	"log"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed robust.zp
 var grammarSource string
 
 func main() {
-	p, err := engine.CompileSource(grammarSource, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSource), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -143,8 +144,8 @@ func main() {
 	input := "host = \"localhost\"\nport == 8080\ndebug = tru\n"
 	cfg, err := p.Parse(input)
 
-	var recovered core.SyntaxErrors
-	var fatal *core.SyntaxError
+	var recovered value.SyntaxErrors
+	var fatal *value.SyntaxError
 	switch {
 	case err == nil:
 		fmt.Println("no errors")
@@ -159,11 +160,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, e := range cfg.Field("Entries").(*core.Node).Elems() {
+	for _, e := range cfg.Field("Entries").(*value.Node).Elems() {
 		if e.Field("Key") == nil {
 			continue // an entry that was skipped
 		}
-		fmt.Println("entry:", e.Field("Key").(*core.Node).Text())
+		fmt.Println("entry:", e.Field("Key").(*value.Node).Text())
 	}
 }
 ```

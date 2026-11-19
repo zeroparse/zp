@@ -148,14 +148,15 @@ import (
 	"fmt"
 	"log"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
 )
 
 const src = `@start
 rule main = "hello" " " "world"`
 
 func main() {
-	p, err := engine.CompileSource(src, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", src), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err) // a mistake in the grammar
 	}
@@ -193,14 +194,14 @@ tuple 0 11
 1:7: syntax error: expected "world"
 ```
 
-- `engine.CompileSource(grammarSource, startRule)` parses and type-checks the grammar and returns a `*engine.Parser`. It
+- `compiler.Compile(grammar.FromString("grammar.zp", grammarSource), compiler.WithStart(startRule))` parses and type-checks the grammar and returns a `runtime.Parser`. It
   fails with an error that has the line and column in the grammar source if the grammar is wrong. Compile once and reuse
   the parser; it can be used from several goroutines.
-- `p.Parse(input)` returns a `*core.Node`. `Kind()` tells what the value is (here a tuple), `Start()` and `End()` give the
+- `p.Parse(input)` returns a `*value.Node`. `Kind()` tells what the value is (here a tuple), `Start()` and `End()` give the
   range, `Text()` is the text of a string node, and `Elems()` iterates over the elements of a tuple or list. Nodes encode
   to JSON as shown.
-- When the input does not match, `Parse` returns a `*core.SyntaxError` from the package
-  `zeroparse.dev/zp/core` (see [Reporting Errors](errors.md)).
+- When the input does not match, `Parse` returns a `*value.SyntaxError` from the package
+  `zeroparse.dev/zp/pkg/runtime/value` (see [Reporting Errors](errors.md)).
 
 ## Next Steps
 

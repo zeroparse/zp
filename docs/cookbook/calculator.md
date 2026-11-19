@@ -49,12 +49,13 @@ import (
 	"math"
 	"strconv"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed calc.zp
-var grammar string
+var grammarSrc string
 
 // funcs are the functions an expression can call, with their number of arguments.
 var funcs = map[string]struct {
@@ -67,7 +68,7 @@ var funcs = map[string]struct {
 }
 
 // eval evaluates a tree of the grammar with the given values of the variables.
-func eval(n *core.Node, vars map[string]float64) (float64, error) {
+func eval(n *value.Node, vars map[string]float64) (float64, error) {
 	switch n.Type() {
 	case "Num":
 		return strconv.ParseFloat(n.Text(), 64)
@@ -79,18 +80,18 @@ func eval(n *core.Node, vars map[string]float64) (float64, error) {
 		}
 		return v, nil
 	case "Neg":
-		x, err := eval(n.Field("X").(*core.Node), vars)
+		x, err := eval(n.Field("X").(*value.Node), vars)
 		return -x, err
 	case "Bin":
-		l, err := eval(n.Field("Left").(*core.Node), vars)
+		l, err := eval(n.Field("Left").(*value.Node), vars)
 		if err != nil {
 			return 0, err
 		}
-		r, err := eval(n.Field("Right").(*core.Node), vars)
+		r, err := eval(n.Field("Right").(*value.Node), vars)
 		if err != nil {
 			return 0, err
 		}
-		switch op := n.Field("Op").(*core.Node).Text(); op {
+		switch op := n.Field("Op").(*value.Node).Text(); op {
 		case "+":
 			return l + r, nil
 		case "-":
@@ -108,12 +109,12 @@ func eval(n *core.Node, vars map[string]float64) (float64, error) {
 			return math.Pow(l, r), nil
 		}
 	case "Call":
-		name := n.Field("Fn").(*core.Node).Text()
+		name := n.Field("Fn").(*value.Node).Text()
 		fn, ok := funcs[name]
 		if !ok {
 			return 0, fmt.Errorf("undefined function %q", name)
 		}
-		argNodes := n.Field("Args").(*core.Node)
+		argNodes := n.Field("Args").(*value.Node)
 		if argNodes.Len() != fn.arity {
 			return 0, fmt.Errorf("%s takes %d arguments, got %d", name, fn.arity, argNodes.Len())
 		}
@@ -131,7 +132,7 @@ func eval(n *core.Node, vars map[string]float64) (float64, error) {
 }
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -184,7 +185,7 @@ z * 2            0 undefined variable "z"
 - **Parse once.** The cost of parsing is paid once for `tree`; each evaluation only walks it. If you compile the
   formula into closures instead, as [Compile a filter language into a Go predicate](filter-language.md) does, each
   evaluation does not even dispatch on the node type.
-- **Errors.** A formula that does not parse is a `*core.SyntaxError` with its position. Errors that depend on the
+- **Errors.** A formula that does not parse is a `*value.SyntaxError` with its position. Errors that depend on the
   values (undefined variable, division by zero) are found while evaluating; wrong arity and undefined functions could
   also be found in a pass over the tree before any evaluation.
 

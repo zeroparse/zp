@@ -1,11 +1,11 @@
 # Generating Parsers With `zp gen`
 
 `zp gen` turns a grammar into Go source files: a parser package you commit to your repository, build with your program, and
-call like any other package. By default the generated Go package depends only on the package `zeroparse.dev/zp/core`, which defines the
-nodes and errors that the engine returns too, and on the standard library: it carries a copy of the ZeroParse library
+call like any other package. By default the generated Go package depends only on the packages under `zeroparse.dev/zp/pkg/runtime` (`value`, `input`, `instrument`, `value/impl` and the runtime package itself), which define the
+nodes and errors that the compiled parsers return too, and on the standard library: it carries a copy of the ZeroParse library
 of generated parsers in its `internal/libgo` directory, and it does not load or compile the grammar at run time.
 
-This guide shows how to generate a parser, what the generator supports compared with the engine (the `engine.Parser` of
+This guide shows how to generate a parser, what the generator supports compared with the engine (the `runtime.Parser` of
 [Running Parsers](running-parsers.md)), how to keep generated code up to date, and when it is the right choice. The API
 of the generated Go package is in [The Generated Go API](generated-go-api.md), and the options that add typed values,
 documents and streams have guides of their own, linked below. `zp gen -lang ts` generates
@@ -21,13 +21,13 @@ TypeScript modules with the same behavior instead; it has a guide of its own, [T
 
 ## Why Generate
 
-| | Engine (`engine.CompileSource`) | Generated parser |
+| | Compiled parser (`compiler.Compile`) | Generated parser |
 |:--|:--|:--|
-| Speed | Closure backend by default | Generated Go takes 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes; direct typed values take 0.69–0.98× generated `Parse` time ([benchmarks](../benchmarks.md), [analysis](../performance.md#where-zeroparse-stands)) |
-| Dependencies | `zeroparse.dev/zp` | `zeroparse.dev/zp/core` only (the library is copied into the package; `-lib import` imports it from `zeroparse.dev/zp/pkg/runtime/golib` instead) |
+| Speed | Bytecode VM by default | Generated Go takes 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes; direct typed values take 0.69–0.98× generated `Parse` time ([benchmarks](../benchmarks.md), [analysis](../performance.md#where-zeroparse-stands)) |
+| Dependencies | `zeroparse.dev/zp` | `zeroparse.dev/zp/pkg/runtime` and its subpackages only (the library is copied into the package; `-lib import` imports it from `zeroparse.dev/zp/pkg/runtime/golib` instead) |
 | Grammar at run time | Loaded and compiled (or loaded from `.zpc`) | Gone: it is compiled into Go code |
 | Grammar changes | Edit the grammar, restart | Regenerate and rebuild |
-| Recognition (no tree) | `RecognizeOnly` | `Recognize`, with [`-recognize`](generated-go-api.md#recognition--recognize) |
+| Recognition (no tree) | `Recognize` | `Recognize`, with [`-recognize`](generated-go-api.md#recognition--recognize) |
 | Streaming, incremental, backends | Yes | Go Node `ParseStream` with `-stream` (`-types` adds `ParseStreamValue`); Go Node `Document` with `-document`; `-types` adds `Document.ParseValue`, using direct incremental matching for eligible grammars and Node conversion otherwise. No backend choice (see [what is supported](#what-is-supported)) |
 
 Generate a parser when the grammar is fixed, the parser is on a hot path or in a small binary, or you want no
@@ -265,12 +265,12 @@ Details:
   `zp: pairs.zpc: a compiled grammar holds only the bytecode of one mode; gen needs the grammar source (.zp or .json)`.
 - Without `-s`, the grammar's default start rule is used.
 - The module of the generated package requires `zeroparse.dev/zp` (`go get zeroparse.dev/zp@vX.Y.Z`, the version of
-  `zp`): the generated code imports `zeroparse.dev/zp/core` with either `-lib` mode, and with `-lib import` also
+  `zp`): the generated code imports the packages of `zeroparse.dev/zp/pkg/runtime` with either `-lib` mode, and with `-lib import` also
   `zeroparse.dev/zp/pkg/runtime/golib`. Both refer to the library protocol they were generated for, so a mismatched
   version fails the build on that line instead of misbehaving. With `-lib import`, `parser.go` declares
   `const _ = rt.Protocol21`, and a library that does not implement the protocol fails with
-  `undefined: rt.Protocol21`. The embedded copy declares `const _ = coreimpl.Protocol15`, and a `core` that does
-  not serve the node representation of that protocol fails with `undefined: coreimpl.Protocol15`. Regenerate the
+  `undefined: rt.Protocol21`. The embedded copy declares `const _ = valueimpl.Protocol15`, and a `pkg/runtime/value/impl` package that does
+  not serve the node representation of that protocol fails with `undefined: valueimpl.Protocol15`. Regenerate the
   parser with the `zp` of the required version, or require a version of `zeroparse.dev/zp` that implements the
   protocol.
 
@@ -332,7 +332,7 @@ table changes output yet:
 | `typed-object-slabs` | runtime | on | Allocate typed objects in slabs (typed Go). Fewer allocations against memory: an object that escapes keeps the unused objects of its chunk |
 | `typed-output-bootstrap` | runtime | on | Size the first slab of the typed output from the input (typed Go). A small parse keeps little memory, against a few allocations before the slabs start |
 
-A profile is chosen with `-optimize` (`Optimize` in `codegen.Go` and `codegen.TypeScript`). Each sets flags of the table above to other values
+A profile is chosen with `-optimize` (`compiler.WithOptimize` with a `compiler.Optimize` for `compiler.GenerateGo` and `compiler.GenerateTypeScript`). Each sets flags of the table above to other values
 than `speed` has and nothing else, so `-opt` and `-no-opt` still apply after it:
 
 | Profile | Sets | For | Measured against `speed` (ratios to `speed`, geometric mean over ten language grammars) |
@@ -357,14 +357,11 @@ their own names. A listing writes the statements and the calls of the operations
 
 ### From Go
 
-The same generator is available from Go, in package `zeroparse.dev/zp/codegen`, for build tools that produce parsers programmatically:
+The same generator is available from Go, in package `zeroparse.dev/zp/pkg/compiler`, for build tools that produce parsers programmatically:
 
 ```go
-g, err := engine.ParseGrammar(src)
-if err != nil {
-	log.Fatal(err)
-}
-files, err := codegen.Go{Module: "example.com/pairs/pairsparser"}.Generate(g, "main") // grammar, start rule
+files, err := compiler.GenerateGo(grammar.FromString("grammar.zp", src),
+	compiler.GoConfig{Module: "example.com/pairs/pairsparser"}, compiler.WithStart("main")) // grammar, config, start rule
 if err != nil {
 	log.Fatal(err)
 }
@@ -379,9 +376,9 @@ for _, f := range files { // parser.go, api.go, types/types.go with Types, and t
 }
 ```
 
-The fields of `codegen.Go` are the flags of `zp gen`: `Module` is `-module`; `Types: true` is `-types`; `Document` is `-document`; `Stream` is `-stream`; `Recognize` is `-recognize`; `TypedOnly` is `-typed-only`; `RecognizeOnly` is `-recognize-only`; `LimitControls` is `-limits`; `Observability` is `-observability`; `SourceInfo` is `-source-info`; `DefaultValue` is `-default-value`; `OmitPackageDoc` is `-nodoc`; `Lib: codegen.LibImport` is `-lib import`; `PackageName: "p"` is `-pkg p`; and `MaxDepth: 600_000` is `-max-depth 600000`; `Optimize` is `-optimize`; `Opt: map[string]int{"class-tables": 3}` is `-opt class-tables=3`; `NoOpt: []string{"guards"}` is `-no-opt guards`; and `PrintAfter` with `PrintTo` is `-print-after` (it needs a writer, such as `os.Stderr`). `codegen.TypeScript` has the same five fields. Omitted, zero and explicit 100,000 defaults generate identical source. Observability supports standalone Go Node and typed batch parsers, including `ParseValue` and `ParseRuleValue`, Go Documents and streams, and TypeScript batch parsers with or without `-types`. Generated Go Node, typed and Document packages expose `WithProfile`; TypeScript batch packages expose `Profile` through per-call options. Typed direct execution and Node-conversion fallback report their actual rule calls; conversion itself has no separate event. Invalid defaults return an error before generated output is written.
+The fields of `compiler.GoConfig` are the flags of `zp gen`: `Module` is `-module`; `Types: true` is `-types`; `Document` is `-document`; `Stream` is `-stream`; `Recognize` is `-recognize`; `TypedOnly` is `-typed-only`; `RecognizeOnly` is `-recognize-only`; `LimitControls` is `-limits`; `Observability` is `-observability`; `OmitPackageDoc` is `-nodoc`; `Lib: compiler.LibImport` is `-lib import`; `PackageName: "p"` is `-pkg p`; and `MaxDepth: 600_000` is `-max-depth 600000`; and `PrintAfter` with `PrintTo` is `-print-after` (it needs a writer, such as `os.Stderr`). `compiler.TSConfig` has the same fields except for `Stream`, `TypedOnly`, `RecognizeOnly` and `PackageName`, and takes `LibModule` for `-lib-module`. The options of `compiler.GenerateGo` and `compiler.GenerateTypeScript` set the rest: `compiler.WithSourceInfo()` is `-source-info`, `compiler.WithDefaultValue()` is `-default-value`, and `compiler.WithOptimize(compiler.Optimize{Profile: "size", Values: map[string]int{"class-tables": 3}, Off: []string{"guards"}})` is `-optimize size -opt class-tables=3 -no-opt guards`. Omitted, zero and explicit 100,000 defaults generate identical source. Observability supports standalone Go Node and typed batch parsers, including `ParseValue` and `ParseRuleValue`, Go Documents and streams, and TypeScript batch parsers with or without `-types`. Generated Go Node, typed and Document packages expose `WithProfile`; TypeScript batch packages expose `Profile` through per-call options. Typed direct execution and Node-conversion fallback report their actual rule calls; conversion itself has no separate event. Invalid defaults return an error before generated output is written.
 
-`zp gen` is a thin wrapper around `codegen.Go` (and `codegen.TypeScript` with `-lang ts`, whose `Generate` returns the files too); both implement `codegen.Generator`. Because a grammar built with the `ast` package (see the
+`zp gen` is a thin wrapper around `compiler.GenerateGo` (and `compiler.GenerateTypeScript` with `-lang ts`, which returns the files too). Because a grammar built with the `ast` package (see the
 [Running Parsers](running-parsers.md#from-go-values-programmatic-grammars)) is just an AST, it can be generated from, too.
 
 When `-observability` is enabled, the generated Go or TypeScript package
@@ -422,7 +419,7 @@ machinery, which the generated code only has when you ask for it:
   [specification](../../spec/runtime/generated-parsers.md#compatibility-and-support).
 - There is no choice of backend, because the generated code is a backend of its own, and no `Parser.Grammar()`, saving
   or loading, because the grammar is gone at run time.
-- `#missing` works only in the engine's Closure backend for whole-input parsing and recognition, and the generator
+- `#missing` works only in the reference parser (the closure backend) for whole-input parsing and recognition, and the generator
   rejects grammars that use it.
 
 The [specification](../../spec/runtime/generated-parsers.md#compatibility-and-support) has the complete table.
@@ -458,11 +455,8 @@ var grammarSrc string
 
 // The files of pairsparser are up to date with pairs.zp.
 func TestGeneratedIsUpToDate(t *testing.T) {
-	g, err := engine.ParseGrammar(grammarSrc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want, err := codegen.Go{Module: "example.com/pairs/pairsparser"}.Generate(g, "main")
+	want, err := compiler.GenerateGo(grammar.FromString("grammar.zp", grammarSrc),
+		compiler.GoConfig{Module: "example.com/pairs/pairsparser"}, compiler.WithStart("main"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -493,7 +487,7 @@ protects you from the two diverging (for example after an upgrade):
 
 ```go
 func TestGeneratedMatchesEngine(t *testing.T) {
-	p, err := engine.CompileSource(grammarSrc, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -554,7 +548,7 @@ want several entry points of one grammar, use `ParseRule` rather than generating
 
 ### Engine in Development, Generated in Production
 
-Keep one `.zp` file. Use `zp parse` and the engine (`CompileSource`) in tools, experiments and tests, where start-up
+Keep one `.zp` file. Use `zp parse` and the compiled parser (`compiler.Compile`) in tools, experiments and tests, where start-up
 and features matter more than speed; generate the production parser from the same file; and let the
 [parity test](#keeping-generated-code-up-to-date) prove they agree.
 

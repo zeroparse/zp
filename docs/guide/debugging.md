@@ -2,7 +2,7 @@
 
 This guide is about finding out what a grammar does with an input: which rules it calls where, why an input is
 rejected, and where the time of a parse goes. It covers three commands, `zp explain`, `zp trace` and
-`zp profile`, and the Go API behind them (`engine.WithTrace`, `engine.WithProfile`).
+`zp profile`, and the Go API behind them (`runtime.WithTrace`, `runtime.WithProfile`).
 
 Contents:
 
@@ -380,15 +380,15 @@ alternative makes again, or as failed calls of the alternatives themselves when 
 
 ## From Go
 
-`engine.WithTrace` passes every event to a function; the methods of the event read the parser, so call them from the
+`runtime.WithTrace` passes every event to a function; the methods of the event read the parser, so call them from the
 function:
 
 ```go
-_, err = p.Parse("a=1;b=x", engine.WithTrace(func(e engine.TraceEvent) {
+_, err = p.Parse("a=1;b=x", runtime.WithTrace(func(e instrument.TraceEvent) {
 	indent := strings.Repeat("  ", e.Depth-1)
 	line, col := e.LineCol(e.Pos)
 	switch {
-	case e.Kind == engine.TraceEnter:
+	case e.Kind == instrument.TraceEnter:
 		fmt.Printf("%s%s at %d:%d\n", indent, e.Rule, line, col)
 	case e.Matched:
 		fmt.Printf("%s%s matched %q\n", indent, e.Rule, e.Text())
@@ -418,18 +418,18 @@ main failed: 1:7: syntax error: expected [0-9]
 1:7: syntax error: expected [0-9]
 ```
 
-A `TraceEvent`, the event type of the package `core` that generated parsers report too, has `Kind` (`TraceEnter` or `TraceExit`), `Rule`, `Level`, `Depth`, `Pos` and `Lookahead`; exit events
+A `TraceEvent`, the event type of the package `zeroparse.dev/zp/pkg/runtime/instrument` that generated parsers report too, has `Kind` (`TraceEnter` or `TraceExit`), `Rule`, `Level`, `Depth`, `Pos` and `Lookahead`; exit events
 also have `Matched`, `End`, `Memo`, `Evals`, `ReusedElements` and `Examined`, and the methods `Text` (the input matched), `Failure`
 (the farthest failure recorded during the call, as a `*SyntaxError`, or nil) and `Recovered` (the errors `#recover`
 recovered from during the call, whose expectations `Failure` does not include). `LineCol` converts a position.
 
-`engine.WithProfile` adds a parse to a `engine.Profile` (the `Profile` of the package `core`, which generated parsers
+`runtime.WithProfile` adds a parse to a `instrument.Profile` (the `Profile` of the package `instrument`, which generated parsers
 fill too), which can collect any number of parses, for example a whole test corpus. `Snapshot` reads it:
 
 ```go
-var prof engine.Profile
+var prof instrument.Profile
 for _, input := range inputs {
-	p.Parse(input, engine.WithProfile(&prof))
+	p.Parse(input, runtime.WithProfile(&prof))
 }
 snap := prof.Snapshot()
 for _, r := range snap.Rules {
@@ -450,9 +450,9 @@ Profile text prints the root-only total on its own summary line and the inclusiv
 
 `ProfileSnapshot.Rules` lists the rules sorted by name; sort them as you need. The times in a profile exclude the time
 of the `WithTrace` functions. Engine tracing works with
-every backend, with `RecognizeOnly`, `ParseStream` and `Document` (the option given to `NewDocument` traces each
+every backend, with `Recognize`, `ParseStream` and `Document` (the option given to `NewDocument` traces each
 `Document.Parse`). Several `WithTrace` options each receive every event, and several `WithProfile` options each
-record the parse. `engine.WithTraceFilter` and `engine.WithTraceMaxDepth` select the events that the trace functions
+record the parse. `runtime.WithTraceFilter` and `runtime.WithTraceMaxDepth` select the events that the trace functions
 receive, as described for generated parsers below; profiles still record every call. A `Profile` is not safe for
 concurrent parses. Generated Go Node and typed parsers have their own opt-in
 trace and profile options, described below, with the same names and meaning
@@ -470,7 +470,7 @@ zp gen -g pairs.zp -module example.com/pairs/pairsparser -types -observability -
 A parser generated without `-observability` has no tracing: it returns an error for the trace and profile options
 (`WithTrace`, `WithProfile`, `WithTraceFilter`, `WithTraceMaxDepth`) instead of delivering partial data.
 
-The generated package provides its own trace options; its `TraceEvent` is the one of the package `core`, whose
+The generated package provides its own trace options; its `TraceEvent` is the one of the package `instrument`, whose
 `LineCol`, `Text`, `Failure` and `Recovered` return zero values for generated events. Its callbacks run synchronously and
 receive events for actual generated calls:
 
