@@ -54,6 +54,43 @@ const (
 	// FlowCall calls the rule of the immediate FlowCallOf and sets Dst[0] to its value and Dst[1] to
 	// its success (flow.callRule).
 	FlowCall
+	// FlowAdd sets Dst[0] to the sum of the ints Args[0] and Args[1].
+	FlowAdd
+	// FlowSub sets Dst[0] to the int Args[0] minus the int Args[1].
+	FlowSub
+	// FlowEq sets Dst[0] to whether Args[0] and Args[1] are equal.
+	FlowEq
+	// FlowNe sets Dst[0] to whether Args[0] and Args[1] differ.
+	FlowNe
+	// FlowLt sets Dst[0] to whether the integer Args[0] (an int or a character) is less than Args[1].
+	FlowLt
+	// FlowLe sets Dst[0] to whether the integer Args[0] is at most Args[1].
+	FlowLe
+	// FlowStep charges one step of budget (flow.step).
+	FlowStep
+	// FlowSilent enters or leaves the lookahead of the immediate FlowSilenceOf (flow.silent).
+	FlowSilent
+	// FlowAdvance moves the position forward by the int Args[0] (flow.advance).
+	FlowAdvance
+	// FlowInClass sets Dst[0] to whether the character Args[0] is in the class of the immediate, an
+	// index of Module.Classes (flow.inClass).
+	FlowInClass
+	// FlowAtAnchor sets Dst[0] to whether the position is at the anchor of the immediate, an int: 0
+	// the beginning of the input, 1 its end, 2 the beginning of a line, 3 the end of a line
+	// (flow.atAnchor).
+	FlowAtAnchor
+	// FlowMatchLit matches the literal of the immediate FlowLitOf and sets Dst[0] to the null value
+	// and Dst[1] to whether it matched (flow.matchLit).
+	FlowMatchLit
+	// FlowIsolate begins an expectation scope at the position and sets Dst[0] to its mark
+	// (flow.isolate).
+	FlowIsolate
+	// FlowUnisolate ends the expectation scope Args[0] and sets Dst[0] to the farthest failure inside
+	// it and Dst[1] to its expectations (flow.unisolate).
+	FlowUnisolate
+	// FlowMergeExpected merges the expectations Args[1], recorded at the int Args[0], into the
+	// enclosing scope (flow.mergeExpected).
+	FlowMergeExpected
 )
 
 // FlowImm is the kind of immediate of an operation.
@@ -70,6 +107,14 @@ const (
 	FlowImmExpect
 	// FlowImmCall is a FlowCallOf.
 	FlowImmCall
+	// FlowImmClass is a class: an int index of Module.Classes.
+	FlowImmClass
+	// FlowImmAnchor is an anchor: an int from 0 to 3.
+	FlowImmAnchor
+	// FlowImmLit is a FlowLitOf.
+	FlowImmLit
+	// FlowImmSilence is a FlowSilenceOf.
+	FlowImmSilence
 )
 
 // FlowShape is what the instructions of an operation hold: the number of destination and argument
@@ -85,21 +130,36 @@ type FlowShape struct {
 // registers, target and immediate as its shape says, and loading a module checks each instruction
 // against it.
 var FlowShapes = [...]FlowShape{
-	FlowConst:     {Name: "CONST", Dst: 1, Imm: FlowImmConst},
-	FlowMove:      {Name: "MOVE", Dst: 1, Args: 1},
-	FlowNot:       {Name: "NOT", Dst: 1, Args: 1},
-	FlowPos:       {Name: "POS", Dst: 1},
-	FlowSetPos:    {Name: "SETPOS", Args: 1},
-	FlowJump:      {Name: "JUMP", Target: true},
-	FlowJumpFalse: {Name: "JUMPFALSE", Args: 1, Target: true},
-	FlowReturn:    {Name: "RETURN", Args: 2},
-	FlowMark:      {Name: "MARK", Dst: 1},
-	FlowReset:     {Name: "RESET", Args: 1},
-	FlowPeek:      {Name: "PEEK", Dst: 3},
-	FlowGuard:     {Name: "GUARD", Dst: 1, Args: 2, Imm: FlowImmGuard},
-	FlowExpect:    {Name: "EXPECT", Args: 1, Imm: FlowImmExpect},
-	FlowUnfresh:   {Name: "UNFRESH", Args: 1},
-	FlowCall:      {Name: "CALL", Dst: 2, Imm: FlowImmCall},
+	FlowConst:         {Name: "CONST", Dst: 1, Imm: FlowImmConst},
+	FlowMove:          {Name: "MOVE", Dst: 1, Args: 1},
+	FlowNot:           {Name: "NOT", Dst: 1, Args: 1},
+	FlowPos:           {Name: "POS", Dst: 1},
+	FlowSetPos:        {Name: "SETPOS", Args: 1},
+	FlowJump:          {Name: "JUMP", Target: true},
+	FlowJumpFalse:     {Name: "JUMPFALSE", Args: 1, Target: true},
+	FlowReturn:        {Name: "RETURN", Args: 2},
+	FlowMark:          {Name: "MARK", Dst: 1},
+	FlowReset:         {Name: "RESET", Args: 1},
+	FlowPeek:          {Name: "PEEK", Dst: 3},
+	FlowGuard:         {Name: "GUARD", Dst: 1, Args: 2, Imm: FlowImmGuard},
+	FlowExpect:        {Name: "EXPECT", Args: 1, Imm: FlowImmExpect},
+	FlowUnfresh:       {Name: "UNFRESH", Args: 1},
+	FlowCall:          {Name: "CALL", Dst: 2, Imm: FlowImmCall},
+	FlowAdd:           {Name: "ADD", Dst: 1, Args: 2},
+	FlowSub:           {Name: "SUB", Dst: 1, Args: 2},
+	FlowEq:            {Name: "EQ", Dst: 1, Args: 2},
+	FlowNe:            {Name: "NE", Dst: 1, Args: 2},
+	FlowLt:            {Name: "LT", Dst: 1, Args: 2},
+	FlowLe:            {Name: "LE", Dst: 1, Args: 2},
+	FlowStep:          {Name: "STEP"},
+	FlowSilent:        {Name: "SILENT", Imm: FlowImmSilence},
+	FlowAdvance:       {Name: "ADVANCE", Args: 1},
+	FlowInClass:       {Name: "INCLASS", Dst: 1, Args: 1, Imm: FlowImmClass},
+	FlowAtAnchor:      {Name: "ATANCHOR", Dst: 1, Imm: FlowImmAnchor},
+	FlowMatchLit:      {Name: "MATCHLIT", Dst: 2, Imm: FlowImmLit},
+	FlowIsolate:       {Name: "ISOLATE", Dst: 1},
+	FlowUnisolate:     {Name: "UNISOLATE", Dst: 2, Args: 1},
+	FlowMergeExpected: {Name: "MERGEEXPECTED", Args: 2},
 }
 
 // Shape returns the shape of o; ok is false for an operation that does not exist.
@@ -145,6 +205,24 @@ type FlowGuardOf struct {
 type FlowExpectOf struct {
 	Exp     int
 	Message bool
+}
+
+// FlowLitOf is the immediate of FlowMatchLit: the literal (an index of Module.Strings; for a
+// case-insensitive literal, Fold, its text with each ASCII letter lowercased) and the expectation it
+// records on failure, as FlowExpectOf.Exp counts it.
+type FlowLitOf struct {
+	Str  int
+	Exp  int
+	Fold bool
+}
+
+// FlowSilenceOf is the immediate of FlowSilent: Delta 1 enters a lookahead and -1 leaves it, whose
+// expression matched if Ok. Site is the lookahead's site in the parser's observation of lookaheads,
+// or -1 for a lookahead that is no observation.
+type FlowSilenceOf struct {
+	Delta int
+	Site  int
+	Ok    bool
 }
 
 // FlowCallOf is the immediate of FlowCall: the rule's index and the binding level it is called at.
