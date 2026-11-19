@@ -33,10 +33,10 @@ func TestTermMutantsFail(t *testing.T) {
 				"^TestTermChargesCreatedNodes$", []string{"."}},
 		}
 	}
-	t.Run("closure", func(t *testing.T) { runPrintedMutants(t, "closure/term_exec.go", common()) })
+	t.Run("closure", func(t *testing.T) { runPrintedMutants(t, "internal/backend/closure/term_exec.go", common()) })
 	t.Run("vm", func(t *testing.T) {
 		const drop = "\t\tif len(p.Created) > created {\n\t\t\tp.DropCreated(created)\n\t\t}\n\t\treturn false\n\t}\n" + predicateEnd
-		runPrintedMutants(t, "vm/term_exec.go", append(common(), printedMutant{"a failed predicate keeps what its term gathered",
+		runPrintedMutants(t, "internal/runtime/vm/term_exec.go", append(common(), printedMutant{"a failed predicate keeps what its term gathered",
 			[]printedEdit{{"\t\tp.DropKids(kids)\n" + drop, "\t\t_ = kids\n" + drop}},
 			"^TestTermChargesGatheredValues$", []string{"."}}))
 	})

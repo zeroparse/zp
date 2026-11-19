@@ -14,18 +14,18 @@ func TestRepetitionListTakeOffMutants(t *testing.T) {
 	t.Parallel()
 	const tests = "TestLimitErrorAgreement/repetition"
 	t.Run("closure", func(t *testing.T) {
-		runPrintedMutants(t, "state/alloc.go", []printedMutant{{"Kids reserves the copy and the take-off apart",
+		runPrintedMutants(t, "internal/runtime/state/alloc.go", []printedMutant{{"Kids reserves the copy and the take-off apart",
 			[]printedEdit{{"\tif n > 0 {\n\t\tp.SpendValue(2 * n)\n\t}\n", "\tif n > 0 {\n\t\tp.SpendValue(n)\n\t\tp.SpendValue(n)\n\t}\n"}},
 			tests, []string{"."}}})
 	})
 	t.Run("vm", func(t *testing.T) {
-		runPrintedMutants(t, "vm/vm.go", []printedMutant{{"a repetition's list reserves the copy and the take-off apart",
+		runPrintedMutants(t, "internal/runtime/vm/vm.go", []printedMutant{{"a repetition's list reserves the copy and the take-off apart",
 			[]printedEdit{{"\t\t\t\t\tif n > 0 {\n\t\t\t\t\t\tp.SpendValue(2 * n)\n\t\t\t\t\t}\n", "\t\t\t\t\tif n > 0 {\n\t\t\t\t\t\tp.SpendValue(n)\n\t\t\t\t\t\tp.SpendValue(n)\n\t\t\t\t\t}\n"}},
 			tests, []string{"."}}})
 	})
 	t.Run("run site", func(t *testing.T) {
 		const tests = "TestRunSiteListTakeOffCharge"
-		runPrintedMutants(t, "state/skip_runs.go", []printedMutant{
+		runPrintedMutants(t, "internal/runtime/state/skip_runs.go", []printedMutant{
 			{"a run site reserves the copy and the take-off of its list apart",
 				[]printedEdit{{"\t\tp.SpendValue(2 * n)\n\t}\n\tp.skipEnd(build)", "\t\tp.SpendValue(n)\n\t\tp.SpendValue(n)\n\t}\n\tp.skipEnd(build)"}}, tests, []string{"."}},
 			{"a run site charges the copy of its list again",

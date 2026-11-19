@@ -15,7 +15,7 @@ import (
 )
 
 // TestCallProtocolMutantsFail is the negative control of the tests of the engine's call protocol,
-// which is printed from Exec IR (state/call_exec.go): each mutant breaks one part of the protocol
+// which is printed from Exec IR (internal/runtime/state/call_exec.go): each mutant breaks one part of the protocol
 // in a copy of the printed file, and the tests named for it must fail when they build with the
 // copy in place of the file.
 func TestCallProtocolMutantsFail(t *testing.T) {
@@ -23,16 +23,16 @@ func TestCallProtocolMutantsFail(t *testing.T) {
 	const examine = "entry.Examined, entry.From, entry.Positional = p.Hw, p.lw, false"
 	const route = "\tif store == storeMemo {\n"
 	const copyErrs = "Errs: p.recSince(rec)}"
-	runPrintedMutants(t, "state/call_exec.go", []printedMutant{
+	runPrintedMutants(t, "internal/runtime/state/call_exec.go", []printedMutant{
 		{"a failed call keeps its recovered errors",
 			[]printedEdit{{"if !r.Leader && !ok {\n\t\tp.Recovered = p.Recovered[:rec]\n", "if !r.Leader && !ok {\n"}},
-			"^TestDocumentFailedEntriesHoldNoErrors$", []string{"./document"}},
+			"^TestDocumentFailedEntriesHoldNoErrors$", []string{"zeroparse.dev/zp/internal/runtime/document"}},
 		{"an entry examines no input beyond its position",
 			[]printedEdit{{examine, "entry.Examined, entry.From, entry.Positional = start, p.lw, false"}},
 			"^TestDocumentMatchesFreshParse$", []string{"."}},
 		{"an entry examines nothing before its position",
 			[]printedEdit{{examine, "entry.Examined, entry.From, entry.Positional = p.Hw, start, false"}},
-			"^TestDocumentEntriesExamineFromTheirPosition$", []string{"./document"}},
+			"^TestDocumentEntriesExamineFromTheirPosition$", []string{"zeroparse.dev/zp/internal/runtime/document"}},
 		{"a call reuses a result evaluated in a lookahead",
 			[]printedEdit{{reuse, "if found && (!c.ctx || p.ctxAllows(&c, e)) && true && "}},
 			"^TestMemoLookaheadStateEvaluations$", []string{"."}},
@@ -83,7 +83,7 @@ func TestExpectationRecordMutantsFail(t *testing.T) {
 		chunks = "^TestBudgetExpectationKeepFillsChunks$"
 	)
 	here := []string{"."}
-	runPrintedMutants(t, "state/call_exec.go", []printedMutant{
+	runPrintedMutants(t, "internal/runtime/state/call_exec.go", []printedMutant{
 		{"an expectation in a lookahead is recorded",
 			[]printedEdit{{dropped, "if pos < p.Farthest {\n\t\treturn"}}, scan, here},
 		{"an expectation before the farthest failure is recorded",
@@ -149,7 +149,7 @@ func TestExpectationRecordMutantsFail(t *testing.T) {
 }
 
 // TestOperatorsLoopMutantsFail is the negative control of the tests of the Operators Rule loop, whose
-// recursive and split forms are printed into state/operators_exec.go. Each row breaks one function of
+// recursive and split forms are printed into internal/runtime/state/operators_exec.go. Each row breaks one function of
 // the file; most fail the direct tests of both forms, and the rest fail the test named for them. Four
 // edits are left out because they change nothing. A prefix or a postfix match that consumes nothing
 // is no candidate, so a postfix application always moves past where the iteration started, and the
@@ -157,27 +157,24 @@ func TestExpectationRecordMutantsFail(t *testing.T) {
 // and the cut flag of its caller after restoring them from the record, so not saving them again
 // leaves the same values.
 func TestOperatorsLoopMutantsFail(t *testing.T) {
-	const path = "state/operators_exec.go"
-	src, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	const path = "internal/runtime/state/operators_exec.go"
+	_, src := mutanttest.Source(t, path)
 	groups := []struct {
 		tests, pkg string
 		mutants    [][]funcEdit
 	}{
-		{"^TestOperators", "./state", [][]funcEdit{
+		{"^TestOperators", "zeroparse.dev/zp/internal/runtime/state", [][]funcEdit{
 			{{"OperatorsRuleParse", "\tp.Depth--\n", ""}},
 			{{"operatorsRuleExpr", "if !ok {\n\t\treturn nil, false\n\t}\n\tled :=", "if false && !ok {\n\t\treturn nil, false\n\t}\n\tled :="}},
 			{{"operatorsRuleExpr", "if len(led) == 0 {", "if false {"}},
 			{{"operatorsRuleExpr", "level <= min ||", "level < min ||"}},
-			{{"operatorsRuleExpr", "(op.Assoc == ast.AssocNone) && level == lastNone", "false && level == lastNone"}},
+			{{"operatorsRuleExpr", "(op.Assoc == program.AssocNone) && level == lastNone", "false && level == lastNone"}},
 			{{"operatorsRuleExpr", "\t\tp.Pos = a.End\n", ""}},
 			{{"operatorsRuleExpr", "\t\tp.Env = a.Env\n", ""}},
 			{{"operatorsRuleExpr", "if p.Missing != nil || !a.Errs.None() {", "if !a.Errs.None() {"}},
 			{{"operatorsRuleExpr", "lhs, nil)\n\t\t\tlastNone = -1\n", "lhs, nil)\n"}},
 			{{"operatorsRuleExpr", "\t\t\tcontinue\n\t\t}\n\t\trmin", "\t\t}\n\t\trmin"}},
-			{{"operatorsRuleExpr", "rmin := level\n\t\tif op.Assoc == ast.AssocRight {", "rmin := level\n\t\tif true {"}},
+			{{"operatorsRuleExpr", "rmin := level\n\t\tif op.Assoc == program.AssocRight {", "rmin := level\n\t\tif true {"}},
 			{{"operatorsRuleExpr", "\t\t\tp.Reset(m0)\n\t\t\tbreak\n\t\t}\n\t\tlhs = p", "\t\t\tbreak\n\t\t}\n\t\tlhs = p"}},
 			{{"operatorsRuleExpr", "lhs, rhs)\n\t\tlastNone = -1\n", "lhs, rhs)\n"}},
 			{{"operatorsRuleExpr", "\t\t\tlastNone = level\n", ""}},
@@ -185,12 +182,12 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"ExprStart", "if !ok {", "if false && !ok {"}},
 			{{"ExprStart", "if len(r.OperatorsRule.Led) == 0 {", "if false {"}},
 			{{"ExprLed", "level <= st.Min ||", "level < st.Min ||"}},
-			{{"ExprLed", "(op.Assoc == ast.AssocNone) && level == st.LastNone", "false"}},
+			{{"ExprLed", "(op.Assoc == program.AssocNone) && level == st.LastNone", "false"}},
 			{{"ExprLed", "\tp.Pos = st.A.End\n", ""}},
 			{{"ExprLed", "\tp.Env = st.A.Env\n", ""}},
 			{{"ExprLed", "if p.Missing != nil || !st.A.Errs.None() {", "if !st.A.Errs.None() {"}},
 			{{"ExprLed", "st.Lhs, nil)\n\t\tst.LastNone = -1\n", "st.Lhs, nil)\n"}},
-			{{"ExprLed", "rmin := level\n\tif op.Assoc == ast.AssocRight {", "rmin := level\n\tif true {"}},
+			{{"ExprLed", "rmin := level\n\tif op.Assoc == program.AssocRight {", "rmin := level\n\tif true {"}},
 			{{"ExprRhs", "\t\tp.Reset(st.M0)\n\t\treturn true, true\n", "\t\treturn true, true\n"}},
 			{{"ExprRhs", "\t\tst.LastNone = op.Level\n", ""}},
 			{{"ExprRhs", "\tif p.Pos == st.M0.Pos {\n\t\treturn true, true\n\t}\n", ""}},
@@ -199,12 +196,12 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"operatorsRuleExpr", "bound := p.nudBound", "bound := 1073741824"}},
 			{{"operatorsRuleExpr", "\t\t\tbound = 1073741824\n", ""}},
 			{{"operatorsRuleExpr", "\t\tbound = rbound\n", ""}},
-			{{"operatorsRuleExpr", "rbound := level\n\t\tif op.Assoc == ast.AssocRight {", "rbound := level\n\t\tif false {"}},
+			{{"operatorsRuleExpr", "rbound := level\n\t\tif op.Assoc == program.AssocRight {", "rbound := level\n\t\tif false {"}},
 			{{"ExprLed", "level <= st.Min || level > st.Bound ||", "level <= st.Min ||"}},
 			{{"ExprStart", "\tst.Bound = p.nudBound\n", "\tst.Bound = 1073741824\n"}},
 			{{"ExprLed", "\t\tst.Bound = 1073741824\n", ""}},
 			{{"ExprRhs", "\tst.Bound = rbound\n", ""}},
-			{{"ExprRhs", "rbound := op.Level\n\tif op.Assoc == ast.AssocRight {", "rbound := op.Level\n\tif false {"}},
+			{{"ExprRhs", "rbound := op.Level\n\tif op.Assoc == program.AssocRight {", "rbound := op.Level\n\tif false {"}},
 			{{"operatorsRuleNud", "\t\t\tp.nudBound = a.Op.Level\n", "\t\t\tp.nudBound = 1073741824\n"}},
 			{{"operatorsRuleNud", "\t\t\tp.nudBound = 1073741824\n", "\t\t\tp.nudBound = 0\n"}},
 			{{"NudRhs", "\t\tp.nudBound = st.A.Op.Level\n", "\t\tp.nudBound = 1073741824\n"}},
@@ -229,8 +226,8 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"Longest", "\t\tp.Cut = prevCut\n", "\t\t_ = prevCut\n"}},
 			{{"Longest", "\t\tp.Frame = prevFrame\n", "\t\t_ = prevFrame\n"}},
 			{{"Longest", "\t\tp.Frame = f\n", ""}},
-			{{"Longest", "(op.Kind != ast.Infix)", "true"}},
-			{{"Longest", "matched := ok && !(p.Pos == start && (op.Kind != ast.Infix))", "matched := ok"}},
+			{{"Longest", "(op.Kind != program.OpInfix)", "true"}},
+			{{"Longest", "matched := ok && !(p.Pos == start && (op.Kind != program.OpInfix))", "matched := ok"}},
 			{{"Longest", "if !matched && cut {", "if cut {"}},
 			{{"Longest", "if !matched && cut {", "if false && cut {"}},
 			{{"Longest", "Errs: p.recSince(m0.Recovered)", "Errs: RecEntry{}"}},
@@ -246,8 +243,8 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"LongestNext", "\tp.Frame = f\n", ""}},
 			{{"LongestStep", "\tp.Cut = st.PrevCut\n", ""}},
 			{{"LongestStep", "\tp.Frame = st.PrevFrame\n", ""}},
-			{{"LongestStep", "(op.Kind != ast.Infix)", "true"}},
-			{{"LongestStep", "matched := ok && !(p.Pos == st.M0.Pos && (op.Kind != ast.Infix))", "matched := ok"}},
+			{{"LongestStep", "(op.Kind != program.OpInfix)", "true"}},
+			{{"LongestStep", "matched := ok && !(p.Pos == st.M0.Pos && (op.Kind != program.OpInfix))", "matched := ok"}},
 			{{"LongestStep", "if !matched && cut {", "if cut {"}},
 			{{"LongestStep", "if !matched && cut {", "if false && cut {"}},
 			{{"LongestStep", "Errs: p.recSince(st.M0.Recovered)", "Errs: RecEntry{}"}},
@@ -296,13 +293,13 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"Longest", "\tp.SpendN(uint64(len(l)))\n", "\tif len(l) > 0 {\n\t\tp.Spend()\n\t}\n"}},
 			{{"LongestBegin", "\tp.SpendN(uint64(len(l)))\n", "\tif len(l) > 0 {\n\t\tp.Spend()\n\t}\n"}},
 		}},
-		{"^TestBudgetDiagnosticRecoveredLists$", "./vm", [][]funcEdit{
+		{"^TestBudgetDiagnosticRecoveredLists$", "zeroparse.dev/zp/internal/runtime/vm", [][]funcEdit{
 			{{"Longest", "\tp.SpendN(uint64(len(l)))\n", ""}},
 		}},
 		{"^TestBudgetResetRestoresRepeatedCaptureWritesInReverse$", ".", [][]funcEdit{
 			{{"Reset", "\tp.Trail = p.Trail[:m.Trail]\n", ""}},
 		}},
-		{"^TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration$", "./vm", [][]funcEdit{
+		{"^TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration$", "zeroparse.dev/zp/internal/runtime/vm", [][]funcEdit{
 			{{"Longest", "\t\t\tp.Saved = AppendSpend(p, p.Saved[:0], f.Vals)\n\t\t\tp.Reset(m0)\n\t\t\tCopySpend(p, f.Vals, p.Saved)\n", "\t\t\tp.Reset(m0)\n"}},
 			{{"Longest", "\t\t\tp.Reset(m0)\n\t\t\tCopySpend", "\t\t\tCopySpend"}},
 			{{"LongestStep", "\t\tp.Saved = AppendSpend(p, p.Saved[:0], st.F.Vals)\n\t\tp.Reset(st.M0)\n\t\tCopySpend(p, st.F.Vals, p.Saved)\n", "\t\tp.Reset(st.M0)\n"}},
@@ -320,10 +317,10 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 		{"^TestDefaultValueOperatorsRule$", ".", [][]funcEdit{
 			{{"operatorsRuleNud", "LineResult(r, o, f, v, start, nil)", "LineResult(r, o, f, v, p.Pos+0*start, nil)"}},
 		}},
-		{"^TestDocumentAbortedParse$", "./document", [][]funcEdit{
+		{"^TestDocumentAbortedParse$", "zeroparse.dev/zp/internal/runtime/document", [][]funcEdit{
 			{{"OperatorsRuleParse", "\tp.Enter()\n", ""}, {"OperatorsRuleParse", "\tp.Depth--\n", ""}},
 		}},
-		{"^TestDocumentEditKeepsMemo$", "./document", [][]funcEdit{
+		{"^TestDocumentEditKeepsMemo$", "zeroparse.dev/zp/internal/runtime/document", [][]funcEdit{
 			{{"operatorsRuleNud", "\t\tp.Frame = f\n", ""}},
 		}},
 		{"^TestDocumentMatchesFreshParse$", ".", [][]funcEdit{
@@ -393,8 +390,8 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 }
 
 // TestStreamCommitMutantsFail is the negative control of the tests of the engine's stream commit,
-// which is printed from Exec IR (state/stream_exec.go), and of its implementations of the operations
-// (state/stream_ops.go). The operations of the window are host operations without reference models,
+// which is printed from Exec IR (internal/runtime/state/stream_exec.go), and of its implementations of the operations
+// (internal/runtime/state/stream_ops.go). The operations of the window are host operations without reference models,
 // so these mutants are what binds them. Each must fail the test named for it; the two backends'
 // calls of the commit are held to their position too.
 //
@@ -417,7 +414,7 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 	const (
 		check   = "\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
 		report  = "\tif p.Diagnostic != nil || p.DiagnosticTail.Limit > 0 {\n\t\tp.streamReport()\n\t}\n"
-		deliver = "\tif v != nil {\n\t\tvalue.D(v).Fresh = false\n\t}\n\tp.EmitCall = true\n\terr := p.Emit(v)\n\tp.EmitCall = false\n\tif err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}\n"
+		deliver = "\tif v != nil {\n\t\tnodes.D(v).Fresh = false\n\t}\n\tp.EmitCall = true\n\terr := p.Emit(v)\n\tp.EmitCall = false\n\tif err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}\n"
 		window  = "pos-p.Memo.Base >= 1024"
 		prune   = "\tif " + window + " {\n\t\tp.streamDropRecords(pos)\n\t\tp.PruneStreamMemo(pos)\n\t}\n"
 		settle  = "\tif p.DiagnosticTail.Limit > 0 {\n\t\tp.streamSettleErrors()\n\t}\n"
@@ -438,8 +435,8 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 		charges  = "^TestStreamCommitChargesItsDeclaredWork$"
 		ends     = "^TestStreamDiagnosticCallbackEndsTheEmission$"
 	)
-	here, vm, inCore := []string{"."}, []string{"./vm"}, []string{"./state"}
-	runPrintedMutants(t, "state/stream_exec.go", []printedMutant{
+	here, vm, inCore := []string{"."}, []string{"zeroparse.dev/zp/internal/runtime/vm"}, []string{"zeroparse.dev/zp/internal/runtime/state"}
+	runPrintedMutants(t, "internal/runtime/state/stream_exec.go", []printedMutant{
 		{"cancellation is not observed before the delivery",
 			[]printedEdit{{check + report, report}}, boundary, here},
 		{"the recovered errors are not reported",
@@ -453,7 +450,7 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 		{"the element is not delivered",
 			[]printedEdit{{"\terr := p.Emit(v)\n", "\tvar err error\n"}}, boundary, here},
 		{"a delivered element stays fresh",
-			[]printedEdit{{"\tif v != nil {\n\t\tvalue.D(v).Fresh = false\n\t}\n", "\t_ = value.D(v)\n"}}, "^TestStreamCommitFreezesDeliveredElements$", here},
+			[]printedEdit{{"\tif v != nil {\n\t\tnodes.D(v).Fresh = false\n\t}\n", "\t_ = nodes.D(v)\n"}}, "^TestStreamCommitFreezesDeliveredElements$", here},
 		{"the callback is not marked as the caller's",
 			[]printedEdit{{"\tp.EmitCall = true\n", ""}}, "^TestStreamCallerPanicIdentity$", here},
 		{"the mark of the callback stays",
@@ -502,7 +499,7 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 		{"a rule that is entered once counts its depth", []printedEdit{{depth, "p.Depth == 1"}}, after, here},
 		{"a recursive rule streams outside its first entry", []printedEdit{{"p.Depth == 1)", "p.Depth == 0)"}}, start, here},
 	})
-	runPrintedMutants(t, "state/stream_ops.go", []printedMutant{
+	runPrintedMutants(t, "internal/runtime/state/stream_ops.go", []printedMutant{
 		{"an error of the diagnostic callback is ignored",
 			[]printedEdit{{"if err := p.ReportRecovered(); err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}", "_ = p.ReportRecovered()"}},
 			"^TestStreamDiagnosticCallbackWithoutElementReceiverStopsBeforeLaterRead$", here},
@@ -534,39 +531,32 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 		{"the settled errors stay counted", []printedEdit{{"\t\tp.Control.errs = 0\n", ""}}, "^TestMemoryLimitStream$", here},
 	})
 	// The checkpoints before the first diagnostic stand in for each other, so only both go together.
-	reportSrc, err := os.ReadFile("state/stream_ops.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	reportFile, reportSrc := mutanttest.Source(t, "internal/runtime/state/stream_ops.go")
 	const before = "func (p *Parser) reportRecovered(original *core.SyntaxError) error {\n\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
 	if strings.Count(string(reportSrc), before) != 1 {
-		t.Fatalf("state/stream_ops.go has no single checkpoint before a diagnostic")
+		t.Fatalf("internal/runtime/state/stream_ops.go has no single checkpoint before a diagnostic")
 	}
 	reportMutant := filepath.Join(t.TempDir(), "stream_ops.go")
 	unchecked := strings.Replace(string(reportSrc), before, "func (p *Parser) reportRecovered(original *core.SyntaxError) error {\n", 1)
 	if err := os.WriteFile(reportMutant, []byte(unchecked), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	reportFile, err := filepath.Abs("state/stream_ops.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	runPrintedMutantsOver(t, "state/stream_exec.go", map[string]string{reportFile: reportMutant}, []printedMutant{
+	runPrintedMutantsOver(t, "internal/runtime/state/stream_exec.go", map[string]string{reportFile: reportMutant}, []printedMutant{
 		{"a cancelled context still gets its diagnostics",
 			[]printedEdit{{check + report, report + check}}, "^TestStreamCancelledContextDeliversNoDiagnostic$", here},
 	})
-	runPrintedMutants(t, "closure/builder.go", []printedMutant{
+	runPrintedMutants(t, "internal/backend/closure/builder.go", []printedMutant{
 		{"the closure backend commits where the element started",
 			[]printedEdit{{"p.EmitStream(v, p.Pos)", "p.EmitStream(v, m0.Pos)"}}, after, here},
 	})
-	runPrintedMutants(t, "vm/vm.go", []printedMutant{
+	runPrintedMutants(t, "internal/runtime/vm/vm.go", []printedMutant{
 		{"the VM commits where the element started",
 			[]printedEdit{{"p.EmitStream(asNodeValue(mc.pop()), p.Pos)", "p.EmitStream(asNodeValue(mc.pop()), e.save.pos)"}}, after, here},
 	})
 }
 
 // TestDocumentReuseMutantsFail is the negative control of Document reuse: the two printed forms of
-// AdvanceEntry, the engine's memo.splice and doc.move in state/document_ops.go, the charges of the runs,
+// AdvanceEntry, the engine's memo.splice and doc.move in internal/runtime/state/document_ops.go, the charges of the runs,
 // and the calls of the printed lookup. Each row breaks one step and fails the test it names. Three
 // edits are left out because they change nothing a parse can reach.
 //   - ShiftOf testing an edit's start for its end: the node of a reused result lies in the input the
@@ -578,10 +568,7 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 //   - A lookup that reads all of p.Edits: a Document sets p.Gen to the length of the log it passes,
 //     and no edit reaches the log during a parse.
 func TestDocumentReuseMutantsFail(t *testing.T) {
-	src, err := os.ReadFile("state/document_exec.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, src := mutanttest.Source(t, "internal/runtime/state/document_exec.go")
 	const budgeted, plain = "func (p *Parser) AdvanceEntry(", "\nfunc AdvanceEntry("
 	// form replaces the whole of one printed form, since both have the same lines.
 	form := func(head, old, new string) []printedEdit {
@@ -590,162 +577,162 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 		body := text[start : start+strings.Index(text[start:], "\n}\n")]
 		return []printedEdit{{body, strings.Replace(body, old, new, 1)}}
 	}
-	runPrintedMutants(t, "state/document_exec.go", []printedMutant{
-		{"budget: seed kept", form(budgeted, "\tif e.Growing {\n\t\treturn false\n\t}\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: seed always valid", form(budgeted, "\tif e.Growing {\n\t\treturn false\n\t}\n", "\tif e.Growing {\n\t\treturn true\n\t}\n"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: from wrong", form(budgeted, "from := e.From", "from := e.Pos"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: examined wrong", form(budgeted, "examined := e.Examined", "examined := e.End"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: shifted starts false", form(budgeted, "shifted := e.shifted", "shifted := false"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: start at zero", form(budgeted, "for i = int(e.Vgen); i < len(log); i++ {", "for i = 0; i < len(log); i++ {"), "^TestEngineExecConformance$", []string{"./state"}},
-		{"budget: one edit short", form(budgeted, "i < len(log); i++ {", "i < len(log)-1; i++ {"), "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"./document"}},
-		{"budget: before lt", form(budgeted, "if examined <= log[i].Start {", "if examined < log[i].Start {"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: before never", form(budgeted, "if examined <= log[i].Start {", "if false {"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: before off by one", form(budgeted, "if examined <= log[i].Start {", "if examined <= log[i].Start+1 {"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: after gt", form(budgeted, "from >= log[i].End &&", "from > log[i].End &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: after lower", form(budgeted, "from >= log[i].End &&", "from >= log[i].Start &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: after always", form(budgeted, "from >= log[i].End &&", "true &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: pin ignored", form(budgeted, " && !e.Positional", " "), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: errs ignored", form(budgeted, " && e.Errs.None()", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: invalid keeps going", form(budgeted, "\t\t\treturn false\n\t\t}\n\t\tdelta", "\t\t\tcontinue\n\t\t}\n\t\tdelta"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: from not moved", form(budgeted, "\t\tfrom = from + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: examined not moved", form(budgeted, "\t\texamined = examined + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: shift not summed", form(budgeted, "\t\tshift = shift + delta\n", "\t\tshift = delta\n"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: shifted always", form(budgeted, "shifted = shifted || delta != 0", "shifted = true"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: shifted overwritten", form(budgeted, "shifted = shifted || delta != 0", "shifted = delta != 0"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: shifted never", form(budgeted, "\t\tshifted = shifted || delta != 0\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: pos not moved", form(budgeted, "\te.Pos += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: end not moved", form(budgeted, "\te.End += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: range not stored", form(budgeted, "\te.From, e.Examined = from, examined\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: far not moved", form(budgeted, "\te.Far += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: value shift lost", form(budgeted, "\te.shift += int32(shift)\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: value shift replaced", form(budgeted, "e.shift += int32(shift)", "e.shift = int32(shift)"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: shifted not stored", form(budgeted, "\te.shifted = shifted\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: vgen not stored", form(budgeted, "\te.Vgen = uint32(len(log))\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: partial publish", form(budgeted, "\t\tif !(from >= log[i].End", "\t\te.Vgen = uint32(i)\n\t\tif !(from >= log[i].End"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: seed kept", form(plain, "\tif e.Growing {\n\t\treturn false\n\t}\n", ""), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: seed always valid", form(plain, "\tif e.Growing {\n\t\treturn false\n\t}\n", "\tif e.Growing {\n\t\treturn true\n\t}\n"), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: from wrong", form(plain, "from := e.From", "from := e.Pos"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: examined wrong", form(plain, "examined := e.Examined", "examined := e.End"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: shifted starts false", form(plain, "shifted := e.shifted", "shifted := false"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: start at zero", form(plain, "for i = int(e.Vgen); i < len(log); i++ {", "for i = 0; i < len(log); i++ {"), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: one edit short", form(plain, "i < len(log); i++ {", "i < len(log)-1; i++ {"), "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"./document"}},
-		{"plain: before lt", form(plain, "if examined <= log[i].Start {", "if examined < log[i].Start {"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: before never", form(plain, "if examined <= log[i].Start {", "if false {"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: before off by one", form(plain, "if examined <= log[i].Start {", "if examined <= log[i].Start+1 {"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: after gt", form(plain, "from >= log[i].End &&", "from > log[i].End &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: after lower", form(plain, "from >= log[i].End &&", "from >= log[i].Start &&"), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: after always", form(plain, "from >= log[i].End &&", "true &&"), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: pin ignored", form(plain, " && !e.Positional", " "), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: errs ignored", form(plain, " && e.Errs.None()", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
+	runPrintedMutants(t, "internal/runtime/state/document_exec.go", []printedMutant{
+		{"budget: seed kept", form(budgeted, "\tif e.Growing {\n\t\treturn false\n\t}\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: seed always valid", form(budgeted, "\tif e.Growing {\n\t\treturn false\n\t}\n", "\tif e.Growing {\n\t\treturn true\n\t}\n"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: from wrong", form(budgeted, "from := e.From", "from := e.Pos"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: examined wrong", form(budgeted, "examined := e.Examined", "examined := e.End"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: shifted starts false", form(budgeted, "shifted := e.shifted", "shifted := false"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: start at zero", form(budgeted, "for i = int(e.Vgen); i < len(log); i++ {", "for i = 0; i < len(log); i++ {"), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: one edit short", form(budgeted, "i < len(log); i++ {", "i < len(log)-1; i++ {"), "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"zeroparse.dev/zp/internal/runtime/document"}},
+		{"budget: before lt", form(budgeted, "if examined <= log[i].Start {", "if examined < log[i].Start {"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: before never", form(budgeted, "if examined <= log[i].Start {", "if false {"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: before off by one", form(budgeted, "if examined <= log[i].Start {", "if examined <= log[i].Start+1 {"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: after gt", form(budgeted, "from >= log[i].End &&", "from > log[i].End &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: after lower", form(budgeted, "from >= log[i].End &&", "from >= log[i].Start &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: after always", form(budgeted, "from >= log[i].End &&", "true &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: pin ignored", form(budgeted, " && !e.Positional", " "), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: errs ignored", form(budgeted, " && e.Errs.None()", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: invalid keeps going", form(budgeted, "\t\t\treturn false\n\t\t}\n\t\tdelta", "\t\t\tcontinue\n\t\t}\n\t\tdelta"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: from not moved", form(budgeted, "\t\tfrom = from + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: examined not moved", form(budgeted, "\t\texamined = examined + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: shift not summed", form(budgeted, "\t\tshift = shift + delta\n", "\t\tshift = delta\n"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: shifted always", form(budgeted, "shifted = shifted || delta != 0", "shifted = true"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: shifted overwritten", form(budgeted, "shifted = shifted || delta != 0", "shifted = delta != 0"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: shifted never", form(budgeted, "\t\tshifted = shifted || delta != 0\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: pos not moved", form(budgeted, "\te.Pos += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: end not moved", form(budgeted, "\te.End += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: range not stored", form(budgeted, "\te.From, e.Examined = from, examined\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: far not moved", form(budgeted, "\te.Far += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: value shift lost", form(budgeted, "\te.shift += int32(shift)\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: value shift replaced", form(budgeted, "e.shift += int32(shift)", "e.shift = int32(shift)"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: shifted not stored", form(budgeted, "\te.shifted = shifted\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: vgen not stored", form(budgeted, "\te.Vgen = uint32(len(log))\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: partial publish", form(budgeted, "\t\tif !(from >= log[i].End", "\t\te.Vgen = uint32(i)\n\t\tif !(from >= log[i].End"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: seed kept", form(plain, "\tif e.Growing {\n\t\treturn false\n\t}\n", ""), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: seed always valid", form(plain, "\tif e.Growing {\n\t\treturn false\n\t}\n", "\tif e.Growing {\n\t\treturn true\n\t}\n"), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: from wrong", form(plain, "from := e.From", "from := e.Pos"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: examined wrong", form(plain, "examined := e.Examined", "examined := e.End"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: shifted starts false", form(plain, "shifted := e.shifted", "shifted := false"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: start at zero", form(plain, "for i = int(e.Vgen); i < len(log); i++ {", "for i = 0; i < len(log); i++ {"), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: one edit short", form(plain, "i < len(log); i++ {", "i < len(log)-1; i++ {"), "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"zeroparse.dev/zp/internal/runtime/document"}},
+		{"plain: before lt", form(plain, "if examined <= log[i].Start {", "if examined < log[i].Start {"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: before never", form(plain, "if examined <= log[i].Start {", "if false {"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: before off by one", form(plain, "if examined <= log[i].Start {", "if examined <= log[i].Start+1 {"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: after gt", form(plain, "from >= log[i].End &&", "from > log[i].End &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: after lower", form(plain, "from >= log[i].End &&", "from >= log[i].Start &&"), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: after always", form(plain, "from >= log[i].End &&", "true &&"), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: pin ignored", form(plain, " && !e.Positional", " "), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: errs ignored", form(plain, " && e.Errs.None()", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"plain: invalid keeps going", form(plain, "\t\t\treturn false\n\t\t}\n\t\tdelta", "\t\t\tcontinue\n\t\t}\n\t\tdelta"), "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"plain: from not moved", form(plain, "\t\tfrom = from + delta\n", ""), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: examined not moved", form(plain, "\t\texamined = examined + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: shift not summed", form(plain, "\t\tshift = shift + delta\n", "\t\tshift = delta\n"), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: shifted always", form(plain, "shifted = shifted || delta != 0", "shifted = true"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: shifted overwritten", form(plain, "shifted = shifted || delta != 0", "shifted = delta != 0"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: shifted never", form(plain, "\t\tshifted = shifted || delta != 0\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: pos not moved", form(plain, "\te.Pos += shift\n", ""), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: end not moved", form(plain, "\te.End += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: range not stored", form(plain, "\te.From, e.Examined = from, examined\n", ""), "^TestEngineExecConformance$", []string{"./state"}},
-		{"plain: far not moved", form(plain, "\te.Far += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: value shift lost", form(plain, "\te.shift += int32(shift)\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: value shift replaced", form(plain, "e.shift += int32(shift)", "e.shift = int32(shift)"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: shifted not stored", form(plain, "\te.shifted = shifted\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: vgen not stored", form(plain, "\te.Vgen = uint32(len(log))\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"plain: partial publish", form(plain, "\t\tif !(from >= log[i].End", "\t\te.Vgen = uint32(i)\n\t\tif !(from >= log[i].End"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: no charge", form(budgeted, "\t\tp.Spend()\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: double charge", form(budgeted, "\t\tp.Spend()\n", "\t\tp.Spend()\n\t\tp.Spend()\n"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
-		{"budget: charge after decision", form(budgeted, "\t\tp.Spend()\n\t\tif examined <= log[i].Start {\n\t\t\tcontinue\n\t\t}\n", "\t\tif examined <= log[i].Start {\n\t\t\tcontinue\n\t\t}\n\t\tp.Spend()\n"), "^TestAdvanceEntryMatchesItsContract$", []string{"./state"}},
+		{"plain: from not moved", form(plain, "\t\tfrom = from + delta\n", ""), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: examined not moved", form(plain, "\t\texamined = examined + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: shift not summed", form(plain, "\t\tshift = shift + delta\n", "\t\tshift = delta\n"), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: shifted always", form(plain, "shifted = shifted || delta != 0", "shifted = true"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: shifted overwritten", form(plain, "shifted = shifted || delta != 0", "shifted = delta != 0"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: shifted never", form(plain, "\t\tshifted = shifted || delta != 0\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: pos not moved", form(plain, "\te.Pos += shift\n", ""), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: end not moved", form(plain, "\te.End += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: range not stored", form(plain, "\te.From, e.Examined = from, examined\n", ""), "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: far not moved", form(plain, "\te.Far += shift\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: value shift lost", form(plain, "\te.shift += int32(shift)\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: value shift replaced", form(plain, "e.shift += int32(shift)", "e.shift = int32(shift)"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: shifted not stored", form(plain, "\te.shifted = shifted\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: vgen not stored", form(plain, "\te.Vgen = uint32(len(log))\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain: partial publish", form(plain, "\t\tif !(from >= log[i].End", "\t\te.Vgen = uint32(i)\n\t\tif !(from >= log[i].End"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: no charge", form(budgeted, "\t\tp.Spend()\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: double charge", form(budgeted, "\t\tp.Spend()\n", "\t\tp.Spend()\n\t\tp.Spend()\n"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget: charge after decision", form(budgeted, "\t\tp.Spend()\n\t\tif examined <= log[i].Start {\n\t\t\tcontinue\n\t\t}\n", "\t\tif examined <= log[i].Start {\n\t\t\tcontinue\n\t\t}\n\t\tp.Spend()\n"), "^TestAdvanceEntryMatchesItsContract$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 	})
-	runPrintedMutants(t, "state/document_ops.go", []printedMutant{
-		{"edit not logged", []printedEdit{{"edits = append(edits, ed)\n\tt.Splice", "t.Splice"}}, "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"./document"}},
-		{"edit splice wrong end", []printedEdit{{"t.Splice(ed.Start, ed.End, ed.Delta,", "t.Splice(ed.Start, ed.Start, ed.Delta,"}}, "^TestEngineExecConformance$", []string{"./state"}},
-		{"edit decides none", []printedEdit{{"return AdvanceEntry(e, edits) })", "return false })"}}, "^TestEngineExecConformance$", []string{"./state"}},
-		{"edit keeps all", []printedEdit{{"return AdvanceEntry(e, edits) })", "return true })"}}, "^TestEngineExecConformance$", []string{"./state"}},
-		{"move base lost", []printedEdit{{"p.moveBase, p.baseShift = e.Gen, int(e.shift)\n", "p.moveBase, p.baseShift = 0, int(e.shift)\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"move shift lost", []printedEdit{{"p.moveBase, p.baseShift = e.Gen, int(e.shift)\n", "p.moveBase, p.baseShift = e.Gen, 0\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"entry gen kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.shift, e.shifted = 0, false"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"entry shift kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.Gen, e.shifted = p.Gen, false"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"entry shifted kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.Gen, e.shift = p.Gen, 0"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"nil moved not made", []printedEdit{{"\tif n == nil {\n\t\treturn\n\t}\n\tif p.Moved == nil {\n\t\tp.Moved = map[*core.Node]*core.Node{}\n\t}\n\tif value.D(n).Start == value.D(n).End {\n\t\te.Node", "\tif n == nil {\n\t\treturn\n\t}\n\tif value.D(n).Start == value.D(n).End {\n\t\te.Node"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
+	runPrintedMutants(t, "internal/runtime/state/document_ops.go", []printedMutant{
+		{"edit not logged", []printedEdit{{"edits = append(edits, ed)\n\tt.Splice", "t.Splice"}}, "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"zeroparse.dev/zp/internal/runtime/document"}},
+		{"edit splice wrong end", []printedEdit{{"t.Splice(ed.Start, ed.End, ed.Delta,", "t.Splice(ed.Start, ed.Start, ed.Delta,"}}, "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"edit decides none", []printedEdit{{"return AdvanceEntry(e, edits) })", "return false })"}}, "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"edit keeps all", []printedEdit{{"return AdvanceEntry(e, edits) })", "return true })"}}, "^TestEngineExecConformance$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"move base lost", []printedEdit{{"p.moveBase, p.baseShift = e.Gen, int(e.shift)\n", "p.moveBase, p.baseShift = 0, int(e.shift)\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"move shift lost", []printedEdit{{"p.moveBase, p.baseShift = e.Gen, int(e.shift)\n", "p.moveBase, p.baseShift = e.Gen, 0\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"entry gen kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.shift, e.shifted = 0, false"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"entry shift kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.Gen, e.shifted = p.Gen, false"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"entry shifted kept", []printedEdit{{"e.Gen, e.shift, e.shifted = p.Gen, 0, false", "e.Gen, e.shift = p.Gen, 0"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"nil moved not made", []printedEdit{{"\tif n == nil {\n\t\treturn\n\t}\n\tif p.Moved == nil {\n\t\tp.Moved = map[*core.Node]*core.Node{}\n\t}\n\tif nodes.D(n).Start == nodes.D(n).End {\n\t\te.Node", "\tif n == nil {\n\t\treturn\n\t}\n\tif nodes.D(n).Start == nodes.D(n).End {\n\t\te.Node"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"empty root not copied", []printedEdit{{"\t\te.Node = p.MoveEmpty(n, p.baseShift)\n\t} else if", "\t\tp.MoveEmpty(n, p.baseShift)\n\t} else if"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"root moved twice", []printedEdit{{"} else if value.D(n).Mark < p.Gen {\n\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf", "} else {\n\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"no clear after entry", []printedEdit{{"\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf", "\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n}\n\n// ShiftOf"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"shiftof base lt", []printedEdit{{"if value.D(n).Mark <= p.moveBase {", "if value.D(n).Mark < p.moveBase {"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"shiftof never base", []printedEdit{{"if value.D(n).Mark <= p.moveBase {", "if false {"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"shiftof always base", []printedEdit{{"if value.D(n).Mark <= p.moveBase {", "if true {"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"shiftof no cache", []printedEdit{{"\tif d, ok := p.Shifts[value.D(n).Mark]; ok {\n\t\treturn d\n\t}\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"shiftof no charge", []printedEdit{{"\t\tp.Spend()\n\t\tif s >= ed.End {", "\t\tif s >= ed.End {"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
+		{"root moved twice", []printedEdit{{"} else if nodes.D(n).Mark < p.Gen {\n\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf", "} else {\n\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"no clear after entry", []printedEdit{{"\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n\tp.ClearMovementSpend()\n}\n\n// ShiftOf", "\t\tp.MoveTree(n, p.ShiftOf(n))\n\t}\n}\n\n// ShiftOf"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"shiftof base lt", []printedEdit{{"if nodes.D(n).Mark <= p.moveBase {", "if nodes.D(n).Mark < p.moveBase {"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"shiftof never base", []printedEdit{{"if nodes.D(n).Mark <= p.moveBase {", "if false {"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"shiftof always base", []printedEdit{{"if nodes.D(n).Mark <= p.moveBase {", "if true {"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"shiftof no cache", []printedEdit{{"\tif d, ok := p.Shifts[nodes.D(n).Mark]; ok {\n\t\treturn d\n\t}\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"shiftof no charge", []printedEdit{{"\t\tp.Spend()\n\t\tif s >= ed.End {", "\t\tif s >= ed.End {"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"shiftof gt", []printedEdit{{"if s >= ed.End {", "if s > ed.End {"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"shiftof no store", []printedEdit{{"\tp.Shifts[value.D(n).Mark] = s - int(value.D(n).Start)\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"tree no charge", []printedEdit{{"func (p *Parser) MoveTree(n *core.Node, shift int) {\n\tp.Spend()\n", "func (p *Parser) MoveTree(n *core.Node, shift int) {\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"tree start", []printedEdit{{"\tvalue.D(n).Start += int32(shift)\n\tvalue.D(n).End += int32(shift)\n\tvalue.D(n).Mark = p.Gen", "\tvalue.D(n).End += int32(shift)\n\tvalue.D(n).Mark = p.Gen"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"tree end", []printedEdit{{"\tvalue.D(n).End += int32(shift)\n\tvalue.D(n).Mark = p.Gen", "\tvalue.D(n).Mark = p.Gen"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"tree gen", []printedEdit{{"\tvalue.D(n).Mark = p.Gen\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"tree child no charge", []printedEdit{{"range value.D(n).Children {\n\t\tp.Spend()\n\t\tif c != nil", "range value.D(n).Children {\n\t\tif c != nil"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"tree child ge", []printedEdit{{"if c != nil && value.D(c).Mark < p.Gen {\n\t\t\tvalue.D(n).Children[i]", "if c != nil {\n\t\t\tvalue.D(n).Children[i]"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"tree child not stored", []printedEdit{{"value.D(n).Children[i] = p.moveChild(c, gen, shift)", "_ = i\n\t\t\tp.moveChild(c, gen, shift)"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"tree field no charge", []printedEdit{{"range value.D(n).Fields {\n\t\tp.Spend()\n\t\tif c, ok", "range value.D(n).Fields {\n\t\tif c, ok"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"tree field ge", []printedEdit{{"ok && c != nil && value.D(c).Mark < p.Gen {", "ok && c != nil {"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"tree field not stored", []printedEdit{{"value.D(n).Fields[i].Value = p.moveChild(c, gen, shift)", "_ = i\n\t\t\tp.moveChild(c, gen, shift)"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"child no generation", []printedEdit{{"\t\tif value.D(c).Mark != gen {\n\t\t\tshift = p.ShiftOf(c)\n\t\t}\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"child always generation", []printedEdit{{"if value.D(c).Mark != gen {", "if true {"}}, "^TestBudgetDocumentMovementChargesEdges$", []string{"."}},
-		{"child empty unmoved", []printedEdit{{"\tif shift == 0 {\n\t\treturn c\n\t}\n\treturn p.MoveEmpty(c, shift)", "\treturn c"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"child empty zero copies", []printedEdit{{"\tif shift == 0 {\n\t\treturn c\n\t}\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"empty no charge", []printedEdit{{"func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {\n\tp.Spend()\n", "func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
+		{"shiftof no store", []printedEdit{{"\tp.Shifts[nodes.D(n).Mark] = s - int(nodes.D(n).Start)\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree no charge", []printedEdit{{"func (p *Parser) MoveTree(n *core.Node, shift int) {\n\tp.Spend()\n", "func (p *Parser) MoveTree(n *core.Node, shift int) {\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree start", []printedEdit{{"\tnodes.D(n).Start += int32(shift)\n\tnodes.D(n).End += int32(shift)\n\tnodes.D(n).Mark = p.Gen", "\tnodes.D(n).End += int32(shift)\n\tnodes.D(n).Mark = p.Gen"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree end", []printedEdit{{"\tnodes.D(n).End += int32(shift)\n\tnodes.D(n).Mark = p.Gen", "\tnodes.D(n).Mark = p.Gen"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
+		{"tree gen", []printedEdit{{"\tnodes.D(n).Mark = p.Gen\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree child no charge", []printedEdit{{"range nodes.D(n).Children {\n\t\tp.Spend()\n\t\tif c != nil", "range nodes.D(n).Children {\n\t\tif c != nil"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree child ge", []printedEdit{{"if c != nil && nodes.D(c).Mark < p.Gen {\n\t\t\tnodes.D(n).Children[i]", "if c != nil {\n\t\t\tnodes.D(n).Children[i]"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree child not stored", []printedEdit{{"nodes.D(n).Children[i] = p.moveChild(c, gen, shift)", "_ = i\n\t\t\tp.moveChild(c, gen, shift)"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
+		{"tree field no charge", []printedEdit{{"range nodes.D(n).Fields {\n\t\tp.Spend()\n\t\tif c, ok", "range nodes.D(n).Fields {\n\t\tif c, ok"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree field ge", []printedEdit{{"ok && c != nil && nodes.D(c).Mark < p.Gen {", "ok && c != nil {"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tree field not stored", []printedEdit{{"nodes.D(n).Fields[i].Value = p.moveChild(c, gen, shift)", "_ = i\n\t\t\tp.moveChild(c, gen, shift)"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
+		{"child no generation", []printedEdit{{"\t\tif nodes.D(c).Mark != gen {\n\t\t\tshift = p.ShiftOf(c)\n\t\t}\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"child always generation", []printedEdit{{"if nodes.D(c).Mark != gen {", "if true {"}}, "^TestBudgetDocumentMovementChargesEdges$", []string{"."}},
+		{"child empty unmoved", []printedEdit{{"\tif shift == 0 {\n\t\treturn c\n\t}\n\treturn p.MoveEmpty(c, shift)", "\treturn c"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"child empty zero copies", []printedEdit{{"\tif shift == 0 {\n\t\treturn c\n\t}\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"empty no charge", []printedEdit{{"func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {\n\tp.Spend()\n", "func (p *Parser) MoveEmpty(n *core.Node, shift int) *core.Node {\n"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"empty no sharing", []printedEdit{{"\tif c, ok := p.Moved[n]; ok {\n\t\treturn c\n\t}\n", ""}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"empty start", []printedEdit{{"\tvalue.D(c).Start += int32(shift)\n\tvalue.D(c).End += int32(shift)\n\tp.Moved", "\tvalue.D(c).End += int32(shift)\n\tp.Moved"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
-		{"empty end", []printedEdit{{"\tvalue.D(c).End += int32(shift)\n\tp.Moved", "\tp.Moved"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"empty not recorded", []printedEdit{{"\tp.Moved[n] = c\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"empty children alias", []printedEdit{{"\t\tvalue.D(c).Children = p.Nodes(len(value.D(n).Children))\n", "\t\tvalue.D(c).Children = value.D(n).Children\n"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"empty child no charge", []printedEdit{{"range value.D(n).Children {\n\t\t\tp.Spend()\n\t\t\tvalue.D(c).Children[i]", "range value.D(n).Children {\n\t\t\tvalue.D(c).Children[i]"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"empty field no charge", []printedEdit{{"range value.D(n).Fields {\n\t\t\tp.Spend()\n\t\t\tif vn", "range value.D(n).Fields {\n\t\t\tif vn"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"empty field not moved", []printedEdit{{"\t\t\t\tf.Value = p.moveDescendant(vn, value.D(n).Mark, shift)\n", "\t\t\t\t_ = vn\n"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"descendant nil", []printedEdit{{"\tcase c == nil:\n\t\treturn nil\n", ""}}, "^TestDocumentLeftRecursionMemberReparse$", []string{"./document"}},
-		{"descendant empty kept", []printedEdit{{"\t\treturn p.MoveEmpty(c, shift)\n\tcase value.D(c).Mark < p.Gen:", "\t\treturn c\n\tcase value.D(c).Mark < p.Gen:"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
+		{"empty start", []printedEdit{{"\tnodes.D(c).Start += int32(shift)\n\tnodes.D(c).End += int32(shift)\n\tp.Moved", "\tnodes.D(c).End += int32(shift)\n\tp.Moved"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"empty end", []printedEdit{{"\tnodes.D(c).End += int32(shift)\n\tp.Moved", "\tp.Moved"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
+		{"empty not recorded", []printedEdit{{"\tp.Moved[n] = c\n", ""}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"empty children alias", []printedEdit{{"\t\tnodes.D(c).Children = p.Nodes(len(nodes.D(n).Children))\n", "\t\tnodes.D(c).Children = nodes.D(n).Children\n"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
+		{"empty child no charge", []printedEdit{{"range nodes.D(n).Children {\n\t\t\tp.Spend()\n\t\t\tnodes.D(c).Children[i]", "range nodes.D(n).Children {\n\t\t\tnodes.D(c).Children[i]"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"empty field no charge", []printedEdit{{"range nodes.D(n).Fields {\n\t\t\tp.Spend()\n\t\t\tif vn", "range nodes.D(n).Fields {\n\t\t\tif vn"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"empty field not moved", []printedEdit{{"\t\t\t\tf.Value = p.moveDescendant(vn, nodes.D(n).Mark, shift)\n", "\t\t\t\t_ = vn\n"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
+		{"descendant nil", []printedEdit{{"\tcase c == nil:\n\t\treturn nil\n", ""}}, "^TestDocumentLeftRecursionMemberReparse$", []string{"zeroparse.dev/zp/internal/runtime/document"}},
+		{"descendant empty kept", []printedEdit{{"\t\treturn p.MoveEmpty(c, shift)\n\tcase nodes.D(c).Mark < p.Gen:", "\t\treturn c\n\tcase nodes.D(c).Mark < p.Gen:"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"descendant unmoved", []printedEdit{{"\t\treturn p.moveChild(c, gen, shift)\n\t}\n\treturn c", "\t\treturn c\n\t}\n\treturn c"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"descendant always moved", []printedEdit{{"case value.D(c).Mark < p.Gen:\n\t\treturn p.moveChild(c, gen, shift)", "case true:\n\t\treturn p.moveChild(c, gen, shift)"}}, "^TestBudgetDocumentShiftReplayAndSharedEmptyGraph$", []string{"."}},
+		{"descendant always moved", []printedEdit{{"case nodes.D(c).Mark < p.Gen:\n\t\treturn p.moveChild(c, gen, shift)", "case true:\n\t\treturn p.moveChild(c, gen, shift)"}}, "^TestBudgetDocumentShiftReplayAndSharedEmptyGraph$", []string{"."}},
 		{"value nil", []printedEdit{{"\tif v == nil {\n\t\treturn nil\n\t}\n\tif p.Moved", "\tif p.Moved"}}, "^TestDocumentResumeEdges$", []string{"."}},
-		{"value base", []printedEdit{{"p.moveBase, p.baseShift = base, shift", "p.moveBase, p.baseShift = 0, shift"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
+		{"value base", []printedEdit{{"p.moveBase, p.baseShift = base, shift", "p.moveBase, p.baseShift = 0, shift"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"value shift", []printedEdit{{"p.moveBase, p.baseShift = base, shift", "p.moveBase, p.baseShift = base, 0"}}, "^TestDocumentMovesReusedTrees$", []string{"."}},
-		{"value empty kept", []printedEdit{{"\t\tv = p.MoveEmpty(v, shift)\n", "\t\tp.MoveEmpty(v, shift)\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
-		{"value gen", []printedEdit{{"} else if value.D(v).Mark < p.Gen {", "} else {"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
-		{"value no clear", []printedEdit{{"\t\tp.MoveTree(v, p.ShiftOf(v))\n\t}\n\tp.ClearMovementSpend()\n\treturn v", "\t\tp.MoveTree(v, p.ShiftOf(v))\n\t}\n\treturn v"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
+		{"value empty kept", []printedEdit{{"\t\tv = p.MoveEmpty(v, shift)\n", "\t\tp.MoveEmpty(v, shift)\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"value gen", []printedEdit{{"} else if nodes.D(v).Mark < p.Gen {", "} else {"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"value no clear", []printedEdit{{"\t\tp.MoveTree(v, p.ShiftOf(v))\n\t}\n\tp.ClearMovementSpend()\n\treturn v", "\t\tp.MoveTree(v, p.ShiftOf(v))\n\t}\n\treturn v"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 	})
-	runPrintedMutants(t, "state/budget_document_checkpoints.go", []printedMutant{
-		{"clear moved not charged", []printedEdit{{"\t\t\tp.Spend()\n\t\t\tdelete(p.Moved, key)", "\t\t\tdelete(p.Moved, key)"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"clear shifts not charged", []printedEdit{{"\t\tp.Spend()\n\t\tdelete(p.Shifts, key)", "\t\tdelete(p.Shifts, key)"}}, "^TestDocMoveChargesAtItsBound$", []string{"./state"}},
-		{"search no charge", []printedEdit{{"\t\tp.Spend()\n\t\tmid := int", "\t\tmid := int"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
-		{"plain clear shifts gone", []printedEdit{{"\t\tclear(p.Shifts)\n\t\treturn", "\t\treturn"}}, "^TestClearMovementSpend$", []string{"./state"}},
-		{"plain clear moved gone", []printedEdit{{"\t\t} else {\n\t\t\tclear(p.Moved)\n\t\t}\n", "\t\t}\n"}}, "^TestClearMovementSpend$", []string{"./state"}},
-		{"plain moved threshold low", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 0 {"}}, "^TestClearMovementSpend$", []string{"./state"}},
-		{"plain moved threshold high", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 1025 {"}}, "^TestClearMovementSpend$", []string{"./state"}},
-		{"budget moved threshold low", []printedEdit{{"\tif len(p.Moved) > 1024 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key", "\tif len(p.Moved) > 8 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key"}}, "^TestClearMovementSpend$", []string{"./state"}},
-		{"budget moved threshold high", []printedEdit{{"\tif len(p.Moved) > 1024 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key", "\tif len(p.Moved) > 1025 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key"}}, "^TestClearMovementSpend$", []string{"./state"}},
-		{"plain move keeps shifts", []printedEdit{{"\t\tclear(p.Shifts)\n\t\treturn", "\t\treturn"}}, "^TestDocumentMoveWithoutControl$", []string{"./state"}},
-		{"plain move keeps a large map", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 1 << 20 {"}}, "^TestDocumentMoveWithoutControl$", []string{"./state"}},
-		{"scan no charge", []printedEdit{{"\t\tp.Spend()\n\t\tif el.From < end {", "\t\tif el.From < end {"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
+	runPrintedMutants(t, "internal/runtime/state/budget_document_checkpoints.go", []printedMutant{
+		{"clear moved not charged", []printedEdit{{"\t\t\tp.Spend()\n\t\t\tdelete(p.Moved, key)", "\t\t\tdelete(p.Moved, key)"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"clear shifts not charged", []printedEdit{{"\t\tp.Spend()\n\t\tdelete(p.Shifts, key)", "\t\tdelete(p.Shifts, key)"}}, "^TestDocMoveChargesAtItsBound$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"search no charge", []printedEdit{{"\t\tp.Spend()\n\t\tmid := int", "\t\tmid := int"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain clear shifts gone", []printedEdit{{"\t\tclear(p.Shifts)\n\t\treturn", "\t\treturn"}}, "^TestClearMovementSpend$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain clear moved gone", []printedEdit{{"\t\t} else {\n\t\t\tclear(p.Moved)\n\t\t}\n", "\t\t}\n"}}, "^TestClearMovementSpend$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain moved threshold low", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 0 {"}}, "^TestClearMovementSpend$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain moved threshold high", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 1025 {"}}, "^TestClearMovementSpend$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget moved threshold low", []printedEdit{{"\tif len(p.Moved) > 1024 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key", "\tif len(p.Moved) > 8 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key"}}, "^TestClearMovementSpend$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"budget moved threshold high", []printedEdit{{"\tif len(p.Moved) > 1024 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key", "\tif len(p.Moved) > 1025 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key"}}, "^TestClearMovementSpend$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain move keeps shifts", []printedEdit{{"\t\tclear(p.Shifts)\n\t\treturn", "\t\treturn"}}, "^TestDocumentMoveWithoutControl$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"plain move keeps a large map", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 1 << 20 {"}}, "^TestDocumentMoveWithoutControl$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"scan no charge", []printedEdit{{"\t\tp.Spend()\n\t\tif el.From < end {", "\t\tif el.From < end {"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 	})
 	// The model of a lazy memo and the declared cost of memo.lookup and memo.store, which TestMemoChargesMatchTheModel
 	// holds to what the engine charges.
-	runPrintedMutants(t, "../ir/code/exec/ref/ref.go", []printedMutant{
-		{"ref pending inflated", []printedEdit{{"return m.edits - e.applied\n", "return m.edits - e.applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
-		{"ref held pending inflated", []printedEdit{{"return m.edits - applied\n", "return m.edits - applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
-		{"ref hold start inclusive", []printedEdit{{"case k.pos < start:", "case k.pos <= start:"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
-		{"ref hold end inclusive", []printedEdit{{"case k.pos > end:", "case k.pos >= end:"}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
-		{"ref held survive store", []printedEdit{{"\tdelete(m.held, e.key)\n", ""}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
-		{"ref lookup keeps applied", []printedEdit{{"\t\tif e != nil {\n\t\t\te.applied = m.edits\n\t\t}\n", ""}}, "^TestMemoChargesMatchTheModel$", []string{"./state"}},
+	runPrintedMutants(t, "internal/ir/code/exec/ref/ref.go", []printedMutant{
+		{"ref pending inflated", []printedEdit{{"return m.edits - e.applied\n", "return m.edits - e.applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"ref held pending inflated", []printedEdit{{"return m.edits - applied\n", "return m.edits - applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"ref hold start inclusive", []printedEdit{{"case k.pos < start:", "case k.pos <= start:"}}, "^TestMemoChargesMatchTheModel$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"ref hold end inclusive", []printedEdit{{"case k.pos > end:", "case k.pos >= end:"}}, "^TestMemoChargesMatchTheModel$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"ref held survive store", []printedEdit{{"\tdelete(m.held, e.key)\n", ""}}, "^TestMemoChargesMatchTheModel$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"ref lookup keeps applied", []printedEdit{{"\t\tif e != nil {\n\t\t\te.applied = m.edits\n\t\t}\n", ""}}, "^TestMemoChargesMatchTheModel$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 	})
-	runPrintedMutants(t, "state/resume.go", []printedMutant{
-		{"prefix no charge", []printedEdit{{"func (p *Parser) NextPrefix(r *RunState) *RunElem {\n\tp.Spend()\n", "func (p *Parser) NextPrefix(r *RunState) *RunElem {\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
-		{"tail no charge", []printedEdit{{"func (p *Parser) NextTail(r *RunState) *RunElem {\n\tp.Spend()\n", "func (p *Parser) NextTail(r *RunState) *RunElem {\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
-		{"mid no growth charge", []printedEdit{{"\t\t\tp.runListGrowth(len(r.Mid))\n", ""}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
-		{"elem tail merge skipped", []printedEdit{{"\t\tp.MergeExpected(el.far, el.exp)\n", ""}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./state"}},
+	runPrintedMutants(t, "internal/runtime/state/resume.go", []printedMutant{
+		{"prefix no charge", []printedEdit{{"func (p *Parser) NextPrefix(r *RunState) *RunElem {\n\tp.Spend()\n", "func (p *Parser) NextPrefix(r *RunState) *RunElem {\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"tail no charge", []printedEdit{{"func (p *Parser) NextTail(r *RunState) *RunElem {\n\tp.Spend()\n", "func (p *Parser) NextTail(r *RunState) *RunElem {\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"mid no growth charge", []printedEdit{{"\t\t\tp.runListGrowth(len(r.Mid))\n", ""}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
+		{"elem tail merge skipped", []printedEdit{{"\t\tp.MergeExpected(el.far, el.exp)\n", ""}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"zeroparse.dev/zp/internal/runtime/state"}},
 		{"end merge skipped", []printedEdit{{"\tp.MergeExpected(far, inner)\n", ""}}, "^TestDocumentBatchFreshParity$", []string{"."}},
 	})
-	runPrintedMutants(t, "state/call_exec.go", []printedMutant{
-		{"lookup no advance", []printedEdit{{"if found && e.Vgen != p.Gen && !p.AdvanceEntry(e, p.Edits[:p.Gen]) {", "if false {"}}, "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"./document"}},
-		{"reuse always moves", []printedEdit{{"\t\tif e.shifted {\n", "\t\tif true {\n"}}, "^TestBudgetDiagnosticRecoveredLists$", []string{"./vm"}},
+	runPrintedMutants(t, "internal/runtime/state/call_exec.go", []printedMutant{
+		{"lookup no advance", []printedEdit{{"if found && e.Vgen != p.Gen && !p.AdvanceEntry(e, p.Edits[:p.Gen]) {", "if false {"}}, "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"zeroparse.dev/zp/internal/runtime/document"}},
+		{"reuse always moves", []printedEdit{{"\t\tif e.shifted {\n", "\t\tif true {\n"}}, "^TestBudgetDiagnosticRecoveredLists$", []string{"zeroparse.dev/zp/internal/runtime/vm"}},
 		{"reuse never moves", []printedEdit{{"\t\tif e.shifted {\n", "\t\tif false {\n"}}, "^TestBudgetDocumentStaleMemoCallReplayIsBounded$", []string{"."}},
 	})
 }
@@ -791,7 +778,8 @@ type printedMutant struct {
 type printedEdit struct{ old, new string }
 
 // runPrintedMutants builds the tests of each mutant with the mutated copy of the printed file path
-// in place of the file, and requires that they fail.
+// in place of the file, and requires that they fail. path is slash-separated from the module root, and a
+// missing file stops the test with its name and the package it was expected in (mutanttest.Source).
 func runPrintedMutants(t *testing.T, path string, mutants []printedMutant) {
 	runPrintedMutantsOver(t, path, nil, mutants)
 }
@@ -800,14 +788,7 @@ func runPrintedMutants(t *testing.T, path string, mutants []printedMutant) {
 // every overlay, for a mutant that takes edits of two files.
 func runPrintedMutantsOver(t *testing.T, path string, over map[string]string, mutants []printedMutant) {
 	mutanttest.SkipUnlessChanged(t, mutanttest.Pipeline...)
-	src, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	file, err := filepath.Abs(path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	file, src := mutanttest.Source(t, path)
 	dir := t.TempDir()
 	for i, m := range mutants {
 		t.Run(m.name, func(t *testing.T) {

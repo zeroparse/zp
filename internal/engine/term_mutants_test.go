@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // engineMutant changes the printed code of the operators of terms in the engine in one way: in the
@@ -35,7 +36,7 @@ var engineMutants = []engineMutant{
 	{"the fast path of the value equality negates", "budget_value.go", "ValueEqual", "return p.equalText(ls, rs)", "return !p.equalText(ls, rs)"},
 	{"a remainder floors", "term_exec.go", "termBinary", `any(l.(int) % r.(int))`, `any(func() int { m := l.(int) % r.(int); if m != 0 && (m < 0) != (r.(int) < 0) { m += r.(int) }; return m }())`},
 	{"a division floors", "term_exec.go", "termBinary", `any(l.(int) / r.(int))`, `any(func() int { q := l.(int) / r.(int); if (l.(int)%r.(int) != 0) && ((l.(int) < 0) != (r.(int) < 0)) { q-- }; return q }())`},
-	{"a box is not opened", "term_value.go", "unboxed", "return unboxed(value.D(n).Box)", "return v"},
+	{"a box is not opened", "term_value.go", "unboxed", "return unboxed(nodes.D(n).Box)", "return v"},
 	{"Start reads the value", "term_exec.go", "termMember", "if kind == 1 {", "if kind == 0 {"},
 	{"an unset field of a struct is nil", "term_exec.go", "termMember", "if !st {\n\t\treturn nil, nil\n\t}", "if true {\n\t\treturn nil, nil\n\t}"},
 	{"a struct has captures", "term_exec.go", "termMember", "if st {\n\t\t\treturn nil, p.termError(9", "if false {\n\t\t\treturn nil, p.termError(9"},
@@ -44,7 +45,7 @@ var engineMutants = []engineMutant{
 	{"End is a field", "term_exec.go", "memberKind", "return MemberEnd, name", "return MemberField, name"},
 	{"a struct declares every field", "eval.go", "memberZero", "if !p.HasValueField(", "if false && !p.HasValueField("},
 	{"nil has length 1", "term_exec.go", "termLength", "return any(0), nil", "return any(1), nil"},
-	{"the length of a string node is that of its text", "term_exec.go", "termLength", "if value.D(n).Terminal {", "if false {"},
+	{"the length of a string node is that of its text", "term_exec.go", "termLength", "if nodes.D(n).Terminal {", "if false {"},
 	{"a bool is not an element", "term_exec.go", "termPush", "if k == 1 || k == 2 || k == 3 {", "if k == 1 || k == 2 {"},
 	{"a function is an element", "term_exec.go", "termPush", "return p.termError(11, v, any(fn), 0, 0)", "return nil"},
 	{"nil pushes no element", "term_exec.go", "termPush", "p.KidStack = append(p.KidStack, nil)\n", ""},
@@ -53,8 +54,8 @@ var engineMutants = []engineMutant{
 	{"concat takes a value that is not a list", "term_exec.go", "termPushItems", "if ok {", "if ok || true {"},
 	{"concat charges nothing for the elements it pushes", "term_exec.go", "termPushItems", "AppendSpend(p, p.KidStack, items)", "append(p.KidStack, items...)"},
 	{"concat takes any value", "term_exec.go", "termItems", "return items, p.termError(12, v, any(fn), 0, 0)", "return items, nil"},
-	{"the text of a string node is the input", "term_exec.go", "termText", "if held && int(value.ShapeOf(n)) != 3 {", "if held && false {"},
-	{"a list value converts", "term_exec.go", "termConvert", "if value.HasBase(n) {", "if true {"},
+	{"the text of a string node is the input", "term_exec.go", "termText", "if held && int(nodes.ShapeOf(n)) != 3 {", "if held && false {"},
+	{"a list value converts", "term_exec.go", "termConvert", "if nodes.HasBase(n) {", "if true {"},
 	{"a value that does not convert is nil", "term_exec.go", "termConvert", "return nil, p.termError(15, x, any(t[0].Type), 0, 0)", "return nil, nil"},
 	{"a node field value does not cover", "term_exec.go", "termCover", "if !ok {\n\t\treturn first", "if !ok && false {\n\t\treturn first"},
 	{"the start of the range is the latest", "term_exec.go", "termCover", "cs < ns", "cs > ns"},
@@ -70,7 +71,7 @@ var engineMutants = []engineMutant{
 	{"an empty hull is not at the start of the rule", "term_exec.go", "termHull", "lo := rs", "lo := 0"},
 	{"foldr passes the elements from the first", "term_exec.go", "termItemAt", "if right {", "if false {"},
 	{"the folds pass the elements in each other's order", "term_exec.go", "termItemAt", "if right {", "if !right {"},
-	{"an iteration passes a box", "term_exec.go", "termItemAt", "return value.UnboxNode(items[i])", "return items[i]"},
+	{"an iteration passes a box", "term_exec.go", "termItemAt", "return nodes.UnboxNode(items[i])", "return items[i]"},
 	{"filter takes a result that is not a bool", "term_exec.go", "termFilterKeep", "if valKind(v) != 3 {", "if valKind(v) == 0 {"},
 	{"filter drops what it keeps", "term_exec.go", "termFilterKeep", "return v.(bool), nil", "return !v.(bool), nil"},
 	{"an element of a list charges no step", "term_exec.go", "termElemsConform", "p.Spend()", ""},
@@ -97,11 +98,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 	for _, m := range engineMutants {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
-			path := filepath.Join(root, "internal", "engine", "state", m.file)
-			src, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
+			path, src := mutanttest.Source(t, "internal/runtime/state/"+m.file)
 			mutated, ok := codegentest.MutateFunc(string(src), m.fn, m.old, m.new)
 			if !ok {
 				t.Fatalf("%s has no %s with %q", m.file, m.fn, m.old)

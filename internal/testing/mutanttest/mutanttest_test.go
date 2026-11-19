@@ -148,3 +148,25 @@ func TestPipelineImportsNameMissingPackages(t *testing.T) {
 		t.Fatalf("listing with %s: error %v, want one that names it", missing, err)
 	}
 }
+
+// TestSourceNamesMissingFiles is the negative control of Source: a runner's source file that is not where
+// the runner looks for it, because the file or its package moved, is an error that names the file and the
+// package, never an empty source.
+func TestSourceNamesMissingFiles(t *testing.T) {
+	abs, src, err := readSource("internal/testing/mutanttest/mutanttest.go")
+	if err != nil || !strings.Contains(string(src), "package mutanttest") || !filepath.IsAbs(abs) {
+		t.Fatalf("an existing file: %s, %d bytes, error %v", abs, len(src), err)
+	}
+	for _, c := range []struct{ file, want string }{
+		{"internal/testing/mutanttest/no_such_file.go", "the package internal/testing/mutanttest has no file no_such_file.go"},
+		{"internal/no/such/package/call_exec.go", "the package internal/no/such/package does not exist"},
+		{"state/call_exec.go", "the package state does not exist"},
+		{"call_exec.go", "want a slash-separated path"},
+		{"../outside/call_exec.go", "want a slash-separated path"},
+	} {
+		_, src, err := readSource(c.file)
+		if err == nil || !strings.Contains(err.Error(), c.want) || !strings.Contains(err.Error(), c.file) || src != nil {
+			t.Errorf("readSource(%q): %d bytes, error %v; want one that names %q and the file", c.file, len(src), err, c.want)
+		}
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
 // TestProcessTermTestsKillArithmeticMutants holds the tests that run in the process, with no generated
@@ -26,11 +27,7 @@ func TestProcessTermTestsKillArithmeticMutants(t *testing.T) {
 	} {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
-			path := filepath.Join(root, "internal", "engine", "state", "term_exec.go")
-			src, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
+			path, src := mutanttest.Source(t, "internal/runtime/state/term_exec.go")
 			mutated, ok := codegentest.MutateFunc(string(src), "termBinary", m.old, m.new)
 			if !ok {
 				t.Fatalf("no %q in termBinary", m.old)

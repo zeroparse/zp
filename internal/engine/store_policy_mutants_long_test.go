@@ -11,9 +11,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/testing/mutanttest"
 )
 
-// A storePolicyEdit replaces the only copy of old in the file (relative to this package).
+// A storePolicyEdit replaces the only copy of old in the file (slash-separated, from the module root).
 type storePolicyEdit struct{ file, old, new string }
 
 // storePolicyMutant breaks the memo in a copy of source files of the engine. The envelope test
@@ -43,19 +45,19 @@ func TestMemoStorePolicyMutantsFail(t *testing.T) {
 	all := []string{"closure", "bytecode", "bytecode-iterative"}
 	mutants := []storePolicyMutant{
 		{"a call inside a lookahead defers its own first call",
-			[]storePolicyEdit{{"state/call_exec.go", firstCall, "\tpos := p.Pos\n\tif p.Silent > 0 {\n\t\tpos += 1 << 12\n\t}\n\treturn p.memoFirstCall(pos, s)\n"}},
+			[]storePolicyEdit{{"internal/runtime/state/call_exec.go", firstCall, "\tpos := p.Pos\n\tif p.Silent > 0 {\n\t\tpos += 1 << 12\n\t}\n\treturn p.memoFirstCall(pos, s)\n"}},
 			"TestMemoStorePolicy", "inside first", all},
 		{"a second call at a position defers as well (dense table)",
-			[]storePolicyEdit{{"state/memo.go", dense, "\t\tfirst = t.MarkSeen(pos, r) || t.MarkSeen(pos+1<<12, r)\n"}},
+			[]storePolicyEdit{{"internal/runtime/state/memo.go", dense, "\t\tfirst = t.MarkSeen(pos, r) || t.MarkSeen(pos+1<<12, r)\n"}},
 			"TestMemoStorePolicy", "outside only", all},
 		{"a second call at a position defers as well (sparse table)",
-			[]storePolicyEdit{{"state/memo.go", sparse, "\t\tfirst = markSeenPage(page, pos) || t.MarkSparseSeen(pos+1<<12, r)\n"}},
+			[]storePolicyEdit{{"internal/runtime/state/memo.go", sparse, "\t\tfirst = markSeenPage(page, pos) || t.MarkSparseSeen(pos+1<<12, r)\n"}},
 			"TestMemoStorePolicy", "inside first, sparse", all},
 		{"a Document stores no result computed inside a lookahead",
 			[]storePolicyEdit{
 				// The closure and the recursive machine call callDoc; the iterative machine DirectCallDoc.
-				{"state/call_exec.go", document, document[:len(document)-1] + " || p.Silent > 0\n"},
-				{"state/call_ops.go", iterative, "\tdirect := !p.Memoizes(r) || p.FirstCall(r) || p.Silent > 0\n"},
+				{"internal/runtime/state/call_exec.go", document, document[:len(document)-1] + " || p.Silent > 0\n"},
+				{"internal/runtime/state/call_ops.go", iterative, "\tdirect := !p.Memoizes(r) || p.FirstCall(r) || p.Silent > 0\n"},
 			},
 			"TestMemoStorePolicyDocument", "inside first", all},
 	}
@@ -66,15 +68,8 @@ func TestMemoStorePolicyMutantsFail(t *testing.T) {
 			replace := map[string]string{}
 			texts := map[string]string{}
 			for _, e := range m.edits {
-				file, err := filepath.Abs(e.file)
-				if err != nil {
-					t.Fatal(err)
-				}
+				file, src := mutanttest.Source(t, e.file)
 				if _, ok := texts[file]; !ok {
-					src, err := os.ReadFile(file)
-					if err != nil {
-						t.Fatal(err)
-					}
 					texts[file] = string(src)
 				}
 				if n := strings.Count(texts[file], e.old); n != 1 {
