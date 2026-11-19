@@ -299,6 +299,33 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 				v = p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
 			}
 			fr.set(in.Dst[0], v)
+		case bytecode.FlowRunHot:
+			fr.set(in.Dst[0], p.RunHot(in.Imm.(int)))
+		case bytecode.FlowRunBegin:
+			x := in.Imm.(bytecode.FlowRunWalkOf)
+			if x.Build {
+				p.SkipBeginList(x.Site, x.KeyEnv)
+			} else {
+				p.SkipBegin(x.Site, x.KeyEnv)
+			}
+		case bytecode.FlowRunWalked:
+			p.RunWalked(in.Imm.(int), regs[in.Args[0]].(int))
+		case bytecode.FlowSkipVisit:
+			p.SkipVisit()
+		case bytecode.FlowSkipHit:
+			fr.set(in.Dst[0], p.SkipHit())
+		case bytecode.FlowSkipValue:
+			p.SkipValue(asNode(regs[in.Args[0]]))
+		case bytecode.FlowSkipEnd:
+			p.SkipEndDrop()
+		case bytecode.FlowSkipKids:
+			fr.set(in.Dst[0], p.SkipKids())
+		case bytecode.FlowScanReach:
+			fr.set(in.Dst[0], p.ScanReach(in.Imm.(int), regs[in.Args[0]].(int), regs[in.Args[1]].(int)))
+		case bytecode.FlowScanEnd:
+			p.ScanEnd(in.Imm.(int), regs[in.Args[0]].(int), regs[in.Args[1]].(int))
+		case bytecode.FlowScanKids:
+			fr.set(in.Dst[0], p.ScanKids(in.Imm.(int), regs[in.Args[0]].(int), regs[in.Args[1]].(int), regs[in.Args[2]].(int)))
 		default:
 			panic(fmt.Sprintf("internal error: vm: flow operation %d", in.Op))
 		}
