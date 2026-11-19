@@ -208,6 +208,28 @@ func (w *Encoder) flowImm(k FlowImm, v any) {
 		}
 		w.Int(x.Rule)
 		w.Int(x.Level)
+	case FlowImmClass, FlowImmAnchor:
+		x, ok := v.(int)
+		if !ok {
+			bad()
+		}
+		w.Int(x)
+	case FlowImmLit:
+		x, ok := v.(FlowLitOf)
+		if !ok {
+			bad()
+		}
+		w.Int(x.Str)
+		w.Int(x.Exp)
+		w.Bool(x.Fold)
+	case FlowImmSilence:
+		x, ok := v.(FlowSilenceOf)
+		if !ok {
+			bad()
+		}
+		w.Int(x.Delta)
+		w.Int(x.Site)
+		w.Bool(x.Ok)
 	default:
 		bad()
 	}
@@ -484,6 +506,12 @@ func (r *Decoder) flowImm(k FlowImm) any {
 		return FlowExpectOf{Exp: int(r.int32()), Message: r.Bool()}
 	case FlowImmCall:
 		return FlowCallOf{Rule: int(r.int32()), Level: int(r.int32())}
+	case FlowImmClass, FlowImmAnchor:
+		return int(r.int32())
+	case FlowImmLit:
+		return FlowLitOf{Str: int(r.int32()), Exp: int(r.int32()), Fold: r.Bool()}
+	case FlowImmSilence:
+		return FlowSilenceOf{Delta: int(r.int32()), Site: int(r.int32()), Ok: r.Bool()}
 	}
 	return nil
 }
@@ -1093,6 +1121,32 @@ func validateFlowImm(m *Module, k FlowImm, v any) error {
 		}
 		if x.Level < 0 {
 			return fmt.Errorf("invalid binding level %d", x.Level)
+		}
+	case FlowImmClass:
+		var x int
+		if x, ok = v.(int); ok && (x < 0 || x >= len(m.Classes)) {
+			return fmt.Errorf("class %d out of range", x)
+		}
+	case FlowImmAnchor:
+		var x int
+		if x, ok = v.(int); ok && (x < 0 || x > 3) {
+			return fmt.Errorf("invalid anchor %d", x)
+		}
+	case FlowImmLit:
+		var x FlowLitOf
+		if x, ok = v.(FlowLitOf); !ok {
+			break
+		}
+		if x.Str < 0 || x.Str >= len(m.Strings) {
+			return fmt.Errorf("literal %d out of range", x.Str)
+		}
+		if x.Exp < 0 || x.Exp >= FixedExps+len(m.Strings) {
+			return fmt.Errorf("expectation %d out of range", x.Exp)
+		}
+	case FlowImmSilence:
+		var x FlowSilenceOf
+		if x, ok = v.(FlowSilenceOf); ok && (x.Delta != 1 && x.Delta != -1 || x.Site < -1 || x.Delta == 1 && x.Ok) {
+			return fmt.Errorf("invalid lookahead %+v", x)
 		}
 	}
 	if !ok {

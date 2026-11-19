@@ -380,12 +380,33 @@ registers (A); `JUMP` and `JUMPFALSE` also have a target.
 | 12 | `EXPECT` | 0 | 1 | `flow.expect` of the expectation of the immediate at the position of the argument. |
 | 13 | `UNFRESH` | 0 | 1 | `flow.unfresh`. |
 | 14 | `CALL` | 2 | 0 | `flow.callRule` of the rule of the immediate at its binding level: the value and the success. |
+| 15 | `ADD` | 1 | 2 | The destination is the sum of the integer arguments. |
+| 16 | `SUB` | 1 | 2 | The destination is the first integer argument minus the second. |
+| 17 | `EQ` | 1 | 2 | The destination is whether the arguments are equal; an integer and a character compare as integers. |
+| 18 | `NE` | 1 | 2 | The destination is whether the arguments differ. |
+| 19 | `LT` | 1 | 2 | The destination is whether the first integer or character argument is less than the second. |
+| 20 | `LE` | 1 | 2 | The destination is whether the first integer or character argument is at most the second. |
+| 21 | `STEP` | 0 | 0 | `flow.step`. |
+| 22 | `SILENT` | 0 | 0 | `flow.silent` of the lookahead of the immediate: entering (1) or leaving (-1) it, its site, or -1 for a lookahead that is no observation, and on leaving whether its expression matched. The match code names a lookahead by the index of its `LOOK`, so the site of a Flow body's lookahead is the number of match code instructions plus its Core IR site, which no `LOOK` has. |
+| 23 | `ADVANCE` | 0 | 1 | `flow.advance` by the integer argument. |
+| 24 | `INCLASS` | 1 | 1 | `flow.inClass` of the class of the immediate, an index of the character class table, for the character argument. |
+| 25 | `ATANCHOR` | 1 | 0 | `flow.atAnchor` of the anchor of the immediate: 0 the beginning of the input, 1 its end, 2 the beginning of a line, 3 the end of a line. |
+| 26 | `MATCHLIT` | 2 | 0 | `flow.matchLit` of the literal of the immediate: the null value and whether it matched. |
+| 27 | `ISOLATE` | 1 | 0 | `flow.isolate`. |
+| 28 | `UNISOLATE` | 2 | 1 | `flow.unisolate`: the farthest failure and the expectations. |
+| 29 | `MERGEEXPECTED` | 0 | 2 | `flow.mergeExpected` of the expectations of the second argument at the position of the first. |
 
 A destination of -1 discards the value.
 
 An instruction named after an operation of the [Flow dialect](../flow-ir/operations.md) does what the operation does
 and charges what its cost bound names, and no more; the other instructions charge nothing. A Flow body therefore charges
 what its Flow function charges.
+
+The match code of the same rule charges by its own instructions: it builds nodes without a charge, charges each child
+that a sequence gathers, and peeks and unwinds as its instructions do. A parse can therefore spend different numbers of
+units with a rule's Flow body and with its match code, as compute counts are implementation-specific
+([Cancellation and Compute Limits](../runtime/parsing.md#cancellation-and-compute-limits)); the code generated from the
+same Flow function is the one that charges as the Flow body.
 
 ## Error Messages
 
@@ -423,7 +444,7 @@ The module is laid out in the following order. A *list* is a count (unsigned) fo
 12. Wide-integer table: a list of signed integers.
 13. Term table: a list of terms. A term is the sizes of its four register files (unsigned: values, integers, sequences, strings); its constants, a list of (kind as 1 byte: 0 nil, 1 int, 2 string, 3 bool; signed integer: the int, the string index, or 0 or 1); its names, a list of string indices; its member reads, a list of (member kind, name, field); its node types, a list of string indices; its casts, a list of (type text, line, column), the type text -1 for a cast that checks nothing; its struct literals, a list of (type name, number of fields); and its code, a list of instructions. Between the register sizes and the constants, a byte whose bits 0 to 5 mark the pools that are not empty (constants, names, member reads, node types, casts, struct literals) precedes them; only those pools are written, and a marked pool is not empty. An instruction is its opcode (1 byte), a byte whose bits 0 to 3 mark the operands D, `A`, `B` and `C` that are not zero, and those operands; a marked operand is not zero.
 14. Run key table: a list of (run site, list of string indices of the key's variables, list of string indices of the variables it binds), by increasing run site. Each list is sorted by name.
-15. Flow bodies ([Flow Bodies](#flow-bodies)): a list of (rule table index, number of registers (unsigned), list of instructions), by increasing rule index. An instruction is its operation (1 byte: its code), then its destination registers, its argument registers, its target and its immediate, each only if the operation has it and in the numbers the operation fixes. An immediate is, by operation: for `CONST` a kind (1 byte: 0 nil, 1 int, 3 bool, as for term constants) and a signed integer (0 for nil, the int, or 0 or 1); for `GUARD` (literal (boolean), rune, case-folded (boolean), class index or -1 for a literal, depth); for `EXPECT` (expectation, message (boolean)), the expectation 0 to 4 one of the fixed expectations (any character, beginning of input, end of input, beginning of line, end of line) and 5 + i the string i of the string table; for `CALL` (rule table index, binding level).
+15. Flow bodies ([Flow Bodies](#flow-bodies)): a list of (rule table index, number of registers (unsigned), list of instructions), by increasing rule index. An instruction is its operation (1 byte: its code), then its destination registers, its argument registers, its target and its immediate, each only if the operation has it and in the numbers the operation fixes. An immediate is, by operation: for `CONST` a kind (1 byte: 0 nil, 1 int, 3 bool, as for term constants) and a signed integer (0 for nil, the int, or 0 or 1); for `GUARD` (literal (boolean), rune, case-folded (boolean), class index or -1 for a literal, depth); for `EXPECT` (expectation, message (boolean)), the expectation 0 to 4 one of the fixed expectations (any character, beginning of input, end of input, beginning of line, end of line) and 5 + i the string i of the string table; for `CALL` (rule table index, binding level); for `INCLASS` the class index; for `ATANCHOR` the anchor; for `MATCHLIT` (string index of the literal, for a case-insensitive literal its text with ASCII letters lowercased, expectation as for `EXPECT`, case-insensitive (boolean)); for `SILENT` (change of depth, site, matched (boolean)).
 
 ### Load-Time Validation
 
@@ -441,7 +462,7 @@ On load, a runtime checks the following and rejects the file if any check fails:
 - Term code satisfies the checks of [Term Code](#term-code).
 - The line and column of a cast are not negative. The type text of a cast parses as a field type naming only declared types, `error`, `node[T]`, tuple types `(T, ...)`, `int`, `string`, `bool` and `nil`. These type texts are resolved types, which contain no `&` or `_|_`, and no `_` other than the argument of `node[_]`.
 - Every jump target of the match code is forward. Only `NEXT` jumps backward.
-- Every Flow body belongs to a rule of the rule table and ends with `JUMP` or `RETURN`. Each of its instructions has a known operation with the registers, target and immediate the operation fixes; every register is within the frame (a destination may be -1), every target is an instruction of the body, and the classes, expectations and rules of the immediates are in range (a guard of a literal names no class and a guard of a class is not case-folded), with depths and binding levels not negative.
+- Every Flow body belongs to a rule of the rule table and ends with `JUMP` or `RETURN`. Each of its instructions has a known operation with the registers, target and immediate the operation fixes; every register is within the frame (a destination may be -1), every target is an instruction of the body, and the classes, expectations and rules of the immediates are in range (a guard of a literal names no class and a guard of a class is not case-folded), with depths and binding levels not negative; a literal is a string of the string table, an anchor is 0 to 3, and a lookahead enters (1) or leaves (-1) with a site not below -1, and only on leaving says whether it matched.
 - Every rule on a cycle of calls is marked recursive (`Rec`), so that every unbounded nesting of calls counts against the nesting limit. The cycles are those of a graph that over-approximates the calls a run can make: a rule leads to its entry and to the rules that the `CALL` instructions of its Flow body call; an instruction leads to the next one, unless it is `JUMP`, `COMMIT`, `FAIL`, `RETURN` or `END`, and to the target it may go to (that of a negative `LOOK` only); `CALL` also leads to its rule, and `OPERATORS_RULE` to the code of its operand and operator lines and its skip. A rule is on a cycle when the graph leads from the rule back to it. A rule may be marked without being on a cycle.
 - Every `RECOVER` body ends at an `ENDRECOVER` immediately before its skip target; that instruction jumps past an `ENDSKIP`. These recovery regions are nested and contain no stream-mode `NEXT` (mode 2) in either the protected body or skip. Element-local recovery ends before the enclosing streaming repetition's `NEXT`.
 
