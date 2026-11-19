@@ -113,8 +113,8 @@ func TestSequenceJSONErrors(t *testing.T) {
 			t.Errorf("%s: got %v, want an error containing %q", tc.new, err, tc.want)
 		}
 	}
-	if _, err := json.Marshal(sequence("g", Closure, input.Bytes, "")); err == nil {
-		t.Error("a sequence with the default backend was written")
+	if _, err := json.Marshal(sequence("g", "", input.Bytes, "")); err == nil {
+		t.Error("a sequence without a backend was written")
 	}
 	for _, bad := range []*Sequence{
 		{GrammarSHA256: "nothex", Start: "main", Backend: Closure},
