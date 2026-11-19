@@ -1036,19 +1036,11 @@ func (p *Parser) convertResult(r *Rule, v *value.Node) *value.Node {
 }
 
 // AttachCaptures attaches captures to the node as fields. Captures that did not match (nil) are
-// not attached. If the node belongs to another rule, it is wrapped in a tuple node first.
+// not attached. If the node belongs to another rule, or is itself captured, it is wrapped in a tuple
+// node first. It charges as the Go library's AttachCaptures and the Flow operation flow.attachFrame
+// do: a unit for each slot it looks at, for each name it attaches, and for the tuple node that wraps
+// the value, as every node the Go library makes does (spec/runtime/parsing.md#cost).
 func (p *Parser) AttachCaptures(v *value.Node, s *program.Scope, f *Frame, start, end int) *value.Node {
-	return p.attachScope(v, s, f, start, end, false)
-}
-
-// AttachFrame is AttachCaptures as the Go library's AttachCaptures charges it, which the Flow
-// operation flow.attachFrame calls: the tuple node that wraps the value charges a unit, as every node
-// the Go library makes does (spec/runtime/parsing.md#cost).
-func (p *Parser) AttachFrame(v *value.Node, s *program.Scope, f *Frame, start, end int) *value.Node {
-	return p.attachScope(v, s, f, start, end, true)
-}
-
-func (p *Parser) attachScope(v *value.Node, s *program.Scope, f *Frame, start, end int, chargeWrap bool) *value.Node {
 	found := false
 	wrap := v == nil || !nodes.D(v).Fresh
 	for _, c := range f.Vals {
@@ -1065,9 +1057,7 @@ func (p *Parser) attachScope(v *value.Node, s *program.Scope, f *Frame, start, e
 		return v
 	}
 	if wrap {
-		if chargeWrap {
-			p.Spend()
-		}
+		p.Spend()
 		v = p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: int32(start), End: int32(end), Children: append(p.Nodes(1)[:0], v), Fresh: true})
 	}
 	if nodes.D(v).Fields == nil {
