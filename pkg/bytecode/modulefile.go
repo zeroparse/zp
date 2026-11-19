@@ -238,6 +238,13 @@ func (w *Encoder) flowImm(k FlowImm, v any) {
 		w.Int(x.Site)
 		w.Bool(x.Build)
 		w.Bool(x.KeyEnv)
+	case FlowImmBind:
+		x, ok := v.(FlowBindOf)
+		if !ok {
+			bad()
+		}
+		w.Int(x.Var)
+		w.Int(x.Term)
 	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope, FlowImmRunSite, FlowImmScanSite, FlowImmTerm:
 		x, ok := v.(int)
 		if !ok {
@@ -538,6 +545,8 @@ func (r *Decoder) flowImm(k FlowImm) any {
 		return FlowSilenceOf{Delta: int(r.int32()), Site: int(r.int32()), Ok: r.Bool()}
 	case FlowImmRunWalk:
 		return FlowRunWalkOf{Site: int(r.int32()), Build: r.Bool(), KeyEnv: r.Bool()}
+	case FlowImmBind:
+		return FlowBindOf{Var: int(r.int32()), Term: int(r.int32())}
 	case FlowImmCount, FlowImmStr, FlowImmSlot, FlowImmScope, FlowImmRunSite, FlowImmScanSite, FlowImmTerm:
 		return int(r.int32())
 	case FlowImmShape:
@@ -1206,6 +1215,17 @@ func validateFlowImm(m *Module, slots int, k FlowImm, v any) error {
 		var x int
 		if x, ok = v.(int); ok && (x < 0 || x >= len(m.Terms)) {
 			return fmt.Errorf("term %d out of range", x)
+		}
+	case FlowImmBind:
+		var x FlowBindOf
+		if x, ok = v.(FlowBindOf); !ok {
+			break
+		}
+		if x.Var < 0 || x.Var >= len(m.Vars) {
+			return fmt.Errorf("variable %d out of range", x.Var)
+		}
+		if x.Term < 0 || x.Term >= len(m.Terms) {
+			return fmt.Errorf("term %d out of range", x.Term)
 		}
 	case FlowImmRunSite:
 		var x int

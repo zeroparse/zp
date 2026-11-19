@@ -192,6 +192,10 @@ const (
 	// FlowPred sets Dst[0] to whether the predicate whose term is the immediate holds in the current
 	// frame, as the match code's PRED evaluates it (flow.pred).
 	FlowPred
+	// FlowBind binds the variable of the immediate FlowBindOf to the value of its term, evaluated in
+	// the current frame as the match code's BIND evaluates it, and sets Dst[0] to whether the
+	// evaluation succeeded (flow.bind).
+	FlowBind
 )
 
 // FlowImm is the kind of immediate of an operation.
@@ -237,6 +241,8 @@ const (
 	FlowImmScanSite
 	// FlowImmTerm is a term: an int index of Module.Terms.
 	FlowImmTerm
+	// FlowImmBind is a FlowBindOf.
+	FlowImmBind
 )
 
 // FlowShape is what the instructions of an operation hold: the number of destination and argument
@@ -318,6 +324,7 @@ var FlowShapes = [...]FlowShape{
 	FlowScanEnd:       {Name: "SCANEND", Args: 2, Imm: FlowImmScanSite},
 	FlowScanKids:      {Name: "SCANKIDS", Dst: 1, Args: 3, Imm: FlowImmScanSite},
 	FlowPred:          {Name: "PRED", Dst: 1, Imm: FlowImmTerm},
+	FlowBind:          {Name: "BIND", Dst: 1, Imm: FlowImmBind},
 }
 
 // Shape returns the shape of o; ok is false for an operation that does not exist.
@@ -399,6 +406,12 @@ type FlowShapeOf struct {
 type FlowRunWalkOf struct {
 	Site          int
 	Build, KeyEnv bool
+}
+
+// FlowBindOf is the immediate of FlowBind: the variable, an index of Module.Vars, and its term, an
+// index of Module.Terms.
+type FlowBindOf struct {
+	Var, Term int
 }
 
 // FlowCallOf is the immediate of FlowCall: the rule's index and the binding level it is called at.
