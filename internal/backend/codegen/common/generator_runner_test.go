@@ -29,7 +29,7 @@ func TestGeneratorWithoutRunnerPanicsClearly(t *testing.T) {
 	t.Parallel()
 	for name, use := range map[string]func(g *common.Generator){
 		"Opt":        func(g *common.Generator) { g.Opt() },
-		"RunCore":    func(g *common.Generator) { _, _ = g.RunCore("rules", nil) },
+		"Core":       func(g *common.Generator) { _, _ = g.Core("rules", nil) },
 		"FlowPasses": func(g *common.Generator) { _, _ = g.FlowPasses(flowlower.Unit{}) },
 		"ExecPasses": func(g *common.Generator) { _, _ = g.ExecPasses(nil, nil) },
 	} {

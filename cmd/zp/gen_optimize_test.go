@@ -45,7 +45,7 @@ func TestGenOptimize(t *testing.T) {
 		{[]string{"-optimize", "nosuch"}, `-optimize: unknown optimization profile "nosuch" (valid: speed, memory, size)`},
 		{[]string{"-no-opt", "nosuch"}, `-no-opt: unknown optimization "nosuch" (valid: guards, scans, field-compare,`},
 		{[]string{"-no-opt", "guards,nosuch"}, `unknown optimization "nosuch"`},
-		{[]string{"-print-after", "nosuch"}, `-print-after: unknown pass "nosuch" to print after (valid: core, guards, scans, flow, terminals,`},
+		{[]string{"-print-after", "nosuch"}, `-print-after: unknown pass "nosuch" to print after (valid: elaborate, guards, scans, flowlower, terminals,`},
 	} {
 		_, err := runGenGo(t, append([]string{"-g", g}, c.args...)...)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -63,7 +63,7 @@ func TestGenOptimize(t *testing.T) {
 
 // TestGenPrintAfter checks that -print-after writes the Core IR after the named passes, and only
 // those, to the diagnostic stream, once for each Core module of the generation, and the Flow IR of
-// each function printed from it after flow.
+// each function printed from it after flowlower.
 func TestGenPrintAfter(t *testing.T) {
 	g := writeFile(t, "opt.zp", optimizeGrammar)
 	run := func(list string, extra ...string) string {
@@ -78,7 +78,7 @@ func TestGenPrintAfter(t *testing.T) {
 		return out.String()
 	}
 	all := run("all")
-	for _, want := range []string{"table after core --", "table after guards --", "table after scans --", "table after class-runs --"} {
+	for _, want := range []string{"table after elaborate --", "table after guards --", "table after scans --", "table after class-runs --"} {
 		if !strings.Contains(all, want) {
 			t.Errorf("-print-after all lacks %q", want)
 		}
@@ -96,24 +96,25 @@ func TestGenPrintAfter(t *testing.T) {
 	if strings.Count(guards, "-- Core IR of the") != strings.Count(all, "after guards --") || !strings.Contains(guards, "after guards --") || strings.Contains(guards, "after scans --") {
 		t.Errorf("-print-after guards prints %d sections:\n%.300s", strings.Count(guards, "-- Core IR"), guards)
 	}
-	if got := run("core,scans"); !strings.Contains(got, "after core --") || !strings.Contains(got, "after scans --") || strings.Contains(got, "after guards --") || strings.Contains(got, "-- Flow IR") {
-		t.Errorf("-print-after core,scans prints the wrong sections")
+	if got := run("elaborate,scans"); !strings.Contains(got, "after elaborate --") || !strings.Contains(got, "after scans --") || strings.Contains(got, "after guards --") || strings.Contains(got, "-- Flow IR") {
+		t.Errorf("-print-after elaborate,scans prints the wrong sections")
 	}
-	// flow prints each function that the parser is printed from, as the lowering made it, and no Core IR.
-	flowIR := run("flow")
-	if !strings.Contains(flowIR, "-- Flow IR of ") || !strings.Contains(flowIR, " in the typed table after flow --\nfunc ") || strings.Contains(flowIR, "-- Core IR") {
-		t.Errorf("-print-after flow prints the wrong sections:\n%.300s", flowIR)
+	// flowlower prints each function that the parser is printed from, as the lowering made it, and no
+	// Core IR.
+	flowIR := run("flowlower")
+	if !strings.Contains(flowIR, "-- Flow IR of ") || !strings.Contains(flowIR, " in the typed table after flowlower --\nfunc ") || strings.Contains(flowIR, "-- Core IR") {
+		t.Errorf("-print-after flowlower prints the wrong sections:\n%.300s", flowIR)
 	}
-	if n := strings.Count(all, " table after flow --"); n == 0 || n != strings.Count(flowIR, "-- Flow IR of ") {
-		t.Errorf("-print-after all prints %d lowered Flow functions, flow %d", n, strings.Count(flowIR, "-- Flow IR of "))
+	if n := strings.Count(all, " table after flowlower --"); n == 0 || n != strings.Count(flowIR, "-- Flow IR of ") {
+		t.Errorf("-print-after all prints %d lowered Flow functions, flowlower %d", n, strings.Count(flowIR, "-- Flow IR of "))
 	}
-	// exec prints each function printed from Exec IR, as lowered from Flow IR, and nothing else.
-	execIR := run("exec")
-	if !strings.Contains(execIR, "-- Exec IR of ") || !strings.Contains(execIR, " in the typed table after exec --\n") || strings.Contains(execIR, "-- Core IR") || strings.Contains(execIR, "-- Flow IR") {
-		t.Errorf("-print-after exec prints the wrong sections:\n%.300s", execIR)
+	// execlower prints each function printed from Exec IR, as lowered from Flow IR, and nothing else.
+	execIR := run("execlower")
+	if !strings.Contains(execIR, "-- Exec IR of ") || !strings.Contains(execIR, " in the typed table after execlower --\n") || strings.Contains(execIR, "-- Core IR") || strings.Contains(execIR, "-- Flow IR") {
+		t.Errorf("-print-after execlower prints the wrong sections:\n%.300s", execIR)
 	}
-	if n := strings.Count(all, " table after exec --"); n == 0 || n != strings.Count(execIR, "-- Exec IR of ") {
-		t.Errorf("-print-after all prints %d lowered Exec functions, exec %d", n, strings.Count(execIR, "-- Exec IR of "))
+	if n := strings.Count(all, " table after execlower --"); n == 0 || n != strings.Count(execIR, "-- Exec IR of ") {
+		t.Errorf("-print-after all prints %d lowered Exec functions, execlower %d", n, strings.Count(execIR, "-- Exec IR of "))
 	}
 }
 

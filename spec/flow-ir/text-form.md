@@ -1,8 +1,8 @@
 # Text Form
 
 The text form of a function at the Flow stage is the listing of Code IR (see [Text Form](../code-ir/text-form.md)): the
-readable form that tests and debugging show, and that `-print-after flow` writes under a header line of its own. It is an
-output: nothing parses it.
+readable form that tests and debugging show, and that the dumps of the Flow stage write under a header line of their
+own. It is an output: nothing parses it.
 
 A listing starts with the line `func`, the function's name, its parameters and its results in parentheses, and its features
 in brackets, if it has any, and a brace. A line `var` follows for each local, with its name and type. Then come the

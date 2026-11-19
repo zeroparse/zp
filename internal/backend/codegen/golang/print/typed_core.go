@@ -12,9 +12,5 @@ import (
 // hook (driver.Driver.CoreHook, tests) calls it with the module after it is built and after each
 // pass.
 func (g *Generator) TypedCore(origin map[core.Node]ast.Expr) (*core.Module, error) {
-	m, err := irbuild.CoreFrom(g.Prog.Elab, origin)
-	if err != nil {
-		return nil, err
-	}
-	return g.RunCore(g.IRTable(), m)
+	return g.Core(g.IRTable(), func() (*core.Module, error) { return irbuild.CoreFrom(g.Prog.Elab, origin) })
 }

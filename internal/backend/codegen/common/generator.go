@@ -91,9 +91,9 @@ func (g *Generator) runner() Runner {
 // Opt returns the optimizations that are on: the settings of the Runner, the one holder of them.
 func (g *Generator) Opt() pass.Settings { return g.runner().Settings() }
 
-// RunCore runs the Core passes through the Runner.
-func (g *Generator) RunCore(table string, m *core.Module) (*core.Module, error) {
-	return g.runner().RunCore(table, m)
+// Core runs the elaboration build of the table's Core IR and the Core passes through the Runner.
+func (g *Generator) Core(table string, build func() (*core.Module, error)) (*core.Module, error) {
+	return g.runner().Core(table, build)
 }
 
 // FieldTypeVar returns the variable holding check type ft of key, declaring it with decl the
@@ -324,11 +324,8 @@ func FrameScope(names []string) *check.Scope {
 // terminals and classes as inline tests.
 func (g *Generator) StartRecFlow(rec *Program) error {
 	origin := map[core.Node]ast.Expr{}
-	m, err := irbuild.CoreProjecting(rec.Elab, origin, g.Table != "recRules")
+	m, err := g.Core(g.IRTable(), func() (*core.Module, error) { return irbuild.CoreProjecting(rec.Elab, origin, g.Table != "recRules") })
 	if err != nil {
-		return err
-	}
-	if m, err = g.RunCore(g.IRTable(), m); err != nil {
 		return err
 	}
 	// Classes are inline tests, as the Node library's generated code writes them.

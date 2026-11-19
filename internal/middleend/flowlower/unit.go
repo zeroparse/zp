@@ -2,7 +2,6 @@ package flowlower
 
 import (
 	"fmt"
-	"io"
 
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -86,15 +85,7 @@ func verified(m *code.Module, err error) (*code.Module, error) {
 
 // IR describes a module of Flow functions to the manager of the pipeline: it is verified by Verify
 // and dumped as the listing of each of its functions, labeled with its table.
-var IR = pass.IR[*code.Module]{Stage: flow.Stage, Verify: Verify, Print: Print, Copy: (*code.Module).Clone}
-
-// Print writes the dump of the Flow module m, labeled l, after the step after: each function under a
-// header line of its own.
-func Print(w io.Writer, l pass.Label, after string, m *code.Module) {
-	for _, f := range m.Funcs {
-		fmt.Fprintf(w, "-- Flow IR of %s in the %s table after %s --\n%s\n", f.Name, l.Table, after, code.FuncStringIn(m, f))
-	}
-}
+var IR = pass.IR[*code.Module]{Stage: flow.Stage, Verify: Verify, Print: flow.Print, Copy: (*code.Module).Clone}
 
 // Name is the name of the lowering as a step of the pipeline.
 const Name = "flowlower"

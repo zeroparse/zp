@@ -17,9 +17,10 @@ import (
 	"strings"
 	"zeroparse.dev/zp/internal/middleend/flowpass"
 
-	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	"zeroparse.dev/zp/internal/middleend/execlower"
+	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/pass"
 )
 
@@ -112,11 +113,11 @@ func Check() error {
 	return checkProfiles(profileDefs, flags)
 }
 
-// checkStepNames reports a flag that has the name of a step that -print-after selects, which would
-// select both.
+// checkStepNames reports a flag that has the name of a required step or "all", which -print-after
+// would select both by.
 func checkStepNames(flags []pass.Flag) error {
 	for _, f := range flags {
-		if f.Name == PrintCore || f.Name == PrintFlow || f.Name == PrintExec || f.Name == PrintAll {
+		if slices.Contains(requiredSteps(), f.Name) || f.Name == PrintAll {
 			return fmt.Errorf("flag %s has the name of a step that -print-after selects", f.Name)
 		}
 	}
@@ -178,27 +179,24 @@ func ProfileValues(name string) map[string]int {
 	return nil
 }
 
-// The names of the steps that build a unit of the IR, which select its dump as built.
-const (
-	// PrintCore is the Core IR as the front end built it.
-	PrintCore = corepass.Stage
-	// PrintFlow is a function of Flow IR as the lowering made it.
-	PrintFlow = flow.Stage
-	// PrintExec is a function of Exec IR as the lowering from Flow IR made it.
-	PrintExec = codepass.Stage
-	// PrintAll selects every step and every pass.
-	PrintAll = "all"
-)
+// PrintAll selects every step and every pass for printing.
+const PrintAll = "all"
 
-// PrintNames returns the names that select what to print after, in the order the steps run: "core",
-// the Core passes, "flow", the Flow passes, "exec", the Exec passes and those of the registered
-// targets (golang/pass, typescript/pass), and "all".
+// requiredSteps returns the names of the required steps of the pipeline in the order they run:
+// elaborate, flowlower, flow-finish and execlower.
+func requiredSteps() []string {
+	return []string{Elaborate, flowlower.Name, flowpass.FinishName, execlower.Name}
+}
+
+// PrintNames returns the names of the steps and passes that select what to print after, in the order
+// they run: elaborate, the Core passes, flowlower, the Flow passes, flow-finish, execlower, the
+// Exec passes and those of the registered targets (golang/pass, typescript/pass), and "all".
 func PrintNames() []string {
-	out := []string{PrintCore}
+	out := []string{Elaborate}
 	out = append(out, corepass.Pipeline.Names()...)
-	out = append(out, PrintFlow)
+	out = append(out, flowlower.Name)
 	out = append(out, flowpass.Pipeline.Names()...)
-	out = append(out, PrintExec)
+	out = append(out, flowpass.FinishName, execlower.Name)
 	out = append(out, codepass.Pipeline.Names()...)
 	for _, p := range targets {
 		out = append(out, p.Names()...)

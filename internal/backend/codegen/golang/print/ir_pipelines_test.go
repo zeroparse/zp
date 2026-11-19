@@ -13,7 +13,7 @@ import (
 
 // TestEveryFlowFunctionRunsTheIRPipelines generates parsers whose functions take every route from
 // Flow IR (flat and framed rules, lines of an Operators Rule, recognizer rules, typed left-recursion
-// bodies, the stream body) in each table, and checks from the dumps of "flow" and "exec" that every function printed from Exec IR
+// bodies, the stream body) in each table, and checks from the dumps of "flowlower" and "execlower" that every function printed from Exec IR
 // went through the Flow pipeline and the Exec pipeline once per lowering.
 func TestEveryFlowFunctionRunsTheIRPipelines(t *testing.T) {
 	t.Parallel()
@@ -31,7 +31,7 @@ func TestEveryFlowFunctionRunsTheIRPipelines(t *testing.T) {
 			break
 		}
 	}
-	base := common.GenOptions{Package: "x", Module: "example.com/x", Lib: common.LibImport, PrintAfter: "flow,exec"}
+	base := common.GenOptions{Package: "x", Module: "example.com/x", Lib: common.LibImport, PrintAfter: "flowlower,execlower"}
 	for _, c := range []struct {
 		name, grammar string
 		set           func(*common.GenOptions)

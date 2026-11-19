@@ -13,10 +13,11 @@ import (
 )
 
 // irDumpHeader matches the header of a dump of one Flow IR or Exec IR function before the first
-// pass of its pipeline (GenOptions.PrintAfter "flow" and "exec").
-var irDumpHeader = regexp.MustCompile(`(?m)^-- (Flow|Exec) IR of (\S+) in the (\S+) table after (?:flow|exec) --$`)
+// pass of its pipeline, after the lowering that made it (GenOptions.PrintAfter "flowlower" and
+// "execlower").
+var irDumpHeader = regexp.MustCompile(`(?m)^-- (Flow|Exec) IR of (\S+) in the (\S+) table after (?:flowlower|execlower) --$`)
 
-// CheckIRPipelines checks the dumps that a generation with PrintAfter "flow,exec" wrote: every function
+// CheckIRPipelines checks the dumps that a generation with PrintAfter "flowlower,execlower" wrote: every function
 // printed from Exec IR was lowered from a Flow IR function, so each function of each table must have
 // as many Flow IR dumps as Exec IR dumps, and each table in tables must have some. A function whose
 // Flow passes or Exec passes the generator skipped has no dump of that IR. It returns the number of

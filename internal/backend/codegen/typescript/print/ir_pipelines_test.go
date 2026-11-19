@@ -15,7 +15,7 @@ import (
 
 // TestEveryFlowFunctionRunsTheIRPipelines generates TypeScript parsers whose functions take every route
 // from Flow IR (flat and framed rules, lines of an Operators Rule, outlined nodes) in the Node and
-// recognizer tables, and checks from the dumps of "flow" and "exec" that every function printed from
+// recognizer tables, and checks from the dumps of "flowlower" and "execlower" that every function printed from
 // Exec IR went through the Flow pipeline and the Exec pipeline once per lowering.
 func TestEveryFlowFunctionRunsTheIRPipelines(t *testing.T) {
 	t.Parallel()
@@ -39,7 +39,7 @@ func TestEveryFlowFunctionRunsTheIRPipelines(t *testing.T) {
 			t.Parallel()
 			var dump bytes.Buffer
 			o := c.opts
-			o.PrintAfter, o.PrintTo, o.VerifyEachPass = "flow,exec", &dump, true
+			o.PrintAfter, o.PrintTo, o.VerifyEachPass = "flowlower,execlower", &dump, true
 			if _, err := print.GenerateParser(g, compileForGenerator, codegentest.Passes(o), codegentest.WithLib(o), nil); err != nil {
 				t.Fatal(err)
 			}

@@ -36,9 +36,10 @@ type Runner interface {
 	// its Passes, which the generator reads through Generator.Opt, so that the printers and the
 	// passes use the same ones.
 	Settings() pass.Settings
-	// RunCore runs the pipeline of Core passes on m, the Core IR of the table named table, and
-	// returns the module after them.
-	RunCore(table string, m *core.Module) (*core.Module, error)
+	// Core runs the Core part of the pipeline for the table named table: the step elaborate, which
+	// runs build, the elaboration of the table's program to Core IR, and the Core passes. It returns
+	// the module after them. A failure of build is a *pass.StepError with the message of build.
+	Core(table string, build func() (*core.Module, error)) (*core.Module, error)
 	// FlowFunc runs the Flow part of the pipeline on one function of the table named table: the
 	// lowering of u (flowlower), the Flow passes and flow-finish; observe says that the parser
 	// reports its rules and skipped alternatives, and target which forms the backend prints

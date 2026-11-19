@@ -15,7 +15,7 @@ import (
 // stage to the Exec stage that returns the function with its module, and whose postcondition, the
 // verifier, names the step and the module when it rejects the result.
 func TestLoweringStep(t *testing.T) {
-	want := []pass.Step{{Name: Name, Required: true, In: "flow", Out: "exec", Dump: "exec"}}
+	want := []pass.Step{{Name: Name, Required: true, In: "flow", Out: "exec", Dump: "execlower"}}
 	if got := Lowering.Steps(); !slices.Equal(got, want) {
 		t.Errorf("steps = %+v, want %+v", got, want)
 	}

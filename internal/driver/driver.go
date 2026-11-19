@@ -31,16 +31,15 @@ import (
 type Driver struct {
 	// Opt holds the optimizations that are on.
 	Opt pass.Settings
-	// PrintAfter lists the names (PrintNames) after which a unit is written to PrintTo; "all"
-	// selects every step and pass, "core" the Core IR before the first Core pass, "flow" each
-	// Flow function as flowlower made it and "exec" each Exec function as execlower made it.
+	// PrintAfter lists the names of the steps and passes (PrintNames) after which a unit is written
+	// to PrintTo; "all" selects every step and pass.
 	PrintAfter []string
 	PrintTo    io.Writer
 	// VerifyEach verifies the unit after every pass instead of once at the end, so that the error
 	// names the first pass that broke an invariant.
 	VerifyEach bool
-	// CoreHook, if set, is called with the Core module as it reaches the Core passes and after each
-	// Core pass that ran, before it is verified.
+	// CoreHook, if set, is called with the name of the step and the Core module after elaborate
+	// built it and after each Core pass that ran, before it is verified.
 	CoreHook func(pass string, m *core.Module)
 	// CorePipeline, FlowPipeline and ExecPipeline, if set, return the pipeline of the Core, Flow
 	// or Exec passes that runs on the units of the named table in place of corepass.Pipeline,
@@ -94,23 +93,36 @@ func (o observer) After(e pass.Event, print func(io.Writer), unit any) {
 	}
 }
 
-// RunCore runs the Core passes on m, the Core IR of the table named table, with the optimizations
-// of the driver, and returns the module after them. The module is dumped as "core" as it reaches
-// the passes. A failure is an internal error that names the pass.
-func (d *Driver) RunCore(table string, m *core.Module) (*core.Module, error) {
+// Elaborate is the name of the step that builds the Core IR of a table from its elaborated program,
+// the first step of the pipeline.
+const Elaborate = "elaborate"
+
+// elaborating is the step Elaborate: it runs the build of the Core IR module that it is given.
+var elaborating = pass.Lower(Elaborate, "program", corepass.IR, func(build func() (*core.Module, error)) (*core.Module, error) {
+	return build()
+})
+
+// Core runs the Core part of the pipeline for the table named table: the step elaborate, which
+// runs build, the elaboration of the table's program to Core IR, and then the Core passes with
+// the optimizations of the driver. It returns the module after them. The module is dumped as
+// "elaborate" as build made it.
+//
+// A failure of build is returned as the *pass.StepError that names elaborate, with its message and
+// no module. A failure of a pass is an internal error that names the pass.
+func (d *Driver) Core(table string, build func() (*core.Module, error)) (*core.Module, error) {
 	p := corepass.Pipeline
 	if d.CorePipeline != nil {
 		p = d.CorePipeline(table)
 	}
-	s := pass.Transforms(pass.Transform[*core.Module, *corepass.Env]{
-		IR: corepass.IR, Pipeline: p, Entry: corepass.Stage,
+	s := pass.Then(elaborating, pass.Transforms(pass.Transform[*core.Module, *corepass.Env]{
+		IR: corepass.IR, Pipeline: p,
 		Env: func(*pass.Run, pass.Label, *core.Module) *corepass.Env {
 			return &corepass.Env{Flag: d.Opt.On}
 		},
-	})
-	m, err := s.Run(d.manager(), pass.Label{Table: table}, m)
+	}))
+	m, err := s.Run(d.manager(), pass.Label{Table: table}, build)
 	if err != nil {
-		return nil, fmt.Errorf("internal error: %w", err)
+		return nil, stepError(err)
 	}
 	return m, nil
 }
@@ -119,7 +131,8 @@ func (d *Driver) RunCore(table string, m *core.Module) (*core.Module, error) {
 // lowering flowlower of u, which its postcondition verifies, the Flow passes with the optimizations
 // of the driver, and flow-finish, which also runs after a failed pass. observe says that the parser
 // reports its rules and skipped alternatives, and target what the backend prints (flowpass.Env).
-// The function is dumped as "flow" as flowlower made it, labeled with its table.
+// The function is dumped as "flowlower" as the lowering made it and as "flow-finish" as it leaves
+// the Flow stage, labeled with its table.
 //
 // A failure of flowlower is returned as the *pass.StepError that names it, with no module. A failure
 // of a pass is an internal error that names the pass, returned with the module, which flow-finish
@@ -143,7 +156,7 @@ func (d *Driver) FlowFunc(table string, u flowlower.Unit, observe bool, target f
 // table, which FlowFunc returned: the conversion execlower, which its postcondition verifies, the
 // Exec passes that every target runs and then target, the pipeline of the backend's own Exec passes,
 // with the optimizations of the driver; observe is as for FlowFunc. Each function of the module is
-// dumped as "exec" as execlower made it and after each Exec pass, the lowered function after each
+// dumped as "execlower" as the conversion made it and after each Exec pass, the lowered function after each
 // pass of target, labeled with its table.
 //
 // The lowered function keeps what the printers print: its module holds the function with its

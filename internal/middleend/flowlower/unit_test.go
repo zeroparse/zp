@@ -14,7 +14,7 @@ import (
 // TestLoweringStep checks the lowering as a step of the pipeline: one required step from the Core
 // stage to the Flow stage, whose result is the function that Lower makes, and whose failure names it.
 func TestLoweringStep(t *testing.T) {
-	want := []pass.Step{{Name: Name, Required: true, In: "core", Out: "flow", Dump: "flow"}}
+	want := []pass.Step{{Name: Name, Required: true, In: "core", Out: "flow", Dump: "flowlower"}}
 	if got := Lowering.Steps(); !slices.Equal(got, want) {
 		t.Errorf("steps = %+v, want %+v", got, want)
 	}

@@ -148,8 +148,8 @@ const FinishName = "flow-finish"
 
 // Finishing is Finish as the required step FinishName that ends the Flow stage of a function: it
 // runs after the Flow passes, also after one of them failed, and before the function leaves the Flow
-// stage. It finishes the module in place, which the run owns (pass.Do).
-var Finishing = pass.Do(FinishName, pass.IR[*code.Module]{Stage: flow.Stage, Copy: (*code.Module).Clone}, func(m *code.Module) *code.Module {
+// stage. It finishes the module in place, which the run owns (pass.Do), and dumps it as flow.Print does.
+var Finishing = pass.Do(FinishName, pass.IR[*code.Module]{Stage: flow.Stage, Print: flow.Print, Copy: (*code.Module).Clone}, func(m *code.Module) *code.Module {
 	Finish(m)
 	return m
 })

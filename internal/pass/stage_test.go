@@ -77,11 +77,12 @@ func TestStageComposition(t *testing.T) {
 	if err != nil || out.s != "a+b+analyze!" {
 		t.Fatalf("got %q, %v", out.s, err)
 	}
-	// The final verification computes the analysis that it requires, after the last dump.
-	if want := []string{"0::u:f", "1:a:a:f", "2:b:b:f", "0:lower:t:f", "0:finish::f"}; !slices.Equal(rec.events, want) {
+	// The final verification computes the analysis that it requires, after the last dump. A lowering
+	// and a required step are dumped under their names.
+	if want := []string{"0::u:f", "1:a:a:f", "2:b:b:f", "0:lower:lower:f", "0:finish:finish:f"}; !slices.Equal(rec.events, want) {
 		t.Errorf("events %v, want %v", rec.events, want)
 	}
-	if want := "rules/f after u: \nrules/f after a: a\nrules/f after b: a,b\nf after t: a+b+analyze\n"; rec.dumps.String() != want {
+	if want := "rules/f after u: \nrules/f after a: a\nrules/f after b: a,b\nf after lower: a+b+analyze\nf after finish: a+b+analyze!\n"; rec.dumps.String() != want {
 		t.Errorf("dumps %q, want %q", rec.dumps.String(), want)
 	}
 }
@@ -144,7 +145,7 @@ func TestStageFailure(t *testing.T) {
 	if !slices.Equal(out.log, []string{"!"}) {
 		t.Errorf("unit %v, want [!]: the optional pass c ran after the failure, or the failed stage's unit went on", out.log)
 	}
-	if want := []string{"1:a:a:", "0:lower:t:", "0:finish::", "0:back:u:"}; !slices.Equal(rec.events, want) {
+	if want := []string{"1:a:a:", "0:lower:lower:", "0:finish:finish:", "0:back:back:"}; !slices.Equal(rec.events, want) {
 		t.Errorf("events %v, want %v", rec.events, want)
 	}
 }

@@ -275,12 +275,11 @@ claims to preserve: a pass that declares that it preserves every analysis must l
 unchanged, and the pipeline reports a pass that changed it, because the analyses it kept would then be stale. Tests and
 diagnosis ask for this; it costs compile time and changes no output.
 
-A run can also **dump** the module as text after a stage or after a pass. The `-print-after` flag of the gen command
-takes the stage names `core`, `flow` and `exec`, the names of passes, and `all` for every stage and pass, and prints to
-standard error. The stage names are points in the one pipeline: `core` is Core IR before the first Core pass, `flow` is
-the Flow stage as `flowlower` produced it, and `exec` is the Exec stage as `execlower` converted it. A dump of a stage prints each function as a listing of Code IR, with the header lines of each dump unchanged. A pass that did not
-apply prints nothing, which is itself information: the dump is the way to see why an optimization did not happen for a
-parser.
+A run can also **dump** the module as text after a step or after a pass. The `-print-after` flag of the gen command
+takes the names of steps and passes, and `all` for every step and pass, and prints to standard error. The required steps
+are `elaborate`, `flowlower`, `flow-finish` and `execlower`; each dump is named after the step that produced it. A dump of
+the Flow or Exec stage prints each function as a listing of Code IR. A pass that did not apply prints nothing, which is
+itself information: the dump is the way to see why an optimization did not happen for a parser.
 
 ```mermaid
 flowchart TD
@@ -313,7 +312,7 @@ overrides of individual flags.
 
 ### Observing the Pipeline
 
-- `-print-after` takes stage names, pass names and `all`, and dumps the module after each, as described above.
+- `-print-after` takes step names, pass names and `all`, and dumps the module after each, as described above.
 - `-print-before` takes pass names and `all`, and dumps the module that each named pass receives.
 - `-verify-each` runs the verifier after every transform, so that an error names the first pass that left the module
   invalid, and reports a pass that claims to preserve everything but changed the text form of the unit.

@@ -34,8 +34,8 @@ type Step struct {
 	// In and Out are the stages of the unit that the step takes and returns, such as "core", "flow"
 	// or "exec"; they are equal for a transform.
 	In, Out string
-	// Dump is the name under which the unit after the step is dumped (-print-after): the name of a
-	// pass, the output stage of a lowering, or "" for a step that is never dumped.
+	// Dump is the name under which the unit after the step is dumped (-print-after): the name of
+	// the step, or "" for a step that is never dumped.
 	Dump string
 }
 
@@ -248,10 +248,10 @@ func Transforms[M, X any](t Transform[M, X]) Stage[M, M] {
 }
 
 // Lower makes a lowering a required stage from I to O: f lowers the unit, the verifier of out, the
-// postcondition of the lowering, checks the result, and the result is dumped under out.Stage. A
+// postcondition of the lowering, checks the result, and the result is dumped under name. A
 // failure of either is a failure of the lowering (StepError), after which no later step runs.
 func Lower[I, O any](name, in string, out IR[O], f func(I) (O, error)) Stage[I, O] {
-	s := Step{Name: name, Required: true, In: in, Out: out.Stage, Dump: out.Stage}
+	s := Step{Name: name, Required: true, In: in, Out: out.Stage, Dump: name}
 	return Stage[I, O]{steps: []Step{s}, run: func(r *Run, l Label, u I, st *state) O {
 		var zero O
 		o, err := f(u)
@@ -273,18 +273,25 @@ func Lower[I, O any](name, in string, out IR[O], f func(I) (O, error)) Stage[I, 
 	}}
 }
 
-// Do makes f a required step on a unit at the stage of ir that is never dumped: f returns the unit
-// after the step, and may change m in place. f gets the run's own unit: a unit that is still the
-// caller's is copied first (ir.Copy). It runs after a failure too.
+// Do makes f a required step on a unit at the stage of ir, dumped under name if ir prints: f
+// returns the unit after the step, and may change m in place. f gets the run's own unit: a unit that
+// is still the caller's is copied first (ir.Copy). It runs after a failure too.
 func Do[M any](name string, ir IR[M], f func(m M) M) Stage[M, M] {
 	s := Step{Name: name, Required: true, In: ir.Stage, Out: ir.Stage}
+	if ir.Print != nil {
+		s.Dump = name
+	}
 	return Stage[M, M]{steps: []Step{s}, run: func(r *Run, l Label, m M, st *state) M {
 		if !st.owned && ir.Copy != nil {
 			m = ir.Copy(m)
 			st.owned = true
 		}
 		m = f(m)
-		r.after(Event{Step: s, Label: l}, func(io.Writer) {}, m)
+		r.after(Event{Step: s, Label: l}, func(w io.Writer) {
+			if ir.Print != nil {
+				ir.Print(w, l, s.Dump, m)
+			}
+		}, m)
 		return m
 	}}
 }

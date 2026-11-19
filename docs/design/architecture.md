@@ -135,8 +135,7 @@ A conversion between dialects, or from one IR to another, is a **lowering** (`fl
 lowering is a pass: the compiler from Core IR to bytecode or to the Exec stage of a host language is one pipeline of
 passes, in which the lowerings take their places between the passes of each stage. As passes, the lowerings have the
 registry, the dumps and the verification that every other step has. **Legalize** is used only for adjustments inside one
-target, such as the passes of a host language. The stage names that the dumps use, `core`, `flow` and `exec`, are points
-in that pipeline. See [Lowerings](pass-pipeline.md#lowerings).
+target, such as the passes of a host language. See [Lowerings](pass-pipeline.md#lowerings).
 
 ## Backends
 

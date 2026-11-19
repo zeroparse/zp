@@ -69,7 +69,7 @@ func TestCheckStepNames(t *testing.T) {
 	if err := checkStepNames(pass.Flags()); err != nil {
 		t.Error(err)
 	}
-	for _, name := range []string{PrintCore, PrintFlow, PrintExec, PrintAll} {
+	for _, name := range append(requiredSteps(), PrintAll) {
 		if err := checkStepNames([]pass.Flag{{Name: name, Kind: pass.KindFlowPass, Doc: "x"}}); err == nil || !strings.Contains(err.Error(), "name of a step") {
 			t.Errorf("a flag named %s: %v", name, err)
 		}
@@ -115,24 +115,30 @@ func TestParsePrintAfter(t *testing.T) {
 	if got, err := ParsePrintAfter(""); err != nil || got != nil {
 		t.Errorf("empty: %v, %v", got, err)
 	}
-	if got, err := ParsePrintAfter("core, guards,all"); err != nil || !slices.Equal(got, []string{"core", "guards", "all"}) {
+	if got, err := ParsePrintAfter("elaborate, guards,all"); err != nil || !slices.Equal(got, []string{"elaborate", "guards", "all"}) {
 		t.Errorf("list: %v, %v", got, err)
 	}
 	if _, err := ParsePrintAfter("guards,nonsense"); err == nil || !strings.Contains(err.Error(), "unknown pass") {
 		t.Errorf("unknown: %v", err)
 	}
-	// The names follow the order the steps run in: the Core IR as built and the Core passes, then the Flow lowering
-	// and passes, then the Exec lowering and passes and the Exec passes of the targets.
-	want := append([]string{"core"}, corepass.Pipeline.Names()...)
-	want = append(append(want, "flow"), flowpass.Pipeline.Names()...)
-	want = append(append(want, "exec"), codepass.Pipeline.Names()...)
+	// The names follow the order the steps run in: the elaboration and the Core passes, then the Flow
+	// lowering, passes and finish, then the Exec lowering and passes and the Exec passes of the targets.
+	want := append([]string{"elaborate"}, corepass.Pipeline.Names()...)
+	want = append(append(want, "flowlower"), flowpass.Pipeline.Names()...)
+	want = append(append(want, "flow-finish", "execlower"), codepass.Pipeline.Names()...)
 	want = append(append(want, gopass.Pipeline.Names()...), tspass.Pipeline.Names()...)
 	want = append(want, "all")
 	if got := PrintNames(); !slices.Equal(got, want) {
 		t.Errorf("names %v, want %v", got, want)
 	}
-	if got, err := ParsePrintAfter("flow"); err != nil || !slices.Equal(got, []string{"flow"}) {
-		t.Errorf("flow: %v, %v", got, err)
+	if got, err := ParsePrintAfter("flowlower"); err != nil || !slices.Equal(got, []string{"flowlower"}) {
+		t.Errorf("flowlower: %v, %v", got, err)
+	}
+	// The stages are no names of steps.
+	for _, stage := range []string{"core", "flow", "exec"} {
+		if _, err := ParsePrintAfter(stage); err == nil {
+			t.Errorf("the stage %s is accepted", stage)
+		}
 	}
 }
 
