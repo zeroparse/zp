@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/frontend/check"
-	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -359,33 +358,19 @@ func FrameScope(names []string) *check.Scope {
 }
 
 // StartRecFlow builds the Core IR of the program rec (the recognizer, or the program of the Node
-// table), with the passes of the untyped tables (no terminal programs and no class runs), for
-// printing its eligible rules from Flow IR. It runs the pipeline of Core passes: the guards and the
-// scans, with the repeats that irbuild.FollowRepeats keeps in step with them. Terminals and class runs
-// apply only to lean typed rules (the Flow passes, flowpass.Target): the Node recognizer writes its
-// terminals and classes as inline tests.
+// table) with the Core passes of the generator, and the options its functions are lowered with
+// (flowplan.BuildTable), for printing its rules from Flow IR. The bytecode VM builds the Node table it
+// runs from Flow IR through the same function.
 func (g *Generator) StartRecFlow(rec *Program) error {
-	origin := map[core.Node]ast.Expr{}
-	m, err := irbuild.CoreProjecting(rec.Elab, origin, g.Table != "recRules")
+	c := flowplan.TableConfig{Values: g.Table != "recRules", Budget: !g.NoBudget, Observe: g.Observability,
+		Document: g.RecordsExamined(), Traced: g.Traced}
+	t, err := flowplan.BuildTable(rec.Elab, c, func(m *core.Module, prepare func(*core.Module) func()) error {
+		return g.RunCore(g.IRTable(), m, prepare)
+	})
 	if err != nil {
 		return err
 	}
-	// The scans of the Flow route keep the origin of each repetition they replace (FollowRepeats).
-	prepare := func(m *core.Module) func() {
-		repeats := irbuild.FollowRepeats(m, origin)
-		return func() {
-			for _, f := range repeats {
-				f()
-			}
-		}
-	}
-	if err := g.RunCore(g.IRTable(), m, prepare); err != nil {
-		return err
-	}
-	// Classes are inline tests, as the Node library's generated code writes them.
-	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), Observe: g.Observability, Node: true,
-		Document: g.RecordsExamined(), Traced: g.Traced}
-	g.Flow = &FlowState{M: m, Origin: origin, Opts: opts, Rules: append(append([]*Rule(nil), rec.RuleList...), rec.Twins...)}
+	g.Flow = &FlowState{M: t.M, Origin: t.Origin, Opts: t.Opts, Rules: append(append([]*Rule(nil), rec.RuleList...), rec.Twins...)}
 	return nil
 }
 
