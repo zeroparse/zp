@@ -39,6 +39,9 @@ type Program struct {
 	// leaving out the call protocol of state.Parser.Call: the rule is plain (core.Rule.Plain) and the
 	// program runs the inlined family (state.Inlined).
 	direct []bool
+	// flows holds, by rule ID, the Flow body that the rule runs in place of its match code
+	// (Module.Flows), nil for a rule that runs its match code.
+	flows []*bytecode.Flow
 }
 
 // vmRunSite is a repetition that a Document can resume (state/resume.go): the REPEAT at ip, whose ITER
@@ -87,14 +90,15 @@ func (vm *Program) runSite(ip int) *vmRunSite {
 }
 
 // vmBodies returns the body of the rule r, whose code starts at entry in vm. Each driver of the
-// VM passes its own to buildVMProgram, deciding how a body runs the code: the recursive VM's
-// execBody calls exec, which recurses for each rule call.
+// VM passes its own to buildVMProgram, deciding how a body runs the code or the rule's Flow body
+// (Program.flows): the recursive VM's execBody calls exec or flowBody, which recurse for each rule
+// call.
 type vmBodies func(vm *Program, r *state.Rule, entry int) func(p *state.Parser, min int) (*core.Node, bool)
 
 // New prepares a module for execution with the recursive model, in the family f; terms are the
 // programs of its terms (LoadTerms).
 func New(m *bytecode.Module, terms []*state.TermProgram, f state.Family) *Program {
-	return buildVMProgram(m, terms, f, execBody, true)
+	return buildVMProgram(m, terms, f, execBody)
 }
 
 // Rule returns the rule called name, or nil when the module has none.
@@ -108,18 +112,21 @@ func (vm *Program) Descs() []string { return vm.descs }
 // (program.NumberSeen), which a parse uses as the stride of its memo table.
 func (vm *Program) NumSeen() int { return vm.nseen }
 
-// execBody runs a rule body with the recursive model: each call recurses into exec.
+// execBody runs a rule body with the recursive model: each call recurses into exec, or into the
+// Flow body of a rule that has one.
 func execBody(vm *Program, r *state.Rule, entry int) func(p *state.Parser, min int) (*core.Node, bool) {
+	if f := vm.flows[r.ID]; f != nil {
+		return flowBody(vm, r, f)
+	}
 	return func(p *state.Parser, min int) (*core.Node, bool) {
 		v, ok, _ := machineOf(p).exec(vm, entry, r, min)
 		return v, ok
 	}
 }
 
-// buildVMProgram prepares a module for execution in the family f. bodies makes the rule bodies, and
-// flows tells whether a rule with a Flow body (bytecode.Flow) runs it instead: the recursive model
-// does, while the iterative model enters every rule through its frames and runs the match code.
-func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Family, bodies vmBodies, flows bool) *Program {
+// buildVMProgram prepares a module for execution in the family f. bodies makes the rule bodies; a
+// rule with a Flow body (bytecode.Flow) runs it in place of its match code in both models.
+func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Family, bodies vmBodies) *Program {
 	vm := &Program{m: m, byName: map[string]*state.Rule{}, descs: append(append([]string(nil), program.FixedDescs...), m.Strings...)}
 	vm.literals = m.Strings
 	normalized := false
@@ -203,6 +210,10 @@ func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Fami
 			vm.runSites[ip] = vm.runSite(ip)
 		}
 	}
+	vm.flows = make([]*bytecode.Flow, len(vm.rules))
+	for i, f := range m.Flows {
+		vm.flows[i] = f
+	}
 	vm.direct = make([]bool, len(vm.rules))
 	for i, r := range vm.rules {
 		r.Plain = !r.Leader && (!r.Memo || r.Transient) && len(r.Scope.Names) == 0
@@ -217,9 +228,6 @@ func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Fami
 		r.Entry = entry
 		r.Stream = vm.streams(entry)
 		r.Body = bodies(vm, r, entry)
-		if f := m.Flows[i]; flows && f != nil {
-			r.Body = flowBody(vm, r, f)
-		}
 	}
 	return vm
 }
