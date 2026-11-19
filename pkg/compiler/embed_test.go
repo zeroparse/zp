@@ -13,8 +13,9 @@ import (
 )
 
 // TestGenerateGoEmbeddedPackageBuilds generates a parser with the library embedded, as zp gen does
-// by default, and builds and runs it in a module that requires only core of zeroparse.dev/zp: the
-// copy of the library must compile against core, and the parser must work with it.
+// by default, and builds and runs it in a module that requires only the runtime packages of
+// zeroparse.dev/zp: the copy of the library must compile against them, and the parser must work
+// with it.
 func TestGenerateGoEmbeddedPackageBuilds(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a generated parser")

@@ -32,11 +32,15 @@
 // edge that disappears fails the test too, so the list only shrinks.
 //
 // Rule 1a also holds that the copy of the library that -lib embed writes builds alone in a user
-// module. The tests of package codegen build such a parser in a module that holds only core and
-// core/impl of this module (TestGenerateGoEmbeddedPackageBuilds, skipped with -short), so this
-// package checks only the imports of the copy.
+// module. The tests of package pkg/compiler build such a parser in a module that holds only the
+// runtime packages of this module (TestGenerateGoEmbeddedPackageBuilds, skipped with -short), so
+// this package checks only the imports of the copy.
 //
 // The test reads the graph with go list for the default build and for every build tag that
-// hack/test-reference-tags.sh checks, and checks the imports of non-test files only. The
-// package has no non-test code.
+// hack/test-reference-tags.sh checks, and checks the imports of non-test files only.
+//
+// The package also checks the paths that tests name in string literals (paths_test.go): every
+// repository path and package of the module that a test file or test support names, under any
+// build tag, must exist, so that a move cannot leave a test of the long tier reading or building
+// what is gone. The package has no non-test code.
 package archtest
