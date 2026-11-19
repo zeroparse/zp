@@ -308,7 +308,7 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 func closureExprMatcher(t *testing.T, prog *compile.Program, e ast.Expr, plainDispatch bool) state.Matcher {
 	t.Helper()
 	m, found := closureExprCore(t, prog, e)
-	f, err := closure.Matcher(prog, m, found, nil, plainDispatch)
+	f, err := closure.Matcher(prog.Runtime(), prog.Checker(), m, found, nil, plainDispatch)
 	if err != nil {
 		t.Fatal(err)
 	}

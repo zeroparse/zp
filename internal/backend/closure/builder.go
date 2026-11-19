@@ -3,12 +3,10 @@ package closure
 import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	ir "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/runtime/program"
-
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
+	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -16,26 +14,28 @@ import (
 // Builder builds the closure backend's form of a program from its Core IR (Build): a matcher per
 // node, and the bodies, values and actions of the rules.
 type Builder struct {
-	prog *compile.Program
-	m    *ir.Module
+	prog *program.Program
+	// checker resolves the types of the terms (actionlower.Env).
+	checker *check.Checker
+	m       *ir.Module
 	// plainDispatch leaves out the budget charge of the loop iterations; without it the builder
 	// builds the metered closure graph.
 	plainDispatch bool
 	// family is the rule set being built, which decides how the call sites call plain rules.
 	family state.Family
 	// static holds the static rules of the program, by ID: the rules and then their twins.
-	static []*compile.Rule
+	static []*program.Rule
 	// rules holds the rules the parser runs, by ID (staticRule.ID). They are made when a body or a
 	// call needs them and get the facts of their static rules in Build.
 	rules []*state.Rule
 	// descs maps the expectations of the module (ir.Module.Exps) to those of the program
-	// (compile.Program.DescTable), which the parser records.
+	// (program.Program.DescTable), which the parser records.
 	descs []state.ExpID
 	// accepts holds the membership test of each class of the module.
 	accepts map[*ir.Class]func(*state.Parser, rune) bool
 	// cur is the static rule whose body is being built, and scope the capture scope of the node
 	// being built.
-	cur   *compile.Rule
+	cur   *program.Rule
 	scope *program.Scope
 	// err is the first internal error of the build.
 	err error
@@ -57,7 +57,7 @@ func (b *Builder) rule(id int) *state.Rule {
 func (b *Builder) charges() bool { return state.BudgetControlsEnabled && !b.plainDispatch }
 
 // ruleBody completes the rule sr, whose Core IR is cr, with its body m.
-func (b *Builder) ruleBody(sr *compile.Rule, cr *ir.Rule, m state.Matcher) error {
+func (b *Builder) ruleBody(sr *program.Rule, cr *ir.Rule, m state.Matcher) error {
 	r := b.rule(sr.ID)
 	r.Kinds = coreimpl.NewRuleKinds(sr.Name)
 	if sr.Splice {
@@ -92,7 +92,7 @@ func projections(body ir.Node) map[string]string {
 }
 
 // operatorsRule completes the Operators Rule sr, whose Core IR is cr, with its lines.
-func (b *Builder) operatorsRule(sr *compile.Rule, cr *ir.Rule, o *ir.OperatorsRule) error {
+func (b *Builder) operatorsRule(sr *program.Rule, cr *ir.Rule, o *ir.OperatorsRule) error {
 	r := b.rule(sr.ID)
 	r.Kinds = coreimpl.NewRuleKinds(sr.Name)
 	// The lines build the rule's value.
@@ -152,7 +152,7 @@ func (b *Builder) line(l *ir.OpLine) (*state.OperatorsRuleLine, error) {
 
 func (b *Builder) literal(val string, fold bool, desc state.ExpID, build bool) state.Matcher {
 	if fold {
-		rs := compile.FoldedRunes([]rune(val))
+		rs := foldedRunes([]rune(val))
 		return func(p *state.Parser) (*core.Node, bool) {
 			start := p.Pos
 			if !p.MatchLiteralFold(rs) {
@@ -300,7 +300,7 @@ func (b *Builder) guard(f *ir.First) firstGuard {
 		return firstGuard{}
 	case f.Lit && f.Fold:
 		f0 := f.Rune
-		return firstGuard{func(_ *state.Parser, r rune) bool { return compile.FoldASCIIRune(r) == f0 }, b.desc(f.Exp), f.Depth}
+		return firstGuard{func(_ *state.Parser, r rune) bool { return state.FoldASCIIRune(r) == f0 }, b.desc(f.Exp), f.Depth}
 	case f.Lit:
 		r0 := f.Rune
 		return firstGuard{func(_ *state.Parser, r rune) bool { return r == r0 }, b.desc(f.Exp), f.Depth}
@@ -462,7 +462,7 @@ func single(build bool, desc state.ExpID, accept func(*state.Parser, rune) bool)
 // Expectations are recorded as for a general repetition (once, at the position that did not match
 // last).
 func (b *Builder) scanRepeat(n *ir.Scan) state.Matcher {
-	accept, desc := func(*state.Parser, rune) bool { return true }, compile.IDAny
+	accept, desc := func(*state.Parser, rune) bool { return true }, program.IDAny
 	if n.Class != nil {
 		accept, desc = b.accept(n.Class), b.desc(n.Class.Exp)
 	}
@@ -941,4 +941,13 @@ func scopeValueOf(s ir.Shape) func(p *state.Parser, v *core.Node, start int) *co
 		return func(p *state.Parser, v *core.Node, start int) *core.Node { return state.ShapeTuple(p, sh, v, start) }
 	}
 	return func(_ *state.Parser, v *core.Node, _ int) *core.Node { return sh.One(v) }
+}
+
+// foldedRunes returns rs with state.FoldASCIIRune applied to each rune.
+func foldedRunes(rs []rune) []rune {
+	out := make([]rune, len(rs))
+	for i, r := range rs {
+		out[i] = state.FoldASCIIRune(r)
+	}
+	return out
 }

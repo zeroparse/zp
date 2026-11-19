@@ -2,29 +2,23 @@ package closure
 
 import (
 	"fmt"
-	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/frontend/elaborate"
+	"zeroparse.dev/zp/internal/frontend/check"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-// Core builds the Core IR of the program prog and optimizes it with the closure pipeline (guards
-// and scans), for Build. It runs when a parse first needs a family, outside the compilation: the
-// build and the passes poll control, the parse's (nil for none), and a cancellation unwinds as
-// cancel.Cancellation. The module returned does not keep control. A failure is an internal error:
-// the program compiled, so its Core IR builds.
-func Core(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
-	m, err := elaborate.CoreControlled(prog, control)
-	if err != nil {
-		return nil, fmt.Errorf("internal error: Core IR: %w", err)
-	}
+// Core optimizes the Core IR m of a program, as the elaboration built it, with the closure pipeline
+// (guards and scans), for Build. It runs when a parse first needs a family, outside the
+// compilation: the passes poll the control of m (ir.Module.Control), the parse's (nil for none),
+// and a cancellation unwinds as cancel.Cancellation. The module returned does not keep the control.
+// A failure is an internal error: the program compiled, so its passes run.
+func Core(m *ir.Module) (*ir.Module, error) {
 	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
@@ -32,14 +26,15 @@ func Core(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
 	return m, nil
 }
 
-// Build builds the closure backend's form of the program prog from its Core IR m (Core), and
-// returns the rules of the family f that the parser runs, by ID. plainDispatch leaves out the
+// Build builds the closure backend's form of the run-time program prog from its Core IR m (Core),
+// and returns the rules of the family f that the parser runs, by ID; c resolves the types of the
+// terms (actionlower.Env). plainDispatch leaves out the
 // budget charge of the loop iterations. Build only reads m, so the families of a program can be
 // built from the same module, at different times. A failure is an internal error: the program
 // compiled, so its terms build. The build runs when a parse first needs the family, outside the
 // compilation, so no control interrupts it.
-func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f state.Family) ([]*state.Rule, error) {
-	b, err := newBuilder(prog, m, plainDispatch)
+func Build(prog *program.Program, c *check.Checker, m *ir.Module, plainDispatch bool, f state.Family) ([]*state.Rule, error) {
+	b, err := newBuilder(prog, c, m, plainDispatch)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +58,7 @@ func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f state.Fami
 			return nil, fmt.Errorf("rule %s: %w", sr.Name, err)
 		}
 		r := b.rule(sr.ID)
-		*state.StaticRuleOf(r) = *compile.RuntimeRule(sr)
+		*state.StaticRuleOf(r) = *sr
 		// The frame of the rule's captures has the slots of its Core IR scope.
 		state.StaticRuleOf(r).Scope = scopeOf(cr.Scope)
 		r.InitVals = prog.Vars.ValuesOf(sr.Vars)
@@ -78,10 +73,11 @@ func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f state.Fami
 	return b.rules, nil
 }
 
-// newBuilder returns the builder of the closure form of the module m of the program prog.
-func newBuilder(prog *compile.Program, m *ir.Module, plainDispatch bool) (*Builder, error) {
-	b := &Builder{prog: prog, m: m, plainDispatch: plainDispatch, accepts: map[*ir.Class]func(*state.Parser, rune) bool{}}
-	b.static = append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...)
+// newBuilder returns the builder of the closure form of the module m of the run-time program prog,
+// whose types c resolves.
+func newBuilder(prog *program.Program, c *check.Checker, m *ir.Module, plainDispatch bool) (*Builder, error) {
+	b := &Builder{prog: prog, checker: c, m: m, plainDispatch: plainDispatch, accepts: map[*ir.Class]func(*state.Parser, rune) bool{}}
+	b.static = append(append([]*program.Rule(nil), prog.RuleList...), prog.Twins...)
 	ids := make(map[string]state.ExpID, len(prog.DescTable))
 	for i, d := range prog.DescTable {
 		if _, ok := ids[d]; !ok {
@@ -99,14 +95,14 @@ func newBuilder(prog *compile.Program, m *ir.Module, plainDispatch bool) (*Build
 }
 
 // Matcher returns the matcher of the node n, in the capture scope scope, of the Core IR module m
-// of the program prog, in the inlined family. It is for the tests of package engine, which check
-// single closures.
-func Matcher(prog *compile.Program, m *ir.Module, n ir.Node, scope []ir.Slot, plainDispatch bool) (state.Matcher, error) {
-	b, err := newBuilder(prog, m, plainDispatch)
+// of the run-time program prog, whose types c resolves, in the inlined family. It is for the tests
+// of package engine, which check single closures.
+func Matcher(prog *program.Program, c *check.Checker, m *ir.Module, n ir.Node, scope []ir.Slot, plainDispatch bool) (state.Matcher, error) {
+	b, err := newBuilder(prog, c, m, plainDispatch)
 	if err != nil {
 		return nil, err
 	}
-	b.cur, b.scope = &compile.Rule{}, scopeOf(scope)
+	b.cur, b.scope = &program.Rule{}, scopeOf(scope)
 	f := b.node(n)
 	return f, b.err
 }
@@ -155,7 +151,7 @@ func (b *Builder) node(n ir.Node) state.Matcher {
 	case *ir.ClassNode:
 		return single(want, b.desc(n.Class.Exp), b.accept(n.Class))
 	case *ir.Any:
-		return single(want, compile.IDAny, func(*state.Parser, rune) bool { return true })
+		return single(want, program.IDAny, func(*state.Parser, rune) bool { return true })
 	case *ir.Call:
 		return b.call(n.Rule, n.Level)
 	case *ir.Seq:
@@ -219,13 +215,13 @@ func (b *Builder) node(n ir.Node) state.Matcher {
 	case *ir.Anchor:
 		switch n.Kind {
 		case ir.BeginInput:
-			return b.anchor(n.Kind, compile.IDBeginInput)
+			return b.anchor(n.Kind, program.IDBeginInput)
 		case ir.EndInput:
-			return b.anchor(n.Kind, compile.IDEndInput)
+			return b.anchor(n.Kind, program.IDEndInput)
 		case ir.BeginLine:
-			return b.anchor(n.Kind, compile.IDBeginLine)
+			return b.anchor(n.Kind, program.IDBeginLine)
 		}
-		return b.anchor(n.Kind, compile.IDEndLine)
+		return b.anchor(n.Kind, program.IDEndLine)
 	case *ir.Pred:
 		t := b.termSite(n.Term)
 		return func(p *state.Parser) (*core.Node, bool) { return nil, predicate(p, t) }
