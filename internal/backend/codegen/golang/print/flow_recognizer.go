@@ -17,11 +17,11 @@ import (
 // same output. Both tables share the helpers whose printed text is equal. The text passes run on the
 // whole output afterwards.
 
-// flowRecRule prints the flat function spec of the rule r from Flow IR as a flat rule. It returns nil
-// if the plan refuses the lowered function (flowplan.Refused: it reads its start or its context, or a
-// variable holds a value), and the caller (generator.rules) then prints the spec's framed fallback
-// (flowNodeFrameBody) and calls it through the rule table (plainCall); the generation fails if the
-// rule has no fallback.
+// flowRecRule prints the flat function spec of the rule r from Flow IR as a flat rule. The plan has
+// decided that the table runs it flat (flowplan.Plan). It returns nil if the hook RefuseFlowRecRule
+// refuses the rule, and the caller (generator.rules) then prints the spec's framed fallback
+// (flowNodeFrameBody) and calls it through the rule table (plainCall); it also returns nil, with the
+// internal error of execRecRule, if the printed form breaks the plan's decision.
 func (g *Generator) flowRecRule(r *common.Rule, spec *flowplan.FuncSpec) *flatRule {
 	if g.hooks.RefuseFlowRecRule != nil && g.hooks.RefuseFlowRecRule(r) {
 		return nil

@@ -665,7 +665,12 @@ func (g *Generator) rules() {
 		for i, r := range all {
 			rules[i] = r.PlanRule()
 		}
-		g.plan = flowplan.Plan(g.Flow.M, rules, func(id int) bool { return !g.pruned(all[id]) })
+		t := &flowplan.TableIR{M: g.Flow.M, Origin: g.Flow.Origin, Opts: g.Flow.Opts}
+		p, err := flowplan.Plan(t, rules, func(id int) bool { return !g.pruned(all[id]) }, g.Opt())
+		if err != nil {
+			panic(fmt.Errorf("table %s: %w", g.Table, err))
+		}
+		g.plan = p
 	}
 	for _, r := range all {
 		s := check.NewScope()
@@ -694,8 +699,8 @@ func (g *Generator) rules() {
 		// The lines of an Operators Rule are printed with its table row (operatorsRule).
 		spec, ok := g.plan.Func(flowplan.Key{Use: flowplan.RuleBody, Rule: r.ID})
 		if ok && spec.Form == flowlower.Flat {
-			// flowRecRule returns nil for a rule whose flat function the plan refuses (flowplan.Refused);
-			// such a rule takes its framed fallback and is called through the rule table (plainCall).
+			// flowRecRule returns nil for a rule that the hook RefuseFlowRecRule refuses; such a rule
+			// takes its framed fallback and is called through the rule table (plainCall).
 			if d := g.flowRecRule(r, spec); d != nil {
 				if g.hooks.LeanRoute != nil && g.collect == nil && !g.Traced {
 					g.hooks.LeanRoute(g.Table, r)
