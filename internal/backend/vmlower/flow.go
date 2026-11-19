@@ -11,8 +11,7 @@ import (
 	flowpkg "zeroparse.dev/zp/internal/ir/code/flow"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
-	"zeroparse.dev/zp/internal/middleend/flowlower"
-	"zeroparse.dev/zp/internal/middleend/flowpass"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/bytecode"
 )
@@ -30,27 +29,13 @@ func CoreOf(prog *compile.Program) (*ir.Module, error) {
 	return m, nil
 }
 
-// FlowModule lowers the rule with index rule of the Core IR m, which CoreOf made, to a Flow module
-// of one function named name, with the options of the VM's bodies (budget charges on, Node values),
-// and runs the Flow pipeline on it.
-func FlowModule(m *ir.Module, rule int, name string) (*code.Module, error) {
-	opts := flowlower.Options{Budget: true, Recovers: flowlower.Recovers(m), Node: true}
-	fm, err := flowlower.Lower(m, m.Rules[rule], name, opts)
-	if err != nil {
-		return nil, fmt.Errorf("internal error: flow of %s: %w", name, err)
-	}
-	if fm, _, err = flowpass.Run(fm, &flowpass.Env{}, flowpass.RunOptions{VerifyEach: true}); err != nil {
-		return nil, fmt.Errorf("internal error: flow of %s: %w", name, err)
-	}
-	flowpass.Finish(fm)
-	return fm, nil
-}
-
-// SelectFlows sets the Flow bodies of the rules of flows (rule index to the Flow module that
-// FlowModule made) in bc, a module that Compile emitted from prog and the Core IR m. A rule whose
-// Flow form uses an operation that the bytecode Flow bodies do not yet have is an error, and the
-// module keeps no body of that rule.
-func SelectFlows(bc *bytecode.Module, prog *compile.Program, m *ir.Module, flows map[int]*code.Module) error {
+// SelectFlows sets the Flow bodies of the rules of flows (rule ID to the Flow module of the rule's
+// body in the planned Node table, checked.Source.FlowTable) in bc, a module that Compile emitted from
+// prog. m is the Core IR of the table and plan its plan: a body runs in the rule frame of the VM,
+// whose slots must be the capture layout that the plan gave the rule (flowplan.Table.CheckLayout).
+// A rule whose Flow function uses an operation that the bytecode Flow bodies do not yet have is an
+// error, and the module keeps no body of that rule.
+func SelectFlows(bc *bytecode.Module, prog *compile.Program, m *ir.Module, plan *flowplan.Table, flows map[int]*code.Module) error {
 	c := &compiler{prog: prog, core: m, m: bc, strs: map[string]int{}}
 	for i, s := range bc.Strings {
 		if _, ok := c.strs[s]; !ok {
@@ -59,6 +44,12 @@ func SelectFlows(bc *bytecode.Module, prog *compile.Program, m *ir.Module, flows
 	}
 	for _, rule := range slices.Sorted(maps.Keys(flows)) {
 		fn := flowpkg.FuncOf(flows[rule])
+		if rule < 0 || rule >= len(bc.Rules) {
+			return fmt.Errorf("rule %s: no rule %d in the module", fn.Name, rule)
+		}
+		if err := plan.CheckLayout(rule, fn.Name, c.strNames(bc.Rules[rule].Scope)); err != nil {
+			return err
+		}
 		f, err := c.flow(fn, rule)
 		if err != nil {
 			return fmt.Errorf("rule %s: %w", fn.Name, err)
@@ -74,13 +65,13 @@ func SelectFlows(bc *bytecode.Module, prog *compile.Program, m *ir.Module, flows
 // flow returns the Flow body of the function fn, the flow form of rule index rule.
 func (c *compiler) flow(fn *code.Func, rule int) (*bytecode.Flow, error) {
 	a := flowpkg.AttrsOf(fn)
-	if a.Frame || a.Cut != "" || a.Binds {
+	if a.Cut != "" || a.Binds {
 		return nil, fmt.Errorf("a function of this shape has no bytecode Flow body yet")
 	}
 	if a.Rule == nil || a.Rule.ID != rule {
 		return nil, fmt.Errorf("the function is not the body of rule %d", rule)
 	}
-	s := &flowSel{c: c, f: &bytecode.Flow{}, regs: map[string]int{}, labels: map[string][]int{}, conts: map[string][]int{}}
+	s := &flowSel{c: c, f: &bytecode.Flow{}, regs: map[string]int{}, labels: map[string][]int{}, conts: map[string][]int{}, scopes: map[*flowpkg.Names]int{}}
 	for _, p := range fn.Locals {
 		r := s.local(p.Name)
 		zero, err := zeroOf(p.Type)
@@ -96,13 +87,24 @@ func (c *compiler) flow(fn *code.Func, rule int) (*bytecode.Flow, error) {
 		}
 		s.emit(bytecode.FlowInstr{Op: bytecode.FlowPos, Dst: []int{r}})
 	}
-	// The body is the block of the fail label: running to its end succeeds with the result, and an
-	// exit to the label fails. Both returns are emitted after the body.
 	for _, st := range fn.Body.Stmts {
 		if err := s.stmt(st); err != nil {
 			return nil, err
 		}
 	}
+	if a.Frame {
+		// A framed function returns its value and true, or the null value and false, by its own
+		// returns; it runs in the rule frame that the VM's rule sets up, which owns its finish.
+		if n := len(s.f.Code); n == 0 || s.f.Code[n-1].Op != bytecode.FlowReturn {
+			return nil, fmt.Errorf("the framed function does not end with a return")
+		}
+		if len(s.labels) > 0 || len(s.conts) > 0 {
+			return nil, fmt.Errorf("an exit to a block that does not enclose it")
+		}
+		return s.f, nil
+	}
+	// The body of a local function is the block of the fail label: running to its end succeeds with
+	// the result, and an exit to the label fails. Both returns are emitted after the body.
 	res, ok := s.regs[a.Result]
 	if !ok {
 		return nil, fmt.Errorf("the result %q is not a local", a.Result)
@@ -147,6 +149,19 @@ type flowSel struct {
 	regs   map[string]int
 	labels map[string][]int
 	conts  map[string][]int
+	// scopes holds the entry of the module's scope table of each scope of the function's frames.
+	scopes map[*flowpkg.Names]int
+}
+
+// scope returns the entry of the module's scope table that holds the names n, adding it on first use.
+func (s *flowSel) scope(n *flowpkg.Names) int {
+	if sc, ok := s.scopes[n]; ok {
+		return sc
+	}
+	s.c.m.Scopes = append(s.c.m.Scopes, s.c.strList(n.List))
+	sc := len(s.c.m.Scopes) - 1
+	s.scopes[n] = sc
+	return sc
 }
 
 func (s *flowSel) reg() int {
@@ -635,6 +650,27 @@ func (s *flowSel) call(c *code.Call, dst []int) error {
 		return s.op(bytecode.FlowShapeSingle, c, dst, shapeOf(c.Imm.(ir.Shape)))
 	case flowpkg.OpScopeValue:
 		return s.op(bytecode.FlowScopeValue, c, dst, shapeOf(c.Imm.(ir.Shape)))
+	case flowpkg.OpShapeCapture:
+		return s.op(bytecode.FlowShapeCapture, c, dst, shapeOf(c.Imm.(ir.Shape)))
+	case flowpkg.OpSetCapture:
+		return s.op(bytecode.FlowSetCapture, c, dst, int(c.Imm.(flowpkg.Slot)))
+	case flowpkg.OpMarkPos:
+		return s.op(bytecode.FlowMarkPos, c, dst, nil)
+	case flowpkg.OpFrame:
+		return s.op(bytecode.FlowFrame, c, dst, nil)
+	case flowpkg.OpNewFrame:
+		return s.op(bytecode.FlowNewFrame, c, dst, s.scope(c.Imm.(*flowpkg.Names)))
+	case flowpkg.OpSetFrame:
+		return s.op(bytecode.FlowSetFrame, c, dst, nil)
+	case flowpkg.OpClearVals:
+		return s.op(bytecode.FlowClearVals, c, dst, nil)
+	case flowpkg.OpFrameVal:
+		return s.op(bytecode.FlowFrameVal, c, dst, int(c.Imm.(flowpkg.Slot)))
+	case flowpkg.OpAttachFrame:
+		return s.op(bytecode.FlowAttachFrame, c, dst, s.scope(c.Imm.(flowpkg.Attach).Names))
+	case flowpkg.OpDeclareNames:
+		// It does nothing to the state: the names are those of the frame's scope.
+		return nil
 	default:
 		return fmt.Errorf("operation %s has no bytecode Flow form yet", c.Callee)
 	}
@@ -675,6 +711,15 @@ func (s *flowSel) expID(id ir.ExpID) int {
 		return int(id)
 	}
 	return int(program.NumFixedDescs) + int(s.c.exp(id))
+}
+
+// strNames returns the strings of the module at the indexes ids.
+func (c *compiler) strNames(ids []int) []string {
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = c.m.Strings[id]
+	}
+	return out
 }
 
 // ruleName returns the name of the rule of index i in the module.

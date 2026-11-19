@@ -263,12 +263,58 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 			} else {
 				fr.set(in.Dst[0], flowShaper(x).One(v))
 			}
+		case bytecode.FlowSetCapture:
+			p.SetCapture(flowSlot(p, p.Frame, in.Imm.(int)), asNode(regs[in.Args[0]]))
+		case bytecode.FlowMarkPos:
+			fr.set(in.Dst[0], regs[in.Args[0]].(state.Mark).Pos)
+		case bytecode.FlowFrame:
+			fr.set(in.Dst[0], p.Frame)
+		case bytecode.FlowNewFrame:
+			fr.set(in.Dst[0], p.NewFrame(len(vm.scopes[in.Imm.(int)])))
+		case bytecode.FlowSetFrame:
+			p.Frame = regs[in.Args[0]].(*state.Frame)
+		case bytecode.FlowClearVals:
+			clear(regs[in.Args[0]].(*state.Frame).Vals)
+		case bytecode.FlowFrameVal:
+			f := regs[in.Args[0]].(*state.Frame)
+			fr.set(in.Dst[0], f.Vals[flowSlot(p, f, in.Imm.(int))])
+		case bytecode.FlowAttachFrame:
+			sc, f := vm.scopeOf[in.Imm.(int)], regs[in.Args[2]].(*state.Frame)
+			if len(sc.Names) != len(f.Vals) {
+				p.Fail("vm: a scope of %d names attached from a frame of %d slots", len(sc.Names), len(f.Vals))
+			}
+			fr.set(in.Dst[0], p.AttachFrame(asNode(regs[in.Args[0]]), sc, f, regs[in.Args[1]].(int), p.Pos))
+		case bytecode.FlowShapeCapture:
+			// As the Go library's ShapeCapture: ShapeSingle, or the unit node of the range, which
+			// charges a unit for the value (spec/runtime/parsing.md#cost).
+			x := in.Imm.(bytecode.FlowShapeOf)
+			v, start := asNode(regs[in.Args[0]]), regs[in.Args[1]].(int)
+			switch x.Mode {
+			case int(program.SinglePass):
+				v = flowShaper(x).One(v)
+			case int(program.SingleTuple):
+				v = flowShapeTuple(p, x, v, start)
+			default:
+				p.Spend()
+				v = p.NewNode(nodes.Data{Kind: valueimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
+			}
+			fr.set(in.Dst[0], v)
 		default:
 			panic(fmt.Sprintf("internal error: vm: flow operation %d", in.Op))
 		}
 	}
 	// A loaded body ends with JUMP or RETURN (bytecode.ValidateModule), so it never gets here.
 	panic("internal error: vm: a Flow body ran past its end")
+}
+
+// flowSlot returns the capture slot of the frame f that an instruction names, and fails the parse
+// if f has no such slot: a loaded body names slots of the frames it may run with
+// (bytecode.ValidateModule), but which frame is current is known only when it runs.
+func flowSlot(p *state.Parser, f *state.Frame, slot int) int {
+	if slot >= len(f.Vals) {
+		p.Fail("vm: capture slot %d of a frame of %d slots", slot, len(f.Vals))
+	}
+	return slot
 }
 
 // asNode returns the node held in a register, nil for the null value.

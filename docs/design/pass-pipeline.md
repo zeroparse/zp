@@ -188,7 +188,8 @@ them too, so every backend lowers the same rules. It holds:
   parameters for, or when a variable holds a value, which a value-free function does not keep. Reachability is the
   printers' (the dead-store analysis of Code IR). A refused function is replaced by its fallback.
 - The capture-slot layout of each rule's frame: the names of the Core rule's scope, empty for a rule that runs flat or
-  as an Operators Rule. A backend verifies the rows it emits against it.
+  as an Operators Rule. A backend verifies the rows it emits against it: the Go generator the scopes of its rule
+  table, and the VM the scope of each rule whose body it runs from Flow IR, whose framed body runs in that frame.
 
 The typed table, the stream body and the TypeScript tables are still decided by their printers.
 
