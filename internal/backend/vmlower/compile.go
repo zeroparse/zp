@@ -11,9 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/runtime/program"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -27,12 +25,9 @@ func Compile(prog *compile.Program) (*bytecode.Module, error) {
 	if prog.HasMissing {
 		return nil, compile.MissingUnsupported("bytecode module construction")
 	}
-	m, err := elaborate.CoreControlled(prog, nil)
+	m, err := CoreOf(prog)
 	if err != nil {
-		return nil, fmt.Errorf("internal error: Core IR: %w", err)
-	}
-	if _, err := corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
-		return nil, fmt.Errorf("internal error: %w", err)
+		return nil, err
 	}
 	return CompileCore(prog, m)
 }
