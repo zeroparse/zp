@@ -1,6 +1,9 @@
 package flow
 
 import (
+	"maps"
+	"slices"
+
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
 )
@@ -179,4 +182,101 @@ func NamedVars(b *code.Block) map[string]bool {
 		}
 	})
 	return out
+}
+
+// CloneAttrs returns a copy of a for the copy of its function that c makes: the record of the forms
+// is copied, each form once, with the statements it refers to followed to their copies. The Core
+// nodes and the rule are shared.
+func (a *Attrs) CloneAttrs(c *code.Cloner) any {
+	out := *a
+	out.Vars = slices.Clone(a.Vars)
+	if a.Forms != nil {
+		out.Forms = a.Forms.clone(c)
+	}
+	return &out
+}
+
+// formCloner copies the forms of a record, each once.
+type formCloner struct {
+	c       *code.Cloner
+	forms   map[*Form]*Form
+	choices map[*ChoiceForm]*ChoiceForm
+	events  map[*Event]*Event
+}
+
+func (f *Forms) clone(c *code.Cloner) *Forms {
+	k := &formCloner{c: c, forms: map[*Form]*Form{}, choices: map[*ChoiceForm]*ChoiceForm{}, events: map[*Event]*Event{}}
+	out := &Forms{N: f.N, Named: maps.Clone(f.Named), Order: slices.Clone(f.Order)}
+	out.Classes = k.formList(f.Classes)
+	out.Regions = k.formList(f.Regions)
+	for _, s := range f.Seqs {
+		out.Seqs = append(out.Seqs, &SeqForm{Node: s.Node, Items: k.formList(s.Items), Outer: k.formList(s.Outer)})
+	}
+	for _, ch := range f.Choices {
+		out.Choices = append(out.Choices, k.choice(ch))
+	}
+	for _, e := range f.Events {
+		out.Events = append(out.Events, k.event(e))
+	}
+	if f.Placed != nil {
+		out.Placed = make(map[string]*Event, len(f.Placed))
+		for name, e := range f.Placed {
+			out.Placed[name] = k.event(e)
+		}
+	}
+	return out
+}
+
+func (k *formCloner) form(f *Form) *Form {
+	if f == nil {
+		return nil
+	}
+	if x, ok := k.forms[f]; ok {
+		return x
+	}
+	y := *f
+	k.forms[f] = &y
+	y.Block = k.c.Block(f.Block)
+	y.Guard = k.choice(f.Guard)
+	y.Outer = k.formList(f.Outer)
+	return &y
+}
+
+func (k *formCloner) formList(fs []*Form) []*Form {
+	if fs == nil {
+		return nil
+	}
+	out := make([]*Form, len(fs))
+	for i, f := range fs {
+		out[i] = k.form(f)
+	}
+	return out
+}
+
+func (k *formCloner) choice(ch *ChoiceForm) *ChoiceForm {
+	if ch == nil {
+		return nil
+	}
+	if x, ok := k.choices[ch]; ok {
+		return x
+	}
+	y := *ch
+	k.choices[ch] = &y
+	y.Peek = k.c.Set(ch.Peek)
+	y.Event = k.event(ch.Event)
+	y.Outer = k.formList(ch.Outer)
+	return &y
+}
+
+func (k *formCloner) event(e *Event) *Event {
+	if e == nil {
+		return nil
+	}
+	if x, ok := k.events[e]; ok {
+		return x
+	}
+	y := *e
+	k.events[e] = &y
+	y.Outer = k.formList(e.Outer)
+	return &y
 }
