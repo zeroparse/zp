@@ -35,6 +35,10 @@ func (w *Encoder) line(l *LineInfo) {
 
 // WriteModule writes m.
 func (w *Encoder) WriteModule(m *Module) {
+	if len(m.Flows) > 0 {
+		// Flow bodies are not serialized yet; writing the module would drop them silently.
+		panic("internal error: bytecode: a module with Flow bodies has no file form yet")
+	}
 	w.Uint(len(m.Strings))
 	w.Bool(m.SourceInfo)
 	w.Bool(m.DefaultValue)
