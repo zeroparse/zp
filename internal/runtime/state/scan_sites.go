@@ -155,3 +155,61 @@ func (p *Parser) FinishScanList(site, start, base, count int, hot, hit bool, rec
 	p.EndScanWalk(site, start, count, kids, hot, hit, hw0)
 	return p.NewNode(nodes.Data{Kind: valueimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
 }
+
+// flowScan is the walk of a scan site of a Flow body that has reached ScanHotSpan characters, from
+// ScanReach until ScanEnd or ScanKids ends it: whether the site is hot, whether the walk took the
+// rest from a record, the record, and the high-water mark before the walk reached the span. The body
+// of a scan site is one character and calls no rule, so one walk is in progress at a time, as in the
+// Go library.
+type flowScan struct {
+	hot, hit bool
+	rec      skipRecord
+	hw0      int
+}
+
+// ScanReach is flow.scanReach: for a walk of the scan site that began at start and has matched
+// ScanHotSpan characters, count of them, at a hot site with a record of start it moves to the
+// recorded end and returns the recorded count; otherwise it returns count. It charges what the match
+// code charges at the same point (ScanLookup).
+func (p *Parser) ScanReach(site, start, count int) int {
+	w := &p.scan
+	*w = flowScan{hot: p.ScanHot(site), hw0: p.Hw}
+	p.Hw = 0
+	if w.hot {
+		if w.rec, w.hit = p.ScanLookup(site, start); w.hit {
+			p.ScanJump(w.rec)
+			return w.rec.Count()
+		}
+	}
+	return count
+}
+
+// ScanEnd is flow.scanEnd: it ends a value-free walk of the scan site that began at start and
+// matched count characters, at least ScanHotSpan, as FinishScan does.
+func (p *Parser) ScanEnd(site, start, count int) {
+	w := p.scan
+	p.scan = flowScan{}
+	p.FinishScan(site, start, count, w.hot, w.hit, w.hw0)
+}
+
+// ScanKids is flow.scanKids: it returns the elements of a walk of the scan site that began at start,
+// gathered on the stack from base, which matched count characters. A walk of ScanHotSpan characters
+// or more ends as FinishScanList ends it: the elements are those of the record it took, if it took
+// one, which drops the gathered ones; otherwise the gathered ones, which it records at a hot site.
+// Taking the gathered elements off charges as Kids does.
+func (p *Parser) ScanKids(site, start, base, count int) []*value.Node {
+	if count < ScanHotSpan {
+		return p.Kids(base)
+	}
+	w := p.scan
+	p.scan = flowScan{}
+	var kids []*value.Node
+	if w.hit {
+		p.TruncateKids(base)
+		kids = w.rec.Kids()
+	} else {
+		kids = p.Kids(base)
+	}
+	p.EndScanWalk(site, start, count, kids, w.hot, w.hit, w.hw0)
+	return kids
+}

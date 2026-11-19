@@ -155,6 +155,40 @@ const (
 	// captured expression of the shape of the immediate FlowShapeOf: as FlowShapeSingle, or the unit
 	// node of the range matched where the expression has no value (flow.shapeCapture).
 	FlowShapeCapture
+	// FlowRunHot sets Dst[0] to whether the walks of the run site of the immediate keep records
+	// (flow.runHot).
+	FlowRunHot
+	// FlowRunBegin begins a walk of the hot run site of the immediate FlowRunWalkOf at the position
+	// (flow.runBegin).
+	FlowRunBegin
+	// FlowRunWalked ends the walk of the run site of the immediate that was not hot and began at the
+	// int Args[0] (flow.runWalked).
+	FlowRunWalked
+	// FlowSkipVisit ends the iteration of the walk before, if any, and begins one at the position
+	// (flow.skipVisit).
+	FlowSkipVisit
+	// FlowSkipHit sets Dst[0] to whether the walk takes the rest from a record of the position, which
+	// it then does (flow.skipHit).
+	FlowSkipHit
+	// FlowSkipValue adds the value Args[0] of the iteration that matched to the walk (flow.skipValue).
+	FlowSkipValue
+	// FlowSkipEnd ends the walk, recording the rest of it, and drops the values it holds
+	// (flow.skipEnd).
+	FlowSkipEnd
+	// FlowSkipKids ends a walk that builds a value as FlowSkipEnd does and sets Dst[0] to the list of
+	// the values of its iterations (flow.skipKids).
+	FlowSkipKids
+	// FlowScanReach sets Dst[0] to the count of a walk of the scan site of the immediate that began at
+	// the int Args[0] and has matched the int Args[1] characters, taking the rest from a record of its
+	// start where the site is hot and has one (flow.scanReach).
+	FlowScanReach
+	// FlowScanEnd ends a value-free walk of the scan site of the immediate that began at the int
+	// Args[0] and matched the int Args[1] characters (flow.scanEnd).
+	FlowScanEnd
+	// FlowScanKids sets Dst[0] to the elements of a walk of the scan site of the immediate that began
+	// at the int Args[0], gathered on the stack from the int Args[1], which matched the int Args[2]
+	// characters (flow.scanKids).
+	FlowScanKids
 )
 
 // FlowImm is the kind of immediate of an operation.
@@ -190,6 +224,14 @@ const (
 	FlowImmSlot
 	// FlowImmScope is a scope: an int index of Module.Scopes.
 	FlowImmScope
+	// FlowImmRunSite is a skip-run or run site, numbered as the match code numbers it: an int from 1
+	// to the number of instructions of the match code.
+	FlowImmRunSite
+	// FlowImmRunWalk is a FlowRunWalkOf.
+	FlowImmRunWalk
+	// FlowImmScanSite is a scan site, numbered as the match code numbers it: an int from 1 to the
+	// largest scan site that the match code can name.
+	FlowImmScanSite
 )
 
 // FlowShape is what the instructions of an operation hold: the number of destination and argument
@@ -259,6 +301,17 @@ var FlowShapes = [...]FlowShape{
 	FlowFrameVal:      {Name: "FRAMEVAL", Dst: 1, Args: 1, Imm: FlowImmSlot},
 	FlowAttachFrame:   {Name: "ATTACHFRAME", Dst: 1, Args: 3, Imm: FlowImmScope},
 	FlowShapeCapture:  {Name: "SHAPECAPTURE", Dst: 1, Args: 2, Imm: FlowImmShape},
+	FlowRunHot:        {Name: "RUNHOT", Dst: 1, Imm: FlowImmRunSite},
+	FlowRunBegin:      {Name: "RUNBEGIN", Imm: FlowImmRunWalk},
+	FlowRunWalked:     {Name: "RUNWALKED", Args: 1, Imm: FlowImmRunSite},
+	FlowSkipVisit:     {Name: "SKIPVISIT"},
+	FlowSkipHit:       {Name: "SKIPHIT", Dst: 1},
+	FlowSkipValue:     {Name: "SKIPVALUE", Args: 1},
+	FlowSkipEnd:       {Name: "SKIPEND"},
+	FlowSkipKids:      {Name: "SKIPKIDS", Dst: 1},
+	FlowScanReach:     {Name: "SCANREACH", Dst: 1, Args: 2, Imm: FlowImmScanSite},
+	FlowScanEnd:       {Name: "SCANEND", Args: 2, Imm: FlowImmScanSite},
+	FlowScanKids:      {Name: "SCANKIDS", Dst: 1, Args: 3, Imm: FlowImmScanSite},
 }
 
 // Shape returns the shape of o; ok is false for an operation that does not exist.
@@ -332,6 +385,14 @@ type FlowSilenceOf struct {
 type FlowShapeOf struct {
 	Elems, Shared, Tuple bool
 	K, Mode              int
+}
+
+// FlowRunWalkOf is the immediate of FlowRunBegin: the run site, whether the iterations of the walk
+// have values (FlowSkipValue), which FlowSkipKids gathers in a list, and whether its records are
+// keyed by the values of the variables of the site's run key (Module.RunKeys) besides the position.
+type FlowRunWalkOf struct {
+	Site          int
+	Build, KeyEnv bool
 }
 
 // FlowCallOf is the immediate of FlowCall: the rule's index and the binding level it is called at.

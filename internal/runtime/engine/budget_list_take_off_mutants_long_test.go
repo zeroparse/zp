@@ -27,11 +27,11 @@ func TestRepetitionListTakeOffMutants(t *testing.T) {
 		const tests = "TestRunSiteListTakeOffCharge"
 		runPrintedMutants(t, "internal/runtime/state/skip_runs.go", []printedMutant{
 			{"a run site reserves the copy and the take-off of its list apart",
-				[]printedEdit{{"\t\tp.SpendValue(2 * n)\n\t}\n\tp.skipEnd(build)", "\t\tp.SpendValue(n)\n\t\tp.SpendValue(n)\n\t}\n\tp.skipEnd(build)"}}, tests, []string{"."}},
+				[]printedEdit{{"\t\tp.SpendValue(2 * n)\n\t}\n\tp.skipEnd(true)", "\t\tp.SpendValue(n)\n\t\tp.SpendValue(n)\n\t}\n\tp.skipEnd(true)"}}, tests, []string{"."}},
 			{"a run site charges the copy of its list again",
-				[]printedEdit{{"\tp.skipEnd(build)\n\tw := p.walk()", "\tp.skipEnd(false)\n\tw := p.walk()"}}, tests, []string{"."}},
+				[]printedEdit{{"\tp.skipEnd(true)\n\tw := p.walk()", "\tp.skipEnd(false)\n\tw := p.walk()"}}, tests, []string{"."}},
 			{"a run site does not charge the take-off of its list",
-				[]printedEdit{{"if n := len(p.walk().vals); build && n > 0 {", "if n := len(p.walk().vals); false && n > 0 {"}}, tests, []string{"."}},
+				[]printedEdit{{"if n := len(p.walk().vals); n > 0 {", "if n := len(p.walk().vals); false && n > 0 {"}}, tests, []string{"."}},
 		})
 	})
 }

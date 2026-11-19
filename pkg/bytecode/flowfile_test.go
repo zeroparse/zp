@@ -76,6 +76,17 @@ func flowModule() *bytecode.Module {
 		{Op: bytecode.FlowFrameVal, Dst: []int{0}, Args: []int{6}, Imm: 1},
 		{Op: bytecode.FlowAttachFrame, Dst: []int{0}, Args: []int{0, 1, 6}, Imm: 0},
 		{Op: bytecode.FlowShapeCapture, Dst: []int{0}, Args: []int{0, 1}, Imm: bytecode.FlowShapeOf{K: 1, Mode: 1}},
+		{Op: bytecode.FlowRunHot, Dst: []int{2}, Imm: 1},
+		{Op: bytecode.FlowRunBegin, Imm: bytecode.FlowRunWalkOf{Site: 1, Build: true, KeyEnv: true}},
+		{Op: bytecode.FlowSkipVisit},
+		{Op: bytecode.FlowSkipHit, Dst: []int{2}},
+		{Op: bytecode.FlowSkipValue, Args: []int{0}},
+		{Op: bytecode.FlowSkipKids, Dst: []int{4}},
+		{Op: bytecode.FlowSkipEnd},
+		{Op: bytecode.FlowRunWalked, Args: []int{1}, Imm: 1},
+		{Op: bytecode.FlowScanReach, Dst: []int{1}, Args: []int{1, 1}, Imm: 5},
+		{Op: bytecode.FlowScanEnd, Args: []int{1, 1}, Imm: 4},
+		{Op: bytecode.FlowScanKids, Dst: []int{4}, Args: []int{1, 1, 1}, Imm: 5},
 		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
 	}}
 	return &bytecode.Module{
@@ -85,8 +96,9 @@ func flowModule() *bytecode.Module {
 			{Name: 0, Action: -1, NodeType: -1, OperatorsRule: -1, Where: -1},
 			{Name: 1, Action: -1, NodeType: -1, OperatorsRule: -1, Where: -1, Scope: []int{0}},
 		},
-		Scopes: [][]int{{0, 1}},
-		Code:   []bytecode.Instr{{Op: bytecode.OpReturn}},
+		Scopes:  [][]int{{0, 1}},
+		RunKeys: []bytecode.RunKeyInfo{{Site: 1}},
+		Code:    []bytecode.Instr{{Op: bytecode.OpReturn}},
 		Starts: []int{0},
 		Flows:  map[int]*bytecode.Flow{1: f},
 	}
@@ -230,6 +242,13 @@ func TestFlowBodyValidation(t *testing.T) {
 		{"scope", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[57].Imm = 1 }, "scope 1 out of range"},
 		{"scope of a frame", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[53].Imm = -1 }, "scope -1 out of range"},
 		{"scope kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[57].Imm = nil }, "invalid immediate"},
+		{"run site", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[59].Imm = 2 }, "invalid run site 2"},
+		{"run site zero", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[66].Imm = 0 }, "invalid run site 0"},
+		{"run walk site", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[60].Imm = bytecode.FlowRunWalkOf{Site: 2} }, "invalid run site 2"},
+		{"run walk key", func(m *bytecode.Module, f *bytecode.Flow) { m.RunKeys = nil }, "run site 1 is keyed by the variables but has no run key"},
+		{"run walk kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[60].Imm = 1 }, "invalid immediate"},
+		{"scan site", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[67].Imm = 6 }, "invalid scan site 6"},
+		{"scan site zero", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[69].Imm = 0 }, "invalid scan site 0"},
 	} {
 		m := flowModule()
 		c.edit(m, m.Flows[1])
@@ -286,6 +305,10 @@ func TestFlowBodyDisassembly(t *testing.T) {
 		"    56  FRAMEVAL   r0 = r6 slot=1\n",
 		"    57  ATTACHFRAME r0 = r0 r1 r6 scope=[a b]\n",
 		"    58  SHAPECAPTURE r0 = r0 r1 elems=false shared=false tuple=false k=1 mode=1\n",
+		"    59  RUNHOT     r2 = site=1\n",
+		"    60  RUNBEGIN   site=1 build=true keyenv=true\n",
+		"    66  RUNWALKED  r1 site=1\n",
+		"    69  SCANKIDS   r4 = r1 r1 r1 site=5\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("disassembly has no %q:\n%s", want, got)
