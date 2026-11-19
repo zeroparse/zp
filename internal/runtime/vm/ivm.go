@@ -11,7 +11,7 @@ import (
 // NewIterative prepares a module for execution with the iterative model, in the family f; terms
 // are the programs of its terms (LoadTerms).
 func NewIterative(m *bytecode.Module, terms []*state.TermProgram, f state.Family) *Program {
-	return buildVMProgram(m, terms, f, iterateBody)
+	return buildVMProgram(m, terms, f, iterateBody, false)
 }
 
 // iterateBody runs a rule body with the iterative model: calls push frames instead of recursing.
