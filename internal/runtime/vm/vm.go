@@ -1049,14 +1049,15 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 }
 
 // unwind unwinds the entry stack to ebase on failure and returns the index of the instruction to
-// resume at. ok is false if there is no entry to resume from.
+// resume at. ok is false if there is no entry to resume from. Popping an entry charges no step, as
+// flow.reset returns to a mark (spec/flow-ir/operations.md): the work an entry undoes was charged when
+// it was done, and restoring the state charges only the capture writes it undoes.
 func (mc *Machine) unwind(m *bytecode.Module, ebase int) (ip int, ok bool) {
 	p := mc.p
 	for {
 		if len(mc.ents) == ebase {
 			return 0, false
 		}
-		p.Spend()
 		e := mc.ents[len(mc.ents)-1]
 		mc.ents = mc.ents[:len(mc.ents)-1]
 		switch e.kind {
