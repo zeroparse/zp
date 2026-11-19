@@ -428,7 +428,7 @@ registers (A); `JUMP` and `JUMPFALSE` also have a target.
 | 52 | `ATTACHFRAME` | 1 | 3 | `flow.attachFrame` of the values of the frame of the third argument, as the fields named by the scope of the immediate, to the value of the first argument matched from the integer second. The scope has a name for each slot of the frame. |
 | 53 | `SHAPECAPTURE` | 1 | 2 | `flow.shapeCapture` of the shape of the immediate for the value of the first argument matched from the integer second. |
 | 54 | `RUNHOT` | 1 | 0 | `flow.runHot` of the run site of the immediate. |
-| 55 | `RUNBEGIN` | 0 | 0 | `flow.runBegin` of the walk of the immediate: its run site, whether its iterations have values and whether its records are keyed by the variables of the site's run key. |
+| 55 | `RUNBEGIN` | 0 | 0 | `flow.runBegin` of the walk of the immediate: its run site, whether its iterations have values and whether its records are keyed by the variables of the site's run key. It is also `flow.skipBegin` of a skip-run site, whose iterations have no values and whose records are keyed by the variables as `SKIPREPEAT` keys them; skip-run sites and run sites share one numbering. |
 | 56 | `RUNWALKED` | 0 | 1 | `flow.runWalked` of the run site of the immediate, for the walk that began at the integer argument. |
 | 57 | `SKIPVISIT` | 0 | 0 | `flow.skipVisit`. |
 | 58 | `SKIPHIT` | 1 | 0 | `flow.skipHit`. |
@@ -442,6 +442,12 @@ registers (A); `JUMP` and `JUMPFALSE` also have a target.
 | 66 | `BIND` | 1 | 0 | `flow.bind` of a framed body: binds the variable of the immediate to the value of its term, evaluated in the current frame as `BIND` of the match code evaluates it, with the same charges, and the destination is whether the evaluation succeeded. The rule's entry restores the variables when the call ends, as for match code. |
 | 67 | `CUT` | 1 | 0 | The destination is the cut flag of the rule call the body runs in (the register `flow.cut`), which `CUT` of the match code sets and the rule's entry clears on entry and restores when the call ends. |
 | 68 | `SETCUT` | 0 | 1 | The cut flag of the rule call the body runs in is the boolean argument. |
+| 69 | `KEEP` | 1 | 1 | `flow.keep`: the expectations of the argument, kept beyond the scope that recorded them, as the match code keeps those of a failed `RECOVER` body while its skip code runs. |
+| 70 | `MAKEERROR` | 1 | 2 | `flow.makeError`: the syntax error at the integer first argument with the expectations of the second, as `ENDSKIP` makes it. |
+| 71 | `APPENDERROR` | 0 | 1 | `flow.appendError`: appends the syntax error of the argument to the recovered errors. |
+| 72 | `NEWERRORNODE` | 1 | 2 | `flow.newErrorNode`: the error node of the syntax error of the second argument, from the integer first argument to the position, as `ENDSKIP` builds it. |
+| 73 | `RECLEN` | 1 | 0 | `flow.recLen`: the number of recovered errors. |
+| 74 | `RESTORE` | 0 | 2 | `flow.restore`: the position is the integer first argument, and the recovered errors after the first integer second argument are dropped. |
 
 A destination of -1 discards the value.
 

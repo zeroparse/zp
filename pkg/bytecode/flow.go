@@ -201,6 +201,22 @@ const (
 	FlowCut
 	// FlowSetCut sets the cut flag of the rule call the body runs in to the bool Args[0].
 	FlowSetCut
+	// FlowKeep sets Dst[0] to the expectations Args[0], kept beyond the scope that recorded them, as
+	// the match code keeps those of a failed recovery body (flow.keep).
+	FlowKeep
+	// FlowMakeError sets Dst[0] to the syntax error at the int Args[0] with the expectations Args[1]
+	// (flow.makeError).
+	FlowMakeError
+	// FlowAppendError appends the syntax error Args[0] to the recovered errors (flow.appendError).
+	FlowAppendError
+	// FlowNewErrorNode sets Dst[0] to the error node of the syntax error Args[1] from the int Args[0]
+	// to the position, as the match code's ENDSKIP builds it (flow.newErrorNode).
+	FlowNewErrorNode
+	// FlowRecLen sets Dst[0] to the number of recovered errors (flow.recLen).
+	FlowRecLen
+	// FlowRestore sets the position to the int Args[0] and drops the recovered errors after the first
+	// int Args[1] (flow.restore).
+	FlowRestore
 )
 
 // FlowImm is the kind of immediate of an operation.
@@ -332,6 +348,12 @@ var FlowShapes = [...]FlowShape{
 	FlowBind:          {Name: "BIND", Dst: 1, Imm: FlowImmBind},
 	FlowCut:           {Name: "CUT", Dst: 1},
 	FlowSetCut:        {Name: "SETCUT", Args: 1},
+	FlowKeep:          {Name: "KEEP", Dst: 1, Args: 1},
+	FlowMakeError:     {Name: "MAKEERROR", Dst: 1, Args: 2},
+	FlowAppendError:   {Name: "APPENDERROR", Args: 1},
+	FlowNewErrorNode:  {Name: "NEWERRORNODE", Dst: 1, Args: 2},
+	FlowRecLen:        {Name: "RECLEN", Dst: 1},
+	FlowRestore:       {Name: "RESTORE", Args: 2},
 }
 
 // Shape returns the shape of o; ok is false for an operation that does not exist.

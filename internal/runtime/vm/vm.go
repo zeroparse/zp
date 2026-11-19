@@ -1040,7 +1040,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			se := p.MakeError(l.far, l.exp)
 			p.PushRecovered(se)
 			if in.A == 1 {
-				mc.push(p.NewNode(nodes.Data{Kind: valueimpl.ErrorKind, Start: int32(e.save.pos), End: int32(p.Pos), Fields: valueimpl.Fields{{Name: "message", Value: p.RecoveryErrorText(se)}}, Fresh: true, Terminal: true}))
+				mc.push(errorNode(p, e.save.pos, se))
 			}
 		case bytecode.OpReturn, bytecode.OpEnd:
 			var v *value.Node
@@ -1123,6 +1123,12 @@ func (mc *Machine) unwind(m *bytecode.Module, ebase int) (ip int, ok bool) {
 			p.MergeExpected(l.far, l.exp)
 		}
 	}
+}
+
+// errorNode returns the error node of the recovered error se from start to the position, as the Go
+// library's NewErrorNode builds it.
+func errorNode(p *state.Parser, start int, se *value.SyntaxError) *value.Node {
+	return p.NewNode(nodes.Data{Kind: valueimpl.ErrorKind, Start: int32(start), End: int32(p.Pos), Fields: valueimpl.Fields{{Name: "message", Value: p.RecoveryErrorText(se)}}, Fresh: true, Terminal: true})
 }
 
 // asciiSet is the membership of the characters below 128 in a class.
