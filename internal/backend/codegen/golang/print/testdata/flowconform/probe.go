@@ -1,4 +1,4 @@
-package libgo
+package golib
 
 // The probes of the conformance test of the Flow operations (flow_conform_test.go), added to a copy
 // of the library: generated code calls ConfPre before each call of a primitive operation and one of
