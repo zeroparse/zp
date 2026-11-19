@@ -4,7 +4,7 @@
 //
 // It loads zp.wasm, and for each example of cmd/playground/examples.txt compiles the grammar, parses the
 // sample input and checks that the results match what the zp command prints: the JSON tree, the
-// S-expression, the errors, recognition (-check), other backends and units, fmt and gen -types.
+// S-expression, the errors, recognition (-recognize), other backends and units, fmt and gen -types.
 // It exits with status 1 if any check fails. cmd/playground/wasm_test.go runs it as part of go test.
 
 import { spawnSync } from "node:child_process";

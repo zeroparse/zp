@@ -31,7 +31,7 @@ sharing alone.
 
 Evidence records: [090](../090-share-identical-generated-helpers.md).
 
-Source owners: [`codegen.Generator literal registry`](../../../internal/backend/codegen/common/generator.go),
+Source owners: [the literal registry of the generator state](../../../internal/backend/codegen/common/generator.go),
 [`TypeScript literal sharing selection`](../../../internal/backend/codegen/typescript/print/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
