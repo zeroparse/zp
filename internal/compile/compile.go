@@ -42,8 +42,6 @@ type Program struct {
 	// (Options.DefaultValue).
 	MakesDefaultValue bool
 	ByName            map[string]*Rule
-	// fieldTypes caches the types of casts (castType).
-	fieldTypes sync.Map
 	// structZeros caches the zero descriptors of the struct types (StructZeroOf) by name.
 	structZeros sync.Map
 	// Opts are the options the program was compiled with. The engine builds further programs from the
@@ -59,7 +57,8 @@ type Program struct {
 	BytecodeOnce sync.Once
 	Bytecode     *bytecode.Module
 	BytecodeErr  error
-	// typeKinds holds the node kinds of the grammar's types (typeKind), made with the program.
+	// typeKinds holds the node kinds of the grammar's types (TypeKind), made with the program from
+	// the checker's (check.Checker.Kinds).
 	typeKinds map[string]*coreimpl.Kind
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
@@ -564,29 +563,8 @@ func CheckCanonical(canon *Canonical, opts Options, flags []RuleFlags, names des
 	}
 	prog.NSeen = NumberSeen(prog.RuleList, prog.Twins)
 	NumberLeaders(prog.RuleList)
-	prog.typeKinds = map[string]*coreimpl.Kind{}
-	prog.NodeKinds = map[string]*nodes.NodeTypeKinds{}
-	for name, spec := range prog.Types {
-		control.Poll()
-		if n, ok := prog.NodeTypeOf(name); ok {
-			if prog.NodeKinds[n.Name] == nil {
-				prog.NodeKinds[n.Name] = nodes.NewNodeTypeKinds(n.Name)
-			}
-			prog.NodeKinds[name] = prog.NodeKinds[n.Name]
-			continue
-		}
-		canonical := name
-		if _, alias := spec.(*ast.TypeAlias); alias {
-			if resolved, concrete := prog.concreteType(&ast.TypeRef{Name: name}); concrete != nil {
-				canonical = resolved
-			}
-		}
-		if canonical != name {
-			prog.typeKinds[name] = coreimpl.KindOf(canonical, "")
-		} else {
-			prog.typeKinds[name] = coreimpl.KindOf(name, "")
-		}
-	}
+	kinds := prog.Checker().Kinds(control.Poll)
+	prog.typeKinds, prog.NodeKinds = kinds.Types, kinds.Nodes
 	for _, rs := range [][]*Rule{prog.RuleList, prog.Twins} {
 		control.Poll()
 		for _, r := range rs {

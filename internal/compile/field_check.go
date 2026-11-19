@@ -2,7 +2,6 @@ package compile
 
 import (
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -14,30 +13,11 @@ func ValidateModule(m *bytecode.Module) error { return program.ValidateModule(m)
 // ModuleTypeNames is program.ModuleTypeNames.
 func ModuleTypeNames(m *bytecode.Module) map[string]bool { return program.ModuleTypeNames(m) }
 
-// ResolveCheck resolves a type for a cast, as a value type. It returns nil for _, which every
-// value fits.
-func (prog *Program) ResolveCheck(t ast.TypeExpr) types.Ty {
-	if t == nil {
-		return nil
-	}
-	if r := (&check.TypeResolver{Prog: prog.Checker()}).Resolve(t); types.NewFieldType(r) != nil {
-		return r
-	}
-	return nil
-}
+// ResolveCheck is check.Checker.ResolveCheck.
+func (prog *Program) ResolveCheck(t ast.TypeExpr) types.Ty { return prog.Checker().ResolveCheck(t) }
 
-// CastType returns the type cast t checks its value against, or nil if every value fits it.
-func (prog *Program) CastType(t *ast.Cast) *types.FieldType {
-	if v, ok := prog.fieldTypes.Load(t); ok {
-		return v.(*types.FieldType)
-	}
-	var ft *types.FieldType
-	if r := prog.ResolveCheck(t.Type); r != nil {
-		ft = types.NewFieldType(r)
-	}
-	v, _ := prog.fieldTypes.LoadOrStore(t, ft)
-	return v.(*types.FieldType)
-}
+// CastType is check.Checker.CastType.
+func (prog *Program) CastType(t *ast.Cast) *types.FieldType { return prog.Checker().CastType(t) }
 
 // CastPos returns the grammar position of the cast t as line and column, or 0, 0 when the program
 // records no source information or the position is unknown.

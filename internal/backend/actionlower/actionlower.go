@@ -8,7 +8,7 @@ package actionlower
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/exec"
 	ir "zeroparse.dev/zp/internal/ir/core"
@@ -20,7 +20,10 @@ import (
 
 // Env is what the leaves of a term resolve against when it is compiled.
 type Env struct {
-	Prog *compile.Program
+	// Checker resolves the types of the program: the kinds of the values that terms make and the
+	// types that casts check. Vars holds the program's declared variables (check.Model.Vars).
+	Checker *check.Checker
+	Vars    *check.VarTable
 	// Scope holds the capture slots of the frame the term reads.
 	Scope *program.Scope
 	// Proj are the projected captures of the rule whose action the term is (lower.TermOptions.Proj),
@@ -594,7 +597,7 @@ func (c *termCompiler) fallible(e *code.Call, dst termReg) error {
 		if err != nil {
 			return err
 		}
-		kinds := c.env.Prog.NodeKinds[nt.(string)]
+		kinds := c.env.Checker.Kinds(nil).Nodes[nt.(string)]
 		if kinds == nil {
 			return fmt.Errorf("no node type %s", nt)
 		}
@@ -672,7 +675,7 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 		case *ir.Local:
 			in.Op, in.A = state.TLocal, c.name(x.Name)
 		case *ir.VarRef:
-			slot := c.env.Prog.Vars.Index(x.Name)
+			slot := c.env.Vars.Index(x.Name)
 			if slot < 0 {
 				return fmt.Errorf("variable %s is not declared", x.Name)
 			}
@@ -765,7 +768,7 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 		in.Op, in.A = state.TCopy, rs[0]
 	case lower.OpTermStruct:
 		t := e.Imm.(lower.TermNew).New
-		c.prog.Structs = append(c.prog.Structs, state.TermStruct{Kind: c.env.Prog.TypeKind(t.Type), Fields: len(t.Fields)})
+		c.prog.Structs = append(c.prog.Structs, state.TermStruct{Kind: c.env.Checker.Kinds(nil).TypeKind(t.Type), Fields: len(t.Fields)})
 		in.Op, in.A = state.TStruct, int32(len(c.prog.Structs)-1)
 	case "cover":
 		rs, err := c.args(e, 0, 1, 2)
@@ -783,7 +786,7 @@ func (c *termCompiler) call(e *code.Call, dst termReg) error {
 // cast returns the index of the cast x in the cast pool, adding it once: the check and the failure
 // of one cast share an entry.
 func (c *termCompiler) cast(x *ir.Cast) int32 {
-	tc := state.TermCast{Type: c.env.Prog.CastType(x.Key.(*ast.Cast)), Line: x.Line, Col: x.Col}
+	tc := state.TermCast{Type: c.env.Checker.CastType(x.Key.(*ast.Cast)), Line: x.Line, Col: x.Col}
 	for i, y := range c.prog.Casts {
 		if y == tc {
 			return int32(i)

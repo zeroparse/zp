@@ -704,9 +704,9 @@ func (p *Parser) OutputSchema(opts ...SchemaOption) (*schema.Output, error) {
 // outputSchemaPrototype exports the start rule of prog, the rules it calls or whose values its
 // values contain, and the struct types they refer to; or every rule and type with allRules. It
 // has no effect on parsing or generation. A program loaded from a compiled grammar has no schema
-// (entry.SchemaProgram).
+// (entry.SchemaSource).
 func outputSchemaPrototype(prog *engine.Program, start string, allRules bool) (*schema.Output, error) {
-	sp, err := entry.SchemaProgram(prog, start)
+	sp, err := entry.SchemaSource(prog, start)
 	if err != nil {
 		return nil, err
 	}
