@@ -6,9 +6,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -190,7 +191,7 @@ func (t *terminalProgram) emit(e ast.Expr) {
 	case *ast.CharClass:
 		t.code = append(t.code, terminalClass, 4)
 		t.word(t.class(e))
-		t.word(int(g.Desc(compile.CharClassString(e))))
+		t.word(int(g.Desc(core.CharClassString(e))))
 	case *ast.Seq:
 		at := t.open(terminalSeq)
 		for _, it := range e.Items {
@@ -256,7 +257,7 @@ func (t *terminalProgram) emit(e ast.Expr) {
 // first returns the class and expectation of the guard of an alternative, as generator.first
 // finds them for a terminal expression: the first literal or class that the alternative must
 // match first, a literal standing for its first code point.
-func (t *terminalProgram) first(e ast.Expr) (*ast.CharClass, compile.ExpID, bool) {
+func (t *terminalProgram) first(e ast.Expr) (*ast.CharClass, rprogram.ExpID, bool) {
 	g := t.g
 	switch e := e.(type) {
 	case *ast.Literal:
@@ -266,7 +267,7 @@ func (t *terminalProgram) first(e ast.Expr) (*ast.CharClass, compile.ExpID, bool
 		r, _ := utf8.DecodeRuneInString(e.Value)
 		return &ast.CharClass{Ranges: []ast.CharRange{{Lo: r, Hi: r}}}, g.Desc(strconv.Quote(e.Value)), true
 	case *ast.CharClass:
-		return e, g.Desc(compile.CharClassString(e)), true
+		return e, g.Desc(core.CharClassString(e)), true
 	case *ast.Seq:
 		if len(e.Items) > 0 {
 			return t.first(e.Items[0])

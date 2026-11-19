@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
+	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -245,7 +246,7 @@ func (p *tsFlowPrinter) exp(id core.ExpID) string {
 	return strconv.Itoa(int(p.desc(id)))
 }
 
-func (p *tsFlowPrinter) desc(id core.ExpID) compile.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
+func (p *tsFlowPrinter) desc(id core.ExpID) rprogram.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
 
 // classIn returns the condition that the code point in ch is in the class c (false at the end of the
 // input is the caller's check).

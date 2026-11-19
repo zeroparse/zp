@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
+	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -325,7 +326,7 @@ func (p *flowPrinter) exp(id core.ExpID) string {
 }
 
 // desc returns the ID in the parser's table of the expectation id of the module.
-func (p *flowPrinter) desc(id core.ExpID) compile.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
+func (p *flowPrinter) desc(id core.ExpID) rprogram.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
 
 // grammarClass returns the character class expression of the class c.
 func grammarClass(c *core.Class) *ast.CharClass {

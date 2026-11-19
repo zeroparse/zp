@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
@@ -14,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -255,7 +255,7 @@ func (p *tsFlowPrinter) expr(c *code.Call, args func() []string) string {
 	case flow.OpMatchLit:
 		lit := c.Imm.(*core.Lit)
 		if lit.Fold {
-			folded := string(compile.FoldedRunes([]rune(lit.Text)))
+			folded := string(common.FoldedRunes([]rune(lit.Text)))
 			if p.dry {
 				return ""
 			}
@@ -273,7 +273,7 @@ func (p *tsFlowPrinter) expr(c *code.Call, args func() []string) string {
 		if !shared {
 			p.decl(v, fmt.Sprintf("const %s: Lit = { text: %s, cps: %s, bytes: %s };\n", v, TsString(val), TsInts([]rune(val)), TsInts([]byte(val))))
 		}
-		var desc compile.ExpID
+		var desc rprogram.ExpID
 		if lit.Text == "" {
 			desc = g.Desc(strconv.Quote(""))
 		} else {

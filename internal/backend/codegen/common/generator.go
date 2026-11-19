@@ -18,6 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/runtime/limits"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -67,7 +68,7 @@ type Generator struct {
 	// Descs is the expectation table of the generated parser (descs in runtime); descIDs maps a
 	// description to its ID.
 	Descs   []string
-	DescIDs map[string]compile.ExpID
+	DescIDs map[string]program.ExpID
 	// FieldTypes names the field type variable of each checked constructed field, result and cast (by
 	// *ast.FieldInit or checkInfo.results key), numbered separately so that checks do not
 	// rename other generated names (codegen/go/lib/fieldcheck.go).
@@ -154,20 +155,20 @@ func (g *Generator) SeedDescs() {
 	if g.DescIDs != nil {
 		return
 	}
-	g.DescIDs = map[string]compile.ExpID{}
-	for i, d := range compile.FixedDescs {
+	g.DescIDs = map[string]program.ExpID{}
+	for i, d := range core.FixedDescs {
 		g.Descs = append(g.Descs, d)
-		g.DescIDs[d] = compile.ExpID(i)
+		g.DescIDs[d] = program.ExpID(i)
 	}
 }
 
 // Desc returns the expectation ID of description s, adding it to the table.
-func (g *Generator) Desc(s string) compile.ExpID {
+func (g *Generator) Desc(s string) program.ExpID {
 	g.SeedDescs()
 	if id, ok := g.DescIDs[s]; ok {
 		return id
 	}
-	id := compile.ExpID(len(g.Descs))
+	id := program.ExpID(len(g.Descs))
 	g.Descs = append(g.Descs, s)
 	g.DescIDs[s] = id
 	return id

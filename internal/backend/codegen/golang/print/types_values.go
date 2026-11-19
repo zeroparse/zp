@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -227,10 +228,10 @@ func (t *TypedGen) typedHelpers(b *strings.Builder, done *int) bool {
 // streamValue returns the value type of the elements of the #stream repetition of the rule rd.
 func streamValue(p *compile.Program, rd *ast.RuleDef) (types.Ty, bool) {
 	var rep *ast.Repeat
-	compile.WalkExpr(rd.Expr, func(e ast.Expr) {
+	astfacts.WalkExpr(rd.Expr, func(e ast.Expr) {
 		if a, ok := e.(*ast.Attributed); ok {
 			for _, at := range a.Attrs {
-				if r, ok := compile.SeeThrough(a.Expr).(*ast.Repeat); ok && at.Name == "stream" {
+				if r, ok := check.SeeThrough(a.Expr).(*ast.Repeat); ok && at.Name == "stream" {
 					rep = r
 				}
 			}

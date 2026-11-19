@@ -23,6 +23,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/codepass"
+	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -96,7 +97,7 @@ func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h
 		return nil, err
 	}
 	if prog.HasMissing {
-		return nil, compile.MissingUnsupported("generated parsers")
+		return nil, rprogram.MissingUnsupported("generated parsers")
 	}
 	start, err := prog.StartRule(opts.Start)
 	if err != nil {
@@ -125,7 +126,7 @@ func GenerateParser(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h
 		if !opts.LimitControls {
 			tsg.optionsType = "PlainParseOptions"
 		}
-		tsg.Desc(compile.FixedDescs[0]) // the fixed expectations come first
+		tsg.Desc(core.FixedDescs[0]) // the fixed expectations come first
 		tsg.rules()
 		tsg.runKeys()
 		if tsg.FlowErr != nil {
@@ -550,7 +551,7 @@ func (g *Generator) rules() {
 			g.operatorsRule(r, pr)
 			if r.Action != nil && !r.Novalue {
 				// The whole-rule action, which the library runs on the folded value after each call.
-				locals := map[string]string{compile.OperatorsRuleValue: "c.value"}
+				locals := map[string]string{rprogram.OperatorsRuleValue: "c.value"}
 				fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(g.CoreAction(r), check.NewScope(), locals))
 			}
 			continue
@@ -637,14 +638,14 @@ func (g *Generator) plainCall(r *compile.Rule, body string) {
 // tsShaper returns the library shaper of the expression e, its static shape (internal/compile/value_shape.go), packed
 // as the library's Shaper.
 func tsShaper(prog *compile.Program, e ast.Expr) int {
-	s := int(compile.SingleModeOf(prog, e))<<2 | compile.ValuedCount(prog, e)<<5
-	if compile.IsElems(prog, e) {
+	s := int(check.SingleModeOf(prog.Checker(), e))<<2 | check.ValuedCount(prog.Checker(), e)<<5
+	if check.IsElems(prog.Checker(), e) {
 		s |= 1
 	}
-	if compile.ScopeTuple(prog, e) {
+	if check.ScopeTuple(prog.Checker(), e) {
 		s |= 2
 	}
-	if compile.IsElems(prog, e) && compile.SharesTuple(prog, e) {
+	if check.IsElems(prog.Checker(), e) && check.SharesTuple(prog.Checker(), e) {
 		s |= 16
 	}
 	return s
@@ -715,7 +716,7 @@ func (g *Generator) operatorsRuleLine(e ast.Expr, action ast.ActionExpr, operato
 	}
 	// Lines whose value is unused are matched without values, as in the engine; so are all lines
 	// of a rule without a value (in the recognizer).
-	build := !g.Cur.Novalue && !compile.LeanLine(action, locals)
+	build := !g.Cur.Novalue && !check.LeanLine(action, locals)
 	m, ok := g.flowLine(l, e, s, build)
 	if !ok {
 		g.FailFlow("a line of an Operators Rule of rule " + g.Cur.Name)
