@@ -22,8 +22,8 @@ import (
 // rule body that the Go printer prints from Flow IR in its Node table, the VM's table holds a body of
 // the same route (flat or framed) whose Flow IR after the Flow passes is the text the printer lowered.
 // The parser is generated without inline-literals, the one Flow pass of the Go target that applies to
-// the Node table under budget controls: the VM prints none of the target's forms. Rules the printer
-// prunes have no Go route and are not compared.
+// the Node table under budget controls: the VM's target (flowpass.Bytecode) prints none of the
+// forms. Rules the printer prunes have no Go route and are not compared.
 func TestFlowTableFollowsGoNodeTable(t *testing.T) {
 	paths, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
 	if err != nil || len(paths) == 0 {
