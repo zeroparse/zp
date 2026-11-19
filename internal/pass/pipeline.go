@@ -12,6 +12,9 @@
 // (internal/middleend/corepass, Pipeline), Flow IR (internal/ir/code/flow, Pipeline) and Exec IR
 // (internal/middleend/codepass, Pipeline) use it. It holds no state between runs; the registry is filled once,
 // by the init functions of the parts that register flags, and the analysis keys are declared once.
+// A compilation chains the pipelines of its IRs and the lowerings between them into one typed
+// composition of stages under one manager (Stage, Then, Lower, Run).
+//
 // It imports no other package of the module.
 package pass
 
@@ -80,6 +83,12 @@ type Options[M any] struct {
 	// its caller: the run reads and keeps its analyses there, and discards those that a pass does
 	// not preserve. Nil runs with a manager of its own.
 	Analyses *AnalysisManager[M]
+
+	// gate, if not nil, is asked before an enabled pass that applies runs; false skips it. A stage
+	// of the compilation numbers the runs of optional passes with it (Run).
+	gate func(name string) bool
+	// ran, if not nil, is called after each pass that ran, before it is verified.
+	ran func(name string, m M)
 }
 
 // Validate checks the declarations: names are distinct and non-empty, every analysis a pass or
@@ -171,6 +180,9 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 		if o.Enabled != nil && !o.Enabled(ps.Name) || ps.Applies != nil && !ps.Applies(x) {
 			continue
 		}
+		if o.gate != nil && !o.gate(ps.Name) {
+			continue
+		}
 		if err := ensure(ps.Requires); err != nil {
 			return ran, fmt.Errorf("pass %s: %w", ps.Name, err)
 		}
@@ -181,6 +193,9 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 		ran = append(ran, ps.Name)
 		if o.Dump != nil {
 			o.Dump(ps.Name, m)
+		}
+		if o.ran != nil {
+			o.ran(ps.Name, m)
 		}
 		if o.VerifyEach {
 			if err := verify("after pass " + ps.Name); err != nil {
