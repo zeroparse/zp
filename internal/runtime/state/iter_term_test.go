@@ -80,7 +80,7 @@ func iterate(c *state.EvalCtx, cp *compile.Program, call string, x any) (any, er
 		f, _ := lambda("e")
 		term = &ir.Builtin{Func: conform.CallFilter, Args: []ir.ActionExpr{op("x"), f}}
 	}
-	prog, err := actionlower.Compile(term, actionlower.Env{Prog: cp, Scope: &program.Scope{}})
+	prog, err := actionlower.Compile(term, actionlower.Env{Checker: cp.Checker(), Vars: cp.Vars, Scope: &program.Scope{}})
 	if err != nil {
 		panic(err)
 	}

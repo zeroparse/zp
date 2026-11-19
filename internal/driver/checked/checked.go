@@ -63,6 +63,11 @@ func Of(prog *compile.Program) *Source { return &Source{prog: prog} }
 // read.
 func (s *Source) Checked() *compile.Program { return s.prog }
 
+// Schema returns the checked grammar that the output schema is exported from.
+func (s *Source) Schema() schemaexport.Source {
+	return schemaexport.Source{Model: s.prog.Model, Checker: s.prog.Checker(), SourceInfo: s.prog.RecordsSourceInfo}
+}
+
 // Grammar returns the grammar the program was compiled from: the grammar as written, without the
 // hidden rules that inline actions are lowered to.
 func (s *Source) Grammar() *ast.Grammar {
@@ -162,5 +167,5 @@ func (s *Source) ValueType(name string) (string, bool) { return s.prog.ValueType
 // OutputSchema exports the output schema of the rule start, or of every rule and type with
 // allRules, from the checked grammar.
 func (s *Source) OutputSchema(start string, allRules bool) (*schema.Output, error) {
-	return schemaexport.Export(s.prog, start, allRules)
+	return schemaexport.Export(s.Schema(), start, allRules)
 }

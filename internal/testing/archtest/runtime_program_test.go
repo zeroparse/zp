@@ -35,3 +35,28 @@ func TestRuntimeReadsNoCheckedProgram(t *testing.T) {
 		}
 	}
 }
+
+// modelReaders are the packages outside the compiler that read the checked grammar through its
+// semantic model (check.Model), its checker and the facts of its Core IR, not through the checked
+// program. Only the drivers (internal/driver/checked) and the bytecode compiler
+// (internal/backend/vmlower) are to keep reading it; the list grows as the other readers move.
+var modelReaders = []string{
+	"internal/backend/actionlower",
+	"internal/frontend/schemaexport",
+}
+
+// TestModelReadersReadNoCheckedProgram checks, in every build, that no package of modelReaders
+// reaches the checked program of the compiler, directly or through another package.
+func TestModelReadersReadNoCheckedProgram(t *testing.T) {
+	for _, g := range loadAll(t) {
+		for _, rel := range modelReaders {
+			from := modulePath + "/" + rel
+			if _, ok := g.pkgs[from]; !ok {
+				t.Fatalf("build %q: no package %s", g.tags, rel)
+			}
+			if chain := g.shortestChain([]string{from}, checkedProgramPackage, func(a, b string) bool { return inModule(b) }); chain != nil {
+				t.Errorf("build %q: %s reaches the checked program: %s", g.tags, rel, strings.Join(chain, " -> "))
+			}
+		}
+	}
+}

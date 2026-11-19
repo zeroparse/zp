@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/checked"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -79,19 +80,19 @@ func (p *Program) SourceGrammar() *ast.Grammar {
 	return nil
 }
 
-// SchemaProgram is entry.SchemaProgram.
-func (p *Program) SchemaProgram(start string) (*compile.Program, error) {
+// SchemaSource is entry.SchemaSource.
+func (p *Program) SchemaSource(start string) (schemaexport.Source, error) {
 	if p == nil {
-		return nil, program.ErrSchemaUnavailable
+		return schemaexport.Source{}, program.ErrSchemaUnavailable
 	}
 	if err := program.EntryError(start); err != nil {
-		return nil, err
+		return schemaexport.Source{}, err
 	}
 	sp := p.Static()
 	if sp == nil {
-		return nil, program.ErrSchemaNeedsSource
+		return schemaexport.Source{}, program.ErrSchemaNeedsSource
 	}
-	return sp, nil
+	return checked.Of(sp).Schema(), nil
 }
 
 // lazyModule returns the bytecode module that p holds: for a program compiled from a grammar, the

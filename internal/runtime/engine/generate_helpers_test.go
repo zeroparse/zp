@@ -30,7 +30,7 @@ func compileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program
 
 // outputSchemaPrototype exports the output schema of p for start, as Parser.OutputSchema does.
 func outputSchemaPrototype(p *Program, start string, allRules bool) (*schema.Output, error) {
-	sp, err := p.SchemaProgram(start)
+	sp, err := p.SchemaSource(start)
 	if err != nil {
 		return nil, err
 	}

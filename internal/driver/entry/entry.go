@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver/checked"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -108,20 +109,20 @@ func Grammar(p *engine.Program) *ast.Grammar {
 	return nil
 }
 
-// SchemaProgram returns the checked program that an output schema of the start rule is exported
+// SchemaSource returns the checked grammar that an output schema of the start rule is exported
 // from, after checking that the export can run: p must not be nil, start must be able to start a
 // parse, and p must hold its grammar, which a program loaded from a compiled grammar does not.
 // The errors of a missing program or grammar wrap program.ErrSchemaUnavailable.
-func SchemaProgram(p *engine.Program, start string) (*compile.Program, error) {
+func SchemaSource(p *engine.Program, start string) (schemaexport.Source, error) {
 	if p == nil {
-		return nil, program.ErrSchemaUnavailable
+		return schemaexport.Source{}, program.ErrSchemaUnavailable
 	}
 	if err := program.EntryError(start); err != nil {
-		return nil, err
+		return schemaexport.Source{}, err
 	}
-	sp := Checked(p)
-	if sp == nil {
-		return nil, program.ErrSchemaNeedsSource
+	s := Source(p)
+	if s == nil {
+		return schemaexport.Source{}, program.ErrSchemaNeedsSource
 	}
-	return sp, nil
+	return s.Schema(), nil
 }
