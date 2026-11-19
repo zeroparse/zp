@@ -5,9 +5,11 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/runtime/nodes"
+	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/bytecode"
 	"zeroparse.dev/zp/pkg/runtime/value"
+	valueimpl "zeroparse.dev/zp/pkg/runtime/value/impl"
 )
 
 // flowBody returns the body of rule r run from its Flow form f (bytecode.Flow) with the recursive
@@ -204,6 +206,63 @@ func (vm *Program) runFlow(p *state.Parser, fr *flowRun) (call bool) {
 		case bytecode.FlowMergeExpected:
 			exps, _ := regs[in.Args[1]].([]state.ExpID)
 			p.MergeExpected(regs[in.Args[0]].(int), exps)
+		case bytecode.FlowNewTerminal:
+			// As the Go library's NewTerminal: a unit for the value (spec/runtime/parsing.md#cost).
+			p.Spend()
+			text, _ := regs[in.Args[1]].(string)
+			fr.set(in.Dst[0], p.NewNode(nodes.Data{Kind: valueimpl.MatchKind, Start: int32(regs[in.Args[0]].(int)), End: int32(p.Pos), Text: text, Terminal: true, Fresh: true}))
+		case bytecode.FlowNewSeq, bytecode.FlowNewList:
+			kind := valueimpl.SeqKind
+			if in.Op == bytecode.FlowNewList {
+				kind = valueimpl.ListKind
+			}
+			p.Spend()
+			fr.set(in.Dst[0], p.NewNode(nodes.Data{Kind: kind, Start: int32(regs[in.Args[0]].(int)), End: int32(p.Pos), Children: flowVals(regs[in.Args[1]]), Fresh: true}))
+		case bytecode.FlowNewVals:
+			fr.set(in.Dst[0], p.Nodes(in.Imm.(int))[:0])
+		case bytecode.FlowAppend:
+			fr.set(in.Dst[0], append(flowVals(regs[in.Args[0]]), asNode(regs[in.Args[1]])))
+		case bytecode.FlowSpread:
+			fr.set(in.Dst[0], append(flowVals(regs[in.Args[0]]), nodes.D(asNode(regs[in.Args[1]])).Children...))
+		case bytecode.FlowText:
+			fr.set(in.Dst[0], p.Text(regs[in.Args[0]].(int), p.Pos))
+		case bytecode.FlowLiteralText:
+			fr.set(in.Dst[0], p.LiteralText(regs[in.Args[0]].(int), vm.literals[in.Imm.(int)]))
+		case bytecode.FlowStr:
+			// A string constant keeps its bytes: it is no matching text (nodes.LiteralValue).
+			fr.set(in.Dst[0], vm.m.Strings[in.Imm.(int)])
+		case bytecode.FlowKidsLen:
+			fr.set(in.Dst[0], len(p.KidStack))
+		case bytecode.FlowKids:
+			fr.set(in.Dst[0], p.Kids(regs[in.Args[0]].(int)))
+		case bytecode.FlowDropKids:
+			p.TruncateKids(regs[in.Args[0]].(int))
+		case bytecode.FlowPushKid:
+			// As a framed body of the Go library pushes a value: the charge of the gathered value is
+			// made where it is taken off (flow.kids).
+			p.KidStack = append(p.KidStack, asNode(regs[in.Args[0]]))
+		case bytecode.FlowShapeSingle:
+			x := in.Imm.(bytecode.FlowShapeOf)
+			v, start := asNode(regs[in.Args[0]]), regs[in.Args[1]].(int)
+			switch x.Mode {
+			case int(program.SinglePass):
+				fr.set(in.Dst[0], flowShaper(x).One(v))
+				fr.set(in.Dst[1], true)
+			case int(program.SingleTuple):
+				fr.set(in.Dst[0], flowShapeTuple(p, x, v, start))
+				fr.set(in.Dst[1], true)
+			default:
+				fr.set(in.Dst[0], nil)
+				fr.set(in.Dst[1], false)
+			}
+		case bytecode.FlowScopeValue:
+			x := in.Imm.(bytecode.FlowShapeOf)
+			v, start := asNode(regs[in.Args[0]]), regs[in.Args[1]].(int)
+			if x.Tuple {
+				fr.set(in.Dst[0], flowShapeTuple(p, x, v, start))
+			} else {
+				fr.set(in.Dst[0], flowShaper(x).One(v))
+			}
 		default:
 			panic(fmt.Sprintf("internal error: vm: flow operation %d", in.Op))
 		}
@@ -237,4 +296,25 @@ func flowEqual(a, b any) bool {
 		}
 	}
 	return a == b
+}
+
+// flowVals returns the list of values that a register holds; a register of a list never set holds
+// nil.
+func flowVals(v any) []*value.Node {
+	vs, _ := v.([]*value.Node)
+	return vs
+}
+
+func flowShaper(x bytecode.FlowShapeOf) program.Shaper {
+	return program.Shaper{Elems: x.Elems, Shared: x.Shared, K: x.K}
+}
+
+// flowShapeTuple returns the tuple node of the result v of a match from start, as the Go library's
+// shapeTuple does: a node that it builds charges a unit for the value (spec/runtime/parsing.md#cost).
+func flowShapeTuple(p *state.Parser, x bytecode.FlowShapeOf, v *value.Node, start int) *value.Node {
+	if x.Elems && !(x.Shared && v != nil) {
+		return v
+	}
+	p.Spend()
+	return state.ShapeTuple(p, flowShaper(x), v, start)
 }
