@@ -1,4 +1,4 @@
-package common
+package flowplan
 
 import (
 	"zeroparse.dev/zp/internal/frontend/astfacts"
@@ -7,8 +7,23 @@ import (
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-// The eligibility of the compiled rules for Flow IR: which rules are lowered as flat rules and which
-// as framed bodies. Every generator asks these, so every backend lowers the same rules.
+// The eligibility of the rules of a table for Flow IR: which rules are lowered as flat rules and which
+// as framed bodies. The plan asks these, so every backend lowers the same rules.
+
+// Rule is what a plan reads of a rule of its table: the facts of the run-time program, the rule's
+// definition and the action, as the checked grammar holds them. A backend fills it from its view of
+// the grammar.
+type Rule struct {
+	ID   int
+	Name string
+	// Body is the expression of the rule's definition, and Action the rule's action, nil if it has
+	// none.
+	Body   ast.Expr
+	Action ast.ActionExpr
+	// Plain, Novalue and Leader are those of the run-time program (program.Rule); Lean reports that
+	// the body's value is unused, so the body runs value-free.
+	Plain, Lean, Novalue, Leader bool
+}
 
 // RecEligible reports whether the rule r of the Node table or of the recognizer table is lowered as
 // a flat rule: a plain, lean, value-free rule that is not a left-recursion leader and whose body has
@@ -16,11 +31,11 @@ import (
 // a predicate keeps the general form because it can require values, capture frames and variable
 // bindings.
 func RecEligible(r *Rule) bool {
-	if !r.Plain || !r.Lean || !r.Novalue || r.Leader || !flowlower.BodyOK(r.BodyExpr(), false, false) {
+	if !r.Plain || !r.Lean || !r.Novalue || r.Leader || !flowlower.BodyOK(r.Body, false, false) {
 		return false
 	}
 	ok := true
-	astfacts.WalkExpr(r.BodyExpr(), func(e ast.Expr) {
+	astfacts.WalkExpr(r.Body, func(e ast.Expr) {
 		if _, predicate := e.(*ast.Predicate); predicate {
 			ok = false
 		}
@@ -44,7 +59,7 @@ func RecEligible(r *Rule) bool {
 // without projections, so its Core IR is built without them and agrees with them as well; either
 // table's body is eligible when its action reads only captures of the frame.
 func NodeFrameOK(r *Rule, cr *core.Rule) bool {
-	if !flowlower.BodyOK(r.BodyExpr(), true, true) || !flowlower.FramedBody(cr.Body) {
+	if !flowlower.BodyOK(r.Body, true, true) || !flowlower.FramedBody(cr.Body) {
 		return false
 	}
 	if r.Action == nil {

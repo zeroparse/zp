@@ -155,6 +155,36 @@ is required, and how to dump and verify its output.
 The lowerings are packages of their own, outside the IR packages and apart from the passes of each dialect. That
 placement says where the code lives; in the pipeline, each lowering runs as a pass.
 
+### Planning the Functions of a Table
+
+Before `flowlower` runs, a planning step in the middle end (the `flowplan` package) decides which functions a rule
+table is made of and in which form. The Go generator takes the functions of its Node table and its recognizer from this
+plan, and so will the bytecode VM, so that both run the same functions and their budget spends can be compared per
+input.
+
+The plan of a table is computed from the Core IR of the table after its Core passes, the rules of the table (value-free
+twins included) as the plan reads them: their definitions, actions and run-time facts, and the rules that the backend
+emits. The tests of which rules may run flat or framed are the plan's; a generator that decides a route of its own asks
+them too, so every backend lowers the same rules. It holds:
+
+- The functions of the table, in the order a backend lowers them: the body of each rule, then the skip and the lines of
+  each Operators Rule. Each function is described by exactly what its lowering takes besides the table's Core IR and
+  options: its form, its Core rule and name, and for a framed body the body, its capture slots and whether it builds a
+  value. With the Core IR and options of the table, which every function of the table shares, it is the unit that
+  `flowlower` lowers. A backend finds the function of a use (a rule body, an Operators Rule skip or line) by its key.
+- The route of each rule body. A value-free, lean, plain rule whose body has no cut, recovery, predicate or nesting is
+  a **flat** function, with no frame. Any other rule whose Core body can run inside the frame its runtime owns is a
+  **framed** body, which builds its value unless the rule is lean. A flat function carries the framed body as its
+  fallback.
+- The refusal of a flat function, an analysis of its Exec IR after `execlower` and the Exec passes: the function is
+  refused when a reachable statement reads its entry position or its context, which a flat function has no
+  parameters for, or when a variable holds a value, which a value-free function does not keep. Reachability is the
+  printers' (the dead-store analysis of Code IR). A refused function is replaced by its fallback.
+- The capture-slot layout of each rule's frame: the names of the Core rule's scope, empty for a rule that runs flat or
+  as an Operators Rule. A backend verifies the rows it emits against it.
+
+The typed table, the stream body and the TypeScript tables are still decided by their printers.
+
 ## The Flow Passes
 
 The Flow passes hold every control-level decision of the Flow stage. Each pass declares its obligation, the property it
