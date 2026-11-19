@@ -668,6 +668,29 @@ func (s *flowSel) call(c *code.Call, dst []int) error {
 		return s.op(bytecode.FlowFrameVal, c, dst, int(c.Imm.(flowpkg.Slot)))
 	case flowpkg.OpAttachFrame:
 		return s.op(bytecode.FlowAttachFrame, c, dst, s.scope(c.Imm.(flowpkg.Attach).Names))
+	case flowpkg.OpRunHot:
+		return s.op(bytecode.FlowRunHot, c, dst, int(c.Imm.(flowpkg.Site)))
+	case flowpkg.OpRunBegin:
+		x := c.Imm.(flowpkg.RunWalk)
+		return s.op(bytecode.FlowRunBegin, c, dst, bytecode.FlowRunWalkOf{Site: x.Site, Build: x.Build, KeyEnv: x.KeyEnv})
+	case flowpkg.OpRunWalked:
+		return s.op(bytecode.FlowRunWalked, c, dst, int(c.Imm.(flowpkg.Site)))
+	case flowpkg.OpSkipVisit:
+		return s.op(bytecode.FlowSkipVisit, c, dst, nil)
+	case flowpkg.OpSkipHit:
+		return s.op(bytecode.FlowSkipHit, c, dst, nil)
+	case flowpkg.OpSkipValue:
+		return s.op(bytecode.FlowSkipValue, c, dst, nil)
+	case flowpkg.OpSkipEnd:
+		return s.op(bytecode.FlowSkipEnd, c, dst, nil)
+	case flowpkg.OpSkipKids:
+		return s.op(bytecode.FlowSkipKids, c, dst, nil)
+	case flowpkg.OpScanReach:
+		return s.op(bytecode.FlowScanReach, c, dst, int(c.Imm.(flowpkg.Site)))
+	case flowpkg.OpScanEnd:
+		return s.op(bytecode.FlowScanEnd, c, dst, int(c.Imm.(flowpkg.Site)))
+	case flowpkg.OpScanKids:
+		return s.op(bytecode.FlowScanKids, c, dst, int(c.Imm.(flowpkg.Site)))
 	case flowpkg.OpDeclareNames:
 		// It does nothing to the state: the names are those of the frame's scope.
 		return nil
