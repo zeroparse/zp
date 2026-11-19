@@ -187,26 +187,50 @@ func (d *Driver) FlowFunc(table string, u flowlower.Unit, observe bool, target f
 // an internal error that names it, returned with the result as the failed run of passes got it
 // (pass.Options.Keep), for a generation that fails with it.
 func (d *Driver) ExecFunc(table string, m *code.Module, target *TargetPipeline, observe bool) (*execlower.Lowered, error) {
-	p := codepass.Pipeline
-	if d.ExecPipeline != nil {
-		p = d.ExecPipeline(table)
-	}
 	env := func(*pass.Run, pass.Label, any) *codepass.Env { return &codepass.Env{Observe: observe, Flag: d.Opt.On} }
-	s := pass.Then(execlower.Lowering, pass.Then(
-		pass.Project(func(l *execlower.Lowered) *code.Module { return l.Module }, (*execlower.Lowered).WithModule, pass.Transforms(pass.Transform[*code.Module, *codepass.Env]{
-			IR: execModuleIR, Pipeline: p, BuiltVerified: true, Keep: true,
-			Env: func(r *pass.Run, l pass.Label, m *code.Module) *codepass.Env { return env(r, l, m) },
-		})),
-		pass.Transforms(pass.Transform[*execlower.Lowered, *codepass.Env]{
-			IR: loweredIR, Pipeline: target, BuiltVerified: true, Keep: true,
-			Env: func(r *pass.Run, lb pass.Label, l *execlower.Lowered) *codepass.Env { return env(r, lb, l) },
-		})))
+	s := pass.Then(d.exec(table, observe), pass.Transforms(pass.Transform[*execlower.Lowered, *codepass.Env]{
+		IR: loweredIR, Pipeline: target, BuiltVerified: true, Keep: true,
+		Env: func(r *pass.Run, lb pass.Label, l *execlower.Lowered) *codepass.Env { return env(r, lb, l) },
+	}))
 	var name string
 	if len(m.Funcs) > 0 {
 		name = flow.FuncOf(m).Name
 	}
 	l, err := s.Run(d.manager(), pass.Label{Table: table, Func: name}, m)
 	return l, stepError(err)
+}
+
+// PlanExec runs the Exec step of a plan (flowplan.Plan) on the function u of the table named table:
+// the lowering flowlower of u, flow-finish with no Flow pass before it, since a Flow pass makes a
+// form of one target and the plan decides for every target, the conversion execlower and the Exec
+// passes that every target runs, with the optimizations of the driver; observe is as for FlowFunc.
+// The function is dumped and labeled as FlowFunc and ExecFunc dump it, and the runs of its Exec
+// passes are numbered with the other runs of the compilation (pass.Run), so that the dumps,
+// VerifyEach and the numbering cover the function that the plan decides on.
+//
+// A failure of a required step is returned as the *pass.StepError that names it, with no result; a
+// failure of a pass is an internal error that names it, returned with the result as ExecFunc returns
+// it.
+func (d *Driver) PlanExec(table string, u flowlower.Unit, observe bool) (*execlower.Lowered, error) {
+	s := pass.Then(flowlower.Lowering, pass.Then(flowpass.Finishing, d.exec(table, observe)))
+	l, err := s.Run(d.manager(), pass.Label{Table: table, Func: u.Func.Name}, u)
+	return l, stepError(err)
+}
+
+// exec is the stage of the conversion execlower and the Exec passes that every target runs, on a
+// function of the table named table.
+func (d *Driver) exec(table string, observe bool) pass.Stage[*code.Module, *execlower.Lowered] {
+	p := codepass.Pipeline
+	if d.ExecPipeline != nil {
+		p = d.ExecPipeline(table)
+	}
+	return pass.Then(execlower.Lowering,
+		pass.Project(func(l *execlower.Lowered) *code.Module { return l.Module }, (*execlower.Lowered).WithModule, pass.Transforms(pass.Transform[*code.Module, *codepass.Env]{
+			IR: execModuleIR, Pipeline: p, BuiltVerified: true, Keep: true,
+			Env: func(*pass.Run, pass.Label, *code.Module) *codepass.Env {
+				return &codepass.Env{Observe: observe, Flag: d.Opt.On}
+			},
+		})))
 }
 
 // stepError returns the failure of a required step as it is, and the failure of a pass as an

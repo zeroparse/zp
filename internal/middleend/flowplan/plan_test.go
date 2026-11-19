@@ -2,13 +2,16 @@ package flowplan_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
@@ -45,11 +48,16 @@ func plan(t *testing.T, src string, rec compile.Recognition, live func(int) bool
 	}
 	rules := append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...)
 	opts := flowlower.Options{Budget: true, Recovers: flowlower.Recovers(m), Node: true}
-	p, err := flowplan.Plan(&flowplan.TableIR{M: m, Opts: opts}, planRules(rules), live, pass.Settings{})
+	p, err := flowplan.Plan(&flowplan.TableIR{M: m, Opts: opts}, planRules(rules), live, execStep(&driver.Driver{}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return m, rules, p
+}
+
+// execStep returns the Exec step of the plan of the rules table under d (driver.Driver.PlanExec).
+func execStep(d *driver.Driver) func(flowlower.Unit) (*execlower.Lowered, error) {
+	return func(u flowlower.Unit) (*execlower.Lowered, error) { return d.PlanExec("rules", u, false) }
 }
 
 // planRules returns what the plan reads of the compiled rules.
@@ -183,4 +191,69 @@ func lowerExec(t *testing.T, m *core.Module, s *flowplan.FuncSpec, opts flowlowe
 		t.Fatal(err)
 	}
 	return &execlower.Lowered{Module: x, Func: fn, Vars: flow.AttrsOf(fn).Vars}
+}
+
+// TestPlanRunsUnderTheDriver checks that the plan decides on the runs of its driver's manager: every
+// flat function of the plan reaches the Exec passes that the driver runs (here a test pass of its
+// own, which the manager numbers), is dumped under execlower with its table, and with VerifyEach a
+// pass that breaks the function fails the plan with the name of the pass.
+func TestPlanRunsUnderTheDriver(t *testing.T) {
+	const record, breaks = "test-plan-record", "test-plan-break"
+	seen := map[string]int{}
+	pl := *codepass.Pipeline
+	pl.Passes = append(slices.Clone(pl.Passes), pass.Pass[*code.Module, *codepass.Env]{Name: record, Obligation: "it changes nothing",
+		Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
+			seen[flow.FuncOf(m).Name]++
+			return m, pass.PreserveAll(), nil
+		}})
+	var dump strings.Builder
+	d := &driver.Driver{PrintAfter: []string{execlower.Name, record}, PrintTo: &dump, TestPasses: []string{record},
+		ExecPipeline: func(string) *pass.Pipeline[*code.Module, *codepass.Env] { return &pl }}
+	prog := compiletest.Program(t, grammar, compile.Options{Recognition: compile.Recognize})
+	m, err := elaborate.CoreProjecting(prog, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m, _, err = corepass.Run(m, &corepass.Env{}, corepass.RunOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	ir := &flowplan.TableIR{M: m, Opts: flowlower.Options{Budget: true, Recovers: flowlower.Recovers(m), Node: true}}
+	rules := planRules(append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...))
+	p, err := flowplan.Plan(ir, rules, nil, execStep(d))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, s := range p.Funcs {
+		if s.Form != flowlower.Flat {
+			continue
+		}
+		n++
+		if seen[s.Name] != 1 {
+			t.Errorf("%s: the driver's Exec passes ran %d times, want once", s.Name, seen[s.Name])
+		}
+		for _, after := range []string{execlower.Name, record} {
+			if h := "-- Exec IR of " + s.Name + " in the rules table after " + after + " --"; !strings.Contains(dump.String(), h) {
+				t.Errorf("the dump lacks %q", h)
+			}
+		}
+	}
+	if n == 0 {
+		t.Fatal("no flat function planned: the step is not exercised")
+	}
+	if len(seen) != n {
+		t.Errorf("the Exec passes ran on %v, want only the %d flat functions", seen, n)
+	}
+
+	// A pass that breaks the module fails the plan, named by the driver's verification.
+	pl.Passes = append(pl.Passes, pass.Pass[*code.Module, *codepass.Env]{Name: breaks, Obligation: "none: it breaks the module",
+		Run: func(m *code.Module, _ *codepass.Env) (*code.Module, pass.PreservedSet, error) {
+			m.Funcs = append(m.Funcs, m.Funcs[0])
+			return m, pass.PreserveNone(), nil
+		}})
+	d = &driver.Driver{TestPasses: []string{record, breaks}, VerifyEach: true,
+		ExecPipeline: func(string) *pass.Pipeline[*code.Module, *codepass.Env] { return &pl }}
+	if _, err := flowplan.Plan(ir, rules, nil, execStep(d)); err == nil || !strings.Contains(err.Error(), "after pass "+breaks+":") {
+		t.Errorf("a pass that breaks the function: %v, want the plan to fail naming %s", err, breaks)
+	}
 }

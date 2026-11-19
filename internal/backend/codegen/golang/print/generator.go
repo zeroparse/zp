@@ -666,7 +666,7 @@ func (g *Generator) rules() {
 			rules[i] = r.PlanRule()
 		}
 		t := &flowplan.TableIR{M: g.Flow.M, Origin: g.Flow.Origin, Opts: g.Flow.Opts}
-		p, err := flowplan.Plan(t, rules, func(id int) bool { return !g.pruned(all[id]) }, g.Opt())
+		p, err := flowplan.Plan(t, rules, func(id int) bool { return !g.pruned(all[id]) }, g.PlanExec)
 		if err != nil {
 			panic(fmt.Errorf("table %s: %w", g.Table, err))
 		}

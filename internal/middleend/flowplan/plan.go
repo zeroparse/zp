@@ -22,7 +22,6 @@ import (
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
-	"zeroparse.dev/zp/internal/middleend/flowpass"
 	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -89,27 +88,36 @@ func (t *Table) CheckLayout(rule int, name string, slots []string) error {
 }
 
 // Plan plans the Node or recognizer table t, whose rules, value-free twins included, are rules by
-// ID. live reports whether a rule is emitted; nil emits every rule. opt holds the optimizations of
-// the table's passes.
+// ID. live reports whether a rule is emitted; nil emits every rule. execStep is the Exec step of the
+// caller's driver (driver.Driver.PlanExec for the caller's table): it lowers a function of the table
+// to the Exec IR that the plan decides on, the function as the lowering writes it, with each form in
+// the one form every backend prints (flow-finish with no Flow pass, since a pass makes a form of a
+// target and keeps what the decisions read), after the Exec passes that every backend runs. The step
+// runs under the driver's manager, so its passes follow the driver's optimizations, dumps and
+// verification like every other run of the compilation.
 //
 // Each rule's route follows from its facts (route); a flat function then stays in the plan only if
-// Refused accepts it, in the Exec IR that Exec decides on, and is otherwise replaced by its framed
-// fallback, or left out if the rule has none. The decision is made here, once, so every backend
-// that follows the plan runs the same functions; a backend that prints the flat function in forms of
-// its own checks that they keep the decision.
-func Plan(t *TableIR, rules []*Rule, live func(rule int) bool, opt pass.Settings) (*Table, error) {
-	return plan(t, rules, live, opt, Refused)
+// Refused accepts it, in the Exec IR of execStep, and is otherwise replaced by its framed fallback,
+// or left out if the rule has none. The decision is made here, once, so every backend that follows
+// the plan runs the same functions; a backend that prints the flat function in forms of its own
+// checks that they keep the decision.
+func Plan(t *TableIR, rules []*Rule, live func(rule int) bool, execStep func(flowlower.Unit) (*execlower.Lowered, error)) (*Table, error) {
+	return plan(t, rules, live, execStep, Refused)
 }
 
 // plan is Plan with the refusal refused.
-func plan(t *TableIR, rules []*Rule, live func(rule int) bool, opt pass.Settings, refused func(*execlower.Lowered) bool) (*Table, error) {
+func plan(t *TableIR, rules []*Rule, live func(rule int) bool, execStep func(flowlower.Unit) (*execlower.Lowered, error), refused func(*execlower.Lowered) bool) (*Table, error) {
 	p := route(t.M, rules, live)
 	funcs := p.Funcs[:0]
 	for _, s := range p.Funcs {
 		if s.Form == flowlower.Flat {
-			l, err := Exec(t, s, opt)
+			l, err := execStep(t.Unit(s.Func))
 			if err != nil {
-				return nil, err
+				// A planned function always lowers: a failed step is an internal error.
+				if _, ok := err.(*pass.StepError); ok {
+					err = fmt.Errorf("internal error: %w", err)
+				}
+				return nil, fmt.Errorf("exec of %s: %w", s.Name, err)
 			}
 			if refused(l) {
 				delete(p.byKey, s.Key)
@@ -123,36 +131,6 @@ func plan(t *TableIR, rules []*Rule, live func(rule int) bool, opt pass.Settings
 	}
 	p.Funcs = funcs
 	return p, nil
-}
-
-// Exec lowers the function s of the table t to the Exec IR that the plan decides on: the function
-// as the lowering writes it, with each form in the one form every backend prints (flowpass.Finish,
-// with no Flow pass, since a pass makes a form of a target and keeps what the decisions read),
-// after the Exec passes that every backend runs, with the optimizations opt.
-func Exec(t *TableIR, s *FuncSpec, opt pass.Settings) (*execlower.Lowered, error) {
-	f, err := flowlower.LowerUnit(t.Unit(s.Func))
-	if err == nil {
-		err = flowlower.Verify(f)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("internal error: flow of %s: %w", s.Name, err)
-	}
-	flowpass.Finish(f)
-	l, err := execlower.LowerFunc(f)
-	if err == nil {
-		err = execlower.IR.Verify(l)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("internal error: exec of %s: %w", s.Name, err)
-	}
-	x, _, err := codepass.RunPasses(l.Module, &codepass.Env{Observe: t.Opts.Observe, Flag: opt.On}, codepass.RunOptions{})
-	if err == nil {
-		l, err = l.WithModule(x)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("internal error: exec of %s: %w", s.Name, err)
-	}
-	return l, nil
 }
 
 // route plans the routes of the table whose Core IR, after the Core passes of the table, is m, from

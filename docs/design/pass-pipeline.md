@@ -202,7 +202,9 @@ them too, so every backend lowers the same rules. It holds:
   value, which a value-free function does not keep. Reachability is the printers' (the dead-store analysis of Code
   IR). The plan makes this decision once, for every backend: it lowers the flat function with the table's options,
   ends it with each form in the form every backend prints, with no Flow pass, and runs `execlower` and the Exec passes
-  that every backend runs, at the optimizations of the table. A refused function is replaced in the plan by its
+  that every backend runs, at the optimizations of the table. The backend's driver runs these steps, as it runs the
+  Core step that builds the table, so the plan's runs are dumped, verified and numbered with the other runs of the
+  compilation. A refused function is replaced in the plan by its
   fallback, so a backend only follows the plan. A pass that makes a form of a target keeps what the decision reads; the
   Go generator checks that the flat functions it prints in its own forms are not refused, and fails with an internal
   error otherwise.
