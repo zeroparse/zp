@@ -52,6 +52,21 @@ func flowModule() *bytecode.Module {
 		{Op: bytecode.FlowIsolate, Dst: []int{4}},
 		{Op: bytecode.FlowUnisolate, Dst: []int{1, 6}, Args: []int{4}},
 		{Op: bytecode.FlowMergeExpected, Args: []int{1, 6}},
+		{Op: bytecode.FlowNewVals, Dst: []int{4}, Imm: 2},
+		{Op: bytecode.FlowText, Dst: []int{0}, Args: []int{1}},
+		{Op: bytecode.FlowNewTerminal, Dst: []int{0}, Args: []int{1, 0}},
+		{Op: bytecode.FlowAppend, Dst: []int{4}, Args: []int{4, 0}},
+		{Op: bytecode.FlowSpread, Dst: []int{4}, Args: []int{4, 0}},
+		{Op: bytecode.FlowNewSeq, Dst: []int{0}, Args: []int{1, 4}},
+		{Op: bytecode.FlowNewList, Dst: []int{0}, Args: []int{1, 4}},
+		{Op: bytecode.FlowLiteralText, Dst: []int{0}, Args: []int{1}, Imm: 0},
+		{Op: bytecode.FlowStr, Dst: []int{0}, Imm: 1},
+		{Op: bytecode.FlowKidsLen, Dst: []int{1}},
+		{Op: bytecode.FlowPushKid, Args: []int{0}},
+		{Op: bytecode.FlowKids, Dst: []int{4}, Args: []int{1}},
+		{Op: bytecode.FlowDropKids, Args: []int{1}},
+		{Op: bytecode.FlowShapeSingle, Dst: []int{0, 2}, Args: []int{0, 1}, Imm: bytecode.FlowShapeOf{Elems: true, Shared: true, K: 2, Mode: 2}},
+		{Op: bytecode.FlowScopeValue, Dst: []int{0}, Args: []int{0, 1}, Imm: bytecode.FlowShapeOf{Tuple: true, K: 1}},
 		{Op: bytecode.FlowReturn, Args: []int{0, 3}},
 	}}
 	return &bytecode.Module{
@@ -187,6 +202,15 @@ func TestFlowBodyValidation(t *testing.T) {
 		}, "invalid lookahead"},
 		{"lookahead kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[27].Imm = 1 }, "invalid immediate"},
 		{"immediate of a step", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[25].Imm = 1 }, "invalid immediate"},
+		{"count", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[35].Imm = -1 }, "invalid count -1"},
+		{"count kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[35].Imm = true }, "invalid immediate"},
+		{"string", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[43].Imm = len(m.Strings) }, "string 3 out of range"},
+		{"literal text", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[42].Imm = -1 }, "string -1 out of range"},
+		{"string kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[43].Imm = "a" }, "invalid immediate"},
+		{"shape mode", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[48].Imm = bytecode.FlowShapeOf{Mode: 3} }, "invalid shape"},
+		{"shape count", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[49].Imm = bytecode.FlowShapeOf{K: -1} }, "invalid shape"},
+		{"shape kind", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[49].Imm = 1 }, "invalid immediate"},
+		{"immediate of a push", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[45].Imm = 1 }, "invalid immediate"},
 		{"unmarked cycle", func(m *bytecode.Module, f *bytecode.Flow) { f.Code[14].Imm = bytecode.FlowCallOf{Rule: 1} }, "rule b is on a cycle of calls but is not marked recursive"},
 	} {
 		m := flowModule()
@@ -241,6 +265,11 @@ func TestFlowBodyDisassembly(t *testing.T) {
 		"    31  MATCHLIT   r0,r2 = \"a\" fold \"a\"\n",
 		"    33  UNISOLATE  r1,r6 = r4\n",
 		"    34  MERGEEXPECTED r1 r6\n",
+		"    35  NEWVALS    r4 = 2\n",
+		"    42  LITERALTEXT r0 = r1 \"a\"\n",
+		"    43  STR        r0 = \"b\"\n",
+		"    48  SHAPESINGLE r0,r2 = r0 r1 elems=true shared=true tuple=false k=2 mode=2\n",
+		"    49  SCOPEVALUE r0 = r0 r1 elems=false shared=false tuple=true k=1 mode=0\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("disassembly has no %q:\n%s", want, got)

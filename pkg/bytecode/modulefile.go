@@ -230,6 +230,22 @@ func (w *Encoder) flowImm(k FlowImm, v any) {
 		w.Int(x.Delta)
 		w.Int(x.Site)
 		w.Bool(x.Ok)
+	case FlowImmCount, FlowImmStr:
+		x, ok := v.(int)
+		if !ok {
+			bad()
+		}
+		w.Int(x)
+	case FlowImmShape:
+		x, ok := v.(FlowShapeOf)
+		if !ok {
+			bad()
+		}
+		w.Bool(x.Elems)
+		w.Bool(x.Shared)
+		w.Bool(x.Tuple)
+		w.Int(x.K)
+		w.Int(x.Mode)
 	default:
 		bad()
 	}
@@ -512,6 +528,13 @@ func (r *Decoder) flowImm(k FlowImm) any {
 		return FlowLitOf{Str: int(r.int32()), Exp: int(r.int32()), Fold: r.Bool()}
 	case FlowImmSilence:
 		return FlowSilenceOf{Delta: int(r.int32()), Site: int(r.int32()), Ok: r.Bool()}
+	case FlowImmCount, FlowImmStr:
+		return int(r.int32())
+	case FlowImmShape:
+		x := FlowShapeOf{Elems: r.Bool(), Shared: r.Bool(), Tuple: r.Bool()}
+		x.K = int(r.int32())
+		x.Mode = int(r.int32())
+		return x
 	}
 	return nil
 }
@@ -1142,6 +1165,21 @@ func validateFlowImm(m *Module, k FlowImm, v any) error {
 		}
 		if x.Exp < 0 || x.Exp >= FixedExps+len(m.Strings) {
 			return fmt.Errorf("expectation %d out of range", x.Exp)
+		}
+	case FlowImmCount:
+		var x int
+		if x, ok = v.(int); ok && x < 0 {
+			return fmt.Errorf("invalid count %d", x)
+		}
+	case FlowImmStr:
+		var x int
+		if x, ok = v.(int); ok && (x < 0 || x >= len(m.Strings)) {
+			return fmt.Errorf("string %d out of range", x)
+		}
+	case FlowImmShape:
+		var x FlowShapeOf
+		if x, ok = v.(FlowShapeOf); ok && (x.K < 0 || x.Mode < 0 || x.Mode > 2) {
+			return fmt.Errorf("invalid shape %+v", x)
 		}
 	case FlowImmSilence:
 		var x FlowSilenceOf

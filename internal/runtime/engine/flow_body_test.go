@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -310,6 +311,12 @@ func grammarCorpus(t *testing.T, path string) []string {
 // must be those of the match code, and the module must load. The spends are not compared: a Flow
 // body charges what its Flow function charges, which is not what the match code of its rule charges
 // (spec/bytecode/README.md, Flow Bodies).
+//
+// The rules of flatNamingGap are left out: their whole-rule Flow function ends with the rule's
+// finish and takes its value off the fresh nodes (flow.unfresh), so the rule frame that runs around
+// it does not name the value after the rule, as it does the match code's value when a parse records
+// source information. Generated Go runs such a function only for value-free rules; a rule that
+// builds a value runs its framed body inside the rule frame.
 func TestFlowBodiesTestdataGrammars(t *testing.T) {
 	paths, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
 	if err != nil || len(paths) == 0 {
@@ -318,7 +325,8 @@ func TestFlowBodiesTestdataGrammars(t *testing.T) {
 	total := 0
 	for _, path := range paths {
 		t.Run(filepath.Base(filepath.Dir(path)), func(t *testing.T) {
-			old, flows, n := flowPrograms(t, path, func(string) bool { return true }, nil)
+			gap := flatNamingGap[filepath.Base(filepath.Dir(path))]
+			old, flows, n := flowPrograms(t, path, func(r string) bool { return !slices.Contains(gap, r) }, nil)
 			total += n
 			// The loader accepts the module with its Flow bodies: their calls close no cycle of
 			// calls through a rule that is not marked Rec.
@@ -340,4 +348,10 @@ func TestFlowBodiesTestdataGrammars(t *testing.T) {
 	if total == 0 {
 		t.Fatal("no rule of the testdata grammars has a Flow body")
 	}
+}
+
+// flatNamingGap lists, by grammar, the rules whose whole-rule Flow function returns a value that the
+// rule frame does not name after the rule (TestFlowBodiesTestdataGrammars).
+var flatNamingGap = map[string][]string{
+	"duckdb": {"cmp_op", "op_arrow", "op_idiv", "op_plus", "op_star"},
 }

@@ -154,9 +154,12 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 			parts = append(parts, "nil")
 		}
 	case int:
-		if s, _ := in.Op.Shape(); s.Imm == FlowImmClass && x >= 0 && x < len(m.Classes) {
+		switch s, _ := in.Op.Shape(); {
+		case s.Imm == FlowImmClass && x >= 0 && x < len(m.Classes):
 			parts = append(parts, str(m.Classes[x].Desc))
-		} else {
+		case s.Imm == FlowImmStr && x >= 0 && x < len(m.Strings):
+			parts = append(parts, strconv.Quote(m.Strings[x]))
+		default:
 			parts = append(parts, fmt.Sprint(x))
 		}
 	case bool:
@@ -200,6 +203,8 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 			e = str(x.Exp - FixedExps)
 		}
 		parts = append(parts, l+" "+e)
+	case FlowShapeOf:
+		parts = append(parts, fmt.Sprintf("elems=%t shared=%t tuple=%t k=%d mode=%d", x.Elems, x.Shared, x.Tuple, x.K, x.Mode))
 	case FlowSilenceOf:
 		parts = append(parts, fmt.Sprintf("delta=%d site=%d ok=%t", x.Delta, x.Site, x.Ok))
 	default:
