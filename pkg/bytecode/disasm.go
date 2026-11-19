@@ -153,7 +153,13 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 		if in.Op == FlowConst {
 			parts = append(parts, "nil")
 		}
-	case int, bool:
+	case int:
+		if s, _ := in.Op.Shape(); s.Imm == FlowImmClass && x >= 0 && x < len(m.Classes) {
+			parts = append(parts, str(m.Classes[x].Desc))
+		} else {
+			parts = append(parts, fmt.Sprint(x))
+		}
+	case bool:
 		parts = append(parts, fmt.Sprint(x))
 	case FlowGuardOf:
 		g := fmt.Sprintf("class=%d", x.Class)
@@ -181,6 +187,21 @@ func (m *Module) flowOperands(in *FlowInstr, str func(int) string) string {
 			r = m.Strings[m.Rules[x.Rule].Name]
 		}
 		parts = append(parts, fmt.Sprintf("%s level=%d", r, x.Level))
+	case FlowLitOf:
+		l := fmt.Sprintf("str%d", x.Str)
+		if x.Str >= 0 && x.Str < len(m.Strings) {
+			l = strconv.Quote(m.Strings[x.Str])
+		}
+		if x.Fold {
+			l += " fold"
+		}
+		e := fmt.Sprintf("exp=%d", x.Exp)
+		if x.Exp >= FixedExps {
+			e = str(x.Exp - FixedExps)
+		}
+		parts = append(parts, l+" "+e)
+	case FlowSilenceOf:
+		parts = append(parts, fmt.Sprintf("delta=%d site=%d ok=%t", x.Delta, x.Site, x.Ok))
 	default:
 		parts = append(parts, fmt.Sprintf("%#v", x))
 	}

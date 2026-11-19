@@ -297,8 +297,10 @@ func grammarCorpus(t *testing.T, path string) []string {
 }
 
 // TestFlowBodiesTestdataGrammars runs the samples of the testdata grammars, and prefixes of them,
-// through both VM models with every rule that has a Flow body running it: the trees, the errors and
-// the spends must be those of the match code.
+// through both VM models with every rule that has a Flow body running it: the trees and the errors
+// must be those of the match code. The spends are not compared: a Flow body charges what its Flow
+// function charges, which is not what the match code of its rule charges (spec/bytecode/README.md,
+// Flow Bodies).
 func TestFlowBodiesTestdataGrammars(t *testing.T) {
 	paths, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
 	if err != nil || len(paths) == 0 {
@@ -311,10 +313,10 @@ func TestFlowBodiesTestdataGrammars(t *testing.T) {
 			total += n
 			for _, in := range grammarCorpus(t, path) {
 				for _, b := range []Backend{Bytecode, BytecodeIterative} {
-					ot, oe, ou := parseChargedWith(t, old, in, b)
-					ft, fe, fu := parseChargedWith(t, flows, in, b)
-					if ot != ft || oe != fe || ou != fu {
-						t.Errorf("%v, input of %d bytes: match code err %s spend %d; flow err %s spend %d; trees equal: %v", b, len(in), oe, ou, fe, fu, ot == ft)
+					ot, oe, _ := parseChargedWith(t, old, in, b)
+					ft, fe, _ := parseChargedWith(t, flows, in, b)
+					if ot != ft || oe != fe {
+						t.Errorf("%v, input of %d bytes: match code err %s; flow err %s; trees equal: %v", b, len(in), oe, fe, ot == ft)
 					}
 				}
 			}
