@@ -125,7 +125,10 @@ func TestPruneLibRejectsUnreadableGuards(t *testing.T) {
 
 // TestImplicitMethodsCoverCore checks that implicitMethods names every method of the interfaces of
 // the runtime packages and value/impl, which the library's types may satisfy without naming the methods.
+// runtime.Parser and runtime.Document are left out: the VM and the reference parser implement
+// them, and neither the library nor generated code does.
 func TestImplicitMethodsCoverCore(t *testing.T) {
+	notLibrary := map[string]bool{"Parser": true, "Document": true}
 	for _, dir := range []string{"../../../../../pkg/runtime", "../../../../../pkg/runtime/input", "../../../../../pkg/runtime/value", "../../../../../pkg/runtime/value/impl", "../../../../../pkg/runtime/instrument"} {
 		pkgs, err := goparser.ParseDir(token.NewFileSet(), dir, func(fi fs.FileInfo) bool { return !strings.HasSuffix(fi.Name(), "_test.go") }, 0)
 		if err != nil {
@@ -133,8 +136,12 @@ func TestImplicitMethodsCoverCore(t *testing.T) {
 		}
 		for _, p := range pkgs {
 			goast.Inspect(p, func(n goast.Node) bool {
-				it, ok := n.(*goast.InterfaceType)
+				ts, ok := n.(*goast.TypeSpec)
 				if !ok {
+					return true
+				}
+				it, ok := ts.Type.(*goast.InterfaceType)
+				if !ok || p.Name == "runtime" && notLibrary[ts.Name.Name] {
 					return true
 				}
 				for _, m := range it.Methods.List {
