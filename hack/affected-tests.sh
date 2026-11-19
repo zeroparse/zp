@@ -37,9 +37,9 @@ while i < len(s):
     o, i = dec.raw_decode(s, i); pk[o["ImportPath"]] = o
 rel = {p: os.path.relpath(o["Dir"], root) for p, o in pk.items()}
 bydir = {r: p for p, r in rel.items()}
-HEAVY = ["internal/backend/codegen/common", "internal/backend/codegen/golang/print", "internal/backend/codegen/typescript/print", "internal/runtime/engine", "pkg/runtime/golib",
+HEAVY = ["internal/backend/codegen/common", "internal/backend/codegen/golang/print", "internal/backend/codegen/typescript/print", "internal/runtime/engine", "pkg/runtime/libgo",
          "internal/testing/complexitytest", "spec/language", "codegen", "bench", "internal/compile"]
-HEAVY_TRIG = ("pkg/runtime/golib/", "internal/backend/codegen/typescript/lib/", "pkg/runtime/", "internal/testing/codegentest/")
+HEAVY_TRIG = ("pkg/runtime/libgo/", "internal/backend/codegen/typescript/lib/", "pkg/runtime/", "internal/testing/codegentest/")
 rev = {p: set() for p in pk}
 for p, o in pk.items():
     for q in (o.get("Imports") or []) + (o.get("TestImports") or []) + (o.get("XTestImports") or []):

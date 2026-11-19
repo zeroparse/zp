@@ -118,7 +118,7 @@ func matchesTyped(t *testing.T, d *Document, unit PositionUnit) {
 const generatedDocumentGrowthConsumer = `package fixture
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	"context"
 	"encoding/json"
 	"errors"

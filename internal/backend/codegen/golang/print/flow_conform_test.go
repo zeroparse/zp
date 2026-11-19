@@ -373,7 +373,7 @@ import (
 	"strings"
 	"testing"
 
-	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	rt "zeroparse.dev/zp/pkg/runtime/libgo"
 	zpruntime "zeroparse.dev/zp/pkg/runtime"
 )
 

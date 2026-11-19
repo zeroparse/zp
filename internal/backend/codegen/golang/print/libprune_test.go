@@ -13,7 +13,7 @@ import (
 
 // pruneSrc is a library in miniature: guards of each form, a user type, an implicit method, a type
 // only a dropped guard names and an import only that guard uses.
-const pruneSrc = `package golib
+const pruneSrc = `package libgo
 
 import (
 	"fmt"
@@ -71,10 +71,10 @@ func (p *Parser) unused() {}
 `
 
 func TestPruneLib(t *testing.T) {
-	files := []libFile{{"lib.go", []byte(pruneSrc)}, {"features.go", []byte("package golib\n")}}
+	files := []libFile{{"lib.go", []byte(pruneSrc)}, {"features.go", []byte("package libgo\n")}}
 	// usedFeatures lives in lib.go here; move its declaration to features.go, as in the library.
 	files[0].data = []byte(strings.Replace(pruneSrc, usedFeaturesDecl, "", 1))
-	files[1].data = []byte("package golib\n\n" + usedFeaturesDecl)
+	files[1].data = []byte("package libgo\n\n" + usedFeaturesDecl)
 	roots := [][]byte{[]byte("package p\nvar p rt.Parser\nfunc f() { p.Run() }\n"), []byte("package p\ntype Document = rt.Document\n")}
 	out, err := pruneLib(files, common.FeatureSet(common.FeatureDocument), roots, roots[1:])
 	if err != nil {
@@ -115,8 +115,8 @@ func TestPruneLibRejectsUnreadableGuards(t *testing.T) {
 		"if p.n > 0 || usedFeatures&featureBudget != 0 { p.n = 1 }",
 		"if usedFeatures&featureBudget != 0 { p.n = 1 } else if usedFeatures&featureStream != 0 { p.n = 2 }",
 	} {
-		src := "package golib\n\nfunc (p *Parser) f() {\n\t" + body + "\n}\n"
-		files := []libFile{{"lib.go", []byte(src)}, {"features.go", []byte("package golib\n\n" + usedFeaturesDecl)}}
+		src := "package libgo\n\nfunc (p *Parser) f() {\n\t" + body + "\n}\n"
+		files := []libFile{{"lib.go", []byte(src)}, {"features.go", []byte("package libgo\n\n" + usedFeaturesDecl)}}
 		if _, err := pruneLib(files, 0, nil, nil); err == nil {
 			t.Errorf("%s: no error", body)
 		}

@@ -34,7 +34,7 @@ func TestGenerateTypedDocument(t *testing.T) {
 		"parser.go": string(code),
 		"parser_test.go": `package fixture
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
  "context"
  "errors"
  "reflect"
@@ -313,7 +313,7 @@ rule main ErrDocumentBusy = t:("a") #atomic => ErrDocumentBusy{Text: text($t)}`)
 		"go.mod": codegentest.GoMod("observedcollision"),
 		"fixture/parser_test.go": `package fixture
 
-import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 import zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 import ("errors"; "testing"; "observedcollision/fixture/types")
 func TestCollision(t *testing.T) {

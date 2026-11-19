@@ -43,8 +43,8 @@ Evidence records: [014](../014-one-operand-stack-for-vm-expression-code.md),
 Source owners: [`evalCtx`](../../../internal/runtime/state/eval.go), [`engine term programs`](../../../internal/runtime/state/),
 [`term registers and operator
 locals`](../../../internal/runtime/state/runtime.go), [`generated
-ActCtx`](../../../pkg/runtime/golib/lib.go), [`typed evaluation
-scratch`](../../../pkg/runtime/golib/typed.go), [`Parser action
+ActCtx`](../../../pkg/runtime/libgo/lib.go), [`typed evaluation
+scratch`](../../../pkg/runtime/libgo/typed.go), [`Parser action
 context`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

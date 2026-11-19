@@ -42,7 +42,7 @@ Evidence records: [005](../005-memo-table-with-per-position-chains-cf77e4f.md),
 Source owners: [`memoTable.get and put`](../../../internal/runtime/state/memo.go),
 [`envValues and callBegin`](../../../internal/runtime/state/runtime.go),
 [`rule variables`](../../../internal/middleend/corepass/facts.go), [`generated memo
-table`](../../../pkg/runtime/golib/lib.go), [`TypeScript memo
+table`](../../../pkg/runtime/libgo/lib.go), [`TypeScript memo
 entries`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

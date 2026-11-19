@@ -19,18 +19,18 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 )
 
-// The Go library of generated parsers is the package zeroparse.dev/zp/pkg/runtime/golib, whose exported
+// The Go library of generated parsers is the package zeroparse.dev/zp/pkg/runtime/libgo, whose exported
 // names that are documented as for generated parsers the generated code reaches, together with the
 // runtime packages pkg/runtime, input, value and instrument, which declare the result types (Node,
 // Limits, SyntaxError, ...) that generated parsers share with the other parsers. A generated
 // package imports the runtime packages it names and either imports the library or carries a copy
-// of its files (embed mode), which the generator reads from the source in GenOptions.GoLib; the
+// of its files (embed mode), which the generator reads from the source in GenOptions.LibGo; the
 // declarations of the runtime packages come from the index coreAPI.
 
 // modulePath is the path of this module and libImportPath the import path of the library in it.
 const (
 	modulePath    = "zeroparse.dev/zp"
-	libImportPath = modulePath + "/pkg/runtime/golib"
+	libImportPath = modulePath + "/pkg/runtime/libgo"
 )
 
 // runtimePackages are the runtime packages whose declarations generated code names, by package
@@ -73,7 +73,7 @@ const (
 )
 
 // libCache memoizes the parsed library of each source, so that the many generations of one
-// process parse it once. The key is the source value of GenOptions.GoLib, used only for a
+// process parse it once. The key is the source value of GenOptions.LibGo, used only for a
 // source whose dynamic type is a string or a pointer (os.DirFS, an embedded directory): such a value
 // is always a valid map key. Any other source is parsed on every call.
 var libCache struct {
@@ -109,9 +109,9 @@ type libInfo struct {
 // loadLib parses the library source of opts (once per source) and returns its files and
 // exported declarations.
 func loadLib(opts common.GenOptions) (*libInfo, error) {
-	fsys := opts.GoLib
+	fsys := opts.LibGo
 	if fsys == nil {
-		return nil, fmt.Errorf("Go generation needs the library source: set GenOptions.GoLib")
+		return nil, fmt.Errorf("Go generation needs the library source: set GenOptions.LibGo")
 	}
 	k := reflect.TypeOf(fsys).Kind()
 	cacheable := k == reflect.String || k == reflect.Pointer

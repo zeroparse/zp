@@ -36,7 +36,7 @@ Evidence records: [060](../060-direct-rules-in-the-typed-runtime.md).
 Source owners: [`Generator.flowTypedRule`](../../../internal/backend/codegen/golang/print/flow.go), [`typed framed body
 lowering`](../../../internal/backend/codegen/golang/print/flowframe.go), [`GenOptions private
 typed controls`](../../../internal/backend/codegen/golang/print/generator.go), [`runtime invocation
-ownership`](../../../pkg/runtime/golib/typed.go).
+ownership`](../../../pkg/runtime/libgo/typed.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

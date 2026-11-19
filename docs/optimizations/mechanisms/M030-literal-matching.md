@@ -35,7 +35,7 @@ Evidence records:
 [032](../032-matching-literals-against-loaded-input-in-one-loop.md).
 
 Source owners: [`parser.matchLiteral`](../../../internal/runtime/state/input.go),
-[`generated literal matcher`](../../../pkg/runtime/golib/lib.go),
+[`generated literal matcher`](../../../pkg/runtime/libgo/lib.go),
 [`TypeScript literal matcher`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

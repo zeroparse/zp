@@ -88,7 +88,7 @@ rule part = "é"`, "éé", `last:=events[len(events)-1];expectedEnd:=2;if unit==
 
 const generatedNodeTraceConsumer = `package PACKAGE
 
-import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 import zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 import("context";"encoding/json";"errors";"fmt";"reflect";"sync";"testing";reference "tracefixture/reference_PACKAGE")
 func TestTrace(t *testing.T){

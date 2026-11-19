@@ -95,7 +95,7 @@ func BenchmarkTypedLocalLayoutGeneration(b *testing.B) {
 const typedLocalLayoutWorkloadFixture = `package lrfixture
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
     "encoding/json"
     "fmt"
     "strings"

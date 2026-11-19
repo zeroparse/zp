@@ -20,7 +20,7 @@ func TestVersionOf(t *testing.T) {
 		{"main module dirty tree", debug.BuildInfo{Main: zp("v0.0.0-20261101000000-0123456789ab+dirty", nil)}, "(devel)"},
 		{"main module from a checkout", debug.BuildInfo{Main: zp("(devel)", nil)}, "(devel)"},
 		{"main module without version", debug.BuildInfo{Main: zp("", nil)}, "(devel)"},
-		{"dependency", debug.BuildInfo{Main: debug.Module{Path: "example.com/tool", Version: "v1.0.0"}, Deps: []*debug.Module{{Path: "zeroparse.dev/zp/pkg/runtime/golib", Version: "v0.9.0"}, dep(zp("v0.3.1", nil))}}, "v0.3.1"},
+		{"dependency", debug.BuildInfo{Main: debug.Module{Path: "example.com/tool", Version: "v1.0.0"}, Deps: []*debug.Module{{Path: "zeroparse.dev/zp/pkg/runtime/libgo", Version: "v0.9.0"}, dep(zp("v0.3.1", nil))}}, "v0.3.1"},
 		{"replaced dependency", debug.BuildInfo{Main: debug.Module{Path: "example.com/tool"}, Deps: []*debug.Module{dep(zp("v0.3.1", &debug.Module{Path: "../zp"}))}}, "(devel)"},
 		{"no zeroparse module", debug.BuildInfo{Main: debug.Module{Path: "example.com/tool", Version: "v1.0.0"}}, "(devel)"},
 	} {

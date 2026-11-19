@@ -71,7 +71,7 @@ func TestGeneratedGoActionErrorBudget(t *testing.T) {
 
 const generatedGoActionErrorConsumer = `package PACKAGE
 
-import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 import("context";"errors";"reflect";"strings";"testing")
 const wantError=WANT_ERROR
 const recognize=CHECK_RECOGNIZE

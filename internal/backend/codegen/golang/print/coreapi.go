@@ -21,7 +21,7 @@ import (
 // the generator reads of a declaration: its name, kind and doc comment, the signature of a function,
 // and the type of a type with struct and interface types reduced to their kind, which is all that
 // qualifying the keys of a composite literal needs. The Go library, by contrast, is read in full from
-// GenOptions.GoLib, since embed mode copies it.
+// GenOptions.LibGo, since embed mode copies it.
 
 //go:generate go run coreapi_generate.go
 

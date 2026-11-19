@@ -100,7 +100,7 @@ rule small A = ("b") #atomic`)
 const untypedPoolFixture = `package main
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -182,7 +182,7 @@ func TestUntypedPoolRetention(t *testing.T) {
 const typedPoolFixture = `package poolfixture
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 	"fmt"
 	"runtime"
 	"strings"

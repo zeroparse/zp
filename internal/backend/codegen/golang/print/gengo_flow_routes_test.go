@@ -78,7 +78,7 @@ func TestFlowRoutesPrinted(t *testing.T) {
 // reference options that convert types, with and without the ordinary budget accounting of the typed library.
 // It checks that the generated parsers parse every input the way the engine does: the same
 // values, and the same errors as the engine's. The route grammars depend on finishValue in
-// pkg/runtime/golib/typed.go: reverting it fails this test.
+// pkg/runtime/libgo/typed.go: reverting it fails this test.
 func TestFlowRoutesBuild(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {

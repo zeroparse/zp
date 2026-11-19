@@ -36,7 +36,7 @@ Evidence records:
 
 Source owners: [`the inline-literals Flow
 pass`](../../../internal/middleend/flowpass/passes.go),
-[`parser.matchLiteral`](../../../pkg/runtime/golib/lib.go).
+[`parser.matchLiteral`](../../../pkg/runtime/libgo/lib.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

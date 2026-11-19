@@ -80,7 +80,7 @@ rule num = [0-9]+ ("." [0-9]+)?
 		t.Errorf("Document parser without limit controls is %d bytes, with %d", len(documentWithout), len(documentWith))
 	}
 	tests := `package wc
-import("errors";"strings";"testing";"context";zprt "zeroparse.dev/zp/pkg/runtime/golib";zpruntime "zeroparse.dev/zp/pkg/runtime")
+import("errors";"strings";"testing";"context";zprt "zeroparse.dev/zp/pkg/runtime/libgo";zpruntime "zeroparse.dev/zp/pkg/runtime")
 func TestOptions(t *testing.T) {
  if _,err:=Parse("abc 12.5 x"); err!=nil {t.Fatal(err)}
  if err:=Recognize("abc 12.5 x"); err!=nil {t.Fatal(err)}

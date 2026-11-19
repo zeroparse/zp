@@ -7,7 +7,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	rt "zeroparse.dev/zp/pkg/runtime/libgo"
 )
 
 var documentBenchmarkRecordCounts = [...]int{256, 4096} // 1/20 KiB UTF-8

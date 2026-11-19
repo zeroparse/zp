@@ -34,7 +34,7 @@ var (
 
 // libSource is the text of the library package, for tests that check its source.
 var libSource = func() string {
-	paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime", "golib", "*.go"))
+	paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime", "libgo", "*.go"))
 	if err != nil {
 		panic(err)
 	}

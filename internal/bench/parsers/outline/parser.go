@@ -5,7 +5,7 @@ package outline
 
 import (
 	types "zeroparse.dev/zp/internal/bench/parsers/outline/types"
-	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	rt "zeroparse.dev/zp/pkg/runtime/libgo"
 	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 

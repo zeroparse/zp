@@ -24,7 +24,7 @@ func TestVanityPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"zp/index.html", "zp/cmd/zp/index.html", "zp/pkg/grammar/index.html", "zp/pkg/grammar/ast/index.html", "zp/pkg/compiler/index.html", "zp/pkg/runtime/index.html", "zp/pkg/runtime/vm/index.html", "zp/pkg/runtime/golib/index.html", "alpha-parsers/index.html"} {
+	for _, name := range []string{"zp/index.html", "zp/cmd/zp/index.html", "zp/pkg/grammar/index.html", "zp/pkg/grammar/ast/index.html", "zp/pkg/compiler/index.html", "zp/pkg/runtime/index.html", "zp/pkg/runtime/vm/index.html", "zp/pkg/runtime/libgo/index.html", "alpha-parsers/index.html"} {
 		if _, ok := pages[name]; !ok {
 			t.Errorf("missing vanity page %s", name)
 		}

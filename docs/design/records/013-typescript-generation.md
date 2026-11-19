@@ -21,7 +21,7 @@ plain rules, projected repetitions, first-character dispatch, the recognizer) an
 expression and a function per action and predicate. It shares the expectation table, the naming and `first` with the
 Go generator (both embed `codegen.Generator`).
 
-The runtime, `internal/backend/codegen/typescript/lib/lib.ts`, is a port of `pkg/runtime/golib/lib.go`, function for function: rule calls with
+The runtime, `internal/backend/codegen/typescript/lib/lib.ts`, is a port of `pkg/runtime/libgo/lib.go`, function for function: rule calls with
 deferred memoization (`firstCall`, with the per-rule eager switch), left recursion by growing the seed, memo entries
 keyed by variable values, expectation records isolated in memoized calls and kept for reuse, captures with frames and
 the trail, `attachCaptures` and `finish`, `@error` and `#recover`, the Operators Rule loop, and every built-in function including

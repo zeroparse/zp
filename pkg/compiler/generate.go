@@ -35,10 +35,10 @@ type LibMode int
 const (
 	// LibEmbed writes a copy of the library next to the parser: the package internal/libgo in
 	// Go, which depends only on the runtime packages under zeroparse.dev/zp/pkg/runtime, and
-	// lib.ts in TypeScript, which depends on nothing. It is the default. GenerateGoLib and
+	// lib.ts in TypeScript, which depends on nothing. It is the default. GenerateLibGo and
 	// GenerateTypeScriptLib refresh the copy without regenerating the parser.
 	LibEmbed LibMode = iota
-	// LibImport imports the library: zeroparse.dev/zp/pkg/runtime/golib in Go, the module of
+	// LibImport imports the library: zeroparse.dev/zp/pkg/runtime/libgo in Go, the module of
 	// TSConfig.LibModule in TypeScript.
 	LibImport
 )
@@ -174,9 +174,9 @@ func GenerateGo(src grammar.Source, c GoConfig, opts ...Option) ([]File, error) 
 	}))
 }
 
-// GenerateGoLib generates only the embedded copy of the library for the package with import
+// GenerateLibGo generates only the embedded copy of the library for the package with import
 // path module, to refresh a parser generated with LibEmbed without regenerating it.
-func GenerateGoLib(module string) ([]File, error) {
+func GenerateLibGo(module string) ([]File, error) {
 	return files(generate.Go(nil, common.GenOptions{Module: module, Lib: common.LibOnly}))
 }
 

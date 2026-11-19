@@ -47,7 +47,7 @@ func defaultPackageName(module string) string {
 // relative to the directory of the generated package. common.Go describes the options.
 //
 // Eligible rule bodies inline their expressions; other expressions become Go functions. Actions
-// and predicates become Go expressions, and the library (package golib of this module) behaves
+// and predicates become Go expressions, and the library (package libgo of this module) behaves
 // exactly like the engine. Without opts.Stream, #stream is a plain repetition.
 func Generate(g *ast.Grammar, c common.Compiler, p common.Passes, opts common.GenOptions) ([]common.GeneratedFile, error) {
 	if opts.Lib == common.LibOnly {

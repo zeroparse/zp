@@ -88,7 +88,7 @@ vocabulary they own, not by the stage that implements them.
   units, locations, text edits and change kinds), `value` (nodes, cursors, traversal, JSON, syntax errors), `value/impl`
   (the node representation), `schema` (the output schema, its JSON form, validation and comparison), `query` (structural
   queries), `instrument` (trace events, filters, depth and the per-rule profile), `vm` (loading a compiled file into a
-  parser) and `golib` (the support declarations that generated Go parsers import; it is not an API for direct calls). The
+  parser) and `libgo` (the support declarations that generated Go parsers import; it is not an API for direct calls). The Go runtime library is named `libgo` so that per-language libraries share the `lib<lang>` prefix and sort together. The
   node representation sits below the value package because a generated parser copied into a user's module imports it,
   which an internal package cannot allow. The output schema is runtime-side because a parser, structural queries and the
   typed API use it while running. The support library of generated Go parsers is a package of its own, apart from
@@ -369,7 +369,7 @@ of [Naming](#naming).
 | `Marshal` | Writes the compiled file of a source in one of the modes of `vm.CompiledMode` (parse, recognize or document). |
 | `OutputSchema` | Exports the output schema of a source without making a parser. |
 | `GenerateGo` with `GoConfig`, `GenerateTypeScript` with `TSConfig` | Generate host-language parsers from a source. The configuration holds what selects the generated API (module, library mode, typed, document, stream, recognition); the compile options above apply as to `Compile`. |
-| `GenerateGoLib`, `GenerateTypeScriptLib` | Write the library of generated parsers for the import library mode. |
+| `GenerateLibGo`, `GenerateTypeScriptLib` | Write the library of generated parsers for the import library mode. |
 
 `Compile`, `CompileGrammar` and `NewReferenceParser` return a `runtime.Parser`. The dynamic type of the first two is
 `*vm.Parser`, which also offers the choice of start rule, prefix parsing, iteration, the iterative VM (`Iterative`) and
@@ -437,7 +437,7 @@ ordering and the required passes, is internal test support, outside the public A
 | `golang/libprint` | Prints the compositions of the Exec dialect into the Go library and the shared engine state. It is an edge of code generation through go:generate. |
 | `golang/libsrc` | The go:generate copy of the Go library, which the embedded library mode uses. It has a freshness test. |
 | `typescript/pass`, `typescript/print`, `typescript/lib` | The passes of TypeScript, its printer and its runtime library. |
-| `golib` | The support library of generated Go parsers. |
+| `libgo` | The support library of generated Go parsers. |
 | `valueimpl` | The package name of the node representation under `value/impl`. |
 | `archtest` | The import-graph test. It runs under the default tags and under the reference tag sets of the reference build. |
 | `exectest` | Test support for the Exec stage, which calls passes and printers. |

@@ -33,7 +33,7 @@ Evidence records:
 
 Source owners: [`emptyFrame` and
 `invokePlain`](../../../internal/runtime/state/runtime.go), [`newFrame`](../../../internal/runtime/state/alloc.go), [`generated empty
-frame`](../../../pkg/runtime/golib/lib.go),
+frame`](../../../pkg/runtime/libgo/lib.go),
 [`Parser.newFrame`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

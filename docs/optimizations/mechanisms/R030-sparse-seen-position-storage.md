@@ -45,7 +45,7 @@ Source owners: [`sparse memo
 selection`](../../../internal/runtime/state/sparse_memo.go),
 [`memoTable.markSparseSeen`](../../../internal/runtime/state/memo.go),
 [`UseSparseMemo`](../../../internal/backend/codegen/common/generator.go), [`generated
-sparse pages`](../../../pkg/runtime/golib/lib.go), [`TypeScript sparse
+sparse pages`](../../../pkg/runtime/libgo/lib.go), [`TypeScript sparse
 seen pages`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

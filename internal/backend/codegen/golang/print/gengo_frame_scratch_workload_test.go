@@ -112,7 +112,7 @@ rule main Tok = t:(("é" / "�")* $$) #atomic => Tok{Text: text($t)}`, `func fr
 
 const frameScratchFixture = `package framefixture
 
-import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 import("crypto/sha256";"encoding/json";"fmt";"strings";"sync";"testing")
 const captureCase = CAPTURE_CASE
 func frameJSON(n *Node,err error)string {out:=map[string]any{"node":n};if err!=nil {out["err"]=err.Error()};b,_:=json.Marshal(out);return string(b)}

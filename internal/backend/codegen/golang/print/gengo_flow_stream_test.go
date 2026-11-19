@@ -230,7 +230,7 @@ import (
 	"os"
 	"strings"
 
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 IMPORTS)
 

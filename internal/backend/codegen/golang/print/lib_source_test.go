@@ -14,19 +14,19 @@ import (
 // miniLib is a library source with one file whose text carries marker.
 func miniLib(marker string) fstest.MapFS {
 	return fstest.MapFS{
-		"lib.go": {Data: []byte("package golib\n\n// " + marker + "\nconst Protocol1 = 1\n")},
+		"lib.go": {Data: []byte("package libgo\n\n// " + marker + "\nconst Protocol1 = 1\n")},
 	}
 }
 
-// TestGoLibIsPerCall shows that the library a generation copies is the one in its options:
+// TestLibGoIsPerCall shows that the library a generation copies is the one in its options:
 // two sources in one process give two outputs, and a generation without a source fails instead of
 // falling back on one a package registered.
-func TestGoLibIsPerCall(t *testing.T) {
+func TestLibGoIsPerCall(t *testing.T) {
 	generate := func(src fstest.MapFS) string {
 		t.Helper()
 		opts := common.GenOptions{Module: "example.com/m", Lib: common.LibOnly}
 		if src != nil {
-			opts.GoLib = src
+			opts.LibGo = src
 		}
 		files, err := print.Generate(nil, nil, nil, opts)
 		if err != nil {
@@ -45,8 +45,8 @@ func TestGoLibIsPerCall(t *testing.T) {
 	if !strings.Contains(b, "source-b") || strings.Contains(b, "source-a") {
 		t.Errorf("second source not used alone:\n%s", b)
 	}
-	if _, err := print.Generate(nil, nil, nil, common.GenOptions{Module: "example.com/m", Lib: common.LibOnly}); err == nil || !strings.Contains(err.Error(), "GoLib") {
-		t.Errorf("generation without a library source: err = %v, want a GoLib error", err)
+	if _, err := print.Generate(nil, nil, nil, common.GenOptions{Module: "example.com/m", Lib: common.LibOnly}); err == nil || !strings.Contains(err.Error(), "LibGo") {
+		t.Errorf("generation without a library source: err = %v, want a LibGo error", err)
 	}
 }
 
@@ -57,10 +57,10 @@ type unhashableFS struct {
 	tag any
 }
 
-// TestGoLibNotHashable shows that a source that is not a valid map key is used, not cached.
-func TestGoLibNotHashable(t *testing.T) {
+// TestLibGoNotHashable shows that a source that is not a valid map key is used, not cached.
+func TestLibGoNotHashable(t *testing.T) {
 	src := unhashableFS{FS: miniLib("source-u"), tag: []int{1}}
-	files, err := print.Generate(nil, nil, nil, common.GenOptions{Module: "example.com/m", Lib: common.LibOnly, GoLib: src})
+	files, err := print.Generate(nil, nil, nil, common.GenOptions{Module: "example.com/m", Lib: common.LibOnly, LibGo: src})
 	if err != nil {
 		t.Fatal(err)
 	}

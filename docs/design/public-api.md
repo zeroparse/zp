@@ -73,7 +73,7 @@ API of generated parsers offers the same choice with the same meaning.
   against the schema; a text syntax is a later front end to it.
 - **`instrument`**: the model of trace events and profiles; see [Observability](observability.md).
 - **`vm`**: loads a compiled file into a parser, without the grammar and without the compiler.
-- **`golib`**: support declarations that only generated Go parsers use. It is not an API that users call.
+- **`libgo`**: support declarations that only generated Go parsers use. It is not an API that users call.
 
 ## The Pass Infrastructure
 

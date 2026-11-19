@@ -34,7 +34,7 @@ import (
 	"io"
 	"os"
 
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	zpvalue "zeroparse.dev/zp/pkg/runtime/value"

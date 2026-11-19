@@ -85,7 +85,7 @@ const generatedProfileAllocs = `//go:build !race
 
 package PACKAGE
 
-import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 import zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 import "testing"
 func TestProfileAllocs(t *testing.T){
@@ -104,7 +104,7 @@ func TestProfileAllocs(t *testing.T){
 // trace function, so they are at most the parse's wall time less those sleeps.
 const generatedProfileConsumer = `package PACKAGE
 
-import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 import zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 import("context";"encoding/json";"fmt";"reflect";"sync";"testing";"time")
 func TestProfile(t *testing.T){

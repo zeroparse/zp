@@ -35,7 +35,7 @@ var refPackages = []refPackage{
 	{dir: "pkg/grammar", importPath: modulePath + "/pkg/grammar", url: "reference/grammar/", title: "Package zp/pkg/grammar", label: "zp/pkg/grammar"},
 	{dir: "pkg/grammar/ast", importPath: modulePath + "/pkg/grammar/ast", url: "reference/grammarast/", title: "Package zp/pkg/grammar/ast", label: "zp/pkg/grammar/ast"},
 	{dir: "pkg/runtime/value/impl", importPath: modulePath + "/pkg/runtime/value/impl", url: "reference/valueimpl/", title: "Package zp/pkg/runtime/value/impl", label: "zp/pkg/runtime/value/impl"},
-	{dir: "pkg/runtime/golib", importPath: modulePath + "/pkg/runtime/golib", url: "reference/golib/", title: "Package zp/pkg/runtime/golib", label: "zp/pkg/runtime/golib"},
+	{dir: "pkg/runtime/libgo", importPath: modulePath + "/pkg/runtime/libgo", url: "reference/libgo/", title: "Package zp/pkg/runtime/libgo", label: "zp/pkg/runtime/libgo"},
 	{dir: "pkg/bytecode", importPath: modulePath + "/pkg/bytecode", url: "reference/bytecode/", title: "Package zp/pkg/bytecode", label: "zp/pkg/bytecode"},
 	{dir: "pkg/lint", importPath: modulePath + "/pkg/lint", url: "reference/lint/", title: "Package zp/pkg/lint", label: "zp/pkg/lint"},
 	{dir: "pkg/runtime/schema", importPath: modulePath + "/pkg/runtime/schema", url: "reference/schema/", title: "Package zp/pkg/runtime/schema", label: "zp/pkg/runtime/schema"},

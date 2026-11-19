@@ -86,7 +86,7 @@ rule left = left "+" "é" / "é"
 		}
 	}
 	tests := `package depth
-import("fmt";"testing";zprt "zeroparse.dev/zp/pkg/runtime/golib")
+import("fmt";"testing";zprt "zeroparse.dev/zp/pkg/runtime/libgo")
 func TestRoutesAndReuse(t *testing.T) {
  cases:=[]struct{name,input string; unit PositionUnit; want string}{` + rows.String() + `}
  for repeat:=0;repeat<3;repeat++ { for _,c:=range cases {

@@ -37,7 +37,7 @@ Evidence records: [003](../003-node-fields-as-a-slice-54a5774.md),
 [064](../064-a-smaller-node-in-generated-parsers.md).
 
 Source owners: the `pkg/runtime/value` package (nodes), the `pkg/runtime/value/impl` package (their representation and kinds),
-[`generated Node and Fields`](../../../pkg/runtime/golib/lib.go).
+[`generated Node and Fields`](../../../pkg/runtime/libgo/lib.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

@@ -96,7 +96,7 @@ func TestGeneratedDocumentObservation(t *testing.T) {
 
 const generatedDocumentObservationConsumer = `package PACKAGE
 
-import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 import zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 
 import(
@@ -268,7 +268,7 @@ func observedLib(t *testing.T) string {
 		}
 		return src
 	})
-	hooks := map[string]string{"zz_hooks.go": `package golib
+	hooks := map[string]string{"zz_hooks.go": `package libgo
 
 var ProbeHook func(*observation)
 var ExaminedHook = func(rule string, pos, level, examined int, hit bool) {}

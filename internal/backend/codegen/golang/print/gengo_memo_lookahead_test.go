@@ -54,7 +54,7 @@ func testGeneratedMemoLookaheadState(t *testing.T) {
 import (
 	"fmt"
 
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 ` + imports.String() + `)
 

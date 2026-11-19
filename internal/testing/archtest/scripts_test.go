@@ -369,10 +369,10 @@ func TestAffectedTestsDeletedPackages(t *testing.T) {
 	const mod = "zeroparse.dev/zp"
 	write(t, filepath.Join(w, "hack", "affected-tests.sh"), string(b), 0o755)
 	write(t, filepath.Join(w, "go.mod"), "module "+mod+"\n\ngo 1.21\n", 0o644)
-	write(t, filepath.Join(w, "pkg", "runtime", "golib", "g.go"), "package golib\n", 0o644)
+	write(t, filepath.Join(w, "pkg", "runtime", "libgo", "g.go"), "package libgo\n", 0o644)
 	write(t, filepath.Join(w, "codegen", "c.go"), "package codegen\n", 0o644)
 	write(t, filepath.Join(w, "user", "u.go"), "package user\n\nimport _ \""+mod+"/codegen\"\n", 0o644)
-	write(t, filepath.Join(w, "dep", "d.go"), "package dep\n\nimport _ \""+mod+"/pkg/runtime/golib\"\n", 0o644)
+	write(t, filepath.Join(w, "dep", "d.go"), "package dep\n\nimport _ \""+mod+"/pkg/runtime/libgo\"\n", 0o644)
 	mustRun(t, w, env, "git", "init", "-q", "-b", "main")
 	mustRun(t, w, env, "git", "add", ".")
 	mustRun(t, w, env, "git", "commit", "-q", "-m", "Seed")
@@ -381,7 +381,7 @@ func TestAffectedTestsDeletedPackages(t *testing.T) {
 	// The change deletes codegen, drops user's import of it and touches the runtime library.
 	mustRun(t, w, env, "git", "rm", "-q", "-r", "codegen")
 	write(t, filepath.Join(w, "user", "u.go"), "package user\n", 0o644)
-	write(t, filepath.Join(w, "pkg", "runtime", "golib", "g.go"), "package golib\n\nconst X = 1\n", 0o644)
+	write(t, filepath.Join(w, "pkg", "runtime", "libgo", "g.go"), "package libgo\n\nconst X = 1\n", 0o644)
 	mustRun(t, w, env, "git", "add", "-u")
 	mustRun(t, w, env, "git", "commit", "-q", "-m", "Delete codegen")
 
@@ -393,7 +393,7 @@ func TestAffectedTestsDeletedPackages(t *testing.T) {
 	if got[mod+"/codegen"] {
 		t.Errorf("the deleted package is listed:\n%s", out)
 	}
-	for _, p := range []string{"user", "dep", "pkg/runtime/golib"} {
+	for _, p := range []string{"user", "dep", "pkg/runtime/libgo"} {
 		if !got[mod+"/"+p] {
 			t.Errorf("%s still exists at the head and is affected, but is not listed:\n%s", p, out)
 		}

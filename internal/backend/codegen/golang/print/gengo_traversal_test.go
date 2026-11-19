@@ -14,8 +14,8 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/runtime/nodes"
 	"zeroparse.dev/zp/internal/testing/codegentest"
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
 	"zeroparse.dev/zp/pkg/runtime/input"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 	"zeroparse.dev/zp/pkg/runtime/value"
 	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
@@ -142,7 +142,7 @@ func testGeneratedTreeTraversal(t *testing.T) {
 	// The traversal itself is the library's and is tested there; this checks that the generated
 	// package declares the colliding grammar types beside the library's names and walks a tree.
 	var consumer strings.Builder
-	consumer.WriteString("package tree\n\nimport (\n\t\"testing\"\n\n\t\"codegentest/tree/types\"\n\tzprt \"zeroparse.dev/zp/pkg/runtime/golib\"\n\tzpvalue \"zeroparse.dev/zp/pkg/runtime/value\"\n)\n\nfunc TestWalk(t *testing.T) {\n")
+	consumer.WriteString("package tree\n\nimport (\n\t\"testing\"\n\n\t\"codegentest/tree/types\"\n\tzprt \"zeroparse.dev/zp/pkg/runtime/libgo\"\n\tzpvalue \"zeroparse.dev/zp/pkg/runtime/value\"\n)\n\nfunc TestWalk(t *testing.T) {\n")
 	for _, name := range names {
 		fmt.Fprintf(&consumer, "\t_ = types.%s{Value: 1}\n", name)
 	}

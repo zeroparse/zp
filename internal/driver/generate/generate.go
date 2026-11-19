@@ -19,9 +19,9 @@ import (
 )
 
 // Go generates the files of a Go parser for g with o, running the passes that o selects (Passes),
-// and the embedded copy of the Go library (pkg/runtime/golib) with LibEmbed and LibOnly. g is not read with LibOnly and may be nil.
+// and the embedded copy of the Go library (pkg/runtime/libgo) with LibEmbed and LibOnly. g is not read with LibOnly and may be nil.
 func Go(g *ast.Grammar, o common.GenOptions) ([]common.GeneratedFile, error) {
-	o.GoLib = goLib
+	o.LibGo = libGo
 	return goprint.Generate(g, compileForGenerator, Passes(o, Hooks{}), o)
 }
 
@@ -67,11 +67,11 @@ func check(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags) (*co
 	return prog, nil
 }
 
-// goLib and tsLib are the libraries of generated parsers: Go generation copies the Go library
+// libGo and tsLib are the libraries of generated parsers: Go generation copies the Go library
 // into packages generated with LibEmbed and reads it to qualify the names generated code uses
 // from it; TypeScript generation assembles lib.ts from the TypeScript library. The copies live in
 // the back end rather than in the runtime so that only programs that generate code carry them.
 var (
-	goLib fs.FS = libsrc.FS
+	libGo fs.FS = libsrc.FS
 	tsLib fs.FS = tslib.FS
 )

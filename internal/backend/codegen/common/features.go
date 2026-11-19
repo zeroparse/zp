@@ -18,7 +18,7 @@ import (
 // parser carries.
 //
 // The analysis over-approximates: a feature that a parse could use is always in the set. The bits are
-// part of the contract between the generator and the Go library (pkg/runtime/golib/features.go declares
+// part of the contract between the generator and the Go library (pkg/runtime/libgo/features.go declares
 // the same values), and a test checks that the two agree.
 type Feature uint32
 

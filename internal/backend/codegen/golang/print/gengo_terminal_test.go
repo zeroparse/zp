@@ -208,7 +208,7 @@ func TestDepthChecks(t *testing.T) {
 	t.Parallel()
 	codegentest.PinOrdinary(t)
 	sources := map[string]string{}
-	files, err := filepath.Glob("../../../../../pkg/runtime/golib/*.go")
+	files, err := filepath.Glob("../../../../../pkg/runtime/libgo/*.go")
 	if err != nil || len(files) == 0 {
 		t.Fatalf("library sources: %v", err)
 	}

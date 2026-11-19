@@ -32,7 +32,7 @@ Evidence records: [039](../039-a-line-table-for-error-positions.md).
 
 Source owners: [`input.buildLines and
 lineCol`](../../../internal/runtime/state/input.go), [`generated line
-lookup`](../../../pkg/runtime/golib/lib.go), [`TypeScript line
+lookup`](../../../pkg/runtime/libgo/lib.go), [`TypeScript line
 index`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

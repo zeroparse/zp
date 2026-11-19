@@ -74,7 +74,7 @@ type Generator struct {
 	DescIDs map[string]program.ExpID
 	// FieldTypes names the field type variable of each checked constructed field, result and cast (by
 	// *ast.FieldInit or checkInfo.results key), numbered separately so that checks do not
-	// rename other generated names (pkg/runtime/golib/fieldcheck.go).
+	// rename other generated names (pkg/runtime/libgo/fieldcheck.go).
 	FieldTypes map[any]string
 	// fieldTypeKeys are the keys of fieldTypes in the order of their variables, for rollback.
 	fieldTypeKeys []any

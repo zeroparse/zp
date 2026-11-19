@@ -4,7 +4,7 @@
 package types
 
 import (
-	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	rt "zeroparse.dev/zp/pkg/runtime/libgo"
 )
 
 // TNode is a node whose Value has type T: a string node (TNode[string]) holds the text a

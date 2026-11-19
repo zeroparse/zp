@@ -99,7 +99,7 @@ Commands:
       all written below the directory -o (created if missing). -module is
       the import path of that package; the package name is its last element
       without a major version suffix, or -pkg. -lib import makes the
-      parser import zeroparse.dev/zp/pkg/runtime/golib instead, and needs only
+      parser import zeroparse.dev/zp/pkg/runtime/libgo instead, and needs only
       -pkg or -module. Either way the parser imports the runtime packages
       under zeroparse.dev/zp/pkg/runtime.
       -lib only writes just internal/libgo, to refresh a package generated
@@ -735,7 +735,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	lang := fs.String("lang", "go", "language of the generated code: go or ts (TypeScript)")
 	pkg := fs.String("pkg", "", "package name of the generated code (Go; default: the last element of -module without a major version suffix)")
 	module := fs.String("module", "", "import path of the generated Go package")
-	libMode := fs.String("lib", "embed", "how generated code reaches the library: embed (a copy: internal/libgo in Go, lib.ts in TypeScript), import (zeroparse.dev/zp/pkg/runtime/golib in Go; the module of -lib-module in TypeScript) or only (just the embedded copy)")
+	libMode := fs.String("lib", "embed", "how generated code reaches the library: embed (a copy: internal/libgo in Go, lib.ts in TypeScript), import (zeroparse.dev/zp/pkg/runtime/libgo in Go; the module of -lib-module in TypeScript) or only (just the embedded copy)")
 	libModule := fs.String("lib-module", "", "module specifier a TypeScript parser imports its library from with -lib import, such as ../shared/lib.ts")
 	start := fs.String("s", "", "start rule of the generated Parse function (default: the grammar's default start rule)")
 	output := fs.String("o", "", "output directory")
@@ -857,7 +857,7 @@ func genCmd(args []string, stdout io.Writer) error {
 		if *lang == "ts" {
 			files, err = compiler.GenerateTypeScriptLib()
 		} else {
-			files, err = compiler.GenerateGoLib(*module)
+			files, err = compiler.GenerateLibGo(*module)
 		}
 		if err != nil {
 			return err

@@ -1063,7 +1063,7 @@ rule stmt S = n:[a-z]+ #atomic ";" => S{N: $n}`)
 const generatedRecoveringStreamConsumer = `package recovering
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 	zpruntime "zeroparse.dev/zp/pkg/runtime"
 	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 	"errors"
@@ -1296,7 +1296,7 @@ func TestParseStreamValueBudgetControls(t *testing.T) {
 const generatedStreamConsumer = `package fixture
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	"context"
 	"errors"
 	"io"
@@ -1430,7 +1430,7 @@ func TestMemoryIsBounded(t *testing.T) {
 const generatedStreamListsConsumer = `package lists
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	"io"
 	"runtime"
 	"testing"
@@ -1496,7 +1496,7 @@ func TestMemoryIsBounded(t *testing.T) {
 const generatedStreamMemoConsumer = `package memo
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"; zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	"io"
 	"runtime"
 	"testing"

@@ -120,7 +120,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	libFiles, err := compiler.GenerateGoLib("example.com/proto")
+	libFiles, err := compiler.GenerateLibGo("example.com/proto")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 	if want := "const _ = rt." + protocol + "\n"; !bytes.Contains(parser, []byte(want)) {
 		t.Fatalf("parser.go does not refer to the protocol with %q", want)
 	}
-	const lib = "zp/pkg/runtime/golib"
+	const lib = "zp/pkg/runtime/libgo"
 	if out, err := protocolBuild(t, files, libFiles, lib, nil); err != nil {
 		t.Fatalf("the parser does not build against the library of its generator: %v\n%s", err, out)
 	}

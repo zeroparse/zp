@@ -37,7 +37,7 @@ Evidence records: [111](../111-terminal-programs.md),
 
 Source owners: [`the terminals Flow pass`](../../../internal/middleend/flowpass/passes.go), over the
 regions that `TerminalRegions` finds in Core IR,
-[`TerminalProgram`](../../../pkg/runtime/golib/terminal.go).
+[`TerminalProgram`](../../../pkg/runtime/libgo/terminal.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

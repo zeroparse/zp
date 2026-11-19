@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/pkg/grammar/ast"
-	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	rt "zeroparse.dev/zp/pkg/runtime/libgo"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
 

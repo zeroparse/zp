@@ -28,8 +28,8 @@ import (
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
 	"zeroparse.dev/zp/internal/runtime/engine"
 	"zeroparse.dev/zp/internal/testing/enginetest"
-	rt "zeroparse.dev/zp/pkg/runtime/golib"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
+	rt "zeroparse.dev/zp/pkg/runtime/libgo"
 	"zeroparse.dev/zp/pkg/runtime/value"
 )
 

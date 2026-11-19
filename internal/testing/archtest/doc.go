@@ -4,7 +4,7 @@
 //   - Rule 1: a package of the runtime side (pkg/runtime and its subpackages, pkg/bytecode and
 //     internal/runtime/**) depends only on runtime-side packages of the module and on no
 //     third-party package.
-//   - Rule 1a: the library of generated Go parsers (pkg/runtime/golib) imports only pkg/runtime,
+//   - Rule 1a: the library of generated Go parsers (pkg/runtime/libgo) imports only pkg/runtime,
 //     its input, value, value/impl, instrument and schema packages, and a generated Go parser,
 //     in either library mode, links neither the VM (pkg/runtime/vm) nor internal/runtime/**.
 //   - Rule 2: the layers of the compiler side. Each layer imports only the layers that the

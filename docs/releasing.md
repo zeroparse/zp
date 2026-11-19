@@ -18,7 +18,7 @@ Go modules give a v0 version no compatibility guarantee. ZeroParse states its in
 | The testing packages `sample` (input generation) and `editfuzz` (incremental-parsing fuzzing), and the sequence files of `editfuzz` | Public so that Go programs can test their own grammars and documents; unstable: may change in any release |
 | The fixture suites of `zp test` (the JSON format) | Unstable: may change in any release; the runner is internal, not a Go API |
 | The packages `zeroparse.dev/zp/pkg/runtime`, `zeroparse.dev/zp/pkg/runtime/value`, `zeroparse.dev/zp/pkg/runtime/input` and `zeroparse.dev/zp/pkg/runtime/instrument`: the nodes, limits, positions, errors, edits and statistics that `zp` and generated Go parsers share | Stable in intent, as part of the API of generated parsers |
-| The packages `zeroparse.dev/zp/pkg/runtime/golib` and `zeroparse.dev/zp/pkg/runtime/value/impl`, as generated code uses them with `zp gen -lib import` | Not a stable API. Judged by the protocol version (see [the library protocol](#the-library-protocol)), not by the release version |
+| The packages `zeroparse.dev/zp/pkg/runtime/libgo` and `zeroparse.dev/zp/pkg/runtime/value/impl`, as generated code uses them with `zp gen -lib import` | Not a stable API. Judged by the protocol version (see [the library protocol](#the-library-protocol)), not by the release version |
 | Compiled grammars (`.zpc`) and the bytecode: container version 8, instruction-set version 36 ([bytecode specification](../spec/bytecode/README.md)) | Unstable: may change in any release. A loader accepts only its own versions and asks for the grammar to be compiled again |
 | The JSON forms of grammars and nodes | Unstable: may change in any release |
 | Ready-made parsers (`zeroparse.dev/alpha-parsers`) | Not part of a release: a separate repository, used from a checkout next to this one with a `go.work` |
@@ -28,8 +28,8 @@ v1 module.
 
 ### The Library Protocol
 
-The library of generated Go parsers is the package `zeroparse.dev/zp/pkg/runtime/golib` in the directory
-`pkg/runtime/golib/`, released with the module `zeroparse.dev/zp`. Which parsers a library can serve is decided by the
+The library of generated Go parsers is the package `zeroparse.dev/zp/pkg/runtime/libgo` in the directory
+`pkg/runtime/libgo/`, released with the module `zeroparse.dev/zp`. Which parsers a library can serve is decided by the
 **protocol version**: a number that names one state of the interface between generated code and the library,
 independent of the release version. The interface is the exported declarations of the library package, the exported
 fields and methods of the types they reach, and what they mean, including the encoding of the data generated parsers

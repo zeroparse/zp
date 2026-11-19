@@ -7,7 +7,7 @@ import (
 	"io"
 
 	zpruntime "zeroparse.dev/zp/pkg/runtime"
-	rt "zeroparse.dev/zp/pkg/runtime/golib"
+	rt "zeroparse.dev/zp/pkg/runtime/libgo"
 	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
 )
 

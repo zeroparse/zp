@@ -66,7 +66,7 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}
 const typedOperatorsRuleActionWorkloadFixture = `package lrfixture
 
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 	"encoding/json"
 	"fmt"
 	"strings"

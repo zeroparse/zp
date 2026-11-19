@@ -229,7 +229,7 @@ func TestGeneratedDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 			src = strings.ReplaceAll(src, a.at, a.prefix+a.at)
 		}
 		return src
-	}, map[string]string{"zz_keep.go": "package golib\n\nvar keptSeedResults []func()\n"})
+	}, map[string]string{"zz_keep.go": "package libgo\n\nvar keptSeedResults []func()\n"})
 	cases := codegentest.LeftRecursionMemberDocumentCases()
 	diffs, _ := runMemberDocuments(t, cases, rt)
 	for i, c := range cases {

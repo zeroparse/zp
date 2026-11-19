@@ -337,7 +337,7 @@ func TestTestPathsNegativeControl(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("pkg/runtime/golib/lib.go", "package golib\n")
+	write("pkg/runtime/libgo/lib.go", "package libgo\n")
 	write("internal/runtime/state/resume.go", "package state\n")
 	write("internal/runtime/engine/testdata/a.zp", "")
 	write("internal/runtime/engine/x_long_test.go", `//go:build zp_long
@@ -353,10 +353,10 @@ var (
 	ok1 = "internal/runtime/state/resume.go"
 	ok2 = "../state/resume.go"
 	ok3 = filepath.Join("testdata", "a.zp")
-	ok4 = filepath.Join("..", "..", "..", "pkg", "runtime", "golib", name)
-	ok5 = filepath.Join(moduleRoot, "pkg", "runtime", "golib")
-	ok6 = "import rt \"zeroparse.dev/zp/pkg/runtime/golib\"; rt.Kind"
-	ok7 = "zeroparse.dev/zp/pkg/runtime/golib.Kind"
+	ok4 = filepath.Join("..", "..", "..", "pkg", "runtime", "libgo", name)
+	ok5 = filepath.Join(moduleRoot, "pkg", "runtime", "libgo")
+	ok6 = "import rt \"zeroparse.dev/zp/pkg/runtime/libgo\"; rt.Kind"
+	ok7 = "zeroparse.dev/zp/pkg/runtime/libgo.Kind"
 	ok8 = "./lib.ts"
 	ok9 = "internal/libgo/lib.go"
 	ok10 = "../rt.js"

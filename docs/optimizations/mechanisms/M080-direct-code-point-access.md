@@ -30,7 +30,7 @@ figures do not quantify Node or Bytes benefits.
 Evidence records: [061](../061-reading-code-points-directly-in-direct-rules.md).
 
 Source owners: [`Flow peek lowering`](../../../internal/middleend/flowlower/lower.go), [`input
-preparation`](../../../pkg/runtime/golib/lib.go).
+preparation`](../../../pkg/runtime/libgo/lib.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

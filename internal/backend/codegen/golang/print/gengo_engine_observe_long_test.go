@@ -32,7 +32,7 @@ var (
 	engineOptionsRun = engineObservationRun{"./internal/runtime/engine", "TestTraceOptions", ""}
 	// The generated parsers of the agreement use a copy of the library that the overlay does not
 	// change; a mutant of the library changes that copy too (agreeLibPatchEnv).
-	libOptionsRun = engineObservationRun{"./pkg/runtime/golib", "TestTraceOption(Selection|Composition)", ""}
+	libOptionsRun = engineObservationRun{"./pkg/runtime/libgo", "TestTraceOption(Selection|Composition)", ""}
 	// The Documents of both producers, whose parses share the defaults' trace selection.
 	engineDocumentRun    = engineObservationRun{"./internal/runtime/engine", "TestDocumentTraceSelection", ""}
 	generatedDocumentRun = engineObservationRun{"./internal/backend/codegen/golang/print", "TestGeneratedDocumentObservation", ""}
@@ -76,22 +76,22 @@ var engineObservationMutants = []engineObservationMutant{
 		old:  "\ts := new(instrument.TraceSelection)\n\tif o.TraceSelection != nil {\n\t\t*s = *o.TraceSelection\n\t}\n\to.TraceSelection = s\n",
 		new:  "\tif o.TraceSelection == nil {\n\t\to.TraceSelection = new(instrument.TraceSelection)\n\t}\n\ts := o.TraceSelection\n",
 		runs: []engineObservationRun{expecting(engineDocumentRun, "Parse 3 selected")}},
-	{name: "generated trace filter ignored", file: "pkg/runtime/golib/trace.go",
+	{name: "generated trace filter ignored", file: "pkg/runtime/libgo/trace.go",
 		old: "return len(o.rules) == 0 || o.rules[rule] ||", new: "return len(o.rules) >= 0 || o.rules[rule] ||",
 		runs: []engineObservationRun{expecting(agreementRun, "generated: the trace filter"), expecting(libOptionsRun, "pair and nested: got")}},
-	{name: "generated depth limit ignored", file: "pkg/runtime/golib/trace.go",
+	{name: "generated depth limit ignored", file: "pkg/runtime/libgo/trace.go",
 		old: "if o.trace == nil || !selected || o.maxDepth > 0 && e.Depth > o.maxDepth {", new: "if o.trace == nil || !selected {",
 		runs: []engineObservationRun{expecting(agreementRun, "generated: the trace filter"), expecting(libOptionsRun, "depth: got")}},
-	{name: "generated keeps the last trace function", file: "pkg/runtime/golib/trace.go",
+	{name: "generated keeps the last trace function", file: "pkg/runtime/libgo/trace.go",
 		old: "\t\t\t\tprev(e)\n", new: "\t\t\t\t_ = prev\n",
 		runs: []engineObservationRun{expecting(agreementRun, "generated: the second trace function"), expecting(libOptionsRun, "trace functions received")}},
-	{name: "generated keeps the last profile", file: "pkg/runtime/golib/trace.go",
+	{name: "generated keeps the last profile", file: "pkg/runtime/libgo/trace.go",
 		old: "x.more = append(slices.Clip(x.more), profile)", new: "x.more, o.observe.profile = slices.Clip(x.more), profile",
 		runs: []engineObservationRun{expecting(agreementRun, "generated: the second profile"), expecting(libOptionsRun, "profiles recorded")}},
-	{name: "generated Document parses share added profiles", file: "pkg/runtime/golib/trace.go",
+	{name: "generated Document parses share added profiles", file: "pkg/runtime/libgo/trace.go",
 		old: "x.more = append(slices.Clip(x.more), profile)", new: "_ = slices.Clip[[]int]\n\t\t\tx.more = append(x.more, profile)",
 		runs: []engineObservationRun{expecting(libOptionsRun, "was replaced")}},
-	{name: "generated Document parses change the default filter", file: "pkg/runtime/golib/trace.go",
+	{name: "generated Document parses change the default filter", file: "pkg/runtime/libgo/trace.go",
 		old:  "return func(o *parseOptions) { o.observe.withExtras().rules = names }",
 		new:  "return func(o *parseOptions) {\n\t\tif o.observe.extras == nil {\n\t\t\to.observe.extras = new(observeExtras)\n\t\t}\n\t\to.observe.extras.rules = names\n\t}",
 		runs: []engineObservationRun{expecting(generatedDocumentRun, "Parse 3 selected")}},
@@ -156,7 +156,7 @@ var engineObservationMutants = []engineObservationMutant{
 		old: "c.e.examined === e.examined && ", new: "",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
 	// As for TypeScript, the outcome taken skips the calls of the lookahead.
-	{name: "generated lookahead outcomes identified without their examined ends", file: "pkg/runtime/golib/context_memo.go",
+	{name: "generated lookahead outcomes identified without their examined ends", file: "pkg/runtime/libgo/context_memo.go",
 		old: "\tv := uint64(hi) << 1\n", new: "\tv := uint64(0)\n",
 		runs: []engineObservationRun{expecting(agreementRun, lookaheadOutcomeKill)}},
 	{name: "typescript library control", file: "internal/backend/codegen/typescript/lib/trace.ts",
@@ -167,7 +167,7 @@ var engineObservationMutants = []engineObservationMutant{
 	{name: "control", file: "internal/runtime/state/trace.go",
 		old: "\tt.exp = nil\n", new: "\tt.exp = nil\n\t_ = t\n",
 		runs: []engineObservationRun{agreementRun, discardRun, engineOptionsRun, libOptionsRun, engineDocumentRun}},
-	{name: "library control", file: "pkg/runtime/golib/trace.go",
+	{name: "library control", file: "pkg/runtime/libgo/trace.go",
 		old: "\tx := new(observeExtras)\n", new: "\tx := new(observeExtras)\n\t_ = x\n",
 		runs: []engineObservationRun{agreementRun, libOptionsRun, generatedDocumentRun}},
 }
@@ -221,7 +221,7 @@ func TestEngineObservationMutants(t *testing.T) {
 				cmd.Dir = root
 				// The tests run in the module itself, as go test runs them here.
 				cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=")
-				if strings.HasPrefix(m.file, "pkg/runtime/golib/") {
+				if strings.HasPrefix(m.file, "pkg/runtime/libgo/") {
 					patch, _ := json.Marshal(struct{ File, Old, New string }{m.file, m.old, m.new})
 					cmd.Env = append(cmd.Env, agreeLibPatchEnv+"="+string(patch))
 				}

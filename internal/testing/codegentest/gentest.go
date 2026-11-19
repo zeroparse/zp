@@ -13,10 +13,10 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 )
 
-// GoLibSource is the Go library source that tests give to the generator: the live directory
-// pkg/runtime/golib of this module, so that a test exercises the library as it is being edited. Package
+// LibGoSource is the Go library source that tests give to the generator: the live directory
+// pkg/runtime/libgo of this module, so that a test exercises the library as it is being edited. Package
 // codegen generates from its embedded files instead.
-func GoLibSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "pkg", "runtime", "golib")) }
+func LibGoSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "pkg", "runtime", "libgo")) }
 
 // TSLibSource is the TypeScript library source that tests give to the generator: the live
 // directory internal/backend/codegen/typescript/lib of this module.
@@ -26,7 +26,7 @@ func TSLibSource() fs.FS {
 
 // WithLib returns opts with the library sources set to the live library directories.
 func WithLib(opts common.GenOptions) common.GenOptions {
-	opts.GoLib = GoLibSource()
+	opts.LibGo = LibGoSource()
 	opts.TSLib = TSLibSource()
 	return opts
 }

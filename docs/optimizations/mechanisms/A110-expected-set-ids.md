@@ -35,7 +35,7 @@ Evidence records:
 Source owners: [`record, isolate and
 keep`](../../../internal/runtime/state/runtime.go),
 [`Program.DescTable`](../../../internal/compile/compile.go), [`generated
-expectation IDs`](../../../pkg/runtime/golib/lib.go), [`TypeScript
+expectation IDs`](../../../pkg/runtime/libgo/lib.go), [`TypeScript
 description IDs`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

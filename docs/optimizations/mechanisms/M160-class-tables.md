@@ -35,7 +35,7 @@ Evidence records: [105](../105-character-class-tables.md),
 [136](../136-measured-effect-of-the-generation-flags.md).
 
 Source owners: [`the class-tables Flow pass`](../../../internal/middleend/flowpass/passes.go),
-[`Class`](../../../pkg/runtime/golib/class.go).
+[`Class`](../../../pkg/runtime/libgo/class.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

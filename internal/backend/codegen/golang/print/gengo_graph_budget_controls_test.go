@@ -71,7 +71,7 @@ const generatedGoGraphTypedRuleCheck = `for _,name:=range []string{"main","rollb
 
 const generatedGoGraphConsumer = `package PACKAGE
 
-import zprt "zeroparse.dev/zp/pkg/runtime/golib"
+import zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 import "zeroparse.dev/zp/pkg/runtime/value/impl"
 import("context";"errors";"fmt";"reflect";"strings";"testing")
 const conversion = CONVERT

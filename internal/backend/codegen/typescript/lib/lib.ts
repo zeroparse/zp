@@ -4,7 +4,7 @@
 // and profile.ts, as lib.ts: one module without dependencies that every generated parser imports.
 // The parser.ts generated from a grammar holds the expression functions and the statements that set
 // up the rule table. Every top-level declaration is exported; parser.ts re-exports the public ones.
-// The module mirrors pkg/runtime/golib/lib.go, the library of
+// The module mirrors pkg/runtime/libgo/lib.go, the library of
 // generated Go parsers, line for line where it can: the results must equal the engine's exactly, which
 // the generator tests in internal/runtime/engine check by running the generated code with Node.js.
 //
@@ -2401,7 +2401,7 @@ export function recoveredErrors(entries: readonly RecEntry[], control: BudgetCon
 }
 
 /** memoScan is how many entries of a position's chain a lookup walks before it consults the
- * position's hash index; see pkg/runtime/golib/memo_index.go. */
+ * position's hash index; see pkg/runtime/libgo/memo_index.go. */
 const memoScan = 32;
 
 /**
@@ -2495,7 +2495,7 @@ function foldASCII(r: number): number {
 // growths of the cycle in progress there, its context. A result that read no seed and made no
 // observation goes to the memo with its present set; any other result goes to the table of its
 // context, keyed by the identities of the seeds it read and the outcomes of the lookaheads it
-// observed. See Parser.ctxEnter and the Go runtime's pkg/runtime/golib/context_memo.go, which this mirrors.
+// observed. See Parser.ctxEnter and the Go runtime's pkg/runtime/libgo/context_memo.go, which this mirrors.
 
 // failSeed is the identity of the failure that every growth starts from.
 const failSeed = 1;
@@ -3509,7 +3509,7 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
-  // Skip runs and run sites, a mirror of the Go runtime's (pkg/runtime/golib/skip_runs.go; see "Skip
+  // Skip runs and run sites, a mirror of the Go runtime's (pkg/runtime/libgo/skip_runs.go; see "Skip
   // Runs" and "Run Sites" in spec/runtime/parsing.md). A walk of a site visits positions with one
   // iteration each. It starts plain, marking the position of each iteration that matched (so a walk
   // that fails at once touches no slot), and starts recording at its first position that is not
@@ -3520,7 +3520,7 @@ export class Parser {
   // of a parse last for that parse.
 
   // Scan sites: the records of the walks of the repetitions of one character without a maximum in the
-  // rules that call no rule, a mirror of the Go runtime's (pkg/runtime/golib/scan_sites.go). A walk from a start
+  // rules that call no rule, a mirror of the Go runtime's (pkg/runtime/libgo/scan_sites.go). A walk from a start
   // ends at a position, matches a number of characters and builds elements that depend on the start
   // and the input alone. A walk that has matched SCAN_HOT_SPAN characters at a hot site looks for the
   // record of its start (scanReach): it moves to the recorded end and takes the count, and its next
@@ -4152,7 +4152,7 @@ export class Parser {
 
   // --- The dependency memo of left recursion ---
   //
-  // A mirror of the Go runtime's (pkg/runtime/golib/context_memo.go; see "Evaluations of Rules" in
+  // A mirror of the Go runtime's (pkg/runtime/libgo/context_memo.go; see "Evaluations of Rules" in
   // spec/runtime/parsing.md and spec/proofs/memoization.md), without Documents: the examined input
   // of results is not tracked.
 

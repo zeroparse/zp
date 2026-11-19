@@ -37,7 +37,7 @@ Evidence records:
 [041](../041-building-the-offset-table-while-decoding-for-full-parses.md).
 
 Source owners: [`newTextInputIn`](../../../internal/runtime/state/input.go),
-[`generated setSource`](../../../pkg/runtime/golib/lib.go), [`input
+[`generated setSource`](../../../pkg/runtime/libgo/lib.go), [`input
 decode/offset preparation`](../../../internal/backend/codegen/typescript/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

@@ -1,6 +1,6 @@
 //go:build ignore
 
-// print_lib writes the printed compositions of the Go library to pkg/runtime/golib/call_exec.go,
+// print_lib writes the printed compositions of the Go library to pkg/runtime/libgo/call_exec.go,
 // term_exec.go, operators_exec.go and stream_exec.go, and those of the engine to
 // internal/runtime/state/call_exec.go, term_exec.go, operators_exec.go, stream_exec.go and document_exec.go, and the
 // term compositions of the engine's backends to internal/backend/closure/term_exec.go and

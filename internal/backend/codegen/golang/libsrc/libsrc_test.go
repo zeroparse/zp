@@ -12,7 +12,7 @@ import (
 
 // TestCopyCurrent checks that the copy holds exactly the library's source files, as they are.
 func TestCopyCurrent(t *testing.T) {
-	src := filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime", "golib")
+	src := filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime", "libgo")
 	entries, err := os.ReadDir(src)
 	if err != nil {
 		t.Fatal(err)

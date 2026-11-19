@@ -34,7 +34,7 @@ Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md).
 
 Source owners: [`typed constructors and conversion
 generation`](../../../internal/backend/codegen/golang/print/types.go),
-[`tparser`](../../../pkg/runtime/golib/typed.go), [`typed runtime
+[`tparser`](../../../pkg/runtime/libgo/typed.go), [`typed runtime
 design`](../../design/records/012-typed-values.md).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

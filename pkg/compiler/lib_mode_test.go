@@ -20,7 +20,7 @@ func TestLibMode(t *testing.T) {
 		t.Errorf("TypeScript: %v", err)
 	}
 	// GenerateLib writes only the library, whatever the mode.
-	files, err := compiler.GenerateGoLib("example.com/m")
+	files, err := compiler.GenerateLibGo("example.com/m")
 	if err != nil || len(files) == 0 {
 		t.Fatalf("Go library: %d files, %v", len(files), err)
 	}

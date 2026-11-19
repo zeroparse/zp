@@ -98,7 +98,7 @@ rule n Word = t:(("(" n ")" / "é") #recover(skip="?")) #atomic => Word{Text: te
 				}
 			}
 			harness := `package ` + pkg + `
-import("fmt";"strings";"sync";"testing";zprt "zeroparse.dev/zp/pkg/runtime/golib")
+import("fmt";"strings";"sync";"testing";zprt "zeroparse.dev/zp/pkg/runtime/libgo")
 func TestLimitsAndReuse(t *testing.T) {
  rows:=[]struct{name,input string;unit PositionUnit;limit int;want,recWant string}{` + rows.String() + `}
  for repeat:=0;repeat<3;repeat++ {for _,c:=range rows {

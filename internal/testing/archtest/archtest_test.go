@@ -103,12 +103,12 @@ func generateParsers(t *testing.T) []generatedParser {
 		slices.Sort(imports)
 		// Guard against a check that passes because the generated code imports nothing of the
 		// module: a parser in either mode reaches the runtime through the module.
-		golibPath := modulePath + "/pkg/runtime/golib"
+		libgoPath := modulePath + "/pkg/runtime/libgo"
 		switch {
-		case lib == common.LibImport && !slices.Contains(imports, golibPath):
-			t.Fatalf("a parser generated with -lib import does not import %s: %v", golibPath, imports)
-		case lib == common.LibEmbed && (slices.Contains(imports, golibPath) || !slices.ContainsFunc(imports, inModule)):
-			t.Fatalf("a parser generated with -lib embed imports %s or no package of the module: %v", golibPath, imports)
+		case lib == common.LibImport && !slices.Contains(imports, libgoPath):
+			t.Fatalf("a parser generated with -lib import does not import %s: %v", libgoPath, imports)
+		case lib == common.LibEmbed && (slices.Contains(imports, libgoPath) || !slices.ContainsFunc(imports, inModule)):
+			t.Fatalf("a parser generated with -lib embed imports %s or no package of the module: %v", libgoPath, imports)
 		}
 		gens = append(gens, generatedParser{name: "generated parser (-lib " + lib.String() + ")", module: genModule, imports: imports})
 	}
@@ -149,7 +149,7 @@ func TestNegativeControls(t *testing.T) {
 	g.pkgs["example.org/thirdparty"] = &pkg{ImportPath: "example.org/thirdparty"}
 	addEdge(mod("pkg/runtime/schema"), "example.org/thirdparty")
 	// Rule 1a: the library links the VM, so do the parsers generated with -lib import.
-	addEdge(mod("pkg/runtime/golib"), mod("internal/runtime/vm"))
+	addEdge(mod("pkg/runtime/libgo"), mod("internal/runtime/vm"))
 	// Rule 1a: the node representation links the internal runtime, so do the parsers generated
 	// with -lib embed.
 	addEdge(mod("pkg/runtime/value/impl"), mod("internal/runtime/nodes"))
@@ -188,7 +188,7 @@ func TestNegativeControls(t *testing.T) {
 	fake("internal/fakeaction", "internal/ir/code/action")
 	fake("internal/fakevm", "pkg/runtime/vm")
 	// Rule 1a: the library imports the public VM.
-	addEdge(mod("pkg/runtime/golib"), mod("internal/fakevm"))
+	addEdge(mod("pkg/runtime/libgo"), mod("internal/fakevm"))
 	// Rule 2: a package under code/exec may import the Action dialect, code/exec itself and
 	// code/flow may not.
 	addEdge(mod("internal/ir/code/exec/compose"), mod("internal/fakeaction"))
@@ -226,12 +226,12 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 1: internal/runtime/limits -> internal/ir/core", []string{"\tbreaks: the runtime side (internal/runtime/limits) imports only the runtime side, not internal/ir/core\n", "\tchain: pkg/runtime/query -> internal/runtime/limits -> internal/ir/core\n"}},
 		{"rule 1: pkg/runtime/schema -> example.org/thirdparty", []string{"\tbreaks: the runtime side imports no third-party package\n", "\tchain: pkg/runtime/schema -> example.org/thirdparty\n"}},
 		// One failure for the edge, listing the generated parsers that reach it.
-		{"rule 1a: pkg/runtime/golib -> internal/runtime/vm", []string{
-			"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not internal/runtime/vm",
+		{"rule 1a: pkg/runtime/libgo -> internal/runtime/vm", []string{
+			"pkg/runtime/libgo imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not internal/runtime/vm",
 			"a generated parser links neither pkg/runtime/vm nor internal/runtime/**",
-			"pkg/runtime/golib -> internal/runtime/vm\n",
+			"pkg/runtime/libgo -> internal/runtime/vm\n",
 			"generated parser (-lib import)", "internal/bench/parsers/json,", "internal/frontend/parser/zpparser,"}},
-		{"rule 1a: pkg/runtime/value/impl -> internal/runtime/nodes", []string{"pkg/runtime/golib -> pkg/runtime/value/impl -> internal/runtime/nodes\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
+		{"rule 1a: pkg/runtime/value/impl -> internal/runtime/nodes", []string{"pkg/runtime/libgo -> pkg/runtime/value/impl -> internal/runtime/nodes\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
 		{"rule 2: internal/ir/code -> internal/ir/code/flow", []string{"\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n"}},
 		{"rule 2: internal/frontend/desugar -> internal/analysis/lint", []string{"the front end layer does not import the analysis layer (internal/frontend/desugar -> internal/analysis/lint)"}},
 		{"rule 2: internal/analysis/lint -> dialects exec, flow", []string{"only the conversions of the middle end and the back end and test support import the dialects of more than one stage (internal/analysis/lint)"}},
@@ -248,7 +248,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: pkg/grammar -> internal/runtime/engine", []string{"pkg/grammar imports only pkg/grammar/ast, internal/frontend/parser, internal/syntax/fmt and pkg/bytecode (pkg/grammar -> "}},
 		{"rule 2: internal/frontend/desugar -> internal/middleend/execlower", []string{"the front end layer does not import the middle end layer"}},
 		{"rule 2: internal/backend/closure -> internal/analysis/lint", []string{"the back end layer does not import the analysis layer"}},
-		{"rule 1a: pkg/runtime/golib -> internal/fakevm", []string{"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not pkg/runtime/vm"}},
+		{"rule 1a: pkg/runtime/libgo -> internal/fakevm", []string{"pkg/runtime/libgo imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not pkg/runtime/vm"}},
 		{"rule 2: internal/ir/code/exec -> internal/fakeaction", []string{"within internal/ir, code/exec imports only code (internal/ir/code/exec -> internal/ir/code/action)"}},
 		{"rule 2: internal/ir/code/flow -> internal/fakeaction", []string{"within internal/ir, code/flow imports only code and ir/core"}},
 		{"rule 2: internal/ir/code/flow -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import the dialects of more than one stage (internal/ir/code/flow)"}},

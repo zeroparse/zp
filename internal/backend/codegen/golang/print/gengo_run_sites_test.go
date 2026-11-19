@@ -20,7 +20,7 @@ import (
 // sites of the program turn hot at span instead of the threshold of the library.
 func runSpanAt(t *testing.T, span int) func([]byte) []byte {
 	return func(code []byte) []byte {
-		const lib = "rt \"zeroparse.dev/zp/pkg/runtime/golib\""
+		const lib = "rt \"zeroparse.dev/zp/pkg/runtime/libgo\""
 		if !bytes.Contains(code, []byte(lib)) {
 			t.Fatalf("the generated parser does not import the library as rt")
 		}

@@ -146,7 +146,7 @@ func check(graphs []*graph, gens []generatedParser) *report {
 			if !ok {
 				continue
 			}
-			importsGolib := false
+			importsLibgo := false
 			for _, b := range g.pkgs[a].Imports {
 				if !inModule(b) {
 					if g.pkgs[b] != nil && !g.pkgs[b].Standard {
@@ -172,14 +172,14 @@ func check(graphs []*graph, gens []generatedParser) *report {
 					add("1", rel(a), rel(b), fmt.Sprintf("the runtime side (%s) imports only the runtime side, not %s", pa.target, pb.target), append(runtimeChain(a), rel(b)))
 				}
 				// Rule 1a: the library and the generated parsers.
-				if pb.target == golib {
-					importsGolib = true
+				if pb.target == libgo {
+					importsLibgo = true
 				}
-				if pa.target == golib && !libraryImport(pb.target) {
-					add("1a", rel(a), rel(b), fmt.Sprintf("%s imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not %s", golib, pb.target), edge)
+				if pa.target == libgo && !libraryImport(pb.target) {
+					add("1a", rel(a), rel(b), fmt.Sprintf("%s imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not %s", libgo, pb.target), edge)
 				}
-				if pa.generated && pb.target != golib && !libraryImport(pb.target) && !pb.generated {
-					add("1a", rel(a), rel(b), fmt.Sprintf("a generated parser imports only %s, the packages it may import and generated packages, not %s", golib, pb.target), edge)
+				if pa.generated && pb.target != libgo && !libraryImport(pb.target) && !pb.generated {
+					add("1a", rel(a), rel(b), fmt.Sprintf("a generated parser imports only %s, the packages it may import and generated packages, not %s", libgo, pb.target), edge)
 				}
 				// Rule 2.
 				for _, why := range layer2(pa.target, pb.target) {
@@ -202,7 +202,7 @@ func check(graphs []*graph, gens []generatedParser) *report {
 				slices.Sort(dialects)
 				add("2", rel(a), "dialects "+strings.Join(dialects, ", "), fmt.Sprintf("only the conversions of the middle end and the back end and test support import the dialects of more than one stage (%s)", pa.target), []string{rel(a)})
 			}
-			if importsGolib && !pa.generated && !runtimeSide(pa.target) {
+			if importsLibgo && !pa.generated && !runtimeSide(pa.target) {
 				if !placeErr[a] {
 					placeErr[a] = true
 					r.errs = append(r.errs, fmt.Sprintf("%s imports the library of generated parsers but its layout row does not mark it generated", rel(a)))
@@ -220,8 +220,8 @@ func check(graphs []*graph, gens []generatedParser) *report {
 				case inModule(b):
 					mod = append(mod, b)
 					pb, ok := target(b)
-					if ok && pb.target != golib && !libraryImport(pb.target) {
-						add("1a", gen.name, rel(b), fmt.Sprintf("a generated parser imports only %s and the packages it may import, not %s", golib, pb.target), []string{gen.name, rel(b)})
+					if ok && pb.target != libgo && !libraryImport(pb.target) {
+						add("1a", gen.name, rel(b), fmt.Sprintf("a generated parser imports only %s and the packages it may import, not %s", libgo, pb.target), []string{gen.name, rel(b)})
 					}
 				case !strings.Contains(strings.Split(b, "/")[0], "."):
 					// The standard library.

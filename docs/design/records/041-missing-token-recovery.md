@@ -29,7 +29,7 @@ Without the option, this input fails as it does today.
 
 [Current recovery](../../../spec/language/pragmas.md#recover) rewinds a failed expression and consumes a nonempty skip.
 Both [design 006](006-error-reporting-and-recovery.md) and `recoverAttr` in
-[pkg/runtime/golib/lib.go](../../../pkg/runtime/golib/lib.go) deliberately reject an empty skip. Removing that check
+[pkg/runtime/libgo/lib.go](../../../pkg/runtime/libgo/lib.go) deliberately reject an empty skip. Removing that check
 would neither identify an expected token nor give repetitions, memoization or backtracking an insertion contract.
 
 The first stage accepts `#missing` with no arguments on a nonempty literal only. It inserts that entire literal,

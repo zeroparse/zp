@@ -36,7 +36,7 @@ largest of them, a 1,300-leaf trie, took 142 KB on its own.
 
 Such an expression needs no state but the position. In the typed body of a lean typed Go
 parser (no budget controls, no Document, no observability), the generator lowers it to a
-`TerminalProgram` (`pkg/runtime/golib/terminal.go`), which `SkipTerminal` interprets. Frame bodies,
+`TerminalProgram` (`pkg/runtime/libgo/terminal.go`), which `SkipTerminal` interprets. Frame bodies,
 which left-recursive rules and Operators Rules use, keep straight-line code.
 
 The program is static data: a `[]uint16` of operations, each holding its own length, plus the

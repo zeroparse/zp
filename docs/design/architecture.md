@@ -239,7 +239,7 @@ in [Package Layering](layering.md), and the public packages are described in [Th
 | `pkg/runtime/query` | Structural queries |
 | `pkg/runtime/instrument` | Trace events, filters, depth and profiles |
 | `pkg/runtime/vm` | Loading a compiled file into a parser, and the parser and Document of the VM |
-| `pkg/runtime/golib` | The support library of generated Go parsers |
+| `pkg/runtime/libgo` | The support library of generated Go parsers |
 | `internal/driver` | Assembles and drives the compiler pipeline; the table of optimization profiles; the body of `pkg/compiler` and `cmd/zp`. `entry` is the compile entry, and `checked` the compiler side of a compiled program, which the runtime reaches only through an interface of the parser state; `tooling` is what the language server uses of the compiler, its only way to reach it |
 | `internal/diagnostic` | Positioned static errors |
 | `internal/cancel` | Cancellation of static work |
@@ -306,7 +306,7 @@ The repository also holds `bench/`, `spec/`, `site/` and `examples/`.
 - **The output schema is on the runtime side** (`pkg/runtime/schema`), because the compiled parser, structural queries
   and the typed API use it while running. The comparison of schemas is a pure function over schemas, so it lives with
   the types.
-- **The support library of generated Go parsers is `pkg/runtime/golib`.** It holds many support declarations that are
+- **The support library of generated Go parsers is `pkg/runtime/libgo`.** It holds many support declarations that are
   versioned by the library protocol; keeping them apart from the user API avoids name clashes, such as the names of
   parsers and documents.
 - **The node representation (`pkg/runtime/value/impl`) is public**, because a support library copied into a user's

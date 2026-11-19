@@ -11,7 +11,7 @@ import (
 )
 
 // Protocol15 is declared because this package serves the node representation introduced by
-// protocol version 15 of the Go library of generated parsers (zeroparse.dev/zp/pkg/runtime/golib).
+// protocol version 15 of the Go library of generated parsers (zeroparse.dev/zp/pkg/runtime/libgo).
 // The package declares exactly this one constant, and the library refers to it, so that a copy of
 // the library embedded in a generated parser builds only against a core that serves its
 // representation. When the representation changes (testdata/representation.golden records it, and

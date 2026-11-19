@@ -11,7 +11,7 @@ themselves are listed in [The Package Layout](architecture.md#the-package-layout
 ## The Two Sides
 
 - **The runtime side** holds `pkg/runtime` and everything under it (`input`, `value`, `value/impl`, `schema`, `query`,
-  `instrument`, `vm`, `golib`), `pkg/bytecode` and the internal runtime packages.
+  `instrument`, `vm`, `libgo`), `pkg/bytecode` and the internal runtime packages.
 - **The compiler side** holds everything else: `pkg/compiler`, `pkg/grammar`, `pkg/grammar/ast`, `pkg/lint`,
   `pkg/sample`, `pkg/editfuzz`, the other packages of the internal tree, and the commands.
 

@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/pkg/grammar/ast"
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 )
 
 // TestClassBits builds the library's Class from the generator's tables for classes whose ranges

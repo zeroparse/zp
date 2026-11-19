@@ -112,7 +112,7 @@ rule main Text = v1:[aé😀]* #atomic => Text{S: text($v1)}`, []string{"", "aé
 
 const DirectTypedDocumentTests = `package PACKAGE
 import (
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
  "context"
  "encoding/json"
  "errors"

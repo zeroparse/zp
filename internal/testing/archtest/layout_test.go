@@ -26,7 +26,7 @@ type place struct {
 var layout = []place{
 	// Public packages.
 	{pkg: "pkg/compiler", target: "pkg/compiler"},
-	{pkg: "pkg/runtime/golib", target: "pkg/runtime/golib"},
+	{pkg: "pkg/runtime/libgo", target: "pkg/runtime/libgo"},
 	{pkg: "pkg/runtime", target: "pkg/runtime"},
 	{pkg: "pkg/runtime/input", target: "pkg/runtime/input"},
 	{pkg: "pkg/runtime/instrument", target: "pkg/runtime/instrument"},
@@ -213,8 +213,8 @@ func publicRuntime(t string) bool {
 	return under(t, "pkg/runtime") || under(t, "pkg/bytecode")
 }
 
-// golib is the layout path of the library of generated Go parsers.
-const golib = "pkg/runtime/golib"
+// libgo is the layout path of the library of generated Go parsers.
+const libgo = "pkg/runtime/libgo"
 
 // libraryImport reports whether the library of generated Go parsers may import the package at
 // the layout path t.

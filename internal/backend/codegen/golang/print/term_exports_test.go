@@ -30,7 +30,7 @@ func TestTermExportsGolden(t *testing.T) {
 			want = append(want, l)
 		}
 	}
-	dir := filepath.Join(codegentest.ModuleRoot(), "pkg", "runtime", "golib")
+	dir := filepath.Join(codegentest.ModuleRoot(), "pkg", "runtime", "libgo")
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, func(fi os.FileInfo) bool { return !strings.HasSuffix(fi.Name(), "_test.go") }, 0)
 	if err != nil {

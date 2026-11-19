@@ -247,7 +247,7 @@ import (
 	"io"
 	"os"
 
-	zprt "zeroparse.dev/zp/pkg/runtime/golib"
+	zprt "zeroparse.dev/zp/pkg/runtime/libgo"
 	zpinput "zeroparse.dev/zp/pkg/runtime/input"
 	zpinstrument "zeroparse.dev/zp/pkg/runtime/instrument"
 	zpvalue "zeroparse.dev/zp/pkg/runtime/value"
@@ -384,7 +384,7 @@ func libPatchFromEnv(t *testing.T, then func(name, src string) string) (func(nam
 		t.Fatalf("%s: %v", agreeLibPatchEnv, err)
 	}
 	dir, name := filepath.Split(filepath.FromSlash(m.File))
-	if filepath.ToSlash(filepath.Clean(dir)) != "pkg/runtime/golib" {
+	if filepath.ToSlash(filepath.Clean(dir)) != "pkg/runtime/libgo" {
 		t.Fatalf("%s: %s is not a file of the library", agreeLibPatchEnv, m.File)
 	}
 	patched := 0

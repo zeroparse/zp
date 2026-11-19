@@ -1,6 +1,6 @@
 //go:build ignore
 
-// generate copies the library of generated Go parsers (pkg/runtime/golib) into _golib.
+// generate copies the library of generated Go parsers (pkg/runtime/libgo) into _libgo.
 package main
 
 import (
@@ -11,11 +11,11 @@ import (
 )
 
 func main() {
-	src := filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime", "golib")
-	if err := os.RemoveAll("_golib"); err != nil {
+	src := filepath.Join("..", "..", "..", "..", "..", "pkg", "runtime", "libgo")
+	if err := os.RemoveAll("_libgo"); err != nil {
 		log.Fatal(err)
 	}
-	if err := os.Mkdir("_golib", 0o755); err != nil {
+	if err := os.Mkdir("_libgo", 0o755); err != nil {
 		log.Fatal(err)
 	}
 	entries, err := os.ReadDir(src)
@@ -31,7 +31,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join("_golib", n), data, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join("_libgo", n), data, 0o644); err != nil {
 			log.Fatal(err)
 		}
 	}
