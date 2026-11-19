@@ -26,6 +26,7 @@ type generatedParser struct {
 	name    string // how the report names it
 	module  string // its import path; imports below it are its own packages
 	imports []string
+	sources map[string][]byte // its Go files by path, as generated
 }
 
 // A report is the outcome of checking the graphs.

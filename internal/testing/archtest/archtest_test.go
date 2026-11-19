@@ -74,6 +74,7 @@ func generateParsers(t *testing.T) []generatedParser {
 	var gens []generatedParser
 	for _, lib := range []common.LibMode{common.LibImport, common.LibEmbed} {
 		var imports []string
+		sources := make(map[string][]byte)
 		for _, c := range []common.GenOptions{
 			{Types: true, Document: true, Stream: true, Observability: true, LimitControls: true, Recognize: true, Expectations: true, SourceInfo: true},
 			{RecognizeOnly: true},
@@ -88,6 +89,7 @@ func generateParsers(t *testing.T) []generatedParser {
 				if !strings.HasSuffix(f.Path, ".go") {
 					continue
 				}
+				sources[fmt.Sprintf("%s/%d/%s", lib, len(sources), f.Path)] = f.Content
 				af, err := parser.ParseFile(token.NewFileSet(), f.Path, f.Content, parser.ImportsOnly)
 				if err != nil {
 					t.Fatalf("generated %s: %v", f.Path, err)
@@ -110,7 +112,7 @@ func generateParsers(t *testing.T) []generatedParser {
 		case lib == common.LibEmbed && (slices.Contains(imports, golibPath) || !slices.ContainsFunc(imports, inModule)):
 			t.Fatalf("a parser generated with -lib embed imports %s or no package of the module: %v", golibPath, imports)
 		}
-		gens = append(gens, generatedParser{name: "generated parser (-lib " + lib.String() + ")", module: genModule, imports: imports})
+		gens = append(gens, generatedParser{name: "generated parser (-lib " + lib.String() + ")", module: genModule, imports: imports, sources: sources})
 	}
 	return gens
 }

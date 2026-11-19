@@ -186,6 +186,10 @@ that `pkg/runtime/value/impl` declares exactly one protocol constant, of a versi
 refers to it, and `pkg/compiler/protocol_test.go` checks that a parser generated with `-lib import` fails to build against a
 library of another protocol and that an embedded copy fails to build against a `pkg/runtime/value/impl` of another protocol.
 
+## Go Style
+
+An import block has at most one blank line: between the standard library group and the group of all other imports (the module's own packages included). Each group is sorted by import path, as `goimports` sorts it; named, blank and dot imports and their comments stay with their line. A package whose path has no dot in its first element counts as standard library. `TestImportGroups` in `internal/testing/archtest` checks every tracked Go file and every Go file the generator prints, so a generator must print its imports in this form. `hack/fix-imports.sh [-n] [path ...]` rewrites files to the rule (all tracked Go files without paths, `-n` to only list them); run it to resolve an import-block merge conflict, by taking either side and rerunning it. It leaves a block with a comment between imports unchanged and reports it.
+
 ## Testing
 
 ### Running the Checks
@@ -308,7 +312,7 @@ browser-engine or deployed-site validation.
 
 ### Developer Scripts
 
-`hack/` holds the scripts a contributor runs by hand: `gate.sh` (the levels above), `affected-tests.sh` (the packages a change can affect), `test-reference-tags.sh`, `sync-alpha-parsers.sh` and `test-alpha-parsers.sh` (the ready-made parsers), and `check-commits.sh`. `hack/check-commits.sh [base [head]]` checks the commits of a range before a push against `docs/commit-messages.md` and the repository rules: no AI or agent attribution, no merge commit, a summary of at most 72 characters without a final period, a body, no closing trailer, no files under `.scratch/`, and a branch prefix of `feat/`, `fix/`, `perf/` or `docs/`. It reads history only and exits 1 on any violation.
+`hack/` holds the scripts a contributor runs by hand: `gate.sh` (the levels above), `affected-tests.sh` (the packages a change can affect), `test-reference-tags.sh`, `sync-alpha-parsers.sh` and `test-alpha-parsers.sh` (the ready-made parsers), and `check-commits.sh`, and `fix-imports.sh` (the import grouping rule in [Go Style](#go-style)). `hack/check-commits.sh [base [head]]` checks the commits of a range before a push against `docs/commit-messages.md` and the repository rules: no AI or agent attribution, no merge commit, a summary of at most 72 characters without a final period, a body, no closing trailer, no files under `.scratch/`, and a branch prefix of `feat/`, `fix/`, `perf/` or `docs/`. It reads history only and exits 1 on any violation.
 
 ## Repository Grammar Test Coverage
 
