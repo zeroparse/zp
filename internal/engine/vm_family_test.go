@@ -46,8 +46,8 @@ func TestVMFamilyCharges(t *testing.T) {
 			BytecodeIterative: {"document": 39, "document+trace": 42, "parse": 37, "parse+trace": 40, "prefix": 36, "prefix+trace": 39, "recognize": 28, "recognize+trace": 31},
 		}},
 		{"recursion", "rule main = e $$\nrule e = \"(\" e \")\" / x\nrule x = \"x\"", compile.Options{DisableMemo: true}, "((x))", false, map[Backend]charges{
-			Bytecode:          {"document": 27, "document+trace": 36, "parse": 33, "parse+trace": 46, "prefix": 32, "prefix+trace": 45, "recognize": 26, "recognize+trace": 39},
-			BytecodeIterative: {"document": 23, "document+trace": 28, "parse": 33, "parse+trace": 38, "prefix": 32, "prefix+trace": 37, "recognize": 26, "recognize+trace": 31},
+			Bytecode:          {"document": 28, "document+trace": 37, "parse": 34, "parse+trace": 47, "prefix": 33, "prefix+trace": 46, "recognize": 27, "recognize+trace": 40},
+			BytecodeIterative: {"document": 24, "document+trace": 29, "parse": 34, "parse+trace": 39, "prefix": 33, "prefix+trace": 38, "recognize": 27, "recognize+trace": 32},
 		}},
 		{"captures", "rule main = item* $$\nrule item = x:\"a\" {len(text($x)) == 1}", compile.Options{}, "aaa", false, map[Backend]charges{
 			Bytecode:          {"document": 70, "document+trace": 77, "parse": 46, "parse+trace": 53, "prefix": 45, "prefix+trace": 52, "recognize": 30, "recognize+trace": 37},

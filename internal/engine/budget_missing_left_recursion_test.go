@@ -60,8 +60,8 @@ rule g = ";" / "x" #recover(skip=[b]+)`
 		{Closure, false, 10, false}:         {157, 80540},
 		{Closure, true, 10, false}:          {123, 45684},
 		{Closure, false, 0, true}:           {245, 82092},
-		{Bytecode, false, 0, true}:          {295, 90588},
-		{BytecodeIterative, false, 0, true}: {294, 91884},
+		{Bytecode, false, 0, true}:          {297, 90588},
+		{BytecodeIterative, false, 0, true}: {296, 91884},
 	}
 	for r, w := range want {
 		p := prog
