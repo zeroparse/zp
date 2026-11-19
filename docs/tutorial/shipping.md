@@ -18,7 +18,7 @@ Complete [Building Typed Trees](typed-trees.md): you need `config.zp` and a Go m
 
 `zp gen` turns a grammar into Go source, so your program does not need the ZeroParse engine or the grammar at run time.
 The generated package (`parser.go`, `api.go` and a copy of the parser library in `internal/libgo`) uses only the standard
-library and ZeroParse's small package `core`, so your module still requires `zeroparse.dev/zp`. `-module` is the import
+library and ZeroParse's small `pkg/runtime` packages, so your module still requires `zeroparse.dev/zp`. `-module` is the import
 path the package will have, so it starts with your module path. Generate it into a `config` package:
 
 ```bash
@@ -50,7 +50,7 @@ func main() {
 Config{Entries: [Entry{Key: Key("port"), Value: Number("8080")}]}
 ```
 
-The generated `Node` type mirrors `core.Node`, and the generated parser gives the same trees and errors as the
+The generated `Node` type mirrors `value.Node`, and the generated parser gives the same trees and errors as the
 engine. `config.ParseRule(name, input)` starts at another rule. The generated entry points accept functional
 options: `config.Parse(input, config.WithUnit(config.Bytes), config.WithLimits(config.Limits{Depth: 600_000}))`.
 `zp gen -max-depth 600000` sets the generated default; omitted or zero keeps 100,000.
@@ -63,16 +63,16 @@ or in Go:
 
 ```bash
 zp parse -g config.zp -f sexpr -backend bytecode < example.conf
-zp parse -g config.zp -check -backend bytecode-iterative < example.conf   # validate only, prints ok
+zp parse -g config.zp -recognize -backend bytecode-iterative < example.conf   # validate only, prints ok
 ```
 
 ```go
-n, err := p.Parse("abc=12", engine.WithBackend(engine.Bytecode)) // also engine.WithUnit(core.Bytes), engine.RecognizeOnly()
+n, err := p.Parse("abc=12") // also runtime.WithUnit(input.Bytes); p.Recognize("abc=12") checks only; p.(*vm.Parser).Iterative() selects the iterative VM
 ```
 
 `zp compile -g config.zp -o config.zpc` saves a compiled grammar that `zp parse` accepts in place of the
-`.zp` file (`zp parse -g config.zpc ...`), and `engine.LoadParser` loads it without recompiling. The file serves
-the parses of one mode: `-mode parse` (the default) for parsing, `-mode recognize` for `-check`, and `-mode document`
+`.zp` file (`zp parse -g config.zpc ...`), and `vm.LoadParser` loads it without recompiling. The file serves
+the parses of one mode: `-mode parse` (the default) for parsing, `-mode recognize` for `-recognize`, and `-mode document`
 for documents and traces.
 `zp convert -to json config.zp` converts a grammar to JSON, which is handy for tools that generate grammars.
 The [Running Parsers](../guide/running-parsers.md) guide describes the backends and options in detail, and the

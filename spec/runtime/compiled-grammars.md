@@ -17,9 +17,9 @@ schema. The mode is chosen when the grammar is saved and recorded in the file.
 
 | Mode | Go | Serves |
 |:--|:--|:--|
-| `parse` (default) | `engine.CompiledParse` | `Parse`, `ParsePrefix`, `ParseStream` and `Iterate` without `RecognizeOnly`, `WithTrace` or `WithProfile`; `zp parse` and `zp parse -stream` |
-| `recognize` | `engine.CompiledRecognize` | `Parse` and `ParsePrefix` with `RecognizeOnly` and without `WithTrace` or `WithProfile`; `zp parse -check` |
-| `document` | `engine.CompiledDocument` | `NewDocument`; `Parse`, `ParsePrefix`, `ParseStream` and `Iterate` with `WithTrace` or `WithProfile` and without `RecognizeOnly`; `zp trace`, `zp profile` and `zp explain` |
+| `parse` (default) | `vm.CompiledParse` | `Parse`, `ParsePrefix`, `ParseStream` and `Iterate` without `Recognize`, `WithTrace` or `WithProfile`; `zp parse` and `zp parse -stream` |
+| `recognize` | `vm.CompiledRecognize` | `Parse` and `ParsePrefix` with `Recognize` and without `WithTrace` or `WithProfile`; `zp parse -recognize` |
+| `document` | `vm.CompiledDocument` | `NewDocument`; `Parse`, `ParsePrefix`, `ParseStream` and `Iterate` with `WithTrace` or `WithProfile` and without `Recognize`; `zp trace`, `zp profile` and `zp explain` |
 
 A parse-mode and a document-mode file of the same grammar MAY hold the same
 module; a recognize-mode file holds the module of the grammar's recognizer.
@@ -30,10 +30,10 @@ module; a recognize-mode file holds the module of the grammar's recognizer.
 
 | Operation | Go | Command line |
 |:--|:--|:--|
-| Save in parse mode | `Parser.MarshalBinary()` or `Parser.Marshal(engine.CompiledParse)` | `zp compile -g g.zp -o g.zpc` |
-| Save in another mode | `Parser.Marshal(engine.CompiledRecognize)`, `Parser.Marshal(engine.CompiledDocument)` | `zp compile -g g.zp -mode recognize\|document -o g.zpc` |
+| Save in parse mode | `compiler.Marshal(src, vm.CompiledParse)` or `Marshal(vm.CompiledParse)` of the `*vm.Parser` | `zp compile -g g.zp -o g.zpc` |
+| Save in another mode | `compiler.Marshal(src, vm.CompiledRecognize)`, `compiler.Marshal(src, vm.CompiledDocument)` | `zp compile -g g.zp -mode recognize\|document -o g.zpc` |
 | Name a mode | `CompiledMode.String()` | The value of `-mode` |
-| Load | `engine.LoadParser(data)` | `-g file.zpc` on `parse`, `trace`, `profile`, `explain` and `compile` |
+| Load | `vm.LoadParser(data)` | `-g file.zpc` on `parse`, `trace`, `profile`, `explain` and `compile` |
 | Mode of a loaded parser | `Parser.CompiledMode()` returns the mode and `true`; `false` for a parser compiled from a grammar | |
 | Detect a compiled grammar | `vm.IsCompiled(data)` | Used to tell source, JSON and a compiled grammar apart |
 
@@ -43,26 +43,25 @@ module; a recognize-mode file holds the module of the grammar's recognizer.
 - The same parser always produces the same bytes for a mode. A parser that was
   loaded and saved again produces the bytes it was loaded from (see
   [Re-saving](#re-saving)).
-- `engine.IsCompiled` distinguishes a compiled grammar from other data by its magic
+- `vm.IsCompiled` distinguishes a compiled grammar from other data by its magic
   number.
-- A loaded parser is an ordinary `*engine.Parser`: it is safe for concurrent use,
+- A loaded parser is an ordinary `runtime.Parser`: it is safe for concurrent use,
   `WithStart`, `Starts` and `DefaultStart` work on it, and it runs the operations
   of its mode. For those operations, a parser loaded from a file returns the same
   tree, positions and errors as the parser compiled from the same source.
 
 ### Operations of a Loaded Parser
 
-A loaded parser runs on the bytecode backends. `DefaultBackend` selects the
-recursive bytecode VM, and `WithBackend(Bytecode)` and
-`WithBackend(BytecodeIterative)` choose between the recursive and iterative VMs
-when the file is loaded; the choice does not depend on the mode.
+A loaded parser runs on the bytecode backends. `vm.LoadParser` returns a parser
+on the recursive bytecode VM, and `Iterative` of the `*vm.Parser` returns a
+parser on the iterative VM; the choice does not depend on the mode.
 
 An operation that the file's mode does not serve returns an error that names the
 file's mode, the mode the operation needs and the remedy; the parser does not
 fall back to another mode:
 
 ```text
-the compiled grammar is in parse mode; documents need document mode: compile it with -mode document (engine.CompiledDocument), or compile the grammar from source
+the compiled grammar is in parse mode; documents need document mode: compile it with -mode document (vm.CompiledDocument), or compile the grammar from source
 ```
 
 The operations that need the grammar itself work only on a parser compiled from
@@ -70,11 +69,11 @@ source:
 
 | Operation | Loaded parser |
 |:--|:--|
-| `WithBackend(Closure)` | Error: `the closure backend needs the grammar source; a compiled grammar runs on the bytecode backends` |
-| `RecognizeOnly()` with `WithTrace` or `WithProfile` | Error in every mode: traced or profiled recognition needs the grammar source |
+| `compiler.NewReferenceParser` | Not available: it is made from the grammar source, which a loaded parser does not have |
+| `Recognize` with `WithTrace` or `WithProfile` | Error in every mode: traced or profiled recognition needs the grammar source |
 | `Parser.Grammar()` | `nil` |
 | `OutputSchema` | An error matching `ErrSchemaUnavailable`: the schema is exported from the grammar source |
-| `lint.Config.Run`, `codegen.Go.Generate`, `codegen.TypeScript.Generate`, `sample.New` | Need `Parser.Grammar()`, so they do not take a loaded parser |
+| `lint.Config.Run`, `compiler.GenerateGo`, `compiler.GenerateTypeScript`, `sample.New` | Need `Parser.Grammar()`, so they do not take a loaded parser |
 | `zp convert`, `zp gen`, `zp lint`, `zp sample`, `zp schema` | Error: the command needs the grammar source (`.zp` or `.json`) |
 
 ### Re-Saving
@@ -129,7 +128,7 @@ only from trusted sources. A file that was made to contain type errors
 MAY make actions fail while parsing, and made-up bytecode is not guaranteed to
 terminate. The checksum detects accidents, not tampering, and is not a signature.
 A file from a source that is not trusted therefore cannot be verified by ZeroParse;
-authenticating it, or accepting grammar source and compiling it with `CompileSource`,
+authenticating it, or accepting grammar source and compiling it with `compiler.Compile`,
 is up to the program.
 
 ## Validation and Errors
@@ -144,9 +143,9 @@ is up to the program.
 | `invalid compiled grammar: unknown mode N` | The mode byte names no mode |
 | `invalid compiled grammar: ...` | The structure is wrong although the checksum matches |
 | `the compiled grammar is in M mode; O N mode: compile it with -mode N (...), or compile the grammar from source` | An operation that mode `N` serves was requested of a file in mode `M`; `O` is `parsing needs`, `recognition needs`, `documents need` or `tracing and profiling need` |
-| `the compiled grammar is in M mode; traced or profiled recognition needs the grammar source: compile the grammar from source` | `RecognizeOnly` was combined with `WithTrace` or `WithProfile` |
+| `the compiled grammar is in M mode; traced or profiled recognition needs the grammar source: compile the grammar from source` | `Recognize` was combined with `WithTrace` or `WithProfile` |
 | `the compiled grammar is in M mode and is saved only in that mode; compile the grammar from source to save it in N mode` | `Marshal(N)` was called on a parser loaded in mode `M` |
-| `the closure backend needs the grammar source; a compiled grammar runs on the bytecode backends` | `Closure` was requested of a loaded parser |
+| `the closure backend needs the grammar source; a compiled grammar runs on the bytecode backends` | The reference parser (`zp parse -backend closure`) was requested of a loaded parser |
 | `output schema unavailable: a compiled grammar holds no schema; export the schema from the grammar source` | `OutputSchema` was called on a loaded parser; the error matches `ErrSchemaUnavailable` |
 | `F: a compiled grammar holds only the bytecode of one mode; C needs the grammar source (.zp or .json)` | Command `C` that needs the grammar was given the compiled grammar `F` |
 

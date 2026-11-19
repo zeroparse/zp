@@ -105,7 +105,7 @@ zp: 1:1: syntax error: expected "(", [0-9]
 Lines and columns are 1-based. A tab counts as one column, and only a line feed starts a new line (in CRLF text, the
 carriage return is the last column of its line). Columns are counted in the
 [position unit](../../spec/runtime/parsing.md#positions): code points by default, bytes with `-unit bytes`
-(`engine.WithUnit(core.Bytes)` in Go). The two differ only after non-ASCII text:
+(`runtime.WithUnit(input.Bytes)` in Go). The two differ only after non-ASCII text:
 
 ```zp
 // unit.zp
@@ -160,7 +160,7 @@ Whitespace rules suffer in a different way, which is the first thing to fix in a
 
 ### On the Command Line
 
-`zp parse` prints the tree on standard output and errors on standard error, as above. `-check` (recognition only)
+`zp parse` prints the tree on standard output and errors on standard error, as above. `-recognize` (recognition only)
 reports the same errors without building a tree. Grammar errors (a rule that does not type-check, an unknown
 attribute) are a different kind of error: they are reported with the grammar's file name and position, before any
 input is read.
@@ -172,8 +172,8 @@ input is read.
 | Outcome | `node` | `err` |
 |:--|:--|:--|
 | The input matches | the tree | `nil` |
-| The input does not match | `nil` | a `*core.SyntaxError` |
-| The parse recovered with `#recover` or an enabled `#missing` | the tree, with `error` values | `core.SyntaxErrors`, a list of `*core.SyntaxError` |
+| The input does not match | `nil` | a `*value.SyntaxError` |
+| The parse recovered with `#recover` or an enabled `#missing` | the tree, with `error` values | `value.SyntaxErrors`, a list of `*value.SyntaxError` |
 | An action failed at run time (for example, reading a field the node does not have) | `nil` | an ordinary error, not a syntax error |
 
 The last row is not subject to backtracking or recovery: it aborts the parse. A `*SyntaxError` has these fields:
@@ -196,11 +196,11 @@ recorded.
 
 | Parse | How to record |
 |:--|:--|
-| `Parser.Parse`, `ParseStream`, `ParsePrefix`, `Document` | Pass `engine.WithExpectations()`. A `Document` fixes it when it is created |
-| Generated Go or TypeScript parser | Generate with `-expectations` (`Expectations` in `codegen.Go` and `codegen.TypeScript`), then pass `WithExpectations()` (Go) or `{ expectations: true }` (TypeScript) to the parse. Generating with the flag alone does not record |
+| `Parser.Parse`, `ParseStream`, `ParsePrefix`, `Document` | Pass `runtime.WithExpectations()`. A `Document` fixes it when it is created |
+| Generated Go or TypeScript parser | Generate with `-expectations` (`Expectations` in `compiler.GoConfig` and `compiler.TSConfig`), then pass `WithExpectations()` (Go) or `{ expectations: true }` (TypeScript) to the parse. Generating with the flag alone does not record |
 
 ```go
-node, err := p.Parse(input, engine.WithExpectations())
+node, err := p.Parse(input, runtime.WithExpectations())
 // err: 1:8: syntax error: expected "(", [0-9]
 ```
 
@@ -214,7 +214,7 @@ Things to keep in mind:
 - The message of an `error` value (`Node.Text()`) is the formatted string `line:col: text`. The structured data (`Line`, `Col`,
   `Expected`) is only in the `SyntaxErrors` that `Parse` returns.
 - `Parser.ParseStream` and `Document.Parse` report consuming recovery errors in the same way; `#missing` is not supported
-  by those entry points. With the `RecognizeOnly` option there is no
+  by those entry points. With the `Recognize` option there is no
   tree, so a recovering parse returns a nil node together with the `SyntaxErrors`.
 
 ## Writing Readable Messages

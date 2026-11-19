@@ -1,7 +1,7 @@
 # Compiled Grammars (`.zpc`)
 
 Compiling a grammar from source parses it, analyzes it, type-checks it and translates it to bytecode. A **compiled
-grammar** is the result of that work saved to a file: a `.zpc`. Loading one gives you the same `*engine.Parser` without
+grammar** is the result of that work saved to a file: a `.zpc`. Loading one gives you the same `runtime.Parser` without
 repeating the work, so a program can start faster, and a grammar can travel as a data file or a `go:embed` byte slice
 without its source.
 
@@ -70,14 +70,14 @@ zp parse -g pair.zpc -s main -f sexpr -i 'abc=12; x=1'
 [Pair{Key: "abc", Value: "12"} Pair{Key: "x", Value: "1"}]
 ```
 
-In Go, `Parser.MarshalBinary` returns the bytes of a parse-mode file and `engine.LoadParser` restores the parser, with
+In Go, `compiler.Marshal` (or `Marshal` of the `*vm.Parser` that `compiler.Compile` returns) returns the bytes of a file in the mode you pass, `vm.CompiledParse` for parse mode, and `vm.LoadParser` restores the parser, with
 the saved start rule:
 
 ```go
-p, err := engine.CompileSource(src, "main")
-data, err := p.MarshalBinary() // the bytecode of parse mode and the start rule
+p, err := compiler.Compile(grammar.FromString("grammar.zp", src), compiler.WithStart("main"))
+data, err := p.(*vm.Parser).Marshal(vm.CompiledParse) // the bytecode of parse mode and the start rule
 
-q, err := engine.LoadParser(data)
+q, err := vm.LoadParser(data)
 node, err := q.Parse("abc=12")
 fmt.Println(node, err) // [Pair{Key: "abc", Value: "12"}] <nil>
 ```
@@ -86,9 +86,9 @@ A few more facts:
 
 - The same parser always produces the same bytes for a mode, and a parser that was loaded and saved again produces the
   bytes it was loaded from. This is what makes the [up-to-date test](#embedding-with-goembed) possible.
-- `engine.IsCompiled(data)` tells a compiled grammar from other data by its magic number. The commands use it to decide
+- `vm.IsCompiled(data)` tells a compiled grammar from other data by its magic number. The commands use it to decide
   whether `-g` names source, JSON or a compiled grammar.
-- A loaded parser is an ordinary `*engine.Parser`: it is safe for concurrent use, `WithStart` changes its start rule, and
+- A loaded parser is an ordinary `runtime.Parser`: it is safe for concurrent use, `WithStart` of the `*vm.Parser` changes its start rule, and
   it runs the operations of its mode with the options of the [Running Parsers](running-parsers.md).
 - For those operations, a parser loaded from a file preserves the same tree, positions and errors as one compiled from
   source. Keep a round-trip comparison in your own test suite for the grammars your application depends on.
@@ -98,31 +98,32 @@ A few more facts:
 Choose the mode for what the program does with the parser:
 
 ```go
-parsing, err := p.Marshal(engine.CompiledParse)       // the same as p.MarshalBinary()
-recognizing, err := p.Marshal(engine.CompiledRecognize)
-documents, err := p.Marshal(engine.CompiledDocument)
+vp := p.(*vm.Parser)
+parsing, err := vp.Marshal(vm.CompiledParse)
+recognizing, err := vp.Marshal(vm.CompiledRecognize)
+documents, err := vp.Marshal(vm.CompiledDocument)
 ```
 
 ```bash
 zp compile -g pairs.zp -o pairs.zpc                            # parse mode
-zp compile -g pairs.zp -mode recognize -o pairs-check.zpc      # for zp parse -check
+zp compile -g pairs.zp -mode recognize -o pairs-check.zpc      # for zp parse -recognize
 zp compile -g pairs.zp -mode document -o pairs-doc.zpc         # for Documents, trace, profile, explain
 ```
 
 | Mode | Serves |
 |:--|:--|
-| `parse` (`engine.CompiledParse`) | `Parse`, `ParsePrefix`, `ParseStream`, `Iterate`; `zp parse`, `zp parse -stream` |
-| `recognize` (`engine.CompiledRecognize`) | `Parse` and `ParsePrefix` with `RecognizeOnly()`; `zp parse -check` |
-| `document` (`engine.CompiledDocument`) | `NewDocument`, and `Parse`, `ParsePrefix`, `ParseStream`, `Iterate` with `WithTrace` or `WithProfile`; `zp trace`, `zp profile`, `zp explain` |
+| `parse` (`vm.CompiledParse`) | `Parse`, `ParsePrefix`, `ParseStream`, `Iterate`; `zp parse`, `zp parse -stream` |
+| `recognize` (`vm.CompiledRecognize`) | `Parse` and `ParsePrefix` with `Recognize`; `zp parse -recognize` |
+| `document` (`vm.CompiledDocument`) | `NewDocument`, and `Parse`, `ParsePrefix`, `ParseStream`, `Iterate` with `WithTrace` or `WithProfile`; `zp trace`, `zp profile`, `zp explain` |
 
 A file serves its mode only. Anything else returns an error that names the file's mode, the mode the operation needs
 and how to get it, rather than falling back:
 
 ```go
-q, _ := engine.LoadParser(parsing)
+q, _ := vm.LoadParser(parsing)
 _, err := q.NewDocument("abc=12")
 fmt.Println(err)
-// the compiled grammar is in parse mode; documents need document mode: compile it with -mode document (engine.CompiledDocument), or compile the grammar from source
+// the compiled grammar is in parse mode; documents need document mode: compile it with -mode document (vm.CompiledDocument), or compile the grammar from source
 ```
 
 `q.CompiledMode()` returns the mode of a loaded parser and `true`, and `false` for a parser compiled from source, which
@@ -132,21 +133,20 @@ Some things need the grammar itself, so they work only from source, whatever the
 
 | | Parser loaded from a `.zpc` |
 |:--|:--|
-| Backend | Recursive bytecode by default; `WithBackend(engine.BytecodeIterative)` selects the iterative VM |
-| `WithBackend(Closure)` | error: `the closure backend needs the grammar source; a compiled grammar runs on the bytecode backends` |
-| `RecognizeOnly()` with `WithTrace` or `WithProfile` | error: traced or profiled recognition needs the grammar source |
+| Backend | Recursive bytecode by default; `Iterative()` of the `*vm.Parser` returns a parser on the iterative VM |
+| The reference parser (`compiler.NewReferenceParser`) | not available: it is made from the grammar source, and a loaded parser has none |
+| `Recognize` with `WithTrace` or `WithProfile` | error: traced or profiled recognition needs the grammar source |
 | `Parser.Grammar()` | `nil` |
 | `OutputSchema` | an error that matches `ErrSchemaUnavailable` |
-| `lint.Config.Run`, `codegen.Go.Generate`, `codegen.TypeScript.Generate`, `sample.New` | need the grammar, which a loaded parser does not have |
+| `lint.Config.Run`, `compiler.GenerateGo`, `compiler.GenerateTypeScript`, `sample.New` | need the grammar, which a loaded parser does not have |
 | `zp convert`, `zp gen`, `zp lint`, `zp sample`, `zp schema` | error: the command needs the grammar source (`.zp` or `.json`) |
 
 A loaded parser is saved again only in its own mode: `zp compile -g pairs-check.zpc -mode recognize -o copy.zpc`
 copies a recognize-mode file byte for byte, and asking for another mode is an error that writes no output. To change
 the mode, compile from the source.
 
-The effect on parse speed is the difference between the backends, which the [Choosing a Backend](backends.md#which-one)
-measures: on its benchmarks the recursive bytecode VM is 1.1 to 1.3 times slower than the closure backend that a parser
-compiled from source uses by default.
+A parser compiled from source and a loaded one run on the same recursive bytecode VM; the [Choosing a Backend](backends.md#which-one)
+guide compares the VM with the other backends.
 
 ## Size and Load Time
 
@@ -183,7 +183,10 @@ import (
 	"os"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/vm"
 )
 
 func main() {
@@ -192,16 +195,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	p, err := engine.CompileSource(string(src), "")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", string(src)))
 	if err != nil {
 		panic(err)
 	}
-	data, _ := p.MarshalBinary()
+	data, _ := p.(*vm.Parser).Marshal(vm.CompiledParse)
 	fmt.Printf("source %d bytes, .zpc %d bytes\n", len(src), len(data))
 
 	// Each run makes a parser ready and parses one input, so the setup that
 	// happens on the first parse is included.
-	measure := func(name string, prepare func() *engine.Parser) {
+	measure := func(name string, prepare func() runtime.Parser) {
 		r := testing.Benchmark(func(b *testing.B) {
 			for b.Loop() {
 				if _, err := prepare().Parse(input); err != nil {
@@ -211,12 +214,12 @@ func main() {
 		})
 		fmt.Printf("%-20s %8d ns/op %8d B/op %6d allocs/op\n", name, r.NsPerOp(), r.AllocedBytesPerOp(), r.AllocsPerOp())
 	}
-	measure("compile from source", func() *engine.Parser {
-		p, _ := engine.CompileSource(string(src), "")
+	measure("compile from source", func() runtime.Parser {
+		p, _ := compiler.Compile(grammar.FromString("grammar.zp", string(src)))
 		return p
 	})
-	measure("load .zpc", func() *engine.Parser {
-		p, _ := engine.LoadParser(data)
+	measure("load .zpc", func() runtime.Parser {
+		p, _ := vm.LoadParser(data)
 		return p
 	})
 }
@@ -266,14 +269,15 @@ import (
 	"fmt"
 	"log"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/vm"
 )
 
 //go:embed pairs.zpc
 var compiled []byte
 
-var parser = func() *engine.Parser {
-	p, err := engine.LoadParser(compiled)
+var parser = func() runtime.Parser {
+	p, err := vm.LoadParser(compiled)
 	if err != nil {
 		panic(err)
 	}
@@ -314,7 +318,9 @@ import (
 	"os"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/vm"
 )
 
 // pairs.zpc is up to date with pairs.zp.
@@ -323,11 +329,11 @@ func TestCompiledIsUpToDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := engine.CompileSource(string(src), "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", string(src)), compiler.WithStart("main"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := p.Marshal(engine.CompiledParse) // the mode of the go:generate line
+	want, err := p.(*vm.Parser).Marshal(vm.CompiledParse) // the mode of the go:generate line
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -395,10 +401,10 @@ start rule is a start rule of the module, no trailing bytes). It does **not** ty
 verify that the bytecode uses the VM's stacks correctly. A file made to contain type errors can make actions fail while
 parsing, and made-up bytecode is not guaranteed to terminate. The nesting limit relies on the recursion marks stored in the compiled grammar, so a forged file can remove it; load only files you trust.
 
-Only load files that you or your build produced: the output of `zp compile`, `MarshalBinary` or `Marshal`. The
+Only load files that you or your build produced: the output of `zp compile`, `compiler.Marshal` or `Marshal`. The
 checksum is not a signature: it detects accidents, not tampering. If a file travels over a network, sign it or compare
 a hash that you obtained another way. If users bring their own grammars, accept source, compile it with
-`CompileSource`, which type-checks, and (if needed) save the result yourself.
+`compiler.Compile`, which type-checks, and (if needed) save the result yourself.
 
 ## Compiled Grammar, Generated Code or Source?
 
@@ -408,8 +414,8 @@ Three ways to get a grammar into a Go program:
 |:--|:--|:--|:--|
 | What the program holds | The `.zp` text | A binary file, embedded or read | Go source, compiled in |
 | Start-up | Compiles: tens of microseconds to tens of milliseconds, by size | Loads: a fraction of that (see above) | None |
-| Parsing speed | Closure backend | Bytecode backends | Generated Go takes 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes across current workloads ([benchmarks](../benchmarks.md)) |
-| Depends on ZeroParse at run time | Yes | Yes (the engine and `LoadParser`) | Only the package `core` (result and error types), not the engine |
+| Parsing speed | Bytecode VM | Bytecode VM | Generated Go takes 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes across current workloads ([benchmarks](../benchmarks.md)) |
+| Depends on ZeroParse at run time | Yes | Yes (the runtime and `vm.LoadParser`) | Only the packages under `pkg/runtime` (result and error types), not the compiler |
 | Change the grammar without rebuilding the program | Yes (read the file) | Yes (read the file) | No |
 | Streaming, incremental parsing, backend choice, recognition mode | Yes | Yes, on the bytecode backends, each in the mode that serves it | No |
 | Errors in the grammar are found | At start-up | When you build the file | When you generate |
@@ -440,8 +446,8 @@ in a profile, and to generated code when parsing speed does.
 | `invalid compiled grammar: checksum mismatch` | The file is truncated or changed (a bad download, an editor that converted line endings, a merge). |
 | `invalid compiled grammar: ...` (other) | The structure is wrong, though the checksum matches. Rebuild the file. |
 | `the compiled grammar is in parse mode; documents need document mode: ...` | The file's mode does not serve the operation. Compile the grammar with the `-mode` the message names. |
-| `the compiled grammar is in M mode; traced or profiled recognition needs the grammar source: ...` | `RecognizeOnly` with `WithTrace` or `WithProfile`. Compile the grammar from source. |
-| `the closure backend needs the grammar source; a compiled grammar runs on the bytecode backends` | You asked a loaded parser for `Closure`. Use a bytecode backend, or compile from source. |
+| `the compiled grammar is in M mode; traced or profiled recognition needs the grammar source: ...` | `Recognize` with `WithTrace` or `WithProfile`. Compile the grammar from source. |
+| `the closure backend needs the grammar source; a compiled grammar runs on the bytecode backends` | `zp parse -backend closure` (the reference parser) on a loaded grammar. Use a bytecode backend, or compile from source. |
 | `output schema unavailable: a compiled grammar holds no schema; export the schema from the grammar source` | `OutputSchema` on a loaded parser. Export the schema from the source. The error matches `ErrSchemaUnavailable`. |
 | `...: a compiled grammar holds only the bytecode of one mode; gen needs the grammar source (.zp or .json)` | `zp convert`, `zp gen`, `zp lint`, `zp sample` or `zp schema` on a `.zpc`. Use the source. |
 | `the compiled grammar is in M mode and is saved again only in that mode: ...` | `zp compile` of a `.zpc` with another `-mode`. Pass the file's own mode, or compile from the source. |

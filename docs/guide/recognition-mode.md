@@ -17,32 +17,32 @@ rule value = [0-9]+ #atomic
 rule ws = [ \t\n]*
 ```
 
-With it, `Parse` returns a `nil` node and the same syntax errors as a full parse. It is faster and allocates less: the
+With it, `Recognize` returns only an error, the same syntax errors as a full parse, and builds no node. It is faster and allocates less: the
 benchmarks measure recognition at 1.3–1.6× faster than a full parse on the closure backend.
 
 ```go
-n, err := p.Parse("abc=12", engine.RecognizeOnly())
-fmt.Println(n, err) // nil <nil>
-n, err = p.Parse("abc=", engine.RecognizeOnly(), engine.WithExpectations())
-fmt.Println(n, err) // nil 1:5: syntax error: expected [0-9]
+err := p.Recognize("abc=12")
+fmt.Println(err) // <nil>
+err = p.Recognize("abc=", runtime.WithExpectations())
+fmt.Println(err) // 1:5: syntax error: expected [0-9]
 ```
 
 What it does not do:
 
 - **Actions are conditionally evaluated.** Actions whose values are not needed to evaluate predicates are skipped. Actions needed by predicates still run and can report run-time errors. With the grammar
   `rule main Ratio =  a:[0-9]+ #atomic "/" b:[0-9]+ #atomic $$ => Ratio{Num: len($a) / (len($b) - len($b))} `, the input `12/34`
-  fails a full parse with `action in main: division by zero` but is accepted by recognition (`zp parse -check` prints
+  fails a full parse with `action in main: division by zero` but is accepted by recognition (`zp parse -recognize` prints
   `ok`). Use recognition for syntax checks, and a full parse where action errors matter.
 - Captures that [predicates](../../spec/language/predicates.md) read are still built, since a predicate can depend on them.
 - A compiled grammar recognizes when it is saved in recognize mode (`zp compile -mode recognize`, or
-  `Marshal(engine.CompiledRecognize)`), on the bytecode backends. A file in another mode returns an error that names
+  `compiler.Marshal(src, vm.CompiledRecognize)`), on the bytecode backends. A file in another mode returns an error that names
   the mode it needs, and traced or profiled recognition needs the grammar source. The [compiled grammars
   guide](compiled-grammars.md#modes) explains the modes.
 - It cannot be combined with `ParseStream` or `NewDocument`: both return errors (`recognition is not supported for
   stream parsing`, `recognition is not supported for documents`).
 
 Typical uses are validating uploads or configuration before doing real work, linting loops, and pre-filtering large
-inputs. On the command line: `zp parse -g grammar.zp -check < input`, which prints `ok` or the syntax error (and
+inputs. On the command line: `zp parse -g grammar.zp -recognize < input`, which prints `ok` or the syntax error (and
 exits with status 1).
 
 ## Related Topics

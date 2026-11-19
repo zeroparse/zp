@@ -3,7 +3,7 @@
 **Problem.** A stream is read from a connection or a pipe, and the producer goes quiet. You want the parse to end when a
 deadline passes or the caller cancels, instead of waiting in `Read` for ever.
 
-`engine.WithContext(ctx)` makes the engine check the context before and after each read and each callback, but the parser
+`runtime.WithContext(ctx)` makes the engine check the context before and after each read and each callback, but the parser
 still blocks inside `Read`, and a context cannot make an arbitrary reader return. Combine the context with the reader:
 when the context ends, make the reader fail from outside, and the parse returns that error. The parser never closes your
 reader or starts a goroutine of its own.
@@ -20,25 +20,27 @@ import (
 	"log"
 	"time"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
-const grammar = `@start
+const grammarSrc = `@start
 rule main =  line* #stream $$
 rule line =  [a-z0-9]+ #atomic "\n" `
 
 // parseContext streams r into emit and gives up when ctx is cancelled. The parser blocks inside r.Read, so
 // cancelling needs the reader to fail: cancelRead must make a blocked Read return the error (closing the
 // connection, or the write end of a pipe, does).
-func parseContext(ctx context.Context, p *engine.Parser, r io.Reader, cancelRead func(error), emit func(*core.Node) error) error {
+func parseContext(ctx context.Context, p runtime.Parser, r io.Reader, cancelRead func(error), emit func(*value.Node) error) error {
 	stop := context.AfterFunc(ctx, func() { cancelRead(ctx.Err()) })
 	defer stop()
-	return p.ParseStream(r, emit, engine.WithContext(ctx))
+	return p.ParseStream(r, emit, runtime.WithContext(ctx))
 }
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +51,7 @@ func main() {
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
-	err = parseContext(ctx, p, pr, func(err error) { pw.CloseWithError(err) }, func(n *core.Node) error {
+	err = parseContext(ctx, p, pr, func(err error) { pw.CloseWithError(err) }, func(n *value.Node) error {
 		fmt.Println("line", n.Elem(0).Text())
 		return nil
 	})
@@ -74,6 +76,6 @@ err: context deadline exceeded true
 
 ## Variations and Limits
 
-- To bound the budget instead of the time, use `engine.WithLimits`; exhaustion matches `core.ErrLimit`. See
+- To bound the budget instead of the time, use `runtime.WithLimits`; exhaustion matches `runtime.ErrLimit`. See
   [Cancellation and Compute Limits](../guide/cancellation-and-limits.md) and [Streaming](../guide/streaming.md#cancelling-a-stream).
 - Restarting requires replaying the input yourself: the reader offset is not a continuation token.

@@ -14,11 +14,12 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
-const grammar = `package kv
+const grammarSrc = `package kv
 
 type Header = { Version Version }
 type Version = node[string]
@@ -36,16 +37,16 @@ rule key Key =  ([a-z_]+) #atomic
 rule value Value =  ([0-9]+) #atomic `
 
 func main() {
-	p, err := engine.CompileSource(grammar, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("main"))
 	if err != nil {
 		panic(err)
 	}
-	err = p.ParseStream(strings.NewReader("#version 2\na=1\nb=2\n"), func(n *core.Node) error {
+	err = p.ParseStream(strings.NewReader("#version 2\na=1\nb=2\n"), func(n *value.Node) error {
 		switch n.Type() {
 		case "Header":
-			fmt.Println("header, version", n.Field("Version").(*core.Node).Text())
+			fmt.Println("header, version", n.Field("Version").(*value.Node).Text())
 		case "Pair":
-			fmt.Println("pair", n.Field("Key").(*core.Node).Text(), "=", n.Field("Value").(*core.Node).Text())
+			fmt.Println("pair", n.Field("Key").(*value.Node).Text(), "=", n.Field("Value").(*value.Node).Text())
 		}
 		return nil
 	})

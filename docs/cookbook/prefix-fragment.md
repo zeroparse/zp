@@ -47,14 +47,16 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/vm"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed expr.zp
-var grammar string
+var grammarSrc string
 
-func eval(n *core.Node, vars map[string]float64) (float64, error) {
+func eval(n *value.Node, vars map[string]float64) (float64, error) {
 	switch n.Type() {
 	case "Num":
 		return strconv.ParseFloat(n.Text(), 64)
@@ -66,15 +68,15 @@ func eval(n *core.Node, vars map[string]float64) (float64, error) {
 		}
 		return v, nil
 	}
-	l, err := eval(n.Field("Left").(*core.Node), vars)
+	l, err := eval(n.Field("Left").(*value.Node), vars)
 	if err != nil {
 		return 0, err
 	}
-	r, err := eval(n.Field("Right").(*core.Node), vars)
+	r, err := eval(n.Field("Right").(*value.Node), vars)
 	if err != nil {
 		return 0, err
 	}
-	switch n.Field("Op").(*core.Node).Text() {
+	switch n.Field("Op").(*value.Node).Text() {
 	case "+":
 		return l + r, nil
 	case "-":
@@ -99,7 +101,7 @@ func lineCol(text string, off int) (int, int) {
 }
 
 // render replaces each {{ expression }} of the template by its value.
-func render(p *engine.Parser, template string, vars map[string]float64) (string, error) {
+func render(p *vm.Parser, template string, vars map[string]float64) (string, error) {
 	var out strings.Builder
 	pos := 0
 	for {
@@ -112,7 +114,7 @@ func render(p *engine.Parser, template string, vars map[string]float64) (string,
 		base := pos + i + len("{{")
 		res, err := p.ParsePrefix("fragment", template[base:])
 		if err != nil {
-			var se *core.SyntaxError
+			var se *value.SyntaxError
 			if errors.As(err, &se) {
 				line, col := lineCol(template, base+se.Pos)
 				return "", fmt.Errorf("%d:%d: %s", line, col, se.Message())
@@ -130,7 +132,7 @@ func render(p *engine.Parser, template string, vars map[string]float64) (string,
 }
 
 func main() {
-	p, err := engine.CompileSource(grammar, "fragment")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSrc), compiler.WithStart("fragment"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -142,7 +144,7 @@ func main() {
 		"Total: {{ price qty }} done",
 		"Total: {{ cost }}",
 	} {
-		s, err := render(p, t, vars)
+		s, err := render(p.(*vm.Parser), t, vars)
 		if err != nil {
 			fmt.Println("error:", err)
 			continue
@@ -176,7 +178,7 @@ error: 1:10: unknown name "cost"
 
 ## Variations and Limits
 
-- Use `WithUnit(core.Bytes)` when the surrounding text is processed in bytes, so that spans, errors and
+- Use `WithUnit(input.Bytes)` when the surrounding text is processed in bytes, so that spans, errors and
   `ConsumedBytes` all agree.
 - A delimiter that can appear inside the fragment, such as `}}` in a string literal, belongs in the grammar: the rule
   reads the string, so the scan never mistakes it for the end.

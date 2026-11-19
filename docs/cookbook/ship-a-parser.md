@@ -5,7 +5,7 @@ grammar at run time, and without a stale parser after somebody changes the gramm
 
 Generate Go code from the grammar with `zp gen`, commit it, regenerate it with `go generate`, and let a test fail
 when the committed file does not match the grammar. The generated package imports only the standard library and
-ZeroParse's small package `core` (with `core/impl`), not the engine or the generator.
+ZeroParse's small `pkg/runtime` packages (with `pkg/runtime/value/impl`), not the compiler or the generator.
 
 The grammar reads versions such as `1.2.3` and `1.2.3-rc.1`:
 
@@ -105,21 +105,18 @@ import (
 	"path/filepath"
 	"testing"
 
-	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
 )
 
 //go:embed version.zp
-var grammar string
+var grammarSrc string
 
 // The files of versionparser are what zp generates from version.zp. The module path and the options must be those
 // of the go:generate line.
 func TestGeneratedIsUpToDate(t *testing.T) {
-	g, err := engine.ParseGrammar(grammar)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want, err := codegen.Go{Module: "example.com/ship/versionparser", Types: true}.Generate(g, "main")
+	want, err := compiler.GenerateGo(grammar.FromString("grammar.zp", grammarSrc),
+		compiler.GoConfig{Module: "example.com/ship/versionparser", Types: true}, compiler.WithStart("main"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,8 +144,8 @@ FAIL
 
 ## How It Works
 
-- **A small dependency at run time.** `go list -deps .` for the program lists only `zeroparse.dev/zp/core` and
-  `zeroparse.dev/zp/core/impl` of ZeroParse: the result and error types of the generated API. The engine and the
+- **A small dependency at run time.** `go list -deps .` for the program lists only the packages under `zeroparse.dev/zp/pkg/runtime` (including
+  `zeroparse.dev/zp/pkg/runtime/value/impl`) of ZeroParse: the result and error types of the generated API. The engine and the
   generator are not linked into it. `go.mod` requires ZeroParse for these, for the tool and for the test.
 - **The generator is deterministic.** The same grammar and options give the same file, which is what makes the
   comparison in the test, and a review of a diff of `parser.go`, meaningful.
@@ -172,13 +169,13 @@ go tool zp compile -g version.zp -o version.zpc
 //go:embed version.zpc
 var compiled []byte
 
-p, err := engine.LoadParser(compiled) // then p.Parse(...) as with CompileSource
+p, err := vm.LoadParser(compiled) // then p.Parse(...) as with compiler.Compile
 ```
 
 The file serves `Parse` and `ParseStream` on the bytecode backends; compile it with `-mode recognize` for
-`engine.RecognizeOnly()` or `-mode document` for documents and traces. Loading is much faster than compiling: for the
-Python grammar of [alpha-parsers/python](https://github.com/zeroparse/alpha-parsers/tree/main/python/), on an Apple M3 Max with Go 1.27.1, `engine.CompileSource` took
-about 60 ms and `engine.LoadParser` of the `.zpc` under 1 ms in every mode.
+`Recognize` or `-mode document` for documents and traces. Loading is much faster than compiling: for the
+Python grammar of [alpha-parsers/python](https://github.com/zeroparse/alpha-parsers/tree/main/python/), on an Apple M3 Max with Go 1.27.1, `compiler.Compile` took
+about 60 ms and `vm.LoadParser` of the `.zpc` under 1 ms in every mode.
 
 A generated parser needs no preparation at all, and is also the fastest at parsing.
 

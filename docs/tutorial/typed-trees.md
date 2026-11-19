@@ -118,15 +118,16 @@ import (
 	"log"
 	"os"
 
-	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/pkg/compiler"
+	"zeroparse.dev/zp/pkg/grammar"
+	"zeroparse.dev/zp/pkg/runtime/value"
 )
 
 //go:embed config.zp
 var grammarSource string
 
 func main() {
-	p, err := engine.CompileSource(grammarSource, "main")
+	p, err := compiler.Compile(grammar.FromString("grammar.zp", grammarSource), compiler.WithStart("main"))
 	if err != nil {
 		log.Fatal(err) // a mistake in the grammar
 	}
@@ -138,7 +139,7 @@ func main() {
 
 	cfg, err := p.Parse(string(input))
 	if err != nil {
-		var se *core.SyntaxError
+		var se *value.SyntaxError
 		if errors.As(err, &se) {
 			fmt.Printf("line %d, column %d: %s\n", se.Line, se.Col, se.Message())
 			fmt.Println("expected:", se.Expected)
@@ -146,10 +147,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	entries := cfg.Field("Entries").(*core.Node)
+	entries := cfg.Field("Entries").(*value.Node)
 	for _, e := range entries.Elems() {
-		key := e.Field("Key").(*core.Node)
-		value := e.Field("Value").(*core.Node)
+		key := e.Field("Key").(*value.Node)
+		value := e.Field("Value").(*value.Node)
 		fmt.Printf("%-6s %-7s %s\n", key.Text(), value.Type(), value.Text())
 	}
 }
@@ -165,7 +166,7 @@ port   Number  8080
 debug  Bool    true
 ```
 
-`node.Field(name)` returns the value of a struct field as an `any`: a `*core.Node` for node values, lists, tuples and
+`node.Field(name)` returns the value of a struct field as an `any`: a `*value.Node` for node values, lists, tuples and
 structs, or an `int`, `string` or `bool`. A list is a node whose elements `Len()`, `Elem(i)` and `Elems()` give.
 A string node keeps the text it matched, which `Text()` returns. `value.Type()` tells you which member of the `Value` join
 you got, so a `switch` on it is how you walk a join.

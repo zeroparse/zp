@@ -21,24 +21,25 @@ rule ws = [ \t\n]*
 
 All of them produce **identical results**: the same trees
 (including positions), the same syntax errors and the same recovered errors. The test suite checks this, and the
-closure backend serves as the reference. They differ in speed, memory, how they treat deep nesting, and what they need.
+reference parser serves as the reference. They differ in speed, memory, how they treat deep nesting, and what they need.
 
-| Backend | Option | How it runs | Needs the grammar AST |
+| Backend | How you get it | How it runs | Needs the grammar AST |
 |:--|:--|:--|:--|
-| Closure | `engine.Closure` | Compiles Rule Expressions into Go closures | Yes |
-| Bytecode (recursive) | `engine.Bytecode` | A VM running [portable bytecode](../../spec/bytecode/README.md); rule calls use Go recursion | No |
-| Bytecode (iterative) | `engine.BytecodeIterative` | The same bytecode on a VM with its own call stack | No |
-| Generated Go | (not an option) | A Go parser generated ahead of time by `zp gen` | At generation time |
+| Bytecode (recursive) | `compiler.Compile`, `compiler.CompileGrammar` or `vm.LoadParser` (the default) | A VM running [portable bytecode](../../spec/bytecode/README.md); rule calls use Go recursion | No |
+| Bytecode (iterative) | `p.(*vm.Parser).Iterative()` | The same bytecode on a VM with its own call stack | No |
+| Reference (closure) | `compiler.NewReferenceParser` | Compiles Rule Expressions into Go closures | Yes |
+| Generated Go | (not a parser option) | A Go parser generated ahead of time by `zp gen` | At generation time |
 
-The first three are selected per parse:
+The first three are chosen when you make the parser: the parser of `compiler.Compile` is a `*vm.Parser`, and its
+`Iterative` method returns a parser for the same grammar that runs on the iterative VM.
 
 ```go
-n, err := p.Parse("abc=12", engine.WithBackend(engine.BytecodeIterative))
+iter := p.(*vm.Parser).Iterative()
+n, err := iter.Parse("abc=12")
 ```
 
-`engine.DefaultBackend`, used when you give no option, is the **closure backend for a parser compiled from a grammar and
-recursive bytecode for a parser loaded from a `.zpc` file**, which runs on the bytecode backends only. On the command
-line, `-backend closure|bytecode|bytecode-iterative` does the same.
+A parser compiled from a grammar and one loaded from a `.zpc` file both run on the recursive VM by default; the
+reference parser is made from the grammar source only. On the command line, `-backend closure|bytecode|bytecode-iterative` does the same.
 
 ### Which One
 
@@ -49,36 +50,37 @@ grammar and input.
 
 | You want | Choose | Why |
 |:--|:--|:--|
-| The best default for a Go program that loads a grammar at start-up | Closure (the default) | It is faster than both VMs on every benchmarked workload. |
+| The best default for a Go program that loads a grammar at start-up | Bytecode (the default) | It is what `compiler.Compile` returns and what a `.zpc` file loads into; it needs no grammar AST at run time. |
 | The fastest parsing, with a fixed grammar | [Generated Go](code-generation.md) | Current benchmarks show it at 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes; direct typed values are 0.69–0.98× generated `Parse`. |
 | Input that can nest very deeply (untrusted JSON-like data, generated code) | Bytecode (iterative) | Recursive rule calls live on the VM's own stack, not the Go stack. |
 | A grammar distributed as a data file, not source | Bytecode, from a `.zpc` | See the [compiled grammars guide](compiled-grammars.md). |
-| Checking validity only | Any backend with [`RecognizeOnly`](recognition-mode.md) | No tree is built. |
+| Checking validity only | Any backend with [`Recognize`](recognition-mode.md) | No tree is built. |
 
-Across both units, the recursive bytecode VM is 1.13–1.35× slower than the closure backend in the benchmarks and the iterative VM 1.33–1.76×
-slower; you pay that for portability (the same bytecode is specified for other runtimes in
-[bytecode.md](../../spec/bytecode/README.md)) and, for the iterative VM, for the independence from the Go stack. Do not pick bytecode
-inside a Go program for speed.
+Across both units, the recursive bytecode VM is 1.13–1.35× slower than the reference parser in the benchmarks and the
+iterative VM 1.33–1.76× slower; you pay that for portability (the same bytecode is specified for other runtimes in
+[bytecode.md](../../spec/bytecode/README.md)) and, for the iterative VM, for the independence from the Go stack. The
+reference parser keeps the grammar AST and closures for each rule, and it is the parser that inserts missing tokens
+(`runtime.WithMissingTokens`).
 
 ### Deep Nesting and the Depth Limit
 
 Recursive grammars (parentheses, nested arrays, nested blocks) use recursive rule calls that nest as deep as the input. The
-closure and recursive bytecode backends use the Go stack for those calls. To keep runaway input from exhausting
+reference and recursive bytecode backends use the Go stack for those calls. To keep runaway input from exhausting
 memory, a parse fails with an error once calls of recursive rules nest deeper than a limit: **100,000 by default,
-10,000,000 for `BytecodeIterative`**. `Limits.Depth` changes it. A rule is recursive when it is on a cycle of the
+10,000,000 for the iterative VM**. `Limits.Depth` changes it. A rule is recursive when it is on a cycle of the
 call graph, directly or through other rules. Only entries of recursive rules count; a rule that is on no cycle,
 such as `main` below or a helper for whitespace, can sit on the stack only a bounded number of times and does not.
 This is the grammar `rule main = nested $$` with `rule nested = "(" nested ")" / "x"` (one counted call per level
 of parentheses, plus the innermost one):
 
-| Input (parentheses around `x`) | Closure | Bytecode | Iterative |
+| Input (parentheses around `x`) | Reference | Bytecode | Iterative |
 |:--|:--|:--|:--|
 | 50,000 deep | ok | ok | ok |
 | 200,000 deep | `nesting too deep: more than 100000 nested recursive rule calls` | same error | ok |
 | 1,000,000 deep | same error | same error | ok |
 
 ```go
-n, err := p.Parse(input, engine.WithBackend(engine.BytecodeIterative), engine.WithLimits(core.Limits{Depth: 100}))
+n, err := p.(*vm.Parser).Iterative().Parse(input, runtime.WithLimits(runtime.Limits{Depth: 100}))
 // nesting too deep: more than 100 nested recursive rule calls
 ```
 
@@ -91,16 +93,16 @@ depth; exceeding the limit aborts the parse and discards its execution state.
 Two things to know:
 
 - Lowering the limit is safe on every backend and bounds active nested calls and Operators Rule frames. Input length and
-  total parsing cost have their own limits. A nesting error is a `*core.LimitError` of kind `core.LimitDepth`, so treat it like
+  total parsing cost have their own limits. A nesting error is a `*runtime.LimitError` of kind `runtime.LimitDepth`, so treat it like
   any parse failure.
-- **Raising the limit on the closure and recursive bytecode backends is limited by the Go stack.** Go's goroutine
+- **Raising the limit on the reference and recursive bytecode backends is limited by the Go stack.** Go's goroutine
   stack is capped at 1 GB by default; running past it is not a recoverable error but a fatal `stack overflow` that
-  kills the process. In a trial with the grammar above, the closure backend parsed 300,000 levels with
+  kills the process. In a trial with the grammar above, the reference parser parsed 300,000 levels with
   `Depth: 1_000_000`, but 1,000,000 levels with `Depth: 2_000_000` on the recursive bytecode backend crashed. If you
-  need depth beyond the default, use `BytecodeIterative` rather than raising the limit. Only `BytecodeIterative`
-  accepts `Depth: core.Unlimited`; the other backends reject it as an option error.
+  need depth beyond the default, use the iterative VM rather than raising the limit. Only the iterative VM
+  accepts `Depth: runtime.Unlimited`; the other backends reject it as an option error.
 
-Generated parsers have the same default of 100,000. The `MaxDepth` field of `codegen.Go` or `zp gen -max-depth` sets a
+Generated parsers have the same default of 100,000. The `MaxDepth` field of `compiler.GoConfig` or `zp gen -max-depth` sets a
 generated default; generated Go `Limits.Depth` and TypeScript options-aware entry points override it per invocation
 (see [code generation](generated-go-api.md#invocation-options) and
 [TypeScript depth options](typescript.md#deep-nesting-and-the-javascript-stack)). Their recursive host stacks still
@@ -112,5 +114,5 @@ bound acceptance even when the configured limit is higher.
 - [Recognition Mode](recognition-mode.md): checking input without building a tree.
 - [Memoization](memoization.md): what the packrat memo table costs and saves.
 - [Compiled Grammars](compiled-grammars.md): saving a parser and loading it again.
-- [Generating Parsers](code-generation.md): the fastest backend for a fixed grammar.
+- [Generating Parsers](code-generation.md): the fastest way to run a fixed grammar.
 - [Debugging and Profiling](debugging.md): finding why a parse is slow.
