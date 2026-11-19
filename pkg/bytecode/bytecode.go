@@ -31,6 +31,9 @@ type Module struct {
 	// RunKeys holds the keys of the run sites that are not free of the environment, by increasing
 	// site.
 	RunKeys []RunKeyInfo
+	// Flows holds the bodies of the rules that run from Flow IR, by rule index (in memory only: the
+	// module writer refuses a module with flows until they are serialized).
+	Flows map[int]*Flow
 }
 
 // RunKeyInfo is the key of the records of a run site that is not free of the environment: the
