@@ -18,12 +18,15 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/driver"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/codepass"
 	"zeroparse.dev/zp/internal/middleend/corepass"
+	rprogram "zeroparse.dev/zp/internal/runtime/program"
+	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -192,7 +195,7 @@ func generateOnce(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *
 		return nil, err
 	}
 	if prog.HasMissing {
-		return nil, compile.MissingUnsupported("generated parsers")
+		return nil, rprogram.MissingUnsupported("generated parsers")
 	}
 	start, err := prog.StartRule(opts.Start)
 	if err != nil {
@@ -209,14 +212,14 @@ func generateOnce(g *ast.Grammar, c common.Compiler, opts common.GenOptions, h *
 	if live != nil {
 		genGo.SeedDescs()
 		for _, d := range live.descs[len(genGo.Descs):] {
-			genGo.DescIDs[d] = compile.ExpID(len(genGo.Descs))
+			genGo.DescIDs[d] = rprogram.ExpID(len(genGo.Descs))
 			genGo.Descs = append(genGo.Descs, d)
 		}
 	}
 	if opts.Stream {
 		genGo.streamStart = start
 	}
-	genGo.Desc(compile.FixedDescs[0]) // the fixed expectations come first
+	genGo.Desc(core.FixedDescs[0]) // the fixed expectations come first
 	if h.Generator != nil && collect == nil {
 		h.Generator(genGo)
 	}
@@ -639,8 +642,8 @@ func (g *Generator) recovers() bool {
 	}
 	for _, rs := range [][]*compile.Rule{g.Prog.RuleList, g.Prog.Twins} {
 		for _, r := range rs {
-			compile.WalkExpr(r.Def.Expr, check)
-			compile.WalkExpr(r.BodyExpr(), check)
+			astfacts.WalkExpr(r.Def.Expr, check)
+			astfacts.WalkExpr(r.BodyExpr(), check)
 		}
 	}
 	if g.recoveryProg == nil {
@@ -839,7 +842,7 @@ func (g *Generator) rules() {
 				// The whole-rule action (a traced copy has it from its row), which the library runs on the folded value after each call.
 				if g.Table == "trules" {
 				}
-				locals := map[string]string{compile.OperatorsRuleValue: "c.Value"}
+				locals := map[string]string{rprogram.OperatorsRuleValue: "c.Value"}
 				fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) (any, any) { %s }\n", g.Table, r.ID, g.ctxType(), g.actionBody(g.CoreAction(r), check.NewScope(), locals))
 			}
 			continue
@@ -1282,7 +1285,7 @@ func (g *Generator) shaperOf(lit string) string {
 
 // shaperLit returns the literal of the library shaper of the expression e.
 func shaperLit(prog *compile.Program, e ast.Expr) string {
-	return fmt.Sprintf("Shaper{Elems: %v, K: %d, Mode: %d, Tuple: %v, Shared: %v}", compile.IsElems(prog, e), compile.ValuedCount(prog, e), compile.SingleModeOf(prog, e), compile.ScopeTuple(prog, e), compile.IsElems(prog, e) && compile.SharesTuple(prog, e))
+	return fmt.Sprintf("Shaper{Elems: %v, K: %d, Mode: %d, Tuple: %v, Shared: %v}", check.IsElems(prog.Checker(), e), check.ValuedCount(prog.Checker(), e), check.SingleModeOf(prog.Checker(), e), check.ScopeTuple(prog.Checker(), e), check.IsElems(prog.Checker(), e) && check.SharesTuple(prog.Checker(), e))
 }
 
 // plainCall writes the method r<id>, which does what invokePlain does for the rule r (a rule never
@@ -1319,7 +1322,7 @@ func (g *Generator) plainCall(r *compile.Rule, body string) {
 // Then e fails at once without the terminal, recording only that expectation (a call memoizes the
 // same failure, and memoization only affects speed), so a choice can skip it; unless the calls on
 // the way would exceed the nesting limit.
-func (g *Generator) first(e ast.Expr, depth int, seen map[string]bool) (string, compile.ExpID, int, bool) {
+func (g *Generator) first(e ast.Expr, depth int, seen map[string]bool) (string, rprogram.ExpID, int, bool) {
 	switch e := e.(type) {
 	case *ast.Literal:
 		if e.Value == "" {
@@ -1328,16 +1331,16 @@ func (g *Generator) first(e ast.Expr, depth int, seen map[string]bool) (string, 
 		r, _ := utf8.DecodeRuneInString(e.Value)
 		if e.IgnoreCase {
 			// The next character matches the first code point in either case of an ASCII letter.
-			f := compile.FoldASCIIRune(r)
+			f := state.FoldASCIIRune(r)
 			cond := fmt.Sprintf("ch == %d", f)
 			if 'a' <= f && f <= 'z' {
 				cond += fmt.Sprintf(" || ch == %d", f-('a'-'A'))
 			}
-			return cond, g.Desc(compile.LiteralDesc(e)), depth, true
+			return cond, g.Desc(core.LiteralDesc(e)), depth, true
 		}
 		return fmt.Sprintf("ch == %d", r), g.Desc(strconv.Quote(e.Value)), depth, true
 	case *ast.CharClass:
-		return NegateCondition(g.ControlledClassReject(e)), g.Desc(compile.CharClassString(e)), depth, true
+		return NegateCondition(g.ControlledClassReject(e)), g.Desc(core.CharClassString(e)), depth, true
 	case *ast.Seq:
 		if len(e.Items) > 0 {
 			return g.first(e.Items[0], depth, seen)
@@ -1478,7 +1481,7 @@ func (g *Generator) operatorsRuleLine(e ast.Expr, action ast.ActionExpr, operato
 	}
 	// Lines whose value is unused are matched without values, as in the engine; so are all lines
 	// of a rule without a value (in the recognizer).
-	build := !g.Cur.Novalue && !compile.LeanLine(action, locals)
+	build := !g.Cur.Novalue && !check.LeanLine(action, locals)
 	m := g.flowOperatorsRuleBody(l, e, s, build)
 	if m == "" {
 		g.FailFlow("a line of an Operators Rule of rule " + g.Cur.Name)
@@ -1629,7 +1632,7 @@ func (g *Generator) classSteps(items []ast.Expr) string {
 	var steps []string
 	for _, it := range items {
 		c := it.(*ast.CharClass)
-		steps = append(steps, fmt.Sprintf("{C: &%s, ID: %d}", g.classTable(c), g.Desc(compile.CharClassString(c))))
+		steps = append(steps, fmt.Sprintf("{C: &%s, ID: %d}", g.classTable(c), g.Desc(core.CharClassString(c))))
 	}
 	body := strings.Join(steps, ", ")
 	key := "steps" + body

@@ -9,6 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -1059,7 +1060,7 @@ func (t *TypedGen) transfers() map[*ast.Member]bool {
 		}
 	}
 	for _, term := range t.actionTerms() {
-		compile.WalkTerm(term, func(y ast.ActionExpr) {
+		astfacts.WalkTerm(term, func(y ast.ActionExpr) {
 			n, ok := y.(*ast.New)
 			if !ok {
 				return
@@ -1134,7 +1135,7 @@ func (t *TypedGen) fieldReadMembers() []*ast.Member {
 	}
 	var out []*ast.Member
 	for _, x := range t.actionTerms() {
-		compile.WalkTerm(x, func(y ast.ActionExpr) {
+		astfacts.WalkTerm(x, func(y ast.ActionExpr) {
 			if m, ok := y.(*ast.Member); ok && fields[m.Name] && !t.nodeMember(m) {
 				out = append(out, m)
 			}
@@ -1148,7 +1149,7 @@ func (t *TypedGen) actionTerms() []ast.ActionExpr {
 	var terms []ast.ActionExpr
 	var expr func(e ast.Expr)
 	expr = func(e ast.Expr) {
-		compile.WalkExpr(e, func(x ast.Expr) {
+		astfacts.WalkExpr(e, func(x ast.Expr) {
 			switch x := x.(type) {
 			case *ast.Predicate:
 				terms = append(terms, x.Action)

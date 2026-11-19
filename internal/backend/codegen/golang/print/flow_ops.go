@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/execlower"
+	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/value/impl"
 )
@@ -144,10 +144,10 @@ func (p *flowPrinter) op(c *code.Call, args []string) string {
 	case flow.OpMatchLit:
 		lit := c.Imm.(*core.Lit)
 		if lit.Fold {
-			return fmt.Sprintf("%s.%s(%s, %d, false)", p.matcher(), p.helper("MatchLiteralFold"), g.literal(string(compile.FoldedRunes([]rune(lit.Text)))), p.desc(lit.Exp))
+			return fmt.Sprintf("%s.%s(%s, %d, false)", p.matcher(), p.helper("MatchLiteralFold"), g.literal(string(common.FoldedRunes([]rune(lit.Text)))), p.desc(lit.Exp))
 		}
 		name := g.literal(lit.Text)
-		var desc compile.ExpID
+		var desc rprogram.ExpID
 		if lit.Text == "" {
 			desc = g.Desc(strconv.Quote(""))
 		} else {

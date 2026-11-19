@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -181,7 +182,7 @@ func (g *Generator) leanRuleText(d *flatRule) string {
 
 func exprRecovers(e ast.Expr) bool {
 	found := false
-	compile.WalkExpr(e, func(e ast.Expr) {
+	astfacts.WalkExpr(e, func(e ast.Expr) {
 		if e, ok := e.(*ast.Attributed); ok {
 			for _, a := range e.Attrs {
 				if a.Name == "recover" {
