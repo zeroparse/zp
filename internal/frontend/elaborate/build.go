@@ -110,7 +110,34 @@ func coreModule(prog Program, origin map[core.Node]ast.Expr, project bool, contr
 		}
 	}
 	core.CallGraph(b.m)
+	core.Number(b.m)
 	return b.m, nil
+}
+
+// Origin maps the IDs of the nodes of a module (core.Attrs.ID) to the expressions they were built
+// from. It holds across the passes of the module, which keep the IDs of the nodes they keep and give
+// a node that takes the place of another the ID of the node it replaces.
+type Origin map[core.NodeID]ast.Expr
+
+// OriginByID returns the origin that origin, a map that CoreFrom or CoreProjecting filled while
+// they built a module, records by node ID. A node that the module does not hold has no ID and
+// is left out.
+func OriginByID(origin map[core.Node]ast.Expr) Origin {
+	out := make(Origin, len(origin))
+	for n, e := range origin {
+		if id := n.Attrs().ID; id != 0 {
+			out[id] = e
+		}
+	}
+	return out
+}
+
+// Of returns the expression the node n was built from, or nil.
+func (o Origin) Of(n core.Node) ast.Expr {
+	if n == nil || n.Attrs().ID == 0 {
+		return nil
+	}
+	return o[n.Attrs().ID]
 }
 
 type coreBuilder struct {
@@ -915,32 +942,6 @@ func (b *coreBuilder) termNode(t ast.ActionExpr, s *coreScope, env map[string]*c
 		return &core.Cast{X: x, Check: check, Key: t, Line: line, Col: col}, nil
 	}
 	return nil, fmt.Errorf("unsupported term %T", t)
-}
-
-// FollowRepeats returns functions that, once the scan pass has run, give the scan that took the
-// place of each repetition with an origin the origin of the repetition. A scan that took the place
-// of a Stream gets the origin of the Stream's repetition.
-func FollowRepeats(m *core.Module, origin map[core.Node]ast.Expr) []func() {
-	var out []func()
-	visit := func(at func() core.Node) {
-		rep, ok := at().(*core.Repeat)
-		if st, isStream := at().(*core.Stream); isStream {
-			rep, ok = st.Repeat, true
-		}
-		if ok {
-			if e, ok := origin[rep]; ok {
-				out = append(out, func() {
-					if s, ok := at().(*core.Scan); ok {
-						origin[s] = e
-					}
-				})
-			}
-		}
-	}
-	for _, r := range m.Rules {
-		EachSlot(r, visit)
-	}
-	return out
 }
 
 // EachSlot calls f with an accessor of every place of the rule's body where a node is: the body,

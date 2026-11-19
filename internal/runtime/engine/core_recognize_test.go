@@ -21,9 +21,10 @@ func coreRecognizeCase(name, mode string, g *print.Generator) (*coreGenCase, err
 	if err != nil {
 		return nil, err
 	}
-	c := &coreGenCase{name: name, mode: mode, table: "recRules", golden: recognizerGolden, gen: g, origin: map[core.Node]ast.Expr{}}
+	c := &coreGenCase{name: name, mode: mode, table: "recRules", golden: recognizerGolden, gen: g}
 	c.rules = append(append([]*common.Rule(nil), rec.RuleList...), rec.Twins...)
-	m, err := irbuild.CoreFrom(rec.Elab, c.origin)
+	origin := map[core.Node]ast.Expr{}
+	m, err := irbuild.CoreFrom(rec.Elab, origin)
 	if err != nil {
 		return nil, err
 	}
@@ -33,15 +34,8 @@ func coreRecognizeCase(name, mode string, g *print.Generator) (*coreGenCase, err
 			c.passErrs = append(c.passErrs, fmt.Sprintf("after %s: %v", pass, err))
 		}
 	}
-	prepare := func(m *core.Module) func() {
-		repeats := irbuild.FollowRepeats(m, c.origin)
-		return func() {
-			for _, f := range repeats {
-				f()
-			}
-		}
-	}
-	env := &corepass.Env{Flag: g.Opt().On, PrepareScans: prepare}
+	c.origin = irbuild.OriginByID(origin)
+	env := &corepass.Env{Flag: g.Opt().On}
 	if _, err := corepass.Run(m, env, corepass.RunOptions{Dump: check}); err != nil {
 		return nil, err
 	}

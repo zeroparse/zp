@@ -110,7 +110,7 @@ func (p *flowPrinter) op(c *code.Call, args []string) string {
 		return ""
 	case flow.OpObserveSkip:
 		// The alternative's expression begins with the call it skips, if any.
-		return strings.TrimSuffix(strings.TrimPrefix(g.traceSkip(g.Flow.Origin[c.Imm.(core.Node)]), "\n"), "\n")
+		return strings.TrimSuffix(strings.TrimPrefix(g.traceSkip(g.Flow.Origin.Of(c.Imm.(core.Node))), "\n"), "\n")
 	case flow.OpSetEnv:
 		return "p.Env = " + args[0]
 	case flow.OpSetFrame:
@@ -329,7 +329,7 @@ func (p *flowPrinter) negate(c *code.Call, args []string) string {
 	case flow.OpInClass:
 		return p.reject(c.Imm.(*core.Class), args[0])
 	case flow.OpSkipTerminal:
-		table, ok := g.terminalTable(g.Flow.Origin[c.Imm.(*core.Terminal).Body])
+		table, ok := g.terminalTable(g.Flow.Origin.Of(c.Imm.(*core.Terminal).Body))
 		if !ok {
 			panic("flow printer: terminal region without a terminal program")
 		}

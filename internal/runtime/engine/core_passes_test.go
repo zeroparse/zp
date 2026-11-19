@@ -267,10 +267,10 @@ func TestCoreTerminalsFrozen(t *testing.T) {
 					continue
 				}
 				if seq := valueFreeSeq(r.Body, func(n core.Node) bool {
-					_, ok := c.origin[n]
+					_, ok := c.origin[n.Attrs().ID]
 					return ok
 				}); seq != nil {
-					d.terminals[flowKey{r.ID, c.origin[seq.Items[0]]}] = true
+					d.terminals[flowKey{r.ID, c.origin.Of(seq.Items[0])}] = true
 					return true
 				}
 			}
@@ -329,7 +329,7 @@ func TestCoreScansFrozen(t *testing.T) {
 				body = &core.ClassNode{Class: s.Class}
 			}
 			rep := &core.Repeat{Min: s.Min, Max: s.Max, Body: body}
-			c.origin[rep] = c.origin[s]
+			rep.Attrs().ID = s.Attrs().ID
 			set(rep)
 			return true
 		}},

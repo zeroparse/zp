@@ -95,9 +95,9 @@ func (o observer) After(e pass.Event, print func(io.Writer), unit any) {
 }
 
 // RunCore runs the Core passes on m, the Core IR of the table named table, with the optimizations
-// of the driver; prepareScans is called around the scans (corepass.Env). The module is dumped as
-// "core" as it reaches the passes. A failure is an internal error that names the pass.
-func (d *Driver) RunCore(table string, m *core.Module, prepareScans func(*core.Module) func()) error {
+// of the driver, and returns the module after them. The module is dumped as "core" as it reaches
+// the passes. A failure is an internal error that names the pass.
+func (d *Driver) RunCore(table string, m *core.Module) (*core.Module, error) {
 	p := corepass.Pipeline
 	if d.CorePipeline != nil {
 		p = d.CorePipeline(table)
@@ -105,13 +105,14 @@ func (d *Driver) RunCore(table string, m *core.Module, prepareScans func(*core.M
 	s := pass.Transforms(pass.Transform[*core.Module, *corepass.Env]{
 		IR: corepass.IR, Pipeline: p, Entry: corepass.Stage,
 		Env: func(*pass.Run, pass.Label, *core.Module) *corepass.Env {
-			return &corepass.Env{Flag: d.Opt.On, PrepareScans: prepareScans}
+			return &corepass.Env{Flag: d.Opt.On}
 		},
 	})
-	if _, err := s.Run(d.manager(), pass.Label{Table: table}, m); err != nil {
-		return fmt.Errorf("internal error: %w", err)
+	m, err := s.Run(d.manager(), pass.Label{Table: table}, m)
+	if err != nil {
+		return nil, fmt.Errorf("internal error: %w", err)
 	}
-	return nil
+	return m, nil
 }
 
 // FlowFunc runs the Flow part of the pipeline on one function of the table named table: the

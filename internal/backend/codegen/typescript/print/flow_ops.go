@@ -221,7 +221,7 @@ func (p *tsFlowPrinter) stmtOp(c *code.Call, args func() []string) {
 		if p.dead || p.dry {
 			return
 		}
-		trace := p.g.traceSkipped(p.g.Flow.Origin[c.Imm.(core.Node)])
+		trace := p.g.traceSkipped(p.g.Flow.Origin.Of(c.Imm.(core.Node)))
 		p.b.WriteString(strings.TrimLeft(trace, " "))
 	default:
 		panic(tsFlowUnsupported("operation " + c.Callee))

@@ -6,9 +6,15 @@ type Node interface {
 	Attrs() *Attrs
 }
 
-// Attrs are the attributes of a node. Want and Shape are set when the node is built;
+// Attrs are the attributes of a node. ID, Want and Shape are set when the node is built;
 // Analyze computes the others.
 type Attrs struct {
+	// ID identifies the node in its module (Number). A copy of the module (Module.Clone) keeps it,
+	// and a node that a pass puts in the place of another takes the ID of the node it replaces, so
+	// what is known about a node by its ID, such as the grammar expression it was built from,
+	// holds across passes. It is 0 for a node that is not part of a module's rules, such as the
+	// operand of a Flow operation.
+	ID NodeID
 	// Want reports that the node's value is used. A node with want false builds no value.
 	Want bool
 	// Shape is the static shape of the node's value, which the enclosing node converts where the
@@ -26,6 +32,9 @@ type Attrs struct {
 	// Eff summarizes the node's effects.
 	Eff Effects
 }
+
+// NodeID identifies a node of a module (Attrs.ID); 0 identifies none.
+type NodeID int32
 
 // base holds the attributes of a node.
 type base struct{ attrs Attrs }

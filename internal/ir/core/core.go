@@ -45,6 +45,8 @@ type Module struct {
 	// or nil. The analysis, the passes and Verify poll it for each rule they visit, so that cancelled
 	// work stops inside them; a cancellation unwinds as cancel.Cancellation.
 	Control *cancel.Control
+	// LastID is the greatest node ID of the module (Number, NewID).
+	LastID NodeID
 }
 
 // Type is a checked type: a handle that the engine makes and the backends read. Core compares

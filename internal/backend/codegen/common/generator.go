@@ -93,8 +93,8 @@ func (g *Generator) runner() Runner {
 func (g *Generator) Opt() pass.Settings { return g.runner().Settings() }
 
 // RunCore runs the Core passes through the Runner.
-func (g *Generator) RunCore(table string, m *core.Module, prepareScans func(*core.Module) func()) error {
-	return g.runner().RunCore(table, m, prepareScans)
+func (g *Generator) RunCore(table string, m *core.Module) (*core.Module, error) {
+	return g.runner().RunCore(table, m)
 }
 
 // FieldTypeVar returns the variable holding check type ft of key, declaring it with decl the
@@ -211,8 +211,9 @@ func (g *Generator) Projections(r *Rule) map[string]string {
 
 // FlowState holds the Core IR of the typed rules while they are printed from Flow IR.
 type FlowState struct {
-	M      *core.Module
-	Origin map[core.Node]ast.Expr
+	M *core.Module
+	// Origin holds the expression of the grammar each node of M was built from.
+	Origin irbuild.Origin
 	Opts   flowlower.Options
 	// Rules holds the rules of the program by ID, value-free twins included.
 	Rules []*Rule
@@ -336,7 +337,7 @@ func FrameScope(names []string) *check.Scope {
 // StartRecFlow builds the Core IR of the program rec (the recognizer, or the program of the Node
 // table), with the passes of the untyped tables (no terminal programs and no class runs), for
 // printing its eligible rules from Flow IR. It runs the pipeline of Core passes: the guards and the
-// scans, with the repeats that irbuild.FollowRepeats keeps in step with them. Terminals and class runs
+// scans. Terminals and class runs
 // apply only to lean typed rules (the Flow passes, flowpass.Target): the Node recognizer writes its
 // terminals and classes as inline tests.
 func (g *Generator) StartRecFlow(rec *Program) error {
@@ -345,22 +346,13 @@ func (g *Generator) StartRecFlow(rec *Program) error {
 	if err != nil {
 		return err
 	}
-	// The scans of the Flow route keep the origin of each repetition they replace (FollowRepeats).
-	prepare := func(m *core.Module) func() {
-		repeats := irbuild.FollowRepeats(m, origin)
-		return func() {
-			for _, f := range repeats {
-				f()
-			}
-		}
-	}
-	if err := g.RunCore(g.IRTable(), m, prepare); err != nil {
+	if m, err = g.RunCore(g.IRTable(), m); err != nil {
 		return err
 	}
 	// Classes are inline tests, as the Node library's generated code writes them.
 	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), Observe: g.Observability, Node: true,
 		Document: g.RecordsExamined(), Traced: g.Traced}
-	g.Flow = &FlowState{M: m, Origin: origin, Opts: opts, Rules: append(append([]*Rule(nil), rec.RuleList...), rec.Twins...)}
+	g.Flow = &FlowState{M: m, Origin: irbuild.OriginByID(origin), Opts: opts, Rules: append(append([]*Rule(nil), rec.RuleList...), rec.Twins...)}
 	return nil
 }
 

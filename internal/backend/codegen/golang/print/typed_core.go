@@ -16,8 +16,5 @@ func (g *Generator) TypedCore(origin map[core.Node]ast.Expr) (*core.Module, erro
 	if err != nil {
 		return nil, err
 	}
-	if err := g.RunCore(g.IRTable(), m, nil); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return g.RunCore(g.IRTable(), m)
 }

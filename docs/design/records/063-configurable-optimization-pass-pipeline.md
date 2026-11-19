@@ -120,8 +120,9 @@ failed, or `verification` for the final check.
 On the typed table with every optimization enabled, `attributes` is stale at the start and is computed before `guards`;
 it is stale again after `scans` and `class-runs` and is recomputed once before the final verification. The pipeline
 of the recognizer table and of the Node table is the same list in a mode that is not lean, so `terminals` and
-`class-runs` do not apply there. Where a route needs to follow what a pass does, it hooks the pass: the route of the Node
-and recognizer tables keeps the origin of each repetition that `scans` replaces (`Env.PrepareScans`).
+`class-runs` do not apply there. A route that needs to follow what a pass does keys what it knows by node ID
+(`core.Attrs.ID`): a node that a pass puts in the place of another takes its ID, so the scan that replaces a repetition
+has the origin of the repetition.
 
 The mode is a value the generator passes in (`Mode`), so `corepass` keeps no knowledge of budget controls or
 Documents.

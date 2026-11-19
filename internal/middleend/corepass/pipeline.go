@@ -27,10 +27,6 @@ const (
 type Env struct {
 	// Flag reports whether the optimization of the given name is on. Nil means every one is.
 	Flag func(name string) bool
-	// PrepareScans, if not nil, is called with the module before the scans pass, and the function
-	// it returns after it. The Flow route uses it to keep the origin of each repetition that a scan
-	// replaces.
-	PrepareScans func(*core.Module) (finish func())
 }
 
 // On reports whether the optimization of the given name is on.
@@ -58,15 +54,8 @@ var Pipeline = &pass.Pipeline[*core.Module, *Env]{
 			// A Stream is replaced as its repetition only where it delivers no elements (Eff).
 			Requires:   []pass.Analysis{AttributesAnalysis},
 			Obligation: "Consumes the same input and records the same expectations as the repetition it replaces.",
-			Run: func(m *core.Module, e *Env) error {
-				var finish func()
-				if e.PrepareScans != nil {
-					finish = e.PrepareScans(m)
-				}
+			Run: func(m *core.Module, _ *Env) error {
 				Scans(m)
-				if finish != nil {
-					finish()
-				}
 				return nil
 			},
 		},

@@ -36,9 +36,9 @@ type Runner interface {
 	// its Passes, which the generator reads through Generator.Opt, so that the printers and the
 	// passes use the same ones.
 	Settings() pass.Settings
-	// RunCore runs the pipeline of Core passes on m, the Core IR of the table named table;
-	// prepareScans is called around the scans (corepass.Env).
-	RunCore(table string, m *core.Module, prepareScans func(*core.Module) func()) error
+	// RunCore runs the pipeline of Core passes on m, the Core IR of the table named table, and
+	// returns the module after them.
+	RunCore(table string, m *core.Module) (*core.Module, error)
 	// FlowFunc runs the Flow part of the pipeline on one function of the table named table: the
 	// lowering of u (flowlower), the Flow passes and flow-finish; observe says that the parser
 	// reports its rules and skipped alternatives, and target which forms the backend prints

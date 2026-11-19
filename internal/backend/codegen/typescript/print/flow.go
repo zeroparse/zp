@@ -343,7 +343,7 @@ func (p *tsFlowPrinter) scopeNames(n *flow.Names) string {
 // grammarTerm returns the term of the grammar predicate that the node n is built from, for the name
 // of the variable that a binding sets.
 func (p *tsFlowPrinter) grammarTerm(n core.Node) ast.ActionExpr {
-	e, ok := p.g.Flow.Origin[n].(*ast.Predicate)
+	e, ok := p.g.Flow.Origin.Of(n).(*ast.Predicate)
 	if !ok {
 		panic(tsFlowUnsupported(fmt.Sprintf("no grammar predicate for %T", n)))
 	}

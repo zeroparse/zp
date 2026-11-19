@@ -204,34 +204,63 @@ rule inner = u:(v:"b"* #stream)
 	}
 }
 
-// TestFollowRepeatsThroughStream checks that the Scan that takes the place of the #stream
-// repetition of a rule that is not a start rule gets the origin of that repetition.
-func TestFollowRepeatsThroughStream(t *testing.T) {
+// TestScanKeepsTheOriginThroughStream checks that the Scan that takes the place of the #stream
+// repetition of a rule that is not a start rule has the ID of that repetition, and so its origin.
+func TestScanKeepsTheOriginThroughStream(t *testing.T) {
 	prog := coreProgram(t, `@start
 rule main = inner $$
 rule inner = [a-z]* #stream
 `)
-	origin := map[core.Node]ast.Expr{}
-	m, err := elaborate.CoreFrom(prog, origin)
+	built := map[core.Node]ast.Expr{}
+	m, err := elaborate.CoreFrom(prog, built)
 	if err != nil {
 		t.Fatal(err)
 	}
+	origin := elaborate.OriginByID(built)
 	for _, r := range m.Rules {
 		r.Want = false
 		core.Walk(r.Body, func(n core.Node) { n.Attrs().Want = false })
 	}
 	core.Analyze(m)
-	repeats := elaborate.FollowRepeats(m, origin)
 	corepass.Scans(m)
-	for _, f := range repeats {
-		f()
-	}
 	s, ok := m.Rules[1].Body.(*core.Scan)
 	if !ok {
 		t.Fatalf("inner after scans: %T, want *core.Scan", m.Rules[1].Body)
 	}
-	if _, ok := origin[s].(*ast.Repeat); !ok {
-		t.Errorf("origin of the scan: %T, want *ast.Repeat", origin[s])
+	if _, ok := origin.Of(s).(*ast.Repeat); !ok {
+		t.Errorf("origin of the scan: %T, want *ast.Repeat", origin.Of(s))
+	}
+}
+
+// TestCoreBuildNumbersEveryNode checks that the builder gives every node of the module an ID of
+// its own, and that the origin by ID agrees with the origin by node.
+func TestCoreBuildNumbersEveryNode(t *testing.T) {
+	prog := coreProgram(t, `@start
+rule main = (a:"x" / [0-9]+ b:main)* $$
+`)
+	built := map[core.Node]ast.Expr{}
+	m, err := elaborate.CoreFrom(prog, built)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[core.NodeID]core.Node{}
+	for _, r := range m.Rules {
+		core.Walk(r.Body, func(n core.Node) {
+			id := n.Attrs().ID
+			if id == 0 || id > m.LastID {
+				t.Errorf("%T has ID %d, LastID %d", n, id, m.LastID)
+			}
+			if o, ok := seen[id]; ok && o != n {
+				t.Errorf("%T and %T share the ID %d", o, n, id)
+			}
+			seen[id] = n
+		})
+	}
+	origin := elaborate.OriginByID(built)
+	for n, e := range built {
+		if n.Attrs().ID != 0 && origin.Of(n) != e {
+			t.Errorf("origin of %T by ID differs", n)
+		}
 	}
 }
 

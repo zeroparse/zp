@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
+	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
@@ -145,12 +146,12 @@ func (rec *flowRecord) record(g *print.Generator, m *code.Module) {
 		if r.By != flowpass.PassTerminals {
 			continue
 		}
-		if e, ok := origin[r.Node]; ok {
+		if e, ok := origin[r.Node.Attrs().ID]; ok {
 			d.terminals[flowKey{id, e}] = true
 		}
 	}
 	for _, s := range a.Forms.Seqs {
-		e, ok := origin[s.Node]
+		e, ok := origin[s.Node.Attrs().ID]
 		if !ok {
 			continue
 		}
@@ -198,10 +199,10 @@ func leadingClass(n core.Node) core.Node {
 
 // altOriginIn returns the expression of the alternative i of the choice x under origin, as
 // coreGenCase.altOrigin does.
-func altOriginIn(origin map[core.Node]ast.Expr, x *core.Choice, i int) (ast.Expr, bool) {
-	if ce, ok := origin[x].(*ast.Choice); ok && len(ce.Alts) == len(x.Alts) {
+func altOriginIn(origin irbuild.Origin, x *core.Choice, i int) (ast.Expr, bool) {
+	if ce, ok := origin.Of(x).(*ast.Choice); ok && len(ce.Alts) == len(x.Alts) {
 		return ce.Alts[i], true
 	}
-	e, ok := origin[x.Alts[i].Body]
+	e, ok := origin[x.Alts[i].Body.Attrs().ID]
 	return e, ok
 }

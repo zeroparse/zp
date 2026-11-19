@@ -40,7 +40,7 @@ func TestDriverRunCore(t *testing.T) {
 		}
 	}
 	d.CorePipeline = func(string) *pass.Pipeline[*core.Module, *corepass.Env] { return &p }
-	if err := d.RunCore("typed", &core.Module{}, nil); err != nil {
+	if _, err := d.RunCore("typed", &core.Module{}); err != nil {
 		t.Fatal(err)
 	}
 	want := []string{corepass.PassGuards}
@@ -66,11 +66,11 @@ func TestDriverRunCore(t *testing.T) {
 	// Without a writer nothing is printed; "all" selects every pass that ran.
 	dump.Reset()
 	d = &Driver{PrintAfter: []string{"all"}}
-	if err := d.RunCore("rules", &core.Module{}, nil); err != nil {
+	if _, err := d.RunCore("rules", &core.Module{}); err != nil {
 		t.Fatal(err)
 	}
 	d.PrintTo = &dump
-	if err := d.RunCore("rules", &core.Module{}, nil); err != nil {
+	if _, err := d.RunCore("rules", &core.Module{}); err != nil {
 		t.Fatal(err)
 	}
 	if n := strings.Count(dump.String(), "-- Core IR of the rules table after "); n != 3 {
@@ -85,7 +85,7 @@ func TestDriverRunCoreError(t *testing.T) {
 		Name: "test-core-fail", Obligation: "none: it fails",
 		Run: func(*core.Module, *corepass.Env) error { return cause }}}}
 	d := &Driver{CorePipeline: func(string) *pass.Pipeline[*core.Module, *corepass.Env] { return p }, TestPasses: []string{"test-core-fail"}}
-	err := d.RunCore("typed", &core.Module{}, nil)
+	_, err := d.RunCore("typed", &core.Module{})
 	if !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "internal error: ") {
 		t.Fatalf("error %v", err)
 	}
