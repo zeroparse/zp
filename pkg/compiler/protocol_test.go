@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// protocolName matches the declaration of a protocol constant of the library or of core/impl.
+// protocolName matches the declaration of a protocol constant of the library or of value/impl.
 var protocolName = regexp.MustCompile(`\bconst Protocol([1-9][0-9]*) = ([1-9][0-9]*)\b`)
 
 // bumpProtocol replaces the protocol constants that src declares with those of the version after

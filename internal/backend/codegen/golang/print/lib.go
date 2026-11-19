@@ -235,8 +235,8 @@ func addLibDecls(info *libInfo, f *goast.File, pkg string) error {
 }
 
 // libFiles returns the copy of the library that LibOnly writes, in internal/libgo: the whole
-// library, since it serves a parser generated earlier. The copy imports core and core/impl of this
-// module, as generated code does.
+// library, since it serves a parser generated earlier. The copy imports the runtime packages of
+// this module, as generated code does.
 func libFiles(opts common.GenOptions) ([]common.GeneratedFile, error) {
 	info, err := loadLib(opts)
 	if err != nil {

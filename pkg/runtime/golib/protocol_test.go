@@ -177,7 +177,7 @@ func (s *surface) add(line string) { s.lines[line] = true }
 // the library (Data) and which belongs to the protocol like the library's own declarations.
 const coreimplPath = "zeroparse.dev/zp/pkg/runtime/value/impl"
 
-// typeName records a type or alias declaration of the package or of coreimpl and walks what it
+// typeName records a type or alias declaration of the package or of valueimpl and walks what it
 // reaches.
 func (s *surface) typeName(obj *types.TypeName) {
 	if obj.Pkg() == nil || (obj.Pkg() != s.pkg && obj.Pkg().Path() != coreimplPath) || s.seen[obj] {
@@ -415,7 +415,7 @@ func TestProtocolSurfaceSeesReachedTypes(t *testing.T) {
 		}
 	}
 	if !strings.Contains(want, "type zeroparse.dev/zp/pkg/runtime/value/impl.Data[N any] struct{Kind *zeroparse.dev/zp/pkg/runtime/value/impl.Kind; ") {
-		t.Errorf("the interface lacks the fields of coreimpl.Data")
+		t.Errorf("the interface lacks the fields of valueimpl.Data")
 	}
 	dir := t.TempDir()
 	entries, err := os.ReadDir(".")
@@ -443,10 +443,10 @@ func TestProtocolSurfaceSeesReachedTypes(t *testing.T) {
 }
 
 // TestCoreImplProtocol checks the guard between the library and the node representation: package
-// coreimpl declares exactly one protocol constant, of a version up to the library's, and the library
-// refers to exactly that one, so a copy of the library builds only against a core that serves its
-// representation. TestRepresentation in core/impl makes a change of the representation replace
-// the constant.
+// valueimpl declares exactly one protocol constant, of a version up to the library's, and the
+// library refers to exactly that one, so a copy of the library builds only against a runtime that
+// serves its representation. TestRepresentation in value/impl makes a change of the
+// representation replace the constant.
 func TestCoreImplProtocol(t *testing.T) {
 	fset := token.NewFileSet()
 	constants := func(dir string) (declared, referred []string) {
@@ -481,14 +481,14 @@ func TestCoreImplProtocol(t *testing.T) {
 	served, _ := constants(filepath.Join("..", "value", "impl"))
 	_, referred := constants(".")
 	if len(served) != 1 {
-		t.Fatalf("core/impl declares the protocol constants %v, want exactly one", served)
+		t.Fatalf("value/impl declares the protocol constants %v, want exactly one", served)
 	}
 	if !slices.Equal(referred, served) {
-		t.Errorf("the library refers to the coreimpl protocol constants %v, want exactly %v", referred, served)
+		t.Errorf("the library refers to the valueimpl protocol constants %v, want exactly %v", referred, served)
 	}
 	// The representation was introduced by a protocol version the library implements or a former one.
 	version, _ := protocolSurface(t)
 	if n, err := strconv.Atoi(strings.TrimPrefix(served[0], "Protocol")); err != nil || n > version {
-		t.Errorf("core/impl declares %s, which is not a protocol version up to the library's %d", served[0], version)
+		t.Errorf("value/impl declares %s, which is not a protocol version up to the library's %d", served[0], version)
 	}
 }

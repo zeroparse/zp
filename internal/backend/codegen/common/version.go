@@ -16,7 +16,7 @@ const develVersion = "(devel)"
 
 // Version returns the generator version: the version of the module zeroparse.dev/zp in the
 // running binary, whether it is the main module (the zp command) or a dependency (a program that
-// uses package zeroparse.dev/zp/gen). A build without a module version, or with the module
+// uses package zeroparse.dev/zp/pkg/compiler). A build without a module version, or with the module
 // replaced, or whose version marks a modified tree ("+dirty"), reports "(devel)". A tag
 // (v0.1.0) and a pseudo-version (a build from a commit) name the generator exactly.
 var Version = sync.OnceValue(func() string {
