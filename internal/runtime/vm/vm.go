@@ -94,7 +94,7 @@ type vmBodies func(vm *Program, r *state.Rule, entry int) func(p *state.Parser, 
 // New prepares a module for execution with the recursive model, in the family f; terms are the
 // programs of its terms (LoadTerms).
 func New(m *bytecode.Module, terms []*state.TermProgram, f state.Family) *Program {
-	return buildVMProgram(m, terms, f, execBody)
+	return buildVMProgram(m, terms, f, execBody, true)
 }
 
 // Rule returns the rule called name, or nil when the module has none.
@@ -116,8 +116,10 @@ func execBody(vm *Program, r *state.Rule, entry int) func(p *state.Parser, min i
 	}
 }
 
-// buildVMProgram prepares a module for execution in the family f. bodies makes the rule bodies.
-func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Family, bodies vmBodies) *Program {
+// buildVMProgram prepares a module for execution in the family f. bodies makes the rule bodies, and
+// flows tells whether a rule with a Flow body (bytecode.Flow) runs it instead: the recursive model
+// does, while the iterative model enters every rule through its frames and runs the match code.
+func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Family, bodies vmBodies, flows bool) *Program {
 	vm := &Program{m: m, byName: map[string]*state.Rule{}, descs: append(append([]string(nil), program.FixedDescs...), m.Strings...)}
 	vm.literals = m.Strings
 	normalized := false
@@ -215,6 +217,9 @@ func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Fami
 		r.Entry = entry
 		r.Stream = vm.streams(entry)
 		r.Body = bodies(vm, r, entry)
+		if f := m.Flows[i]; flows && f != nil {
+			r.Body = flowBody(vm, r, f)
+		}
 	}
 	return vm
 }
