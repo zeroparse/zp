@@ -3,6 +3,8 @@ package engine
 import (
 	"os"
 	"reflect"
+	"runtime/debug"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/backend/vmlower"
@@ -12,11 +14,17 @@ import (
 	"zeroparse.dev/zp/pkg/bytecode"
 )
 
-// parseCharged parses input with the bytecode VM of prog as Parse does, and returns the tree, the
-// error and the budget spend of the parse.
+// parseCharged parses input with the recursive bytecode VM of prog as Parse does, and returns the
+// tree, the error and the budget spend of the parse.
 func parseCharged(t *testing.T, prog *Program, input string) (string, string, uint64) {
 	t.Helper()
-	o := ParseOptions{Backend: Bytecode}
+	return parseChargedWith(t, prog, input, Bytecode)
+}
+
+// parseChargedWith is parseCharged on the backend b.
+func parseChargedWith(t *testing.T, prog *Program, input string, b Backend) (string, string, uint64) {
+	t.Helper()
+	o := ParseOptions{Backend: b}
 	start := prog.ResolveStart("")
 	active, _, control, err := prog.admitParse(start, o, optionsFamily(o), false, input)
 	if err != nil {
@@ -89,6 +97,17 @@ func jsonFlowPrograms(t *testing.T, mutate func(*bytecode.Flow)) (*Program, *Pro
 	return old, New(flowSource{Source: old.src, m: bc})
 }
 
+// mutateCall changes the first call of a Flow body to call main, a different rule than the one the
+// body calls.
+func mutateCall(f *bytecode.Flow) {
+	for i := range f.Code {
+		if in := &f.Code[i]; in.Op == bytecode.FlowCall {
+			in.Imm = bytecode.FlowCallOf{Rule: 0, Level: in.Imm.(bytecode.FlowCallOf).Level}
+			return
+		}
+	}
+}
+
 // flowSource is the source of a grammar whose module is m.
 type flowSource struct {
 	Source
@@ -136,14 +155,7 @@ func saveAndLoad(t *testing.T, prog *Program) *Program {
 // the loaded program runs the body it read.
 func TestFlowBodyJSONValueFileForm(t *testing.T) {
 	old, spiked := jsonFlowPrograms(t, nil)
-	_, called := jsonFlowPrograms(t, func(f *bytecode.Flow) {
-		for i := range f.Code {
-			if in := &f.Code[i]; in.Op == bytecode.FlowCall {
-				in.Imm = bytecode.FlowCallOf{Rule: 0, Level: in.Imm.(bytecode.FlowCallOf).Level}
-				return
-			}
-		}
-	})
+	_, called := jsonFlowPrograms(t, mutateCall)
 	loaded, loadedCalled := saveAndLoad(t, spiked), saveAndLoad(t, called)
 	changed := false
 	for _, in := range jsonDifferentialInputs {
@@ -171,16 +183,7 @@ func TestFlowBodyJSONValueFileForm(t *testing.T) {
 // a call of the value rule's body to a different rule changes the trees of the corpus, and an extra read
 // of the input at the start of the body, which changes no result, changes the spends.
 func TestFlowBodyDifferentialDetectsMutations(t *testing.T) {
-	old, called := jsonFlowPrograms(t, func(f *bytecode.Flow) {
-		for i := range f.Code {
-			if in := &f.Code[i]; in.Op == bytecode.FlowCall {
-				x := in.Imm.(bytecode.FlowCallOf)
-				x.Rule = 0 // main: a different rule than the one the body calls
-				in.Imm = x
-				return
-			}
-		}
-	})
+	old, called := jsonFlowPrograms(t, mutateCall)
 	_, peeked := jsonFlowPrograms(t, func(f *bytecode.Flow) {
 		for i := range f.Code {
 			if in := &f.Code[i]; in.Op == bytecode.FlowJump || in.Op == bytecode.FlowJumpFalse {
@@ -206,5 +209,46 @@ func TestFlowBodyDifferentialDetectsMutations(t *testing.T) {
 	}
 	if !spends && state.BudgetControlsEnabled { // a build without budget controls charges nothing
 		t.Error("an extra read in the Flow body changed no spend of the corpus: the harness does not compare charges")
+	}
+}
+
+// TestFlowBodyJSONValueIterative runs the JSON corpus through the iterative model with the value
+// rule as its match code and as its Flow body: the trees, the errors and the budget spends must
+// agree, and a changed call in the body must change a tree, so that the iterative model runs it.
+func TestFlowBodyJSONValueIterative(t *testing.T) {
+	old, spiked := jsonFlowPrograms(t, nil)
+	_, called := jsonFlowPrograms(t, mutateCall)
+	changed := false
+	for _, in := range jsonDifferentialInputs {
+		ot, oe, ou := parseChargedWith(t, old, in, BytecodeIterative)
+		st, se, su := parseChargedWith(t, spiked, in, BytecodeIterative)
+		if ot != st || oe != se || ou != su {
+			t.Errorf("input %q: match code tree %s err %s spend %d; flow tree %s err %s spend %d", in, ot, oe, ou, st, se, su)
+		}
+		ct, _, _ := parseChargedWith(t, called, in, BytecodeIterative)
+		changed = changed || ct != ot
+	}
+	if !changed {
+		t.Error("a changed call in the Flow body changed no tree: the iterative model does not run it")
+	}
+}
+
+// TestFlowBodyIterativeDeepNesting checks that the iterative model runs a Flow body without host
+// recursion: JSON arrays nested deeper than a small host stack allows the recursive model, whose
+// value rule runs its Flow body at every level, parse with the tree, error and spend of the match
+// code.
+func TestFlowBodyIterativeDeepNesting(t *testing.T) {
+	old, spiked := jsonFlowPrograms(t, nil)
+	const depth = 20000
+	in := strings.Repeat("[", depth) + strings.Repeat("]", depth)
+	ot, oe, ou := parseChargedWith(t, old, in, BytecodeIterative)
+	if oe != "<nil>" {
+		t.Fatalf("the match code fails: %s", oe)
+	}
+	prev := debug.SetMaxStack(1 << 20) // too small for the recursive model
+	st, se, su := parseChargedWith(t, spiked, in, BytecodeIterative)
+	debug.SetMaxStack(prev)
+	if ot != st || oe != se || ou != su {
+		t.Errorf("match code err %s spend %d; flow err %s spend %d; trees equal: %v", oe, ou, se, su, ot == st)
 	}
 }
