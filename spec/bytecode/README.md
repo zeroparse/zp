@@ -53,6 +53,7 @@ A module consists of the following tables and code sequences.
 | Wide-integer table | Implementation-int values: the repetition bounds that do not fit an operand |
 | Term table | The term code of the module's terms ([Term Code](#term-code)) |
 | Run key table | The variables that key the records of each run site that is not free of the environment ([Run key table](#run-key-table)) |
+| Flow bodies | The rules that run a Flow body in place of their match code, each with its body ([Flow Bodies](#flow-bodies)); held in memory only |
 
 An instruction consists of an opcode and up to three integer operands, `A`, `B` and `C`. A jump target is the index of an instruction in the same code sequence.
 
@@ -342,6 +343,40 @@ opcode is in the table; every operand is in range for its kind: a register withi
 pool, a jump target within the code, a variable within the variable table, an operator within its operators, a flag 0
 or 1 and a capture slot not negative; and the code ends with `JUMP`, `RET` or `RETERR`, so that evaluation cannot run
 past it. As for match code, a runtime does not check that registers hold what an instruction reads.
+
+## Flow Bodies
+
+A rule may have a Flow body: the code of the [Flow function](../flow-ir/functions.md) of the rule, lowered with
+budget controls and for the node runtime, as a flat list of instructions. In the recursive model
+([Execution Models](#execution-models)) a rule with a Flow body runs it in place of its match code; its entry, its call
+and its completion ([Rule Calls](#rule-calls)) are those of the rule table, and the body returns the rule's value and
+success, or failure. The iterative model runs the match code of every rule. A Flow body is held in memory only: a module
+that has one is not written to a file ([File Format](#file-format)).
+
+A Flow body has a frame of registers, which hold the variables of the function, each register a value of the type of
+its variable. An instruction has an operation, destination registers, argument registers, a jump target and an
+immediate. The control of the function, its blocks, exits and conditionals, becomes jumps: an exit to the failure label
+returns failure, and running to the end of the body returns the result variable and success.
+
+| Instruction | Behavior |
+|:--|:--|
+| `CONST` | The destination is the immediate: a boolean, an integer, or the null value. |
+| `MOVE` | The destination is the argument. |
+| `NOT` | The destination is the negation of the boolean argument. |
+| `POS`, `SETPOS` | The destination is the position; the position is the integer argument. |
+| `JUMP` | Continue at the target. |
+| `JUMPFALSE` | Continue at the target when the boolean argument is false. |
+| `RETURN` | Return the value of the first argument with the success of the second. |
+| `MARK`, `RESET` | `flow.markState` and `flow.reset`. |
+| `PEEK` | `flow.peek`: the character, its width and whether there is one; a destination may be discarded. |
+| `GUARD` | `flow.guardFails` for the guard of the immediate: the first character of a literal (case-folded or not) or a class of the character class table, and the depth of calls the guard adds. |
+| `EXPECT` | `flow.expect` of the expectation of the immediate at the position of the argument. |
+| `UNFRESH` | `flow.unfresh`. |
+| `CALL` | `flow.callRule` of the rule of the immediate at its binding level: the value and the success. |
+
+An instruction named after an operation of the [Flow dialect](../flow-ir/operations.md) does what the operation does
+and charges what its cost bound names, and no more; the other instructions charge nothing. A Flow body therefore charges
+what its Flow function charges.
 
 ## Error Messages
 
