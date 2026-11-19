@@ -536,21 +536,6 @@ func (s *flowSel) call(c *code.Call, dst []int) error {
 			return err
 		}
 		s.emit(bytecode.FlowInstr{Op: bytecode.FlowExpect, Args: a[:1], Imm: bytecode.FlowExpectOf{Exp: s.expID(x.Exp), Message: x.Message}})
-	case flowpkg.OpScopeValue:
-		// The value of a scope that is neither a tuple nor a list of elements is its body's value
-		// (program.Shaper.One), so the operation is a move.
-		sh := c.Imm.(ir.Shape)
-		if sh.Elems || sh.Tuple {
-			return fmt.Errorf("a scope value of a tuple or of elements has no bytecode Flow form yet")
-		}
-		a, err := args(c.Args[:1])
-		if err != nil {
-			return err
-		}
-		if len(dst) != 1 {
-			return fmt.Errorf("flow.scopeValue with %d results", len(dst))
-		}
-		s.store(dst[0], a[0])
 	case flowpkg.OpUnfresh:
 		a, err := args(c.Args)
 		if err != nil {
@@ -616,10 +601,71 @@ func (s *flowSel) call(c *code.Call, dst []int) error {
 			return err
 		}
 		s.emit(bytecode.FlowInstr{Op: bytecode.FlowMergeExpected, Args: a})
+	case flowpkg.OpNewTerminalNode:
+		return s.op(bytecode.FlowNewTerminal, c, dst, nil)
+	case flowpkg.OpNewBranchNode:
+		op := bytecode.FlowNewSeq
+		if c.Imm.(flowpkg.List) {
+			op = bytecode.FlowNewList
+		}
+		return s.op(op, c, dst, nil)
+	case flowpkg.OpNewVals:
+		return s.op(bytecode.FlowNewVals, c, dst, int(c.Imm.(flowpkg.Room)))
+	case flowpkg.OpAppend:
+		op := bytecode.FlowAppend
+		if c.Imm.(flowpkg.Spread) {
+			op = bytecode.FlowSpread
+		}
+		return s.op(op, c, dst, nil)
+	case flowpkg.OpText:
+		return s.op(bytecode.FlowText, c, dst, nil)
+	case flowpkg.OpLiteralText:
+		return s.op(bytecode.FlowLiteralText, c, dst, int(s.c.str(string(c.Imm.(flowpkg.Chars)))))
+	case flowpkg.OpStr:
+		return s.op(bytecode.FlowStr, c, dst, int(s.c.str(string(c.Imm.(flowpkg.Chars)))))
+	case flowpkg.OpKidsLen:
+		return s.op(bytecode.FlowKidsLen, c, dst, nil)
+	case flowpkg.OpKids:
+		return s.op(bytecode.FlowKids, c, dst, nil)
+	case flowpkg.OpDropKids:
+		return s.op(bytecode.FlowDropKids, c, dst, nil)
+	case flowpkg.OpPushKid:
+		return s.op(bytecode.FlowPushKid, c, dst, nil)
+	case flowpkg.OpShapeSingle:
+		return s.op(bytecode.FlowShapeSingle, c, dst, shapeOf(c.Imm.(ir.Shape)))
+	case flowpkg.OpScopeValue:
+		return s.op(bytecode.FlowScopeValue, c, dst, shapeOf(c.Imm.(ir.Shape)))
 	default:
 		return fmt.Errorf("operation %s has no bytecode Flow form yet", c.Callee)
 	}
 	return nil
+}
+
+// op emits the instruction of operation op for the call c, whose arguments are its registers, with
+// the immediate imm and the results in dst.
+func (s *flowSel) op(op bytecode.FlowOp, c *code.Call, dst []int, imm any) error {
+	sh, _ := op.Shape()
+	if len(c.Args) != sh.Args {
+		return fmt.Errorf("%s with %d arguments", c.Callee, len(c.Args))
+	}
+	if len(dst) != 0 && len(dst) != sh.Dst {
+		return fmt.Errorf("%s with %d results", c.Callee, len(dst))
+	}
+	var a []int // nil for none, as a module file reads it back
+	for _, e := range c.Args {
+		r, err := s.expr(e)
+		if err != nil {
+			return err
+		}
+		a = append(a, r)
+	}
+	s.emit(bytecode.FlowInstr{Op: op, Dst: dst, Args: a, Imm: imm})
+	return nil
+}
+
+// shapeOf returns the immediate of the shape sh.
+func shapeOf(sh ir.Shape) bytecode.FlowShapeOf {
+	return bytecode.FlowShapeOf{Elems: sh.Elems, Shared: sh.Shared, Tuple: sh.Tuple, K: sh.K, Mode: int(sh.Mode)}
 }
 
 // expID returns the parser's ID of the expectation id of the Core IR: the fixed expectations keep
