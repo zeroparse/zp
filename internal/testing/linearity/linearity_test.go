@@ -88,3 +88,29 @@ func TestAllocsIgnoresPendingFinalizers(t *testing.T) {
 		t.Errorf("%d of %d finalizers had run when Allocs returned", n, garbage)
 	}
 }
+
+// TestDrainFinalizersWaitsForEveryFinalizer checks that drainFinalizers returns only after all the
+// finalizers of the garbage have run, however the finalizer goroutine is scheduled. The runtime does
+// not run a list of finalizers in the order of queueing, so a single marker finalizer can return
+// while the batch is still pending; many short trials make that visible.
+func TestDrainFinalizersWaitsForEveryFinalizer(t *testing.T) {
+	const garbage = 2000
+	trials := 200
+	if testing.Short() {
+		trials = 20
+	}
+	for trial := range trials {
+		var ran atomic.Int64
+		for range garbage {
+			o := new([32]byte)
+			runtime.SetFinalizer(o, func(*[32]byte) {
+				finalizerSink.Store(new([64]byte))
+				ran.Add(1)
+			})
+		}
+		drainFinalizers()
+		if n := ran.Load(); n != garbage {
+			t.Fatalf("trial %d: drainFinalizers returned with %d of %d finalizers run", trial, n, garbage)
+		}
+	}
+}

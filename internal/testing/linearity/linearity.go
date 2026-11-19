@@ -69,7 +69,8 @@ func LeastLimit(t testing.TB, completes func(limit uint64) bool) uint64 {
 //
 // A collection only queues finalizers; the goroutine that runs them is scheduled later, and under
 // load it can run in the middle of the measured work and allocate there. So Allocs waits until the
-// queue is empty before it measures (drainFinalizers).
+// finalizers that are queued have run before it measures (drainFinalizers). It does not wait for the
+// cleanups of runtime.AddCleanup, which the measured code must not use.
 //
 // The counters are those of the process, so the caller must not run in parallel with other tests,
 // and the work must not leave goroutines that allocate after it returns. Allocs does not see work
@@ -88,15 +89,28 @@ func Allocs(work func()) (objects, bytes uint64) {
 	return after.Mallocs - before.Mallocs, after.TotalAlloc - before.TotalAlloc
 }
 
-// drainFinalizers returns when every finalizer queued by a collection before the call has run. The
-// finalizers run one after the other on one goroutine, in the order they were queued, so a marker
-// that is queued by a later collection runs after all that the earlier collection queued.
+// drainFinalizers returns when every finalizer queued by a collection before the call has run.
+//
+// The runtime guarantees little about the order: finalizers run on one goroutine, which takes the
+// whole list of the queued ones at once and runs it, and a list that is queued while it runs is taken
+// after it. Within a list the order is not the order of queueing (newer blocks run first), so a
+// marker that is queued while the garbage's finalizers are still in the list can run before them.
+// So the wait is for two markers in sequence. When the first has run, the goroutine has taken the
+// list that held it, and the second is queued after that, so it is in a later list and runs only
+// after the goroutine has finished the first one, with every finalizer that the first collection
+// queued.
+//
+// Cleanups of runtime.AddCleanup are not drained: they run on goroutines of their own, concurrently
+// and in no order, so no marker can tell that the others are done. The measured code must not use
+// them.
 func drainFinalizers() {
 	runtime.GC() // queues the finalizers of everything that is garbage now
-	done := make(chan struct{})
-	marker := new([16]byte)
-	runtime.SetFinalizer(marker, func(*[16]byte) { close(done) })
-	marker = nil
-	runtime.GC() // queues the marker behind them
-	<-done
+	for range 2 {
+		done := make(chan struct{})
+		marker := new([16]byte)
+		runtime.SetFinalizer(marker, func(*[16]byte) { close(done) })
+		marker = nil
+		runtime.GC() // queues the marker
+		<-done
+	}
 }
