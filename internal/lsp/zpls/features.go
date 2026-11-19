@@ -7,9 +7,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
-	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -41,7 +40,7 @@ func formatEdits(a *analysis) []protocol.TextEdit {
 	if len(a.syntaxErrs) > 0 {
 		return []protocol.TextEdit{}
 	}
-	out := syntaxfmt.Format(a.g)
+	out := tooling.Format(a.g)
 	if nl := lineEnd(a.text); nl != "\n" {
 		out = strings.ReplaceAll(out, "\n", nl)
 	}
@@ -261,7 +260,7 @@ func (a *analysis) fieldSymbolsControlled(d *definition, st *ast.TypeDef, contro
 		last := i
 		for j := i + 1; j < len(a.toks) && a.toks[j].end < limit; j++ {
 			control.poll()
-			if a.toks[j].Kind != parser.TokenComment {
+			if a.toks[j].Kind != tooling.TokenComment {
 				last = j
 			}
 		}
@@ -316,7 +315,7 @@ func (a *analysis) hoverAtControlled(off int, control *renderControl) (text stri
 		}
 	}
 	i := a.tokenAt(off)
-	if i < 0 || a.toks[i].Kind != parser.TokenIdent {
+	if i < 0 || a.toks[i].Kind != tooling.TokenIdent {
 		return "", 0, 0, false
 	}
 	t := a.toks[i]

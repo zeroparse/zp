@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/driver/tooling"
 	"zeroparse.dev/zp/internal/lsp/protocol"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -42,11 +42,11 @@ func (s *Server) completionControlled(params json.RawMessage, control *renderCon
 }
 
 func (a *analysis) isPunct(i int, text string) bool {
-	return i >= 0 && i < len(a.toks) && a.toks[i].Kind == parser.TokenPunct && a.toks[i].Text == text
+	return i >= 0 && i < len(a.toks) && a.toks[i].Kind == tooling.TokenPunct && a.toks[i].Text == text
 }
 
 func (a *analysis) isIdent(i int, text string) bool {
-	return i >= 0 && i < len(a.toks) && a.toks[i].Kind == parser.TokenIdent && a.toks[i].Text == text
+	return i >= 0 && i < len(a.toks) && a.toks[i].Kind == tooling.TokenIdent && a.toks[i].Text == text
 }
 
 // isDefKeyword reports whether token i is rule, type or var.
@@ -66,18 +66,18 @@ func (a *analysis) indexDeclarationStartsControlled(control *renderControl) {
 	depth, previous := 0, -1
 	for i, t := range a.toks {
 		control.poll()
-		if t.Kind == parser.TokenComment {
+		if t.Kind == tooling.TokenComment {
 			continue
 		}
 		boundary := previous < 0 || a.isPunct(previous, ";") || a.toks[previous].End.Line < t.Pos.Line
 		if boundary && len(a.syntaxErrs) > 0 && (a.isIdent(i, "rule") || a.isIdent(i, "type") || a.isIdent(i, "var")) {
 			next := a.significantTokenControlled(i+1, control)
-			if next < len(a.toks) && a.toks[next].Kind == parser.TokenIdent {
+			if next < len(a.toks) && a.toks[next].Kind == tooling.TokenIdent {
 				depth = 0
 			}
 		}
 		a.declarationStarts[i] = boundary && depth == 0
-		if t.Kind == parser.TokenPunct {
+		if t.Kind == tooling.TokenPunct {
 			switch t.Text {
 			case "(", "{":
 				depth++
@@ -94,7 +94,7 @@ func (a *analysis) indexDeclarationStartsControlled(control *renderControl) {
 func (a *analysis) insideControlled(t token, off int, control *renderControl) bool {
 	control.poll()
 	switch t.Kind {
-	case parser.TokenComment:
+	case tooling.TokenComment:
 		if strings.HasPrefix(t.Text, "/*") {
 			return off > t.start && (off < t.end || !strings.HasSuffix(t.Text, "*/"))
 		}
@@ -106,9 +106,9 @@ func (a *analysis) insideControlled(t token, off int, control *renderControl) bo
 			}
 		}
 		return off > t.start
-	case parser.TokenString:
+	case tooling.TokenString:
 		return off > t.start && (off < t.end || !terminatedControlled(a.text[t.start:t.end], '"', 1, control))
-	case parser.TokenCharClass:
+	case tooling.TokenCharClass:
 		return off > t.start && (off < t.end || !terminatedControlled(a.text[t.start:t.end], ']', 1, control))
 	}
 	return false
@@ -144,9 +144,9 @@ func (a *analysis) completeControlled(off int, control *renderControl) []protoco
 	prev, capture := i, false
 	if i >= 0 && off <= a.toks[i].end {
 		switch a.toks[i].Kind {
-		case parser.TokenCapture:
+		case tooling.TokenCapture:
 			prev, capture = i-1, true
-		case parser.TokenIdent:
+		case tooling.TokenIdent:
 			prev = i - 1
 		}
 	}
@@ -155,7 +155,7 @@ func (a *analysis) completeControlled(off int, control *renderControl) []protoco
 	}
 	// The punctuation directly before the word (or the cursor).
 	adjacent := ""
-	if prev >= 0 && a.toks[prev].Kind == parser.TokenPunct &&
+	if prev >= 0 && a.toks[prev].Kind == tooling.TokenPunct &&
 		(prev == i && a.toks[prev].end == off || prev == i-1 && a.toks[prev].end == a.toks[i].start) {
 		adjacent = a.toks[prev].Text
 	}
@@ -285,7 +285,7 @@ func (a *analysis) attributeArgumentsControlled(prev int, control *renderControl
 			name := a.previousSignificantTokenControlled(j-1, control)
 			if name >= 0 {
 				at := a.previousSignificantTokenControlled(name-1, control)
-				if at >= 0 && (a.isPunct(at, "@") || a.isPunct(at, "#")) && a.toks[name].Kind == parser.TokenIdent &&
+				if at >= 0 && (a.isPunct(at, "@") || a.isPunct(at, "#")) && a.toks[name].Kind == tooling.TokenIdent &&
 					a.toks[at].end == a.toks[name].start && a.toks[name].end == a.toks[j].start {
 					c.attribute = a.toks[name].Text
 					c.pragma = a.isPunct(at, "#")
@@ -380,7 +380,7 @@ func (a *analysis) scanBodyControlled(eq, prev int, control *renderControl) (val
 		if top.list && boundary {
 			top.value = false
 		}
-		if t.Kind == parser.TokenPunct {
+		if t.Kind == tooling.TokenPunct {
 			switch t.Text {
 			case "=>":
 				top.value = true
@@ -400,7 +400,7 @@ func (a *analysis) scanBodyControlled(eq, prev int, control *renderControl) (val
 					stack[len(stack)-1].value = false
 				}
 			}
-		} else if top.list && boundary && t.Kind == parser.TokenIdent {
+		} else if top.list && boundary && t.Kind == tooling.TokenIdent {
 			switch t.Text {
 			case "skip", "operand", "level", "prefix", "postfix", "infix":
 				stack[len(stack)-1].value = false
@@ -493,7 +493,7 @@ func (a *analysis) inlineScopes(first int, control *renderControl) []int {
 	for j := eq + 1; j < end; j++ {
 		control.poll()
 		t := a.toks[j]
-		if t.Kind != parser.TokenPunct {
+		if t.Kind != tooling.TokenPunct {
 			continue
 		}
 		top := &stack[len(stack)-1]
@@ -582,7 +582,7 @@ func (a *analysis) captureMemberItems(dot int, control *renderControl) []protoco
 		}
 	}
 	recv := a.previousSignificantTokenControlled(dot-1, control)
-	capture := recv >= 0 && a.toks[recv].Kind == parser.TokenCapture
+	capture := recv >= 0 && a.toks[recv].Kind == tooling.TokenCapture
 	for j := first + 2; j < len(a.toks) && !a.isDefKeyword(j); j++ {
 		control.poll()
 		if !a.isLabel(j, control) {
@@ -593,7 +593,7 @@ func (a *analysis) captureMemberItems(dot int, control *renderControl) []protoco
 			break
 		}
 		switch {
-		case a.toks[target].Kind == parser.TokenIdent:
+		case a.toks[target].Kind == tooling.TokenIdent:
 			if capture && strings.TrimPrefix(a.toks[recv].Text, "$") == a.toks[j].Text || !capture && a.repeated(target, control) {
 				ruleCaptures(target)
 			}
@@ -625,7 +625,7 @@ func (a *analysis) repeated(i int, control *renderControl) bool {
 // constructor T{...} or a later one after ",".
 func (a *analysis) isLabel(i int, control *renderControl) bool {
 	t := a.toks[i]
-	return t.Kind == parser.TokenIdent && a.isPunct(i+1, ":") && a.toks[i+1].start == t.end &&
+	return t.Kind == tooling.TokenIdent && a.isPunct(i+1, ":") && a.toks[i+1].start == t.end &&
 		!(a.isPunct(i-1, "{") && a.inValueControlled(i-1, control)) && !a.isPunct(i-1, ",")
 }
 
@@ -649,7 +649,7 @@ func (a *analysis) paramItems(i int, control *renderControl) []protocol.Completi
 		// after "(" or ",": "x:(a b) =>" is a rule body and its action.
 		open := j - 2
 		var names []string
-		for ; open > first && a.toks[open].Kind == parser.TokenIdent; open -= 2 {
+		for ; open > first && a.toks[open].Kind == tooling.TokenIdent; open -= 2 {
 			control.poll()
 			names = append(names, a.toks[open].Text)
 			if !a.isPunct(open-1, ",") {
@@ -699,7 +699,7 @@ func (a *analysis) declarationsControlled(kind symKind, control *renderControl) 
 			continue
 		}
 		n := a.toks[next]
-		if !a.isIdent(i, kw) || !a.declarationStart(i) || n.Kind != parser.TokenIdent || !(kind == kindRule && control.isRuleName(n.Text) || kind != kindRule && control.isIdentifier(n.Text)) || n.Pos.Line != a.toks[i].End.Line || seen[n.Text] {
+		if !a.isIdent(i, kw) || !a.declarationStart(i) || n.Kind != tooling.TokenIdent || !(kind == kindRule && control.isRuleName(n.Text) || kind != kindRule && control.isIdentifier(n.Text)) || n.Pos.Line != a.toks[i].End.Line || seen[n.Text] {
 			continue
 		}
 		d := declared{name: n.Text}

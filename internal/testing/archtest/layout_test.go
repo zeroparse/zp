@@ -112,6 +112,9 @@ var layout = []place{
 	{pkg: "internal/driver/entry", target: "internal/driver/entry"},
 	{pkg: "internal/driver/checked", target: "internal/driver/checked"},
 	{pkg: "internal/driver/generate", target: "internal/driver/generate"},
+	// What the driver gives the interactive tools: the language server reaches the compiler
+	// through it alone.
+	{pkg: "internal/driver/tooling", target: "internal/driver/tooling"},
 
 	// Analysis and the grammar LSP.
 	{pkg: "internal/analysis/complexity", target: "internal/analysis/complexity"},
@@ -371,6 +374,13 @@ var layerArrows = map[layer][]layer{
 	layerUtil:     {layerGrammar},
 }
 
+// layerOnly are the layers that import only the compiler-side layers listed, not the layers
+// below them: the language server uses only what the driver gives it, and the grammar AST that
+// the driver's results are made of.
+var layerOnly = map[layer][]layer{
+	layerLSP: {layerDriver, layerGrammar},
+}
+
 // layerImports reports whether a package of layer a may import one of layer b, a != b.
 func layerImports(a, b layer) bool {
 	switch {
@@ -378,6 +388,9 @@ func layerImports(a, b layer) bool {
 		return true // test support and the packages outside the graph may import any layer
 	case b == layerRuntime, b == layerUtil && a != layerGrammar:
 		return true // the grammar AST is below the utilities
+	}
+	if only, ok := layerOnly[a]; ok {
+		return slices.Contains(only, b)
 	}
 	seen := map[layer]bool{}
 	var reach func(l layer) bool

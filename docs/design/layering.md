@@ -72,7 +72,9 @@ flowchart TD
     loading or formatting a grammar does not link the compiler. The fixture package is a tool that uses `pkg/compiler`, so it belongs to the layer of the
     public tool packages.
   - The grammar language server compiles the grammars it serves and reads their checked programs, so it is above the
-    driver and uses its compile entry; it imports the analyses through it and directly.
+    driver. It uses the compiler only through what the driver gives it (`internal/driver/tooling`: tokens, partial
+    parses, formatting, compilation, the checked front-end result, lint findings and their rewrites) and the grammar AST
+    that those results are made of; it imports no layer below the driver.
   - Only the commands and the repository test support import the language server packages. Of the non-test packages,
     only those inside the repository test support import the test support.
 
