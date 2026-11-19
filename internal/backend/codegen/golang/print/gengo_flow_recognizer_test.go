@@ -17,7 +17,6 @@ import (
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/backend/codegen/golang/print"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -277,7 +276,7 @@ func TestFlowRecognizerFallbackMatchesEngine(t *testing.T) {
 	gh := &print.Hooks{}
 	codegentest.SetGenHooks(t, gh)
 	gh.RefuseFlowRecRule = func(r *compile.Rule) bool {
-		if flowlower.RecEligible(r) {
+		if common.RecEligible(r) {
 			refused[r.Name] = true
 			return true
 		}

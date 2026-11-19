@@ -219,13 +219,13 @@ func (g *Generator) FailFlow(what string) {
 }
 
 // FlowNodeFrameOK reports whether the rule r of the Node or recognizer table is printed from Flow IR as
-// a framed body (flowlower.NodeFrameOK), with its Core rule. The typed table has no framed bodies.
+// a framed body (NodeFrameOK), with its Core rule. The typed table has no framed bodies.
 func (g *Generator) FlowNodeFrameOK(r *compile.Rule) (*core.Rule, bool) {
 	if g.Flow == nil || g.Table == "trules" {
 		return nil, false
 	}
 	cr := g.Flow.M.Rules[r.ID]
-	if !flowlower.NodeFrameOK(r, cr) {
+	if !NodeFrameOK(r, cr) {
 		return nil, false
 	}
 	return cr, true

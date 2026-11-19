@@ -1,20 +1,19 @@
 package flowlower
 
 import (
-	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-// The eligibility of the compiled rules for Flow IR: which rules and expressions are lowered as flat
-// rules, as framed bodies and as lines of an Operators Rule. A backend that prints from Flow IR asks
-// these, so every backend lowers the same rules.
+// The expressions that Flow IR lowers: in place, and as lines of an Operators Rule. Which compiled
+// rules are lowered as flat rules and as framed bodies is decided by the generators
+// (common.RecEligible, common.NodeFrameOK) from these, so every backend lowers the same rules.
 
 // BodyOK reports whether Flow IR can lower the expression e in place. A cut is allowed if cuts is set
 // and a recovery attribute if recovery is set; an Operators Rule never is.
 func BodyOK(expr ast.Expr, cuts, recovery bool) bool {
 	ok := true
-	compile.WalkExpr(expr, func(e ast.Expr) {
+	astfacts.WalkExpr(expr, func(e ast.Expr) {
 		switch e := e.(type) {
 		case *ast.Cut:
 			if !cuts {
@@ -37,118 +36,4 @@ func BodyOK(expr ast.Expr, cuts, recovery bool) bool {
 // runtime-owned frame of its rule.
 func LineOK(e ast.Expr) bool {
 	return BodyOK(e, true, true)
-}
-
-// RecEligible reports whether the rule r of the Node table or of the recognizer table is lowered as
-// a flat rule: a plain, lean, value-free rule that is not a left-recursion leader and whose body has
-// no cut, recovery, Operators Rule or semantic predicate. Captures unused by recognition are omitted;
-// a predicate keeps the general form because it can require values, capture frames and variable
-// bindings.
-func RecEligible(r *compile.Rule) bool {
-	if !r.Plain || !r.Lean || !r.Novalue || r.Leader || !BodyOK(r.BodyExpr(), false, false) {
-		return false
-	}
-	ok := true
-	compile.WalkExpr(r.BodyExpr(), func(e ast.Expr) {
-		if _, predicate := e.(*ast.Predicate); predicate {
-			ok = false
-		}
-	})
-	return ok
-}
-
-// NodeFrameOK reports whether the rule r of the Node or recognizer table, whose Core rule is cr, is
-// lowered as a framed body.
-//
-// The body is one that a flat rule could have, except that it may cut or recover, and that the rule
-// may be a left-recursion leader. Flow IR lowers a cut as the typed table does (a flag per
-// backtracking point, published to the runtime's cut flag on return), so the runtime's frame, memo
-// and finish ownership are the same. The runtime owns the growth of a leader's seed around its body,
-// so the body is the matcher of any other rule; its left-recursive alternatives have no first set and
-// are never guarded. The runtime's recovery sequence is lowered inline.
-//
-// Core IR gathers the values of a projected repetition, and the actions that read it expect that
-// shape. The Node table writes its actions with the projections of the rule, which are the ones Core
-// IR makes, so a Core-lowered body agrees with them. The recognizer's table writes its actions
-// without projections, so its Core IR is built without them and agrees with them as well; either
-// table's body is eligible when its action reads only captures of the frame.
-func NodeFrameOK(r *compile.Rule, cr *core.Rule) bool {
-	if !BodyOK(r.BodyExpr(), true, true) || !FramedBody(cr.Body) {
-		return false
-	}
-	if r.Action == nil {
-		return true
-	}
-	known := map[string]bool{}
-	for _, sl := range cr.Scope {
-		known[sl.Name] = true
-	}
-	ok := true
-	capRefs(r.Action, func(name string) {
-		if !known[name] {
-			ok = false
-		}
-	})
-	return ok
-}
-
-// capRefs calls f with the name of each capture the term t refers to outside lambdas that bind the
-// name.
-func capRefs(t ast.ActionExpr, f func(name string)) {
-	var walk func(t ast.ActionExpr, shadow map[string]bool)
-	walk = func(t ast.ActionExpr, shadow map[string]bool) {
-		switch t := t.(type) {
-		case *ast.CaptureRef:
-			if !shadow[t.Name] {
-				f(t.Name)
-			}
-		case *ast.Lambda:
-			inner := map[string]bool{}
-			for k := range shadow {
-				inner[k] = true
-			}
-			for _, p := range t.Params {
-				inner[p] = true
-			}
-			walk(t.Body, inner)
-		default:
-			termChildren(t, func(x ast.ActionExpr) { walk(x, shadow) })
-		}
-	}
-	walk(t, map[string]bool{})
-}
-
-// termChildren calls f with the direct subterms of t.
-func termChildren(t ast.ActionExpr, f func(ast.ActionExpr)) {
-	switch t := t.(type) {
-	case *ast.Member:
-		f(t.X)
-	case *ast.New:
-		for _, fi := range t.Fields {
-			f(fi.Value)
-		}
-	case *ast.ListConstructor:
-		for _, item := range t.Items {
-			f(item)
-		}
-	case *ast.TupleLit:
-		for _, x := range t.Elems {
-			f(x)
-		}
-	case *ast.Call:
-		for _, a := range t.Args {
-			f(a)
-		}
-	case *ast.Lambda:
-		f(t.Body)
-	case *ast.Binary:
-		f(t.L)
-		f(t.R)
-	case *ast.Unary:
-		f(t.X)
-	case *ast.Cast:
-		f(t.X)
-	case *ast.Bind:
-		f(t.Value)
-	}
 }
