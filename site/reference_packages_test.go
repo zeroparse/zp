@@ -50,8 +50,8 @@ func TestReferenceListsPublicPackages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(public, "engine") {
-		t.Fatal("the walk found no public package engine")
+	if !slices.Contains(public, "pkg/compiler") {
+		t.Fatal("the walk found no public package pkg/compiler")
 	}
 	for _, dir := range public {
 		if !listed[dir] {

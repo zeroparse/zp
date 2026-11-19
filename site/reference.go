@@ -26,13 +26,17 @@ type refPackage struct {
 }
 
 var refPackages = []refPackage{
-	{dir: "engine", importPath: modulePath + "/engine", url: "reference/engine/", title: "Package zp/engine", label: "zp/engine"},
-	{dir: "core", importPath: modulePath + "/core", url: "reference/core/", title: "Package zp/core", label: "zp/core"},
+	{dir: "pkg/compiler", importPath: modulePath + "/pkg/compiler", url: "reference/compiler/", title: "Package zp/pkg/compiler", label: "zp/pkg/compiler"},
+	{dir: "pkg/runtime", importPath: modulePath + "/pkg/runtime", url: "reference/runtime/", title: "Package zp/pkg/runtime", label: "zp/pkg/runtime"},
+	{dir: "pkg/runtime/vm", importPath: modulePath + "/pkg/runtime/vm", url: "reference/vm/", title: "Package zp/pkg/runtime/vm", label: "zp/pkg/runtime/vm"},
+	{dir: "pkg/runtime/input", importPath: modulePath + "/pkg/runtime/input", url: "reference/input/", title: "Package zp/pkg/runtime/input", label: "zp/pkg/runtime/input"},
+	{dir: "pkg/runtime/value", importPath: modulePath + "/pkg/runtime/value", url: "reference/value/", title: "Package zp/pkg/runtime/value", label: "zp/pkg/runtime/value"},
+	{dir: "pkg/runtime/instrument", importPath: modulePath + "/pkg/runtime/instrument", url: "reference/instrument/", title: "Package zp/pkg/runtime/instrument", label: "zp/pkg/runtime/instrument"},
 	{dir: "pkg/grammar", importPath: modulePath + "/pkg/grammar", url: "reference/grammar/", title: "Package zp/pkg/grammar", label: "zp/pkg/grammar"},
 	{dir: "pkg/grammar/ast", importPath: modulePath + "/pkg/grammar/ast", url: "reference/grammarast/", title: "Package zp/pkg/grammar/ast", label: "zp/pkg/grammar/ast"},
-	{dir: "core/impl", importPath: modulePath + "/core/impl", url: "reference/coreimpl/", title: "Package zp/core/impl", label: "zp/core/impl"},
-	{dir: "codegen", importPath: modulePath + "/codegen", url: "reference/codegen/", title: "Package zp/codegen", label: "zp/codegen"},
-	{dir: "pkg/runtime/golib", importPath: modulePath + "/pkg/runtime/golib", url: "reference/libgo/", title: "Package zp/pkg/runtime/golib", label: "zp/pkg/runtime/golib"},
+	{dir: "pkg/runtime/value/impl", importPath: modulePath + "/pkg/runtime/value/impl", url: "reference/valueimpl/", title: "Package zp/pkg/runtime/value/impl", label: "zp/pkg/runtime/value/impl"},
+	{dir: "pkg/runtime/golib", importPath: modulePath + "/pkg/runtime/golib", url: "reference/golib/", title: "Package zp/pkg/runtime/golib", label: "zp/pkg/runtime/golib"},
+	{dir: "pkg/bytecode", importPath: modulePath + "/pkg/bytecode", url: "reference/bytecode/", title: "Package zp/pkg/bytecode", label: "zp/pkg/bytecode"},
 	{dir: "pkg/lint", importPath: modulePath + "/pkg/lint", url: "reference/lint/", title: "Package zp/pkg/lint", label: "zp/pkg/lint"},
 	{dir: "pkg/runtime/schema", importPath: modulePath + "/pkg/runtime/schema", url: "reference/schema/", title: "Package zp/pkg/runtime/schema", label: "zp/pkg/runtime/schema"},
 	{dir: "pkg/runtime/query", importPath: modulePath + "/pkg/runtime/query", url: "reference/query/", title: "Package zp/pkg/runtime/query", label: "zp/pkg/runtime/query"},

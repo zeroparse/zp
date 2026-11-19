@@ -1,6 +1,8 @@
 # Violations of the Code References rule that are still to be fixed (see docs/documentation-style.md).
 # The list only shrinks. Columns: file, category, token, number of references.
+docs/design/records/002-transparent-choice.md	gofile	compiler.go	1
 docs/design/records/002-transparent-choice.md	unexport	compileRule	1
+docs/design/records/003-packrat-parsing.md	gofile	compiler.go	2
 docs/design/records/003-packrat-parsing.md	gofile	vm.go	2
 docs/design/records/005-operators-rule.md	gofile	internal/runtime/state/operators_rule.go	1
 docs/design/records/007-streaming-and-incremental-parsing.md	gofile	internal/runtime/engine/document_test.go	1
@@ -8,16 +10,22 @@ docs/design/records/007-streaming-and-incremental-parsing.md	gofile	resume.go	1
 docs/design/records/007-streaming-and-incremental-parsing.md	unexport	moveValue	1
 docs/design/records/008-code-generation.md	gofile	internal/backend/codegen/golang/print/gengo_test.go	1
 docs/design/records/009-compiled-grammar-format.md	gofile	internal/runtime/engine/compiled_test.go	1
+docs/design/records/010-bytecode-vm.md	qualified	engine.BytecodeIterative	1
+docs/design/records/010-bytecode-vm.md	qualified	engine.Compile	1
 docs/design/records/010-bytecode-vm.md	qualified	engine.Program	1
+docs/design/records/010-bytecode-vm.md	qualified	engine.WithBackend	1
 docs/design/records/012-typed-values.md	gofile	internal/backend/codegen/golang/print/flowrule.go	1
 docs/design/records/012-typed-values.md	gofile	pkg/runtime/golib/lib.go	1
 docs/design/records/012-typed-values.md	gofile	pkg/runtime/golib/typed.go	1
+docs/design/records/012-typed-values.md	qualified	engine.Parser	1
 docs/design/records/012-typed-values.md	unexport	libOK	1
 docs/design/records/013-typescript-generation.md	gofile	internal/backend/codegen/typescript/print/generator.go	1
 docs/design/records/013-typescript-generation.md	gofile	internal/backend/codegen/typescript/print/gents_test.go	1
 docs/design/records/013-typescript-generation.md	gofile	pkg/runtime/golib/lib.go	1
 docs/design/records/013-typescript-generation.md	unexport	firstCall	1
 docs/design/records/014-tracing-and-profiling.md	qualified	codegentest.GenCorpus	1
+docs/design/records/014-tracing-and-profiling.md	qualified	engine.WithProfile	1
+docs/design/records/014-tracing-and-profiling.md	qualified	engine.WithTrace	1
 docs/design/records/014-tracing-and-profiling.md	unexport	bodyFrame	5
 docs/design/records/014-tracing-and-profiling.md	unexport	callChild	1
 docs/design/records/014-tracing-and-profiling.md	unexport	callFrame	1
@@ -25,8 +33,10 @@ docs/design/records/014-tracing-and-profiling.md	unexport	parseSpend	1
 docs/design/records/014-tracing-and-profiling.md	unexport	plainCallFrame	3
 docs/design/records/014-tracing-and-profiling.md	unexport	traceFrame	1
 docs/design/records/014-tracing-and-profiling.md	unexport	tracedCall	2
+docs/design/records/015-input-generation.md	qualified	engine.Parser	1
 docs/design/records/016-web-site-and-playground.md	gofile	cmd/playground/api_test.go	1
 docs/design/records/016-web-site-and-playground.md	gofile	site/site_test.go	1
+docs/design/records/017-language-server.md	qualified	engine.Compile	1
 docs/design/records/017-language-server.md	unexport	documentHighlight	1
 docs/design/records/017-language-server.md	unexport	documentSymbol	1
 docs/design/records/017-language-server.md	unexport	maxNesting	1
@@ -42,8 +52,9 @@ docs/design/records/019-incremental-document-and-tree-tooling.md	gofile	internal
 docs/design/records/019-incremental-document-and-tree-tooling.md	gofile	internal/runtime/document/document.go	1
 docs/design/records/019-incremental-document-and-tree-tooling.md	gofile	internal/runtime/document/document_abort_test.go	1
 docs/design/records/019-incremental-document-and-tree-tooling.md	gofile	internal/runtime/engine/document_test.go	1
-docs/design/records/022-generated-parser-depth-limits.md	gofile	codegen/depth_test.go	1
+docs/design/records/022-generated-parser-depth-limits.md	gofile	pkg/compiler/depth_test.go	1
 docs/design/records/023-playground-asset-retention.md	gofile	site/assets_test.go	1
+docs/design/records/028-strict-grammar-json-intake.md	qualified	engine.Compile	1
 docs/design/records/029-typed-named-rule-parsing.md	unexport	libOK	2
 docs/design/records/030-typed-typescript-values.md	gofile	check.go	1
 docs/design/records/030-typed-typescript-values.md	gofile	internal/backend/codegen/golang/print/types.go	1
@@ -98,7 +109,11 @@ docs/design/records/037-replayable-edit-fuzzing.md	gofile	pkg/sample/sample.go	1
 docs/design/records/038-structured-output-schema.md	gofile	internal/runtime/engine/compiled_schema_test.go	1
 docs/design/records/038-structured-output-schema.md	gofile	schema/output_schema_validate_bench_test.go	1
 docs/design/records/038-structured-output-schema.md	gofile	schema/diff_bench_test.go	1
+docs/design/records/038-structured-output-schema.md	qualified	core.Node	1
+docs/design/records/038-structured-output-schema.md	qualified	engine.Parser	2
 docs/design/records/038-structured-output-schema.md	qualified	engine.Program	1
+docs/design/records/039-document-change-notifications.md	qualified	engine.Document	3
+docs/design/records/040-structural-queries-and-highlighting.md	qualified	core.Node	1
 docs/design/records/041-missing-token-recovery.md	codelink	pkg/runtime/golib/lib.go	1
 docs/design/records/041-missing-token-recovery.md	gofile	pkg/runtime/golib/lib.go	2
 docs/design/records/041-missing-token-recovery.md	unexport	recoverAttr	1
@@ -127,6 +142,8 @@ docs/design/records/043-generated-parser-observability.md	gofile	internal/backen
 docs/design/records/043-generated-parser-observability.md	gofile	internal/backend/codegen/typescript/print/gents_profile_bench_test.go	1
 docs/design/records/043-generated-parser-observability.md	gofile	pkg/runtime/golib/lib.go	1
 docs/design/records/043-generated-parser-observability.md	gofile	pkg/runtime/golib/trace.go	1
+docs/design/records/043-generated-parser-observability.md	qualified	engine.WithProfile	1
+docs/design/records/043-generated-parser-observability.md	qualified	engine.WithTrace	1
 docs/design/records/044-generated-incremental-and-stream-parsers.md	codelink	internal/runtime/state/resume.go	1
 docs/design/records/044-generated-incremental-and-stream-parsers.md	codelink	internal/runtime/document/document.go	1
 docs/design/records/044-generated-incremental-and-stream-parsers.md	codelink	internal/backend/codegen/golang/print/testdata/generated_document_bench/typed_bench_test.go	1

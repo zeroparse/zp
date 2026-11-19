@@ -61,7 +61,7 @@ conversion of the node's field gives. A value of a named node type reads back th
 package completes in an `init` function, since the conversions of those values refer to the hooks themselves. A field of a plain type (an `int`, `string` or `bool`, an optional one, a struct, and a tuple or list of
 these, declared with one type by every struct that has a field of the name) reads as it does from a node: a list or
 struct field that a constructor leaves out is a nil slice or pointer, which a read turns into the zero value of the
-type, an empty list or the struct with no field set. `codegen/go/lib/typed.go` is a second runtime that mirrors `codegen/go/lib/lib.go` step by step, with values of type
+type, an empty list or the struct with no field set. `pkg/runtime/golib/typed.go` is a second runtime that mirrors `pkg/runtime/golib/lib.go` step by step, with values of type
 `any` instead of `*Node`: a value is a pointer to a struct or terminal type, `*Match`, `*Error`, an int, string or
 bool, nil, or a `*tnode` for the CST values that actions consume (Seq, List and Operator nodes, which never reach the
 result). `tparser` embeds the parser and redefines only the methods that handle values, so matching, expectations,

@@ -187,7 +187,7 @@ APIs while retaining their current defaults and documented reference deviations.
 
 The reference/depth probes above are complete. The implementation adds the following regression coverage:
 
-- `TestGeneratedMaxDepthValidation` and `TestMaxDepth` (in `codegen/depth_test.go`) check generation/API default
+- `TestGeneratedMaxDepthValidation` and `TestMaxDepth` (in `pkg/compiler/depth_test.go`) check generation/API default
   equivalence, custom defaults and invalid/range errors. `TestGenMaxDepth` checks the same CLI defaults
   and confirms invalid options preserve an existing output file.
 - `TestGeneratedDepthOptions` compares small limits with equally configured engines across ordinary recursion,

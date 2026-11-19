@@ -52,4 +52,4 @@ crc32    CRC-32 (IEEE, little-endian) of everything from magic through payload
 
 ## Verification
 
-For every grammar in `examples/` and in the engine tests, the tests check that a parser that was saved and loaded returns the same results (the node tree, including positions, and the errors) as the original parser, and that saving a loaded parser again produces the same bytes (`internal/engine/compiled_test.go`).
+For every grammar in `examples/` and in the engine tests, the tests check that a parser that was saved and loaded returns the same results (the node tree, including positions, and the errors) as the original parser, and that saving a loaded parser again produces the same bytes (`internal/runtime/engine/compiled_test.go`).
