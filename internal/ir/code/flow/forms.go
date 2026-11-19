@@ -120,8 +120,9 @@ func (s *SeqForm) Live() bool {
 // ChoiceForm is a choice (core.Choice) with an alternative that begins with a class.
 type ChoiceForm struct {
 	Node *core.Choice
-	// Peek is the peek of the choice's guards, or nil if no alternative has a guard.
-	Peek *code.Set
+	// Peeks are the peeks of the choice's guards: one before the first guarded alternative, or one
+	// before each under budget controls; none if no alternative has a guard.
+	Peeks []*code.Set
 	// Event is the event of the choice, at the point where the lowering would make a variable of the
 	// choice before its alternatives.
 	Event *Event
