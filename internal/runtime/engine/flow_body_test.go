@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +13,7 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/vmlower"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/driver/checked"
 	"zeroparse.dev/zp/internal/ir/code"
 	"zeroparse.dev/zp/internal/runtime/state"
 	"zeroparse.dev/zp/pkg/bytecode"
@@ -71,18 +73,25 @@ func jsonFlowPrograms(t *testing.T, mutate func(*bytecode.Flow)) (*Program, *Pro
 }
 
 // flowPrograms returns the grammar of the file path compiled as usual, and the same grammar whose VM
-// runs from its Flow form each rule that pick accepts and that has a Flow body with the operations
-// selected so far; n is the number of such rules. A rule without one keeps its match code. mutate, if
-// not nil, changes the body of each selected rule before it is installed.
+// runs from Flow IR each rule that pick accepts and whose body in the planned Node table
+// (checked.Source.FlowTable) uses only the operations of bytecode Flow bodies so far; n is the number
+// of such rules. A rule without one keeps its match code. mutate, if not nil, changes the body of each
+// selected rule before it is installed.
 func flowPrograms(t *testing.T, path string, pick func(rule string) bool, mutate func(rule string, f *bytecode.Flow)) (old, flows *Program, n int) {
 	t.Helper()
 	src, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	old = mustCompile(t, string(src))
+	return flowProgramsOf(t, string(src), pick, mutate)
+}
+
+// flowProgramsOf is flowPrograms for the grammar src.
+func flowProgramsOf(t *testing.T, src string, pick func(rule string) bool, mutate func(rule string, f *bytecode.Flow)) (old, flows *Program, n int) {
+	t.Helper()
+	old = mustCompile(t, src)
 	cp := old.src.(interface{ Checked() *compile.Program }).Checked()
-	coreFlow, err := vmlower.CoreOf(cp)
+	ft, err := checked.Of(cp).FlowTable()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,19 +103,16 @@ func flowPrograms(t *testing.T, path string, pick func(rule string) bool, mutate
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i, r := range coreFlow.Rules {
-		if !pick(r.Name) {
+	for _, id := range slices.Sorted(maps.Keys(ft.Bodies)) {
+		name := ft.IR.M.Rules[id].Name
+		if !pick(name) {
 			continue
 		}
-		fm, err := vmlower.FlowModule(coreFlow, i, r.Name)
-		if err != nil {
-			continue // a rule whose Flow form the VM's options do not have
-		}
-		if err := vmlower.SelectFlows(bc, cp, coreFlow, map[int]*code.Module{i: fm}); err != nil {
+		if err := vmlower.SelectFlows(bc, cp, ft.IR.M, ft.Plan, map[int]*code.Module{id: ft.Bodies[id]}); err != nil {
 			continue // an operation without a bytecode Flow form yet
 		}
 		if mutate != nil {
-			mutate(r.Name, bc.Flows[i])
+			mutate(name, bc.Flows[id])
 		}
 	}
 	return old, New(flowSource{Source: old.src, m: bc}), len(bc.Flows)
@@ -298,12 +304,6 @@ func grammarCorpus(t *testing.T, path string) []string {
 // must be those of the match code. The spends are not compared: a Flow body charges what its Flow
 // function charges, which is not what the match code of its rule charges (spec/bytecode/README.md,
 // Flow Bodies).
-//
-// The rules of flatNamingGap are left out: their whole-rule Flow function ends with the rule's
-// finish and takes its value off the fresh nodes (flow.unfresh), so the rule frame that runs around
-// it does not name the value after the rule, as it does the match code's value when a parse records
-// source information. Generated Go runs such a function only for value-free rules; a rule that
-// builds a value runs its framed body inside the rule frame.
 func TestFlowBodiesTestdataGrammars(t *testing.T) {
 	paths, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
 	if err != nil || len(paths) == 0 {
@@ -312,8 +312,7 @@ func TestFlowBodiesTestdataGrammars(t *testing.T) {
 	total := 0
 	for _, path := range paths {
 		t.Run(filepath.Base(filepath.Dir(path)), func(t *testing.T) {
-			gap := flatNamingGap[filepath.Base(filepath.Dir(path))]
-			old, flows, n := flowPrograms(t, path, func(r string) bool { return !slices.Contains(gap, r) }, nil)
+			old, flows, n := flowPrograms(t, path, func(string) bool { return true }, nil)
 			total += n
 			for _, in := range grammarCorpus(t, path) {
 				for _, b := range []Backend{Bytecode, BytecodeIterative} {
@@ -332,8 +331,50 @@ func TestFlowBodiesTestdataGrammars(t *testing.T) {
 	}
 }
 
-// flatNamingGap lists, by grammar, the rules whose whole-rule Flow function returns a value that the
-// rule frame does not name after the rule (TestFlowBodiesTestdataGrammars).
-var flatNamingGap = map[string][]string{
-	"duckdb": {"cmp_op", "op_arrow", "op_idiv", "op_plus", "op_star"},
+// TestFlowBodyFrames runs rules whose framed bodies keep the captures of repetition elements in
+// frames of their own (NEWFRAME, SETFRAME, CLEARVALS, FRAMEVAL, ATTACHFRAME) through both VM models:
+// the trees and the errors must be those of the match code. An element whose optional capture does
+// not match must not keep the capture of the element before it, and a capture of the whole element
+// wraps its value.
+func TestFlowBodyFrames(t *testing.T) {
+	grammars := []struct {
+		src    string
+		inputs []string
+	}{
+		{`rule main = items:(k:"a"? v:"b")+ pairs:(whole:(x:"c" "d") y:"e"?)* $$`,
+			[]string{"ab", "abbab", "abb", "bbb", "abcd", "abcdecd", "abcdcde", "abcdx", "ac", "", "a"}},
+		{`package p
+type X = node[string]
+rule main = ms:members $$ => $ms
+rule members = (first:item rest:(-";" m:item)*) => concat(list($first), map($rest, (r) => r.$m))
+rule item X = "x"`,
+			[]string{"", "x", "x;", "x;x;x", "x;;x", "x;y", "xx"}},
+	}
+	ops := map[bytecode.FlowOp]bool{}
+	for _, g := range grammars {
+		old, flows, n := flowProgramsOf(t, g.src, func(string) bool { return true }, nil)
+		if n == 0 {
+			t.Fatalf("%s: no rule runs a Flow body", g.src)
+		}
+		for _, f := range flows.src.(flowSource).m.Flows {
+			for _, in := range f.Code {
+				ops[in.Op] = true
+			}
+		}
+		for _, in := range g.inputs {
+			for _, b := range []Backend{Bytecode, BytecodeIterative} {
+				ot, oe, _ := parseChargedWith(t, old, in, b)
+				ft, fe, _ := parseChargedWith(t, flows, in, b)
+				if ot != ft || oe != fe {
+					t.Errorf("%v, input %q: match code tree %s err %s; flow tree %s err %s", b, in, ot, oe, ft, fe)
+				}
+			}
+		}
+	}
+	for _, op := range []bytecode.FlowOp{bytecode.FlowNewFrame, bytecode.FlowSetFrame, bytecode.FlowClearVals, bytecode.FlowFrameVal,
+		bytecode.FlowAttachFrame, bytecode.FlowSetCapture, bytecode.FlowMarkPos, bytecode.FlowFrame, bytecode.FlowShapeCapture} {
+		if !ops[op] {
+			t.Errorf("no Flow body runs %v", op)
+		}
+	}
 }
