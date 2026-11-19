@@ -159,8 +159,15 @@ placement says where the code lives; in the pipeline, each lowering runs as a pa
 
 Before `flowlower` runs, a planning step in the middle end (the `flowplan` package) decides which functions a rule
 table is made of and in which form. The Go generator takes the functions of its Node table and its recognizer from this
-plan, and so will the bytecode VM, so that both run the same functions and their budget spends can be compared per
-input.
+plan, and the bytecode VM plans the Node table it runs from Flow IR the same way, so that both run the same functions
+and their budget spends can be compared per input.
+
+The Core IR of a Node or recognizer table and the options its functions are lowered with are built by one function of
+the same package, which both call: it elaborates the program with or without the projected values of the Node table,
+runs the Core passes through the caller's driver, and sets the lowering options from what the parser charges and
+records (budget controls, observation, Documents, traced bodies). The VM builds the Node table of a parse with budget
+controls at the default optimizations and runs the driver's Flow and Exec passes, so its functions are those of the
+generated Go parser with budget controls, except for the forms that only the Go target prints (inline literals).
 
 The plan of a table is computed from the Core IR of the table after its Core passes, the rules of the table (value-free
 twins included) as the plan reads them: their definitions, actions and run-time facts, and the rules that the backend
