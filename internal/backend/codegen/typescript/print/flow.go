@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/code/flow"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 	rprogram "zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -59,7 +60,7 @@ func (g *Generator) flowRule(r *common.Rule, scope *check.Scope) (call string, o
 	var f *code.Module
 	var slots []core.Slot
 	cr := g.Flow.M.Rules[r.ID]
-	if common.RecEligible(r) && flowlower.LocalRule(cr) {
+	if flowplan.RecEligible(r.PlanRule()) && flowlower.LocalRule(cr) {
 		var err error
 		if f, err = g.FlowPasses(flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts)); err != nil {
 			panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // LocalRule holds

@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/middleend/execlower"
 	"zeroparse.dev/zp/internal/middleend/flowlower"
 	"zeroparse.dev/zp/internal/middleend/flowpass"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 	"zeroparse.dev/zp/internal/pass"
 	"zeroparse.dev/zp/internal/runtime/limits"
 	"zeroparse.dev/zp/internal/runtime/program"
@@ -255,13 +256,13 @@ func (g *Generator) FailFlow(what string) {
 }
 
 // FlowNodeFrameOK reports whether the rule r of the Node or recognizer table is printed from Flow IR as
-// a framed body (NodeFrameOK), with its Core rule. The typed table has no framed bodies.
+// a framed body (flowplan.NodeFrameOK), with its Core rule. The typed table has no framed bodies.
 func (g *Generator) FlowNodeFrameOK(r *Rule) (*core.Rule, bool) {
 	if g.Flow == nil || g.Table == "trules" {
 		return nil, false
 	}
 	cr := g.Flow.M.Rules[r.ID]
-	if !NodeFrameOK(r, cr) {
+	if !flowplan.NodeFrameOK(r.PlanRule(), cr) {
 		return nil, false
 	}
 	return cr, true

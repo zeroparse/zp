@@ -3,6 +3,7 @@ package common
 import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 	"zeroparse.dev/zp/internal/runtime/program"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -76,3 +77,8 @@ type Rule struct {
 
 // BodyExpr returns the expression the rule's body matches.
 func (r *Rule) BodyExpr() ast.Expr { return r.Def.Expr }
+
+// PlanRule returns what the plan of a table reads of the rule (flowplan.Rule).
+func (r *Rule) PlanRule() *flowplan.Rule {
+	return &flowplan.Rule{ID: r.ID, Name: r.Name, Body: r.Def.Expr, Action: r.Action, Plain: r.Plain, Lean: r.Lean, Novalue: r.Novalue, Leader: r.Leader}
+}

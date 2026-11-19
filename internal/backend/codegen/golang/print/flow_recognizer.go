@@ -5,34 +5,27 @@ import (
 
 	"zeroparse.dev/zp/internal/backend/codegen/common"
 	"zeroparse.dev/zp/internal/ir/code/flow"
-	"zeroparse.dev/zp/internal/middleend/flowlower"
+	"zeroparse.dev/zp/internal/middleend/flowplan"
 )
 
 // Value-free rules of the Node library printed from Flow IR.
 //
-// The rules of a recognizer (recRules) and the lean rules of the Node table (rules) that
-// common.RecEligible accepts are built as Core IR, lowered by flowlower.Lower and printed by
-// flowPrinter for the untyped Node library. The other rules print their framed body from Flow IR as
-// well (flowNodeFrameBody), in the same output. Both tables share the helpers whose printed text is
-// equal. The text passes run on the whole output afterwards.
+// The rules of a recognizer (recRules) and the lean rules of the Node table (rules) that the table's
+// plan lowers as flat functions (flowplan.Plan) are printed by flowPrinter for the untyped Node
+// library. The other rules print their framed body from Flow IR as well (flowNodeFrameBody), in the
+// same output. Both tables share the helpers whose printed text is equal. The text passes run on the
+// whole output afterwards.
 
-// flowRecRule prints the eligible rule r of the recognizer from Flow IR as a flat rule. It returns
-// nil in three cases, and the caller (generator.rules) then prints the rule's framed body from Flow IR
-// (flowNodeFrameBody) and calls it through the rule table (plainCall); the generation fails if that
-// does not print it either:
-//   - flowlower.LocalRule rejects the rule, which needs the runtime-owned frame of a framed function;
-//   - the printed function would read its start or its context, which a value-free flat rule has
-//     no parameters for;
-//   - a variable of the function has a type that untypedGoType cannot name.
-func (g *Generator) flowRecRule(r *common.Rule) *flatRule {
+// flowRecRule prints the flat function spec of the rule r from Flow IR as a flat rule. It returns nil
+// if the plan refuses the lowered function (flowplan.Refused: it reads its start or its context, or a
+// variable holds a value), and the caller (generator.rules) then prints the spec's framed fallback
+// (flowNodeFrameBody) and calls it through the rule table (plainCall); the generation fails if the
+// rule has no fallback.
+func (g *Generator) flowRecRule(r *common.Rule, spec *flowplan.FuncSpec) *flatRule {
 	if g.hooks.RefuseFlowRecRule != nil && g.hooks.RefuseFlowRecRule(r) {
 		return nil
 	}
-	cr := g.Flow.M.Rules[r.ID]
-	if !flowlower.LocalRule(cr) {
-		return nil
-	}
-	f, err := g.FlowPasses(flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts))
+	f, err := g.FlowPasses(spec.Lower(g.Flow.M, g.Flow.Opts))
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // LocalRule holds
 	}
