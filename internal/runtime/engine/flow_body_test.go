@@ -2,6 +2,7 @@ package engine
 
 import (
 	"os"
+	"reflect"
 	"testing"
 
 	"zeroparse.dev/zp/internal/backend/vmlower"
@@ -111,6 +112,65 @@ func TestFlowBodyJSONValueDifferential(t *testing.T) {
 		st, se, su := parseCharged(t, spiked, in)
 		if ot != st || oe != se || ou != su {
 			t.Errorf("input %q: old tree %s err %s spend %d; flow tree %s err %s spend %d", in, ot, oe, ou, st, se, su)
+		}
+	}
+}
+
+// saveAndLoad saves prog as a compiled grammar and loads it.
+func saveAndLoad(t *testing.T, prog *Program) *Program {
+	t.Helper()
+	data, err := prog.MarshalBinary("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, _, err := LoadProgram(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return loaded
+}
+
+// jsonNull is the index of the null rule of the JSON grammar. A changed call in a loaded Flow body
+// calls it: the null rule calls no rule, while a call of main would close a cycle of calls through
+// main, which is not marked Rec, and the loader rejects such a module.
+const jsonNull = 16
+
+// TestFlowBodyJSONValueFileForm saves the grammar whose value rule runs its Flow body as a compiled
+// grammar and loads it: the loaded module has the same Flow bodies, and runs the JSON corpus with the
+// trees, errors and spends of the match code. A loaded body whose call is changed changes a tree, so
+// the loaded program runs the body it read.
+func TestFlowBodyJSONValueFileForm(t *testing.T) {
+	old, spiked := jsonFlowPrograms(t, nil)
+	if m := spiked.Module(); m.Strings[m.Rules[jsonNull].Name] != "null" {
+		t.Fatalf("rule %d is %s, not null", jsonNull, m.Strings[m.Rules[jsonNull].Name])
+	}
+	_, called := jsonFlowPrograms(t, func(f *bytecode.Flow) {
+		for i := range f.Code {
+			if in := &f.Code[i]; in.Op == bytecode.FlowCall {
+				in.Imm = bytecode.FlowCallOf{Rule: jsonNull, Level: in.Imm.(bytecode.FlowCallOf).Level}
+				return
+			}
+		}
+	})
+	loaded, loadedCalled := saveAndLoad(t, spiked), saveAndLoad(t, called)
+	changed := false
+	for _, in := range jsonDifferentialInputs {
+		ot, _, _ := parseCharged(t, old, in)
+		ct, _, _ := parseCharged(t, loadedCalled, in)
+		changed = changed || ot != ct
+	}
+	if !changed {
+		t.Error("a changed call in the loaded Flow body changed no tree: the loaded program does not run its body")
+	}
+	want := spiked.Module().Flows
+	if got := loaded.Module().Flows; len(want) == 0 || !reflect.DeepEqual(got, want) {
+		t.Fatalf("loaded Flow bodies %v, want %v", got, want)
+	}
+	for _, in := range jsonDifferentialInputs {
+		ot, oe, ou := parseCharged(t, old, in)
+		lt, le, lu := parseCharged(t, loaded, in)
+		if ot != lt || oe != le || ou != lu {
+			t.Errorf("input %q: match code tree %s err %s spend %d; loaded flow tree %s err %s spend %d", in, ot, oe, ou, lt, le, lu)
 		}
 	}
 }

@@ -53,7 +53,7 @@ A module consists of the following tables and code sequences.
 | Wide-integer table | Implementation-int values: the repetition bounds that do not fit an operand |
 | Term table | The term code of the module's terms ([Term Code](#term-code)) |
 | Run key table | The variables that key the records of each run site that is not free of the environment ([Run key table](#run-key-table)) |
-| Flow bodies | The rules that run a Flow body in place of their match code, each with its body ([Flow Bodies](#flow-bodies)); held in memory only |
+| Flow bodies | The rules that run a Flow body in place of their match code, each with its body ([Flow Bodies](#flow-bodies)) |
 
 An instruction consists of an opcode and up to three integer operands, `A`, `B` and `C`. A jump target is the index of an instruction in the same code sequence.
 
@@ -350,29 +350,36 @@ A rule may have a Flow body: the code of the [Flow function](../flow-ir/function
 budget controls and for the node runtime, as a flat list of instructions. In the recursive model
 ([Execution Models](#execution-models)) a rule with a Flow body runs it in place of its match code; its entry, its call
 and its completion ([Rule Calls](#rule-calls)) are those of the rule table, and the body returns the rule's value and
-success, or failure. The iterative model runs the match code of every rule. A Flow body is held in memory only: a module
-that has one is not written to a file ([File Format](#file-format)).
+success, or failure. The iterative model runs the match code of every rule. A module file holds the Flow bodies after the run key table
+([File Format](#file-format)).
 
 A Flow body has a frame of registers, which hold the variables of the function, each register a value of the type of
 its variable. An instruction has an operation, destination registers, argument registers, a jump target and an
 immediate. The control of the function, its blocks, exits and conditionals, becomes jumps: an exit to the failure label
 returns failure, and running to the end of the body returns the result variable and success.
 
-| Instruction | Behavior |
-|:--|:--|
-| `CONST` | The destination is the immediate: a boolean, an integer, or the null value. |
-| `MOVE` | The destination is the argument. |
-| `NOT` | The destination is the negation of the boolean argument. |
-| `POS`, `SETPOS` | The destination is the position; the position is the integer argument. |
-| `JUMP` | Continue at the target. |
-| `JUMPFALSE` | Continue at the target when the boolean argument is false. |
-| `RETURN` | Return the value of the first argument with the success of the second. |
-| `MARK`, `RESET` | `flow.markState` and `flow.reset`. |
-| `PEEK` | `flow.peek`: the character, its width and whether there is one; a destination may be discarded. |
-| `GUARD` | `flow.guardFails` for the guard of the immediate: the first character of a literal (case-folded or not) or a class of the character class table, and the depth of calls the guard adds. |
-| `EXPECT` | `flow.expect` of the expectation of the immediate at the position of the argument. |
-| `UNFRESH` | `flow.unfresh`. |
-| `CALL` | `flow.callRule` of the rule of the immediate at its binding level: the value and the success. |
+Each operation has a code, the code a module file stores, and fixed numbers of destination registers (D) and argument
+registers (A); `JUMP` and `JUMPFALSE` also have a target.
+
+| Code | Instruction | D | A | Behavior |
+|:--|:--|:--|:--|:--|
+| 0 | `CONST` | 1 | 0 | The destination is the immediate: a boolean, an integer, or the null value. |
+| 1 | `MOVE` | 1 | 1 | The destination is the argument. |
+| 2 | `NOT` | 1 | 1 | The destination is the negation of the boolean argument. |
+| 3 | `POS` | 1 | 0 | The destination is the position. |
+| 4 | `SETPOS` | 0 | 1 | The position is the integer argument. |
+| 5 | `JUMP` | 0 | 0 | Continue at the target. |
+| 6 | `JUMPFALSE` | 0 | 1 | Continue at the target when the boolean argument is false. |
+| 7 | `RETURN` | 0 | 2 | Return the value of the first argument with the success of the second. |
+| 8 | `MARK` | 1 | 0 | `flow.markState`. |
+| 9 | `RESET` | 0 | 1 | `flow.reset`. |
+| 10 | `PEEK` | 3 | 0 | `flow.peek`: the character, its width and whether there is one. |
+| 11 | `GUARD` | 1 | 2 | `flow.guardFails` for the guard of the immediate, given the character and whether there is one: the first character of a literal (case-folded or not) or a class of the character class table, and the depth of calls the guard adds. |
+| 12 | `EXPECT` | 0 | 1 | `flow.expect` of the expectation of the immediate at the position of the argument. |
+| 13 | `UNFRESH` | 0 | 1 | `flow.unfresh`. |
+| 14 | `CALL` | 2 | 0 | `flow.callRule` of the rule of the immediate at its binding level: the value and the success. |
+
+A destination of -1 discards the value.
 
 An instruction named after an operation of the [Flow dialect](../flow-ir/operations.md) does what the operation does
 and charges what its cost bound names, and no more; the other instructions charge nothing. A Flow body therefore charges
@@ -392,7 +399,7 @@ A compiled grammar uses container version 8. It stores one execution-only compil
 | Magic | `ZPC\x00` (6 bytes) |
 | Version | 1 byte: 8. A loader refuses any other value. |
 | Mode | 1 byte: 0 parse, 1 recognize, 2 document. The module serves the operations of this mode only. A parse-mode or document-mode module is the module of the grammar; a recognize-mode module is the module of its recognizer. A loader refuses any other value. |
-| Instruction-set version | Unsigned integer for this module: 36. Every module uses this version, whatever instructions it contains; a runtime rejects a module of another version and asks for the grammar to be compiled again. |
+| Instruction-set version | Unsigned integer for this module: 37. Every module uses this version, whatever instructions it contains; a runtime rejects a module of another version and asks for the grammar to be compiled again. |
 | String table | Count, then each string (byte length and UTF-8 bytes), all unsigned. The module's string table is a prefix of this table. |
 | Start rule | String index, unsigned: the start rule the saved parser uses. It is a start rule of the module, or the empty string for the module's default start rule. |
 | Module | See below |
@@ -414,6 +421,7 @@ The module is laid out in the following order. A *list* is a count (unsigned) fo
 12. Wide-integer table: a list of signed integers.
 13. Term table: a list of terms. A term is the sizes of its four register files (unsigned: values, integers, sequences, strings); its constants, a list of (kind as 1 byte: 0 nil, 1 int, 2 string, 3 bool; signed integer: the int, the string index, or 0 or 1); its names, a list of string indices; its member reads, a list of (member kind, name, field); its node types, a list of string indices; its casts, a list of (type text, line, column), the type text -1 for a cast that checks nothing; its struct literals, a list of (type name, number of fields); and its code, a list of instructions. Between the register sizes and the constants, a byte whose bits 0 to 5 mark the pools that are not empty (constants, names, member reads, node types, casts, struct literals) precedes them; only those pools are written, and a marked pool is not empty. An instruction is its opcode (1 byte), a byte whose bits 0 to 3 mark the operands D, `A`, `B` and `C` that are not zero, and those operands; a marked operand is not zero.
 14. Run key table: a list of (run site, list of string indices of the key's variables, list of string indices of the variables it binds), by increasing run site. Each list is sorted by name.
+15. Flow bodies ([Flow Bodies](#flow-bodies)): a list of (rule table index, number of registers (unsigned), list of instructions), by increasing rule index. An instruction is its operation (1 byte: its code), then its destination registers, its argument registers, its target and its immediate, each only if the operation has it and in the numbers the operation fixes. An immediate is, by operation: for `CONST` a kind (1 byte: 0 nil, 1 int, 3 bool, as for term constants) and a signed integer (0 for nil, the int, or 0 or 1); for `GUARD` (literal (boolean), rune, case-folded (boolean), class index or -1 for a literal, depth); for `EXPECT` (expectation, message (boolean)), the expectation 0 to 4 one of the fixed expectations (any character, beginning of input, end of input, beginning of line, end of line) and 5 + i the string i of the string table; for `CALL` (rule table index, binding level).
 
 ### Load-Time Validation
 
@@ -431,7 +439,8 @@ On load, a runtime checks the following and rejects the file if any check fails:
 - Term code satisfies the checks of [Term Code](#term-code).
 - The line and column of a cast are not negative. The type text of a cast parses as a field type naming only declared types, `error`, `node[T]`, tuple types `(T, ...)`, `int`, `string`, `bool` and `nil`. These type texts are resolved types, which contain no `&` or `_|_`, and no `_` other than the argument of `node[_]`.
 - Every jump target of the match code is forward. Only `NEXT` jumps backward.
-- Every rule on a cycle of calls is marked recursive (`Rec`), so that every unbounded nesting of calls counts against the nesting limit. The cycles are those of a graph that over-approximates the calls a run can make: a rule leads to its entry; an instruction leads to the next one, unless it is `JUMP`, `COMMIT`, `FAIL`, `RETURN` or `END`, and to the target it may go to (that of a negative `LOOK` only); `CALL` also leads to its rule, and `OPERATORS_RULE` to the code of its operand and operator lines and its skip. A rule is on a cycle when the graph leads from its entry back to it. A rule may be marked without being on a cycle.
+- Every Flow body belongs to a rule of the rule table and ends with `JUMP` or `RETURN`. Each of its instructions has a known operation with the registers, target and immediate the operation fixes; every register is within the frame (a destination may be -1), every target is an instruction of the body, and the classes, expectations and rules of the immediates are in range (a guard of a literal names no class and a guard of a class is not case-folded), with depths and binding levels not negative.
+- Every rule on a cycle of calls is marked recursive (`Rec`), so that every unbounded nesting of calls counts against the nesting limit. The cycles are those of a graph that over-approximates the calls a run can make: a rule leads to its entry and to the rules that the `CALL` instructions of its Flow body call; an instruction leads to the next one, unless it is `JUMP`, `COMMIT`, `FAIL`, `RETURN` or `END`, and to the target it may go to (that of a negative `LOOK` only); `CALL` also leads to its rule, and `OPERATORS_RULE` to the code of its operand and operator lines and its skip. A rule is on a cycle when the graph leads from the rule back to it. A rule may be marked without being on a cycle.
 - Every `RECOVER` body ends at an `ENDRECOVER` immediately before its skip target; that instruction jumps past an `ENDSKIP`. These recovery regions are nested and contain no stream-mode `NEXT` (mode 2) in either the protected body or skip. Element-local recovery ends before the enclosing streaming repetition's `NEXT`.
 
 A runtime does not verify that instruction sequences use the value stack and the entry stack correctly, and it trusts the mode as it trusts the module's types: it checks that the mode byte names a mode, not that the module is the one a compiler writes for that mode. A file whose mode does not match its module MAY return wrong results without an error, such as no value from a parse. Runtime errors caused by invalid code are reported as parse errors, but termination is not guaranteed, so load files only from trusted sources.

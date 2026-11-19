@@ -3,6 +3,7 @@ package bytecode
 import (
 	"encoding/binary"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 )
@@ -35,10 +36,6 @@ func (w *Encoder) line(l *LineInfo) {
 
 // WriteModule writes m.
 func (w *Encoder) WriteModule(m *Module) {
-	if len(m.Flows) > 0 {
-		// Flow bodies are not serialized yet; writing the module would drop them silently.
-		panic("internal error: bytecode: a module with Flow bodies has no file form yet")
-	}
 	w.Uint(len(m.Strings))
 	w.Bool(m.SourceInfo)
 	w.Bool(m.DefaultValue)
@@ -124,6 +121,95 @@ func (w *Encoder) WriteModule(m *Module) {
 		w.Int(k.Site)
 		w.ints(k.Vars)
 		w.ints(k.Bind)
+	}
+	rules := slices.Sorted(maps.Keys(m.Flows))
+	w.Uint(len(rules))
+	for _, rule := range rules {
+		w.Int(rule)
+		w.flow(m.Flows[rule])
+	}
+}
+
+// flow writes the Flow body f: its number of registers and its instructions. An instruction is its
+// operation (1 byte), then its destination and argument registers, its target and its immediate as
+// far as the operation's shape (FlowShapes) has them.
+func (w *Encoder) flow(f *Flow) {
+	w.Uint(f.Regs)
+	w.Uint(len(f.Code))
+	for i := range f.Code {
+		in := &f.Code[i]
+		s, ok := in.Op.Shape()
+		if !ok || len(in.Dst) != s.Dst || len(in.Args) != s.Args {
+			panic(fmt.Sprintf("internal error: bytecode: flow instruction %d: %v with %d destinations and %d arguments", i, in.Op, len(in.Dst), len(in.Args)))
+		}
+		w.Byte(byte(in.Op))
+		for _, d := range in.Dst {
+			w.Int(d)
+		}
+		for _, a := range in.Args {
+			w.Int(a)
+		}
+		if s.Target {
+			w.Int(in.Target)
+		}
+		w.flowImm(s.Imm, in.Imm)
+	}
+}
+
+// flowImm writes the immediate v of kind k. A constant is a kind (1 byte: ConstNil, ConstInt or
+// ConstBool) and a signed integer (0 for nil, 0 or 1 for a bool); a guard is (literal, rune,
+// case-folded, class, depth); an expectation (ID, message); a call (rule, level).
+func (w *Encoder) flowImm(k FlowImm, v any) {
+	bad := func() { panic(fmt.Sprintf("internal error: bytecode: flow immediate %#v of kind %d", v, k)) }
+	switch k {
+	case FlowImmNone:
+		if v != nil {
+			bad()
+		}
+	case FlowImmConst:
+		switch x := v.(type) {
+		case nil:
+			w.Byte(ConstNil)
+			w.Int(0)
+		case int:
+			w.Byte(ConstInt)
+			w.Int(x)
+		case bool:
+			w.Byte(ConstBool)
+			if x {
+				w.Int(1)
+			} else {
+				w.Int(0)
+			}
+		default:
+			bad()
+		}
+	case FlowImmGuard:
+		x, ok := v.(FlowGuardOf)
+		if !ok {
+			bad()
+		}
+		w.Bool(x.Lit)
+		w.Int(int(x.Rune))
+		w.Bool(x.Fold)
+		w.Int(x.Class)
+		w.Int(x.Depth)
+	case FlowImmExpect:
+		x, ok := v.(FlowExpectOf)
+		if !ok {
+			bad()
+		}
+		w.Int(x.Exp)
+		w.Bool(x.Message)
+	case FlowImmCall:
+		x, ok := v.(FlowCallOf)
+		if !ok {
+			bad()
+		}
+		w.Int(x.Rule)
+		w.Int(x.Level)
+	default:
+		bad()
 	}
 }
 
@@ -322,7 +408,84 @@ func (r *Decoder) ReadModule() *Module {
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.RunKeys = append(m.RunKeys, RunKeyInfo{Site: int(r.int32()), Vars: r.ints(), Bind: r.ints()})
 	}
+	n = r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		rule := int(r.int32())
+		f := r.flow()
+		if r.Err != nil {
+			break
+		}
+		if _, dup := m.Flows[rule]; dup {
+			r.Fail("rule %d has two Flow bodies", rule)
+			break
+		}
+		if m.Flows == nil {
+			m.Flows = map[int]*Flow{}
+		}
+		m.Flows[rule] = f
+	}
 	return m
+}
+
+// flow reads a Flow body. The operation of each instruction says how many registers it names and
+// whether a target and an immediate follow; an unknown operation is invalid. ValidateModule checks
+// the registers, targets and immediates.
+func (r *Decoder) flow() *Flow {
+	f := &Flow{Regs: r.Uint()}
+	n := r.Count()
+	f.Code = sized[FlowInstr](r, n, 1)
+	for i := 0; i < n && r.Err == nil; i++ {
+		in := FlowInstr{Op: FlowOp(r.Byte())}
+		s, ok := in.Op.Shape()
+		if r.Err == nil && !ok {
+			r.Fail("invalid flow operation %d", in.Op)
+			break
+		}
+		regs := func(k int) []int {
+			if k == 0 {
+				return nil
+			}
+			xs := make([]int, k)
+			for j := range xs {
+				xs[j] = int(r.int32())
+			}
+			return xs
+		}
+		in.Dst, in.Args = regs(s.Dst), regs(s.Args)
+		if s.Target {
+			in.Target = int(r.int32())
+		}
+		in.Imm = r.flowImm(s.Imm)
+		f.Code = append(f.Code, in)
+	}
+	return f
+}
+
+// flowImm reads an immediate of kind k.
+func (r *Decoder) flowImm(k FlowImm) any {
+	switch k {
+	case FlowImmConst:
+		kind, x := r.Byte(), r.int64()
+		if r.Err != nil {
+			return nil
+		}
+		switch {
+		case kind == ConstNil && x == 0:
+			return nil
+		case kind == ConstInt && int64(int(x)) == x:
+			return int(x)
+		case kind == ConstBool && (x == 0 || x == 1):
+			return x == 1
+		}
+		r.Fail("invalid flow constant %d of kind %d", x, kind)
+	case FlowImmGuard:
+		return FlowGuardOf{Lit: r.Bool(), Rune: r.int32(), Fold: r.Bool(), Class: int(r.int32()), Depth: int(r.int32())}
+	case FlowImmExpect:
+		return FlowExpectOf{Exp: int(r.int32()), Message: r.Bool()}
+	case FlowImmCall:
+		return FlowCallOf{Rule: int(r.int32()), Level: int(r.int32())}
+	}
+	return nil
 }
 
 // int64 reads a signed integer of 64 bits.
@@ -830,10 +993,112 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 	if err != nil {
 		return err
 	}
+	if err := validateFlows(m); err != nil {
+		return err
+	}
 	if err := ValidateStreamRecovery(m.Code); err != nil {
 		return err
 	}
 	return validateRec(m)
+}
+
+// validateFlows checks the Flow bodies of m: each belongs to a rule of the rule table; each
+// instruction has a known operation with the registers, target and immediate of its shape; every
+// register is within the frame (a destination may be -1, which discards); every target is an
+// instruction of the body; every immediate refers to a class, rule or expectation in range; and the
+// body ends with JUMP or RETURN, so that running it cannot pass its end. As for match code, a
+// runtime does not check that registers hold what an instruction reads.
+func validateFlows(m *Module) error {
+	for _, rule := range slices.Sorted(maps.Keys(m.Flows)) {
+		f := m.Flows[rule]
+		if rule < 0 || rule >= len(m.Rules) {
+			return fmt.Errorf("flow body of rule %d out of range", rule)
+		}
+		if err := validateFlow(m, f); err != nil {
+			return fmt.Errorf("flow body of rule %s: %w", m.Strings[m.Rules[rule].Name], err)
+		}
+	}
+	return nil
+}
+
+func validateFlow(m *Module, f *Flow) error {
+	if f == nil || f.Regs < 0 {
+		return fmt.Errorf("invalid frame")
+	}
+	if n := len(f.Code); n == 0 || f.Code[n-1].Op != FlowJump && f.Code[n-1].Op != FlowReturn {
+		return fmt.Errorf("the body does not end with JUMP or RETURN")
+	}
+	for pc := range f.Code {
+		in := &f.Code[pc]
+		s, ok := in.Op.Shape()
+		if !ok {
+			return fmt.Errorf("invalid flow operation %d at %d", in.Op, pc)
+		}
+		if len(in.Dst) != s.Dst || len(in.Args) != s.Args {
+			return fmt.Errorf("%v at %d with %d destinations and %d arguments", in.Op, pc, len(in.Dst), len(in.Args))
+		}
+		for _, d := range in.Dst {
+			if d < -1 || d >= f.Regs {
+				return fmt.Errorf("register %d out of range at %d", d, pc)
+			}
+		}
+		for _, a := range in.Args {
+			if a < 0 || a >= f.Regs {
+				return fmt.Errorf("register %d out of range at %d", a, pc)
+			}
+		}
+		if s.Target && (in.Target < 0 || in.Target >= len(f.Code)) || !s.Target && in.Target != 0 {
+			return fmt.Errorf("invalid jump from %d to %d", pc, in.Target)
+		}
+		if err := validateFlowImm(m, s.Imm, in.Imm); err != nil {
+			return fmt.Errorf("%v at %d: %w", in.Op, pc, err)
+		}
+	}
+	return nil
+}
+
+func validateFlowImm(m *Module, k FlowImm, v any) error {
+	ok := false
+	switch k {
+	case FlowImmNone:
+		ok = v == nil
+	case FlowImmConst:
+		switch v.(type) {
+		case nil, bool, int:
+			ok = true
+		}
+	case FlowImmGuard:
+		var x FlowGuardOf
+		if x, ok = v.(FlowGuardOf); !ok {
+			break
+		}
+		switch {
+		case x.Lit && x.Class != -1, !x.Lit && (x.Class < 0 || x.Class >= len(m.Classes) || x.Fold):
+			return fmt.Errorf("invalid guard class %d", x.Class)
+		case x.Depth < 0:
+			return fmt.Errorf("invalid guard depth %d", x.Depth)
+		}
+	case FlowImmExpect:
+		var x FlowExpectOf
+		if x, ok = v.(FlowExpectOf); ok && (x.Exp < 0 || x.Exp >= FixedExps+len(m.Strings)) {
+			return fmt.Errorf("expectation %d out of range", x.Exp)
+		}
+	case FlowImmCall:
+		var x FlowCallOf
+		if x, ok = v.(FlowCallOf); !ok {
+			break
+		}
+		if x.Rule < 0 || x.Rule >= len(m.Rules) {
+			return fmt.Errorf("rule %d out of range", x.Rule)
+		}
+		if x.Level < 0 {
+			return fmt.Errorf("invalid binding level %d", x.Level)
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid immediate %#v", v)
+	}
+	return nil
 }
 
 // ValidateStreamRecovery checks recovery boundaries in lexical bytecode order.

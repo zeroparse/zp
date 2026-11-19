@@ -31,8 +31,7 @@ type Module struct {
 	// RunKeys holds the keys of the run sites that are not free of the environment, by increasing
 	// site.
 	RunKeys []RunKeyInfo
-	// Flows holds the bodies of the rules that run from Flow IR, by rule index (in memory only: the
-	// module writer refuses a module with flows until they are serialized).
+	// Flows holds the bodies of the rules that run from Flow IR, by rule index.
 	Flows map[int]*Flow
 }
 
@@ -336,4 +335,4 @@ func (o Op) String() string {
 // ISAVersion is the instruction set of the value model, the only one supported. Earlier
 // versions built the previous syntax trees, so their files are not loaded and need to be
 // compiled again.
-const ISAVersion = 36
+const ISAVersion = 37

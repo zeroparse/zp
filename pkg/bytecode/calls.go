@@ -121,8 +121,10 @@ func lines(p *OperatorsRuleInfo, f func(entry int)) {
 // does not fall through, so that control enters it only at its first instruction. A block leads to
 // the blocks its instructions may go to, to the next block if its last instruction falls through,
 // to the rules it calls and, for OPERATORS_RULE, to the blocks of the lines and skip. A rule leads
-// to the block of its entry. Entering a block may run any of its instructions, so the graph leads
-// from a rule to a rule whenever a run of the one may call the other.
+// to the block of its entry and to the rules that the CALL instructions of its Flow body call,
+// since the body runs in place of the match code. Entering a block may run any of its
+// instructions, so the graph leads from a rule to a rule whenever a run of the one may call the
+// other.
 //
 // The graph takes two buffers of sc, whose size follows the blocks and the edges, not the
 // instructions: a bit set of the instructions that begin a block, and one buffer for the
@@ -142,11 +144,24 @@ func newCallGraph(m *Module, sc *recScratch) callGraph {
 	for i := range m.Rules {
 		mark(m.Rules[i].Entry)
 	}
+	// flowCalls calls f with the rule of each CALL instruction of the Flow body of rule i.
+	flowCalls := func(i int, f func(rule int)) {
+		if fl := m.Flows[i]; fl != nil {
+			for _, in := range fl.Code {
+				if c, ok := in.Imm.(FlowCallOf); ok && in.Op == FlowCall {
+					f(c.Rule)
+				}
+			}
+		}
+	}
 	for i := range m.OperatorsRules {
 		lines(&m.OperatorsRules[i], mark)
 	}
 	// edges bounds the edges: the next block, at most one for each block, comes on top.
 	edges := len(m.Rules)
+	for i := range m.Rules {
+		flowCalls(i, func(int) { edges++ })
+	}
 	for ip := range m.Code {
 		in := &m.Code[ip]
 		if t, ok := target(in); ok {
@@ -212,6 +227,7 @@ func newCallGraph(m *Module, sc *recScratch) callGraph {
 	for i := range m.Rules {
 		g.start[blocks+i] = int32(len(g.edges))
 		add(block(m.Rules[i].Entry))
+		flowCalls(i, func(rule int) { add(int32(blocks + rule)) })
 	}
 	g.start[nodes] = int32(len(g.edges))
 	return g
