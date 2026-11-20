@@ -325,7 +325,7 @@ func (p *Parser) ResumeRepeat(rs *RunSite) (*value.Node, bool) {
 		if !ok {
 			p.Reset(m0)
 			if cut {
-				p.DropKids(base)
+				p.TruncateKids(base)
 				return nil, false
 			}
 			break
@@ -338,7 +338,7 @@ func (p *Parser) ResumeRepeat(rs *RunSite) (*value.Node, bool) {
 		}
 	}
 	if r.Count < rs.Min {
-		p.DropKids(base)
+		p.TruncateKids(base)
 		return nil, false
 	}
 	p.FinishRun(&r)
