@@ -35,7 +35,7 @@ func parseTest(src string) (*ast.Grammar, error) {
 
 // mustCompile compiles ZeroParse source with source information, so that results show rule names and
 // capture labels.
-func mustCompile(t *testing.T, src string, opts ...compile.Options) *Program {
+func mustCompile(t testing.TB, src string, opts ...compile.Options) *Program {
 	t.Helper()
 	var o compile.Options
 	if len(opts) > 0 {
@@ -47,7 +47,7 @@ func mustCompile(t *testing.T, src string, opts ...compile.Options) *Program {
 
 // compileBare compiles ZeroParse source with the options as given: without source information unless
 // they request it.
-func compileBare(t *testing.T, src string, opts ...compile.Options) *Program {
+func compileBare(t testing.TB, src string, opts ...compile.Options) *Program {
 	t.Helper()
 	g, err := parseTest(src)
 	if err != nil {

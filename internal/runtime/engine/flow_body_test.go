@@ -101,7 +101,7 @@ func flowPrograms(t *testing.T, path string, pick func(rule string) bool, mutate
 }
 
 // flowProgramsOf is flowPrograms for the grammar src.
-func flowProgramsOf(t *testing.T, src string, pick func(rule string) bool, mutate func(rule string, f *bytecode.Flow)) (old, flows *Program, n int) {
+func flowProgramsOf(t testing.TB, src string, pick func(rule string) bool, mutate func(rule string, f *bytecode.Flow)) (old, flows *Program, n int) {
 	t.Helper()
 	old = mustCompile(t, src)
 	cp := old.src.(interface{ Checked() *compile.Program }).Checked()

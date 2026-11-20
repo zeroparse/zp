@@ -223,6 +223,11 @@ func TestCompiledCorruptionDoesNotPanic(t *testing.T) {
 			seeds = append(seeds, data)
 		}
 	}
+	var srcs []string
+	for _, c := range codegentest.GenCorpus(t) {
+		srcs = append(srcs, c.Src)
+	}
+	seeds = append(seeds, flowSeeds(t, srcs)...)
 	rng := rand.New(rand.NewSource(1))
 	for i := 0; i < 3000; i++ {
 		seed := seeds[rng.Intn(len(seeds))]
@@ -326,6 +331,31 @@ func TestCompiledUnmarkedCycleRejected(t *testing.T) {
 	}
 }
 
+// flowSeeds returns compiled grammars whose rules run Flow bodies, so that corrupting them corrupts
+// the encoding of the bodies too: the grammars srcs with every rule that has a Flow body running it,
+// saved in each compile mode, for those that have one.
+func flowSeeds(t testing.TB, srcs []string) [][]byte {
+	t.Helper()
+	var seeds [][]byte
+	for _, src := range srcs {
+		_, prog, _ := flowProgramsOf(t, src, func(string) bool { return true }, nil)
+		if len(prog.Module().Flows) == 0 {
+			continue
+		}
+		for _, mode := range allModes {
+			data, err := prog.Marshal("main", mode)
+			if err != nil {
+				t.Fatal(err)
+			}
+			seeds = append(seeds, data)
+		}
+	}
+	if len(seeds) == 0 {
+		t.Fatal("no grammar has a Flow body")
+	}
+	return seeds
+}
+
 func FuzzLoadProgram(f *testing.F) {
 	for _, src := range []string{codegentest.Arith, codegentest.AST, codegentest.IncrementalGrammar, codegentest.Records} {
 		g := mustParse(src)
@@ -337,6 +367,9 @@ func FuzzLoadProgram(f *testing.F) {
 			data, _ := prog.Marshal("main", mode)
 			f.Add(data)
 		}
+	}
+	for _, data := range flowSeeds(f, []string{codegentest.Arith, codegentest.AST, codegentest.IncrementalGrammar, codegentest.Records}) {
+		f.Add(data)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		prog, start, err := LoadProgram(data)
