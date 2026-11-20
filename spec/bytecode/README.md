@@ -455,12 +455,15 @@ An instruction named after an operation of the [Flow dialect](../flow-ir/operati
 and charges what its cost bound names, and no more; the other instructions charge nothing. A Flow body therefore charges
 what its Flow function charges.
 
-The match code of the same rule charges by its own instructions: it builds nodes without a charge, except the tuple
-node that wraps a value to attach the captures of a scope to, which charges a unit as `flow.attachFrame` does, charges each child
-that a sequence gathers, and peeks and unwinds as its instructions do. A parse can therefore spend different numbers of
-units with a rule's Flow body and with its match code, as compute counts are implementation-specific
-([Cancellation and Compute Limits](../runtime/parsing.md#cancellation-and-compute-limits)); the code generated from the
-same Flow function is the one that charges as the Flow body.
+A Flow body charges what the match code of its rule charges, and the code generated from the same Flow function charges
+the same: compute is counted in the units of
+[Cancellation and Compute Limits](../runtime/parsing.md#cancellation-and-compute-limits), which are the same on every
+backend, so a parse spends the same units whichever of them runs a rule. The match code charges by its own instructions:
+it builds nodes without a charge, except the tuple node that wraps a value to attach the captures of a scope to, which
+charges a unit as `flow.attachFrame` does, charges each child that a sequence gathers, and peeks and unwinds as its
+instructions do. The current Flow bodies do not yet meet this rule: on most grammars a parse spends fewer units when its
+rules run their Flow bodies than when they run their match code. That difference is a defect to be fixed, not a
+permitted variation.
 
 ## Error Messages
 

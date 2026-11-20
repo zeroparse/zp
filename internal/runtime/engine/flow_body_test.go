@@ -323,9 +323,9 @@ func grammarCorpus(t *testing.T, path string) []string {
 
 // TestFlowBodiesTestdataGrammars runs the samples of the testdata grammars, and prefixes of them,
 // through both VM models with every rule that has a Flow body running it: the trees and the errors
-// must be those of the match code, and the module must load. The spends are not compared: a Flow
-// body charges what its Flow function charges, which is not what the match code of its rule charges
-// (spec/bytecode/README.md, Flow Bodies).
+// must be those of the match code, and the module must load. The spends are not compared yet: the
+// current Flow bodies do not charge what the match code of their rules charges, a defect that
+// spec/bytecode/README.md (Flow Bodies) records.
 func TestFlowBodiesTestdataGrammars(t *testing.T) {
 	paths, err := filepath.Glob("../../../testdata/grammars/*/*.zp")
 	if err != nil || len(paths) == 0 {

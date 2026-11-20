@@ -865,8 +865,7 @@ keep them are free, as marking a slot is.
 A walk of a run site whose iterations have values and that ends without making
 a list, as one that fails below its minimum, drops the elements it holds and
 those of the record it took; as for a repetition that fails below its minimum,
-this specification does not fix what dropping them charges, and backends may
-charge it differently.
+dropping them charges nothing, since each was charged when it was gathered.
 
 A walk that reuses a record does not enter the calls that the recorded walk
 made, so their nesting does not count toward the [nesting limit](#limits), as
@@ -2673,9 +2672,9 @@ the list or the parse builds it, as for the list of a repetition. A list that
 reuses the elements kept in the record of an earlier walk ([Run Sites](#run-sites))
 takes off only the elements gathered before them. A repetition that fails
 below its minimum makes no list, so the values it gathered are dropped, not
-taken off; this specification does not fix what dropping them charges, and
-backends may charge it differently. Where two
-backends make the same charges, they report the same `Used` and `Requested`.
+taken off, and dropping them charges nothing, since each was charged when it
+was gathered. Every backend makes the same charges, so every backend reports
+the same `Used` and `Requested`.
 
 ### Memory Limit
 
