@@ -2673,8 +2673,14 @@ reuses the elements kept in the record of an earlier walk ([Run Sites](#run-site
 takes off only the elements gathered before them. A repetition that fails
 below its minimum makes no list, so the values it gathered are dropped, not
 taken off, and dropping them charges nothing, since each was charged when it
-was gathered. Every backend makes the same charges, so every backend reports
-the same `Used` and `Requested`.
+was gathered.
+
+Every backend must make the same charges, so that every backend reports the
+same `Used` and `Requested` for the same grammar, input and options; a backend
+that charges differently has a defect, not a permitted variation. The current
+backends do not yet meet this rule everywhere: for one, the bytecode machine's
+rules that run their [Flow bodies](../bytecode/README.md#flow-bodies) charge
+fewer units than their match code does.
 
 ### Memory Limit
 
