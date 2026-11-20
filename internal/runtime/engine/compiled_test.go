@@ -5,9 +5,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
+	"maps"
 	"math/rand"
 	"os"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"testing"
 
@@ -250,6 +252,77 @@ func TestCompiledCorruptionDoesNotPanic(t *testing.T) {
 				}
 			}
 		}()
+	}
+}
+
+// TestCompiledUnmarkedCycleRejected checks that a module where a rule on a cycle of calls is not
+// marked Rec does not load: only the calls of marked rules count against the nesting limit, so the
+// cycle would recurse past the host stack. Pointing the entry of a rule at a call of itself makes a
+// direct cycle, pointing two rules' entries at calls of each other a mutual one; with the marks set,
+// the same modules load and the parse fails at the nesting limit.
+func TestCompiledUnmarkedCycleRejected(t *testing.T) {
+	t.Parallel()
+	const src = "rule main = a \"+\" b\nrule a = [0-9]+ \"a\"\nrule b = [0-9]+ \"b\"\n"
+	// calls returns the address of a call of each rule that main calls, by rule index.
+	calls := func(m *bytecode.Module) map[int]int {
+		at := map[int]int{}
+		for ip, in := range m.Code {
+			if in.Op == bytecode.OpCall && !m.Rules[in.A].Rec {
+				at[int(in.A)] = ip
+			}
+		}
+		return at
+	}
+	for _, tc := range []struct {
+		name  string
+		cycle func(m *bytecode.Module, at map[int]int) []int // patches m, returns the rules of the cycle
+	}{
+		{"direct", func(m *bytecode.Module, at map[int]int) []int {
+			rs := slices.Sorted(maps.Keys(at))
+			if len(rs) == 0 {
+				return nil
+			}
+			m.Rules[rs[0]].Entry = at[rs[0]]
+			return rs[:1]
+		}},
+		{"mutual", func(m *bytecode.Module, at map[int]int) []int {
+			rs := slices.Sorted(maps.Keys(at))
+			if len(rs) < 2 {
+				return nil
+			}
+			a, b := rs[0], rs[1]
+			m.Rules[a].Entry, m.Rules[b].Entry = at[b], at[a]
+			return []int{a, b}
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, mark := range []bool{false, true} {
+				prog := mustCompile(t, src)
+				m := prog.Module()
+				rs := tc.cycle(m, calls(m))
+				if rs == nil {
+					t.Fatalf("no calls to patch in\n%s", src)
+				}
+				for _, r := range rs {
+					m.Rules[r].Rec = mark
+				}
+				loaded, start, err := LoadProgram(marshalWithTrailing(prog, "main", nil))
+				if !mark {
+					if err == nil || !strings.Contains(err.Error(), "is on a cycle of calls but is not marked recursive") {
+						t.Fatalf("unmarked cycle: got %v, want a rejection", err)
+					}
+					continue
+				}
+				if err != nil {
+					t.Fatalf("marked cycle: %v", err)
+				}
+				for _, be := range []Backend{Default, Bytecode, BytecodeIterative} {
+					if _, err := loaded.ParseWith(start, "1+2", servedBy(CompiledParse, ParseOptions{Backend: be, Limits: runtime.Limits{Depth: 1000}})); err == nil {
+						t.Errorf("%v: marked cycle parsed", be)
+					}
+				}
+			}
+		})
 	}
 }
 

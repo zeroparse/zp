@@ -433,8 +433,9 @@ func (r *Decoder) termInstr() TermInstr {
 	return TermInstr{Op: op, Dst: ops[0], A: ops[1], B: ops[2], C: ops[3]}
 }
 
-// ValidateModule checks that every table and instruction reference in the module is in range
-// and that jumps go forward (only the NEXT of a repetition jumps backward).
+// ValidateModule checks that every table and instruction reference in the module is in range,
+// that jumps go forward (only the NEXT of a repetition jumps backward) and that every rule on a
+// cycle of calls is marked Rec (validateRec).
 // Recovery regions must not enclose a stream commitment. Other value-stack
 // and entry-stack invariants are not checked. fieldType checks the text of a field type, which
 // the type system above the module defines.
@@ -694,7 +695,7 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			forward(ip, x.A, n)
 		case OpLook:
 			flag(x.B, 1)
-			if x.B == 1 { // a positive lookahead does not use the jump target
+			if x.B == 1 { // only a negative lookahead jumps to its target
 				forward(ip, x.A, n)
 				flag(x.C, 0)
 			} else {
@@ -825,7 +826,10 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 	if err != nil {
 		return err
 	}
-	return ValidateStreamRecovery(m.Code)
+	if err := ValidateStreamRecovery(m.Code); err != nil {
+		return err
+	}
+	return validateRec(m)
 }
 
 // ValidateStreamRecovery checks recovery boundaries in lexical bytecode order.
